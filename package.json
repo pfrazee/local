@@ -14,7 +14,8 @@
     },
     "dependencies": {
         "optimist": "0.2.x",
-        "http-proxy": "0.8.x"
+        "http-proxy": "0.8.x",
+        "node-static": "0.5.x"
     },
     "devDependencies": {},
     "main": "./lib/linkshui",

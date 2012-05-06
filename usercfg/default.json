@@ -1,0 +1,12 @@
+{
+    "user":0,
+    "environments": {
+        "welcome": {
+            "#":{ "file":"cli.js" },
+            "#login":{ "file":"login.js" },
+            "#beta-req":{ "file":"betareq.js" },
+            "#help":{ "file":"pipe.js", "dest":"/help" },
+            "#tour":{ "file":"pipe.js", "dest":"/help/tour" }
+        }
+    }
+}
