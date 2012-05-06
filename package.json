@@ -1,0 +1,22 @@
+{
+    "author": "Paul Frazee <pfrazee@gmail.com>",
+    "name": "linkshui",
+    "description": "A browser CLI for remote web services and Link javascript modules.",
+    "version": "0.0.1",
+    "homepage": "http://github.com/pfraze/linkshui",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/pfraze/linkshui.git"
+    },
+    "keywords": ["cli", "link", "http"],
+    "engines": {
+        "node": "~0.6.6"
+    },
+    "dependencies": {
+        "optimist": "0.2.x",
+        "http-proxy": "0.8.x"
+    },
+    "devDependencies": {},
+    "main": "./lib/linkshui",
+    "bin": { "linkshui": "./bin/linkshui" }
+}
