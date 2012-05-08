@@ -1,7 +1,7 @@
 {
     "user":0,
     "environments": {
-        "welcome": {
+        "default": {
             "#":{ "file":"cli.js" },
             "#login":{ "file":"login.js" },
             "#beta-req":{ "file":"betareq.js" },
