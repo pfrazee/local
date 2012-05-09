@@ -21,24 +21,24 @@
 
 <div id="lshui-midlayer">
     <div id="lshui-cli">
-        <span id="lshui-cli-prompt">20:40:05 May05</span>
+        <span id="lshui-cli-prompt">loading</span>
         <span id="lshui-cli-prompt-end">&rsaquo;</span>
-        <input type="text" />
+        <form method="post" action="#cli"><input id="lshui-cli-input" name="cmd" type="text" /></form>
     </div>
     <div id="lshui-leftpanel">
-        <div>
-            <p>&rsaquo;#/</p>
-            <p><span class="good">200</span> ok <a href="#hist/1">'#hist/1'</a></p>
-        </div>
-        <div>
+        <div id="lshui-hist"></div>
+        <div id="lshui-banner">
             <h1>linkshui</h1>
-            <p>design rev1</p>
+            <p>v0.0.1 / <span class="bad">failing</span></p>
         </div>
     </div>
     <div id="lshui-mainpanel">
-        <div class="lshui-app">
+        <div id="lshui-env">
             <p>Welcome. Type <a href="#/tour" title="Take a tour of linkshui">'tour'</a> if you are new.</p>
             <p><a href="#/login" title="Sign in to an existing linkshui account">'login'</a> &middot; <a href="#/beta-req" title="Request a beta account for linkshui">'beta-req'</a>uest &middot; <a href="#/help" title="Help system">'help'</a></p>
         </div>
     </div>
 </div>
+
+<script>var env_config = JSON.parse('$env_config;');</script>
+<script data-main="modules/loader" src="/assets/js/require.js"></script>

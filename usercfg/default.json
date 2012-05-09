@@ -1,12 +1,20 @@
 {
     "user":0,
-    "environments": {
-        "default": {
-            "#":{ "file":"cli.js" },
-            "#login":{ "file":"login.js" },
-            "#beta-req":{ "file":"betareq.js" },
-            "#help":{ "file":"pipe.js", "dest":"/help" },
-            "#tour":{ "file":"pipe.js", "dest":"/help/tour" }
+    "environments":{
+        "default":{
+            "logging_enabled":1,
+            "structure":{
+                "#":{ "__file":"linkshui/test" }
+            }
+        },
+        "default-soon":{
+            "logging_enabled":1,
+            "structure":{
+                "#login":{ "__file":"linkshui/login" },
+                "#beta-req":{ "__file":"linkshui/betareq" },
+                "#help":{ "__file":"common/pipe", "dest":"/help" },
+                "#tour":{ "__file":"common/pipe", "dest":"/help/tour" }
+            }
         }
     }
 }

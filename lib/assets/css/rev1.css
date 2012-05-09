@@ -36,20 +36,22 @@ a { color: #06c; }
 #lshui-midlayer {
 }
 #lshui-cli {
-    overflow: hidden;
     width: 100%;
+}
+#lshui-cli form {
+    margin: 0;
 }
 #lshui-cli input {
     width: 100%;
     -webkit-border-radius: 0;
     -moz-border-radius: 0;
     border-radius: 0;
+    border-color: #999;
     padding: 5px 4px 3px 165px;
     position: relative;
     left: -1px; /* hide the left edge of the input box */
     font-family: "lucida console", monospace;
     height: 20px;
-    overflow: hidden;
     margin-bottom: 0;
 }
 #lshui-cli-prompt {
@@ -71,24 +73,26 @@ a { color: #06c; }
 #lshui-leftpanel {
     float: left;
     width: 150px;
-    padding: 5px 2px 0 2px;
-    border-right: 1px solid #ddd;
-    background: #f6f6f6;
-    overflow: hidden;
 }
-#lshui-leftpanel:hover {
+#lshui-hist {
+    padding: 5px 2px 0 2px;
+    border-right: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    background: #eaeaea;
+    overflow: hidden;
+    box-shadow: inset -1px 2px 2px rgba(0,0,0,0.1);
+}
+#lshui-hist:hover {
     overflow: visible;
 }
-#lshui-leftpanel div {
-    margin-bottom: 5px; 
+#lshui-hist div {
+    margin-bottom: 5px;
+    background: #ddd;
 }
-#lshui-leftpanel div > p:first-child {
+#lshui-hist div > p:first-child {
     color:#808080;
 }
-#lshui-leftpanel div h1 {
-    line-height: 28px;
-}
-#lshui-leftpanel div p {
+#lshui-hist div p {
     font-family: "lucida console", monospace;
     font-size: 12px;
     background: white;
@@ -96,9 +100,14 @@ a { color: #06c; }
     position: relative;
     z-index: 10000;
     padding: 0 3px;
-    margin: 0;
-    border: 1px solid #ddd;
-    margin-bottom: 1px;
+    margin: 0 1px 1px 0;
+    border: 1px solid #bbb;
+}
+#lshui-banner {
+    padding: 4px;
+}
+#lshui-banner h1 {
+    line-height: 26px;
 }
 
 #lshui-mainpanel {
