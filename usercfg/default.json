@@ -4,7 +4,12 @@
         "default":{
             "logging_enabled":1,
             "structure":{
-                "#":{ "__file":"linkshui/test" }
+                "#":{ "__file":"linkshui/test" },
+                "#test2":{ "__file":"linkshui/test" },
+                "#test3":{ "__file":"linkshui/test" },
+                "#http://":{ "__file":"common/pipe", "target":"http://" },
+                "#https://":{ "__file":"common/pipe", "target":"https://" },
+                "#hn":{ "__file":"common/pipe", "target":"http://news.ycombinator.com/" }
             }
         },
         "default-soon":{

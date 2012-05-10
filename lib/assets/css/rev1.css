@@ -1,6 +1,8 @@
+body { font-size: 15px; }
 a { color: #06c; }
 .good { color: #693; }
 .bad { color: #930; }
+li, p { line-height: 21px; }
 
 #lshui-toplayer {
     height: 23px;
@@ -85,6 +87,9 @@ a { color: #06c; }
 #lshui-hist:hover {
     overflow: visible;
 }
+#lshui-hist:hover p {
+    box-shadow: 0 0 8px rgba(0,0,0, 0.5);
+}
 #lshui-hist div {
     margin-bottom: 5px;
     background: #ddd;
@@ -102,6 +107,7 @@ a { color: #06c; }
     padding: 0 3px;
     margin: 0 1px 1px 0;
     border: 1px solid #bbb;
+    white-space: pre;
 }
 #lshui-banner {
     padding: 4px;

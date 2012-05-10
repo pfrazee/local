@@ -15,8 +15,8 @@
     "dependencies": {
         "optimist": "0.2.x",
         "http-proxy": "0.8.x",
-        "link-js": "latest",
-        "tint-js": "latest"
+        "pfraze-linkjs": "latest",
+        "tintjs": "latest"
     },
     "devDependencies": {},
     "main": "./lib/linkshui",
