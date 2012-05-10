@@ -87,26 +87,27 @@ li, p { line-height: 21px; }
 #lshui-hist:hover {
     overflow: visible;
 }
-#lshui-hist:hover p {
-    box-shadow: 0 0 8px rgba(0,0,0, 0.5);
+#lshui-hist:hover div {
+    box-shadow: 2px 2px 3px rgba(0,0,0, 0.1);
 }
 #lshui-hist div {
     margin-bottom: 5px;
-    background: #ddd;
+    padding-top: 2px;
+    border: 1px solid #ccc;
+    background: #fff;
+    display: inline-block;
+    position: relative;
+    z-index: 10000;
 }
 #lshui-hist div > p:first-child {
     color:#808080;
 }
 #lshui-hist div p {
     font-family: "lucida console", monospace;
-    font-size: 12px;
+    font-size: 12px; line-height: 17px;
     background: white;
-    display: inline-block;
-    position: relative;
-    z-index: 10000;
     padding: 0 3px;
-    margin: 0 1px 1px 0;
-    border: 1px solid #bbb;
+    margin: 0;
     white-space: pre;
 }
 #lshui-banner {
