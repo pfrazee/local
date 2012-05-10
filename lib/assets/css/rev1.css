@@ -117,8 +117,9 @@ li, p { line-height: 21px; }
 }
 
 #lshui-mainpanel {
-    margin-left: 168px;
+    margin-left: 158px;
     margin-top: 8px;
+    padding-right: 8px;
 }
 
 .lshui-app p {
