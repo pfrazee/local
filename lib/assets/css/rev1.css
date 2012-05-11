@@ -1,4 +1,4 @@
-body { font-size: 15px; }
+body { font-size: 15px; background: #eee; }
 a { color: #06c; }
 .good { color: #693; }
 .bad { color: #930; }
@@ -75,14 +75,12 @@ li, p { line-height: 21px; }
 #lshui-leftpanel {
     float: left;
     width: 150px;
+    min-height: 480px;
+    background: #eee;
 }
 #lshui-hist {
-    padding: 5px 2px 0 2px;
-    border-right: 1px solid #ccc;
-    border-bottom: 1px solid #ccc;
-    background: #eaeaea;
+    padding: 2px 2px 0 2px;
     overflow: hidden;
-    box-shadow: inset -1px 2px 2px rgba(0,0,0,0.1);
 }
 #lshui-hist:hover {
     overflow: visible;
@@ -91,7 +89,7 @@ li, p { line-height: 21px; }
     box-shadow: 2px 2px 3px rgba(0,0,0, 0.1);
 }
 #lshui-hist div {
-    margin-bottom: 5px;
+    margin: 0 2px 2px 0;
     padding-top: 2px;
     border: 1px solid #ccc;
     background: #fff;
@@ -99,28 +97,28 @@ li, p { line-height: 21px; }
     position: relative;
     z-index: 10000;
 }
-#lshui-hist div > p:first-child {
-    color:#808080;
-}
 #lshui-hist div p {
+    color:#808080;
     font-family: "lucida console", monospace;
     font-size: 12px; line-height: 17px;
-    background: white;
     padding: 0 3px;
     margin: 0;
     white-space: pre;
 }
 #lshui-banner {
     padding: 4px;
+    color: gray;
 }
 #lshui-banner h1 {
     line-height: 26px;
 }
 
 #lshui-mainpanel {
-    margin-left: 158px;
-    margin-top: 8px;
-    padding-right: 8px;
+    margin: 2px 2px 0 150px;
+    padding: 8px 13px;
+    border: 1px solid #ccc;
+    background: #fff;
+    box-shadow: -2px 0 3px rgba(0,0,0, 0.1);
 }
 
 .lshui-app p {
