@@ -14,7 +14,7 @@
     },
     "dependencies": {
         "optimist": "0.2.x",
-        "http-proxy": "0.8.x",
+        "http-proxy": "0.8.0",
         "pfraze-linkjs": "latest",
         "tintjs": "latest"
     },

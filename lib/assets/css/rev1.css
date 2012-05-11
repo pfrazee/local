@@ -48,7 +48,8 @@ li, p { line-height: 21px; }
     -webkit-border-radius: 0;
     -moz-border-radius: 0;
     border-radius: 0;
-    border-color: #999;
+    border-color-top: #aaa;
+    border-color-bottom: #bbb;
     padding: 5px 4px 3px 165px;
     position: relative;
     left: -1px; /* hide the left edge of the input box */
@@ -75,7 +76,6 @@ li, p { line-height: 21px; }
 #lshui-leftpanel {
     float: left;
     width: 150px;
-    min-height: 480px;
     background: #eee;
 }
 #lshui-hist {
@@ -85,17 +85,24 @@ li, p { line-height: 21px; }
 #lshui-hist:hover {
     overflow: visible;
 }
-#lshui-hist:hover div {
+#lshui-hist:hover > div {
     box-shadow: 2px 2px 3px rgba(0,0,0, 0.1);
+    width: auto;
+    background:#fff;
 }
-#lshui-hist div {
+#lshui-hist:hover > div p {
+    color:#333;
+}
+#lshui-hist > div {
     margin: 0 2px 2px 0;
     padding-top: 2px;
     border: 1px solid #ccc;
-    background: #fff;
+    background: #fafafa;
     display: inline-block;
     position: relative;
     z-index: 10000;
+    width: 144px;
+    overflow:hidden;
 }
 #lshui-hist div p {
     color:#808080;
@@ -105,20 +112,23 @@ li, p { line-height: 21px; }
     margin: 0;
     white-space: pre;
 }
+#lshui-hist div div { width:144px }
+#lshui-hist div div p.right { float:right }
 #lshui-banner {
-    padding: 4px;
+    padding: 0 4px;
     color: gray;
+    position:absolute;
+    bottom:0; right:0;
 }
-#lshui-banner h1 {
-    line-height: 26px;
-}
+#lshui-banner h1 { line-height: 26px }
+#lshui-banner p { margin:0 }
 
 #lshui-mainpanel {
     margin: 2px 2px 0 150px;
     padding: 8px 13px;
     border: 1px solid #ccc;
     background: #fff;
-    box-shadow: -2px 0 3px rgba(0,0,0, 0.1);
+    box-shadow: 2px 2px 3px rgba(0,0,0, 0.1);
 }
 
 .lshui-app p {
