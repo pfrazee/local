@@ -1,11 +1,11 @@
-body { font-size:15px; background:#eee; }
+body { font-size:15px; background:url('/assets/img/wp4.jpg') top left no-repeat #eee fixed; }
 a { color:#06c; }
 .good { color:#693; }
 .bad { color:#930; }
 li, p { line-height:21px; }
 
 #lshui-toplayer {
-    height:23px;
+    height:24px;
     background:rgb(255,255,255); /* Old browsers */
     background:-moz-linear-gradient(top,  rgba(255,255,255,1) 0%, rgba(241,241,241,1) 50%, rgba(225,225,225,1) 51%, rgba(246,246,246,1) 100%); /* FF3.6+ */
     background:-webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(255,255,255,1)), color-stop(50%,rgba(241,241,241,1)), color-stop(51%,rgba(225,225,225,1)), color-stop(100%,rgba(246,246,246,1))); /* Chrome,Safari4+ */
@@ -39,6 +39,7 @@ li, p { line-height:21px; }
 }
 #lshui-cli {
     width:100%;
+    box-shadow:2px 2px 3px rgba(0,0,0, 0.25);
 }
 #lshui-cli form {
     margin:0;
@@ -76,7 +77,6 @@ li, p { line-height:21px; }
 #lshui-leftpanel {
     float:left;
     width:150px;
-    background:#eee;
 }
 #lshui-hist {
     padding:2px 2px 0 2px;
@@ -86,9 +86,11 @@ li, p { line-height:21px; }
     overflow:visible;
 }
 #lshui-hist:hover > div {
-    box-shadow:2px 2px 3px rgba(0,0,0, 0.1);
+    box-shadow:2px 2px 3px rgba(0,0,0, 0.25);
     width:auto;
     background:#fff;
+    opacity:1;
+    border:1px solid #ddd;
 }
 #lshui-hist:hover > div p {
     color:#333;
@@ -96,13 +98,15 @@ li, p { line-height:21px; }
 #lshui-hist > div {
     margin:0 2px 2px 0;
     padding-top:2px;
-    border:1px solid #ccc;
     background:#fafafa;
     display:inline-block;
     position:relative;
     z-index:10000;
     width:144px;
     overflow:hidden;
+    opacity:0.75;
+    border-radius:3px;
+    border:1px solid #fff;
 }
 #lshui-hist div p {
     color:#808080;
@@ -130,10 +134,10 @@ li, p { line-height:21px; }
 
 #lshui-env > div > div {
     padding:8px 13px;
-    border:1px solid #ccc;
     background:#fff;
-    box-shadow:2px 2px 3px rgba(0,0,0, 0.1);
+    box-shadow:2px 2px 3px rgba(0,0,0, 0.25);
     margin-bottom:2px;
+    border-radius:3px;
 }
 
 .orderdiv-titlebar {
