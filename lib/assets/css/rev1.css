@@ -117,11 +117,12 @@ li, p { line-height:21px; }
 #lshui-banner {
     padding:0 4px;
     color:gray;
-    position:absolute;
+    position:fixed;
     bottom:0; right:0;
+    text-align:right
 }
-#lshui-banner h1 { line-height:26px }
-#lshui-banner p { margin:0 }
+#lshui-banner h1 { line-height:24px }
+#lshui-banner p { margin:0; font-size:12px }
 
 #lshui-mainpanel {
     margin:2px 2px 0 150px;
