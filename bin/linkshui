@@ -7,7 +7,7 @@ var linkshui = require('../lib/linkshui');
 
 // Help command
 // ============
-if (argv.h || argv.help || Object.keys(argv).length === 2) {
+if (argv.h || argv.help) {
     var help = [ // :TODO: help output
         "usage: linkshui [options] ",
         "",
@@ -22,10 +22,13 @@ if (argv.h || argv.help || Object.keys(argv).length === 2) {
 
 // CL config
 // =========
-var port = argv.port || 80;
+var port = argv.port || argv.p || 80;
+var config = {
+    use_proxy:(argv.proxy ? (+argv.proxy != 0) : false)
+};
 
 // Create server
 // =============
-var server = linkshui.createServer();
+var server = linkshui.createServer(config);
 server.listen(port);
 util.puts('linkshui server now listening on port: ' + port);
