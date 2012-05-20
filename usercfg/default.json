@@ -5,8 +5,8 @@
             "logging_enabled":1,
             "structure":{
                 "#":{ "__file":"linkshui/test" },
-                "#http://":{ "__file":"common/pipe", "target":"http://" },
-                "#https://":{ "__file":"common/pipe", "target":"https://" },
+                "#http":{ "__file":"common/pipe", "target":"http" },
+                "#ls":{ "__file":"linkshui/ls" },
                 "#je":{ "__file":"wjosdejong/jsoneditor" }
             }
         },
