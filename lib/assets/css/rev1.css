@@ -116,7 +116,7 @@ li, p { line-height:21px; }
     white-space:pre;
 }
 #lshui-hist div div { width:144px }
-#lshui-hist div div p.right { float:right; text-align:right; width:150px; white-space:normal }
+#lshui-hist div div p.right { float:right; text-align:right; width:140px; white-space:normal }
 #lshui-banner {
     padding:0 6px;
     color:white; opacity:0.5;
