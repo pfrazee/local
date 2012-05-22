@@ -90,14 +90,13 @@ li, p { line-height:21px; }
     width:auto;
     background:#fff;
     opacity:1;
-    border:1px solid #ddd;
 }
 #lshui-hist:hover > div p {
     color:#333;
 }
 #lshui-hist > div {
     margin:0 2px 2px 0;
-    padding-top:2px;
+    padding-top:3px;
     background:#fafafa;
     display:inline-block;
     position:relative;
@@ -105,7 +104,6 @@ li, p { line-height:21px; }
     width:144px;
     overflow:hidden;
     opacity:0.75;
-    border:1px solid #fff;
 }
 #lshui-hist div p {
     color:#808080;
@@ -128,9 +126,8 @@ li, p { line-height:21px; }
 #lshui-banner p { margin:0; font-size:12px }
 
 #lshui-mainpanel {
-    margin:2px 2px 0 150px;
+    margin:2px 2px 0 148px;
 }
-
 #lshui-env > div > div {
     padding:8px 13px;
     background:#fff;

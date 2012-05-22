@@ -6,7 +6,8 @@
             "structure":{
                 "#":{ "__file":"linkshui/test" },
                 "#ls":{ "__file":"linkshui/ls" },
-                "#je":{ "__file":"wjosdejong/jsoneditor" }
+                "#je":{ "__file":"wjosdejong/jsoneditor" },
+                "#toys/bggl":{ "__file":"toys/bggl" }
             }
         },
         "default-soon":{
