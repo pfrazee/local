@@ -147,5 +147,5 @@ li, p { line-height:21px; }
 }
 .orderdiv-titlebar-ctrls { float:right }
 .orderdiv-titlebar form { margin:0 }
-.orderdiv-collapsed { background:#fafafa }
-.orderdiv-collapsed .orderdiv-body { display:none }
+#lshui-env .collapsed > div { opacity:0.75 }
+#lshui-env .collapsed .orderdiv-body { display:none }
