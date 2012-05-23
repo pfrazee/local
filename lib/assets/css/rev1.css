@@ -1,11 +1,12 @@
-body { font-size:15px; background:url('/assets/img/wp4.jpg') top left no-repeat #eee fixed; }
+body { font-size:15px; background:url('/assets/img/wp4.jpg') top left no-repeat #eee fixed; margin-top:56px; }
 a { color:#06c; }
 .good { color:#693; }
 .bad { color:#930; }
 li, p { line-height:21px; }
 
 #lshui-toplayer {
-    height:24px;
+    position:fixed; top:0; left:0;
+    height:24px; width:100%;
     background:rgb(255,255,255); /* Old browsers */
     background:-moz-linear-gradient(top,  rgba(255,255,255,1) 0%, rgba(241,241,241,1) 50%, rgba(225,225,225,1) 51%, rgba(246,246,246,1) 100%); /* FF3.6+ */
     background:-webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(255,255,255,1)), color-stop(50%,rgba(241,241,241,1)), color-stop(51%,rgba(225,225,225,1)), color-stop(100%,rgba(246,246,246,1))); /* Chrome,Safari4+ */
@@ -38,6 +39,8 @@ li, p { line-height:21px; }
 #lshui-midlayer {
 }
 #lshui-cli {
+    position:fixed;
+    top:24px; left:0;
     width:100%;
     box-shadow:2px 2px 3px rgba(0,0,0, 0.25);
 }
@@ -60,17 +63,17 @@ li, p { line-height:21px; }
 }
 #lshui-cli-prompt {
     position:absolute;
-    top:30px;
+    top:7px;
     z-index:1;
-    width:143px;
+    width:140px;
     text-align:right;
     color:#999;
     font-family:"lucida console", monospace;
 }
 #lshui-cli-prompt-end {
     position:absolute;
-    top:29px;
-    left:149px;
+    top:6px;
+    left:145px;
     z-index:1;
 }
 
@@ -79,7 +82,7 @@ li, p { line-height:21px; }
     width:150px;
 }
 #lshui-hist {
-    padding:2px 2px 0 2px;
+    padding:0 2px 2px 2px;
     overflow:hidden;
 }
 #lshui-hist:hover {
