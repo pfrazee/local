@@ -8,6 +8,7 @@
                 "#env":{ "__file":"linkshui/env" },
                 "#spahql":{ "__file":"danski/spahql" },
                 "#je":{ "__file":"wjosdejong/jsoneditor" },
+                "#pp":{ "__file":"google/prettify" },
                 "#toys/bggl":{ "__file":"toys/bggl" }
             }
         },

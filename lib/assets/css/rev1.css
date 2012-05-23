@@ -7,6 +7,7 @@ li, p { line-height:21px; }
 #lshui-toplayer {
     position:fixed; top:0; left:0;
     height:24px; width:100%;
+    z-index:100;
     background:rgb(255,255,255); /* Old browsers */
     background:-moz-linear-gradient(top,  rgba(255,255,255,1) 0%, rgba(241,241,241,1) 50%, rgba(225,225,225,1) 51%, rgba(246,246,246,1) 100%); /* FF3.6+ */
     background:-webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(255,255,255,1)), color-stop(50%,rgba(241,241,241,1)), color-stop(51%,rgba(225,225,225,1)), color-stop(100%,rgba(246,246,246,1))); /* Chrome,Safari4+ */
@@ -42,6 +43,7 @@ li, p { line-height:21px; }
     position:fixed;
     top:24px; left:0;
     width:100%;
+    z-index:100;
     box-shadow:2px 2px 3px rgba(0,0,0, 0.25);
 }
 #lshui-cli form {
@@ -103,7 +105,7 @@ li, p { line-height:21px; }
     background:#fafafa;
     display:inline-block;
     position:relative;
-    z-index:10000;
+    z-index:50;
     width:144px;
     overflow:hidden;
     opacity:0.75;
