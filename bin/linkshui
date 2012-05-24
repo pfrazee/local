@@ -22,7 +22,7 @@ if (argv.h || argv.help) {
 
 // CL config
 // =========
-var port = argv.port || argv.p || 80;
+var port = argv.port || 80;
 var config = {
     use_proxy:(argv.proxy ? (+argv.proxy != 0) : false)
 };
