@@ -8,14 +8,14 @@ var linkshui = require('../lib/linkshui');
 // Help command
 // ============
 if (argv.h || argv.help) {
-    var help = [ // :TODO: help output
+    var help = [
         "usage: linkshui [options] ",
         "",
         "Starts a linkshui server using the specified command-line options",
         "",
         "options:",
-        "  --port   PORT       Port that the proxy server should run on",
-        "  -h, --help          You're staring at it"
+        "  --port   PORT       Port that the server should run on",
+        "  -h, --help          Help documentation"
     ].join('\n');
     return util.puts(help);
 }

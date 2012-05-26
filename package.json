@@ -2,7 +2,7 @@
     "author": "Paul Frazee <pfrazee@gmail.com>",
     "name": "linkshui",
     "description": "A browser CLI for remote web services and Link javascript modules.",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "homepage": "http://github.com/pfraze/linkshui",
     "repository": {
         "type": "git",
