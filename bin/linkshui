@@ -24,7 +24,6 @@ if (argv.h || argv.help) {
 // =========
 var port = argv.port || 80;
 var config = {
-    use_proxy:(argv.proxy ? (+argv.proxy != 0) : false)
 };
 
 // Create server
