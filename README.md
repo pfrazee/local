@@ -3,7 +3,7 @@ LinkShUI
 
 A browser CLI for remote web services and [Link](http://github.com/pfraze/link) javascript modules.
 
-To run, clone into a directory, or run `npm install linkshui`.
+To run, clone into a directory and run `npm install`, or run `npm install -g linkshui`.
 
 Then run `./bin/linkshui --port=8000` and direct your browser to `http://localhost:8000` (or whatever
 domain your host uses).
