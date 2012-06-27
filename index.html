@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+    <head>
+        <title>LinkShUI</title>
+        <link rel="stylesheet" href="/bootstrap/css/bootstrap.css" />
+        <link rel="stylesheet" href="/css/rev1.css" />
+        <link rel="icon" type="image/vnd.microsoft.icon" href="/prompt.png" />
+    </head>
+    
+    <body>
+        <div id="lshui">
+            <div id="lshui-cli">
+                <span id="lshui-cli-prompt">loading</span>
+                <span id="lshui-cli-prompt-end">&rsaquo;</span>
+                <form method="post" action="#cli"><input id="lshui-cli-input" name="cmd" type="text" autofocus autocomplete="off" /></form>
+            </div>
+            <div id="lshui-leftpanel">
+                <div id="lshui-hist"></div>
+            </div>
+            <div id="lshui-mainpanel">
+                <div id="lshui-env"></div>
+            </div>
+            <div id="lshui-banner">
+                <h1>linkshui</h1>
+                <p>v0.0.1 crouching tiger</p>
+            </div>
+        </div>
+
+        <script>
+            var env_config = {
+                logging_enabled:1,
+                structure:[
+                    { uri:"#", module:"linkshui/test" },
+                    { uri:"#", module:"common/typefallbacks" },
+                    { uri:"#spahql", module:"danski/spahql" },
+                    { uri:"#je", module:"wjosdejong/jsoneditor" },
+                    { uri:"#pp", module:"google/prettify" },
+                    { uri:"#toys/bggl", module:"toys/bggl" }
+                ]
+            };
+        </script>
+        <script data-main="modules/main" src="/js/require.js"></script>
+    </body>
+</html>
