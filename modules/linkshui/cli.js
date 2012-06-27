@@ -3,20 +3,20 @@ Example:
   apps/foo [ json ] post --pragma="no-cache" convert [ xml ] post apps/bar
 
 command      = request { content-type [ request ] } .
-request      = [ method ] uri { header-flag | header-value } .
+request      = [ method ] uri { header-flag } .
 header-flag  = [ "-" | "--" ] header-key "=" header-value .
 content-type = "[" [ token | string ] "]" .
 method       = token .
 header-key   = token .
 header-value = token | string .
-uri          = "#" token | token "://" token .
+uri          = chars
 string       = '"' { token } '"'
 */
-define(['link'], function() {
+define(['lib/linkregistry', 'link'], function(LinkRegistry) {
     // CLI
     // ===
     // Run HTTP requests in the command line
-    var CLI = function(structure, elem_id) {
+    var CLI = function(structure, elem_id, config_links) {
         this.elemInput = document.getElementById(elem_id);
         this.structure = structure;
     };
@@ -40,7 +40,9 @@ define(['link'], function() {
         // Dispatch helper
         var self = this;
         var dispatch = function(req, handler) {
-            Object.defineProperty(request, 'cli', { value:true });
+            // Replace any link aliases
+            req.uri = LinkRegistry.replace(req.uri);
+            // Send through the structure
             self.structure.dispatch(req, function(res) {
                 res['content-location'] = req.uri; // set the content-location, so the final response goes to that and not the cli uri
                 handler(res);
@@ -49,7 +51,16 @@ define(['link'], function() {
             
         // Parse
         try { var cmd_requests = this.parse(body.cmd); }
-        catch(e) { return Link.response(205, e.toString(), 'text/html'); }
+        catch(e) {
+            var res = Link.response(400, 0, 0, { reason:e.toString() });
+            self.structure.dispatch({ uri:'#hist', method:'post', 'content-type':'obj', body:{ cmd:body.cmd, response:res }}, function() {
+                self.structure.dispatch({ uri:'#hist', method:'get', accept:'text/html' }, function(response) {
+                    // Get HTML out of the response
+                    document.getElementById('lshui-hist').innerHTML = response.body.toString();
+                });
+            });
+            return Link.response(204);
+        }
         var request_count = cmd_requests.length;
         var cur_request = null;
 
@@ -154,42 +165,33 @@ define(['link'], function() {
         return requests;
     };
     CLI.prototype.parser.readRequest = function() {
-        // request = [ method ] uri { header-flag | header-value } .
+        // request = [ method ] uri { header-flag } .
         // ==========================================
-        var targetUri = false, method, headers = {}, start_pos;
+        var targetUri = false, method = false, headers = {}, start_pos;
         start_pos = this.buffer_position;
         // Read till no more request features
         while (true) {
             var headerSwitch = this.readHeaderSwitch();
             if (headerSwitch) {
                 // shouldn't come before method & uri
-                if (!targetUri && !method) { throw "Unexpected header flag: " + headerSwitch; }
+                if (!targetUri && !method) { throw "Unexpected header flag '" + headerSwitch + "'"; }
                 headers[headerSwitch.key] = headerSwitch.value;
                 continue;
             }
-            if (!targetUri) {
-                // try to read if we haven't gotten it yet
-                targetUri = this.readUri();
-                if (targetUri) { continue; }
-            }
-            var token = this.readToken() || this.readString();
-            if (token) {
-                // if we have the uri or method, then its a header flag
-                if (targetUri || method) {
-                    if (!headers.argv) { headers.argv = []; }
-                    headers.argv.push(token);
+            var string = this.readNonSpaces();
+            if (string) {
+                // no uri, assume that's what it is
+                if (!targetUri) { targetUri = string; }
+                else if (!method) {
+                    // no method, the first item was actually the method and this is the uri
+                    method = targetUri;
+                    targetUri = string;
                 } else {
-                    // must be the method
-                    method = token;
+                    throw "Unexpected token '" + string + "'";
                 }
                 continue;
             }
             break;
-        }
-        // No uri? method probably mistakenly got it
-        if (method && !targetUri) {
-            targetUri = method;
-            method = null; // will need to designate a default elsewhere
         }
         // Return a request if we got a URI; otherwise, no match
         if (!targetUri) { return false; }
@@ -254,35 +256,13 @@ define(['link'], function() {
         this.log('Read header:', header);
         return header;
     };
-    CLI.prototype.parser.readUri = function() {
-        // uri = "#" token | token "://" token .
-        // =====================================
-        var match, uri;
-        var uriregex = /^([^\s\.]\S*)/;
-    
-        // match hash
-        match = /^\s*#/.exec(this.buffer);
-        if (match) {
+    CLI.prototype.parser.readNonSpaces = function() {
+        // read pretty much anything
+        var match = /^(\S*)/.exec(this.buffer);
+        if (match) { 
             this.moveBuffer(match[0].length);
-            // read the rest of the uri
-            uri = '#';
-            match = uriregex.exec(this.buffer);
-            if (match) { 
-                this.moveBuffer(match[0].length);
-                uri += match[0];
-            }
-            this.log('Read uri:', uri);
-            return uri;
-        }
-
-        // match protocol separator
-        match = /^\s*\w*:\/\//.exec(this.buffer);
-        if (match) {
-            match = uriregex.exec(this.buffer);
-            this.moveBuffer(match[0].length);
-            uri = match[0];
-            this.log('Read uri:', uri);
-            return uri;
+            this.log('Read uri:', match[0]);
+            return match[0];
         }
 
         return false;

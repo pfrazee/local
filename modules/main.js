@@ -5,6 +5,7 @@ require.config({
 });
 var paths = [
     'link',
+    'lib/linkregistry',
     'linkshui/cli',
     'linkshui/history',
     'linkshui/order-dm'
@@ -17,7 +18,7 @@ for (var i=0; i < env_config.structure.length; i++) {
     paths.push(env_config.structure[i].module);
 }
 // Load using require js
-require(paths, function(_, LinkshuiCli, LinkshuiHistory, LinkshuiOrderDm) {
+require(paths, function(_, LinkRegistry, LinkshuiCli, LinkshuiHistory, LinkshuiOrderDm) {
     // Enable proxy
     //Link.ajaxConfig('proxy',''); set this to the URL of your proxy
     
@@ -26,6 +27,7 @@ require(paths, function(_, LinkshuiCli, LinkshuiHistory, LinkshuiOrderDm) {
     env.addModule('#hist', new LinkshuiHistory(env));
     env.addModule('#cli', new LinkshuiCli(env, 'lshui-cli-input'));
     env.addModule('#dm', new LinkshuiOrderDm(env, { uri:'#dm', container_id:'lshui-env' }));
+    LinkRegistry.init(env_config.links);
 
     // Add config modules
     var Modules = Array.prototype.slice.call(arguments, def_module_count);
@@ -54,6 +56,8 @@ require(paths, function(_, LinkshuiCli, LinkshuiHistory, LinkshuiOrderDm) {
         }
         // Stop processing if no content was provided
         if (response.code == 204 || response.code == 205) { return; }
+        // Update link registry
+        LinkRegistry.update(response.link);
         // Send to the div manager
         var html = (response.body ? response.body.toString() : '');
         env.dispatch({ uri:'#dm/0', method:'put', 'content-type':'text/html', body:html });

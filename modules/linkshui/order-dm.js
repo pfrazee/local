@@ -35,11 +35,14 @@ define(['link'], function() {
         for (var i=1; i < 20; i++) {
             if (!this.divs[i]) { break; }
         }
-        if (i==20) { return { code:500, reason:'div limit reached' }; }
+        if (i==20) { return Link.response(500, 0, 0, { reason:'div limit reached' }); }
         // create
         __createDivFromRequest.call(this, i, request);
         // respond
-        return Link.response(200, this.divs[i], 'obj/lshui.orderdm.index');
+        if (request.v) {
+            return Link.response(200, this.divs[i], 'obj/lshui.orderdm.index');
+        }
+        return Link.response(205);
     };
     OrderDm.prototype.getHandler = function(request, match, response) {
         // validate

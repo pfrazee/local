@@ -19,8 +19,7 @@ define(['link', './spahql-min'], function() {
         var db = SpahQL.db(data);
 
         // Pull params
-        var select = '';
-        if (request.argv) { select = request.argv.join(''); }
+        var select = request.select || request.s || '';
 
         // Run
         try {
