@@ -1,4 +1,4 @@
-define(['link'], function() {
+define(['link'], function(Link) {
     var History = function() {
         this.history = [];
     };

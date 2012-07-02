@@ -12,7 +12,7 @@ header-value = token | string .
 uri          = chars
 string       = '"' { token } '"'
 */
-define(['lib/linkregistry', 'link'], function(LinkRegistry) {
+define(['lib/linkregistry', 'link'], function(LinkRegistry, Link) {
     // CLI
     // ===
     // Run HTTP requests in the command line

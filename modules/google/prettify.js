@@ -1,4 +1,4 @@
-define(['link', './prettify/prettify'], function() {
+define(['link', './prettify/prettify'], function(Link) {
     var Module = function(structure, config) {
         this.structure = structure;
         this.uri = config.uri;

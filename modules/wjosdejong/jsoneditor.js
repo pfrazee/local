@@ -1,4 +1,4 @@
-define(['link','./jsoneditoronline/jsoneditor'], function() {
+define(['link','./jsoneditoronline/jsoneditor'], function(Link) {
     var Module = function(structure, config) {
         this.structure = structure;
         this.uri = config.uri;

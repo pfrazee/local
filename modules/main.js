@@ -18,7 +18,7 @@ for (var i=0; i < env_config.structure.length; i++) {
     paths.push(env_config.structure[i].module);
 }
 // Load using require js
-require(paths, function(_, LinkRegistry, LinkshuiCli, LinkshuiHistory, LinkshuiOrderDm) {
+require(paths, function(Link, LinkRegistry, LinkshuiCli, LinkshuiHistory, LinkshuiOrderDm) {
     // Enable proxy
     //Link.ajaxConfig('proxy',''); set this to the URL of your proxy
     

@@ -1,4 +1,4 @@
-define(['link'], function() {
+define(['link'], function(Link) {
     var OrderDm = function(structure, config) {
         this.uri = config.uri;
         this.container_id = config.container_id;

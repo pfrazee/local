@@ -1,4 +1,4 @@
-define(['link'], function() {
+define(['link'], function(Link) {
     // polyfill requestAnimationFrame
     if ( !window.requestAnimationFrame ) {
         window.requestAnimationFrame = ( function() {

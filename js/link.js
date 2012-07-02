@@ -1,12 +1,4 @@
-(function() {
-    // Set up our namespace
-    var Link;
-    if (typeof exports != 'undefined') {
-        Link = exports;
-    } else {
-        Link = this.Link = {};
-    }
-
+define(function() {
     // Structure
     // =========
     // passes requests/responses around a uri structure of modules
@@ -491,13 +483,15 @@
     
     // Exports
     // =======
-    Link.Promise          = Promise;
-    Link.when             = when;
-    Link.whenAll          = whenAll;
-    Link.Structure        = Structure;
-    Link.route            = mkroute;
-    Link.response         = mkresponse;
-    Link.logMode          = logMode;
-    Link.ajaxConfig       = ajaxConfig;
-    Link.attachToWindow   = attachToWindow;
-}).call(this);
+    return {
+        Promise        : Promise,
+        when           : when,
+        whenAll        : whenAll,
+        Structure      : Structure,
+        route          : mkroute,
+        response       : mkresponse,
+        logMode        : logMode,
+        ajaxConfig     : ajaxConfig,
+        attachToWindow : attachToWindow,
+    };
+});

@@ -1,4 +1,4 @@
-define(['link', './spahql-min'], function() {
+define(['link', './spahql-min'], function(Link) {
     var Module = function() {
     };
 

@@ -1,4 +1,4 @@
-define(['link'], function() {
+define(['link'], function(Link) {
     var Module = function(structure, config) {
         this.uri = config.uri;
         this.num_slides = 5;
