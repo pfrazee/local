@@ -6,7 +6,7 @@ define(['link','./jsoneditoronline/jsoneditor'], function(Link) {
         this.uid = 0;
         // add styling
         var style = document.createElement('link');
-        style.href = '/modules/wjosdejong/jsoneditoronline/jsoneditor.css';
+        style.href = '/env/modules/wjosdejong/jsoneditoronline/jsoneditor.css';
         style.rel = 'stylesheet'; style.media = 'screen';
         document.head.appendChild(style);
     };

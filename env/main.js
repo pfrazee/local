@@ -6,16 +6,16 @@ require.config({
 var paths = [
     'link',
     'lib/linkregistry',
-    'linkshui/cli',
-    'linkshui/history',
-    'linkshui/order-dm'
+    'modules/linkshui/cli',
+    'modules/linkshui/history',
+    'modules/linkshui/order-dm'
 ];
 var def_module_count = paths.length;
 
 // Extract all module paths
 var ordered_uris = [];
 for (var i=0; i < env_config.structure.length; i++) {
-    paths.push(env_config.structure[i].module);
+    paths.push('modules/' + env_config.structure[i].module);
 }
 // Load using require js
 require(paths, function(Link, LinkRegistry, LinkshuiCli, LinkshuiHistory, LinkshuiOrderDm) {

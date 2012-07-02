@@ -6,7 +6,7 @@ define(['link', './prettify/prettify'], function(Link) {
         this.uid = 0;
         // add stylesheet
         var style = document.createElement('link');
-        style.href = '/modules/google/prettify/prettify.css';
+        style.href = '/env/modules/google/prettify/prettify.css';
         style.rel = 'stylesheet'; style.media = 'screen';
         document.head.appendChild(style);
         // run prettify
