@@ -12,58 +12,65 @@ header-value = token | string .
 uri          = chars
 string       = '"' { token } '"'
 */
-define(['lib/linkregistry', 'link'], function(LinkRegistry, Link) {
+define(['link', 'lib/linkregistry', 'lib/env'], function(Link, LinkRegistry, Env) {
     // CLI
     // ===
-    // Run HTTP requests in the command line
-    var CLI = function(structure, elem_id, config_links) {
-        this.elemInput = document.getElementById(elem_id);
+    // Parses a command syntax into Link requests 
+    var CLI = {
+        elemInput:null,
+        structure:null,
+        init:__init,
+        runCommand:__runCommand,
+        prototype:{} // tmp
+    };
+    
+    // setup func    
+    function __init(structure, elem_id) {
         this.structure = structure;
+        this.elemInput = document.getElementById(elem_id);
+        this.elemInput.onkeydown = __clikeydown;
     };
 
-    // Route handlers
-    // ==============
-    CLI.prototype.routes = [
-        Link.route('commandHandler', { uri:'^/?$', method:'post' })
-    ];
-    CLI.prototype.commandHandler = function(request, match, structure) {
-        //this.parser.logging = true;
-        var body = request.body;
-        var promise = new Link.Promise();
+    // input event function
+    function __clikeydown(e) {
+        if (e.keyCode == 13) { // enter keypress
+            // Pull out and clear the value
+            var command = CLI.elemInput.value;
+            CLI.elemInput.value = '';
+            // Pipe into the command handler
+            CLI.runCommand(command);
+        }
+    };
+
+    // command handler
+    function __runCommand(command) {
+        //Parser.logging = true;
         
         // Make sure we got something
-        if (!body || !body.cmd) { return Link.response(205); }
-
-        // Clear the input
-        this.elemInput.value = '';
-
-        // Dispatch helper
-        var self = this;
-        var dispatch = function(req, handler) {
-            // Replace any link aliases
-            req.uri = LinkRegistry.replace(req.uri);
-            // Send through the structure
-            self.structure.dispatch(req, function(res) {
-                res['content-location'] = req.uri; // set the content-location, so the final response goes to that and not the cli uri
-                handler(res);
-            });
-        };
+        if (!command) { return; }
             
         // Parse
-        try { var cmd_requests = this.parse(body.cmd); }
-        catch(e) {
+        try { 
+            var cur_request = null;
+            var cmd_requests = __parse(command); 
+            var request_count = cmd_requests.length;
+        } catch(e) {
+            // :TODO: replace this with something sane
             var res = Link.response(400, 0, 0, { reason:e.toString() });
-            self.structure.dispatch({ uri:'#hist', method:'post', 'content-type':'obj', body:{ cmd:body.cmd, response:res }}, function() {
-                self.structure.dispatch({ uri:'#hist', method:'get', accept:'text/html' }, function(response) {
+            CLI.structure.dispatch({ uri:'#hist', method:'post', 'content-type':'obj', body:{ cmd:command, response:res }}, function() {
+                CLI.structure.dispatch({ uri:'#hist', method:'get', accept:'text/html' }, function(response) {
                     // Get HTML out of the response
                     document.getElementById('lshui-hist').innerHTML = response.body.toString();
                 });
             });
-            return Link.response(204);
+            return;
         }
-        var request_count = cmd_requests.length;
-        var cur_request = null;
 
+        // Replace link aliases
+        for (var i=0; i < cmd_requests.length; i++) {
+            cmd_requests[i].uri = LinkRegistry.replace(cmd_requests[i].uri);
+        }
+        
         // Default the last request to accept html if no type is given
         if (!cmd_requests[cmd_requests.length - 1].accept) {
             cmd_requests[cmd_requests.length - 1].accept = 'text/html';
@@ -73,15 +80,16 @@ define(['lib/linkregistry', 'link'], function(LinkRegistry, Link) {
         var handleResponse = function(res) {
             // If failed, break the chain
             if (res.code >= 400 || res.code == 0) {
-                // Respond now
-                promise.fulfill(res);
+                // Chain broken: send to environment
+                Env.handleResponse(res);
                 // Highlight the offending command, if multiple exist
                 if (request_count > 1) {
-                    body.cmd = body.cmd.replace(cur_request.cli_cmd, '<strong>'+cur_request.cli_cmd+'</strong>');
+                    command = command.replace(cur_request.cli_cmd, '<strong>'+cur_request.cli_cmd+'</strong>');
                 }
                 // Send to history
-                self.structure.dispatch({ uri:'#hist', method:'post', 'content-type':'obj', body:{ cmd:body.cmd, response:res }}, function() {
-                    self.structure.dispatch({ uri:'#hist', method:'get', accept:'text/html' }, function(response) {
+                // :TODO: replace
+                CLI.structure.dispatch({ uri:'#hist', method:'post', 'content-type':'obj', body:{ cmd:command, response:res }}, function() {
+                    CLI.structure.dispatch({ uri:'#hist', method:'get', accept:'text/html' }, function(response) {
                         // Get HTML out of the response
                         document.getElementById('lshui-hist').innerHTML = response.body.toString();
                     });
@@ -90,15 +98,18 @@ define(['lib/linkregistry', 'link'], function(LinkRegistry, Link) {
                 // Succeeded, continue the chain
                 if (cmd_requests.length) {
                     cur_request = cmd_requests.shift();
+                    // Pipe the response into the request
                     cur_request.body = res.body;
                     cur_request['content-type'] = res['content-type'];
-                    dispatch(cur_request, handleResponse);
+                    // Send through the structure
+                    CLI.structure.dispatch(cur_request, handleResponse);
                 } else {
-                    // No more, respond
-                    promise.fulfill(res);
+                    // Chain complete: send to environment
+                    Env.handleResponse(res);
                     // Send to history
-                    self.structure.dispatch({ uri:'#hist', method:'post', 'content-type':'obj', body:{ cmd:body.cmd, response:res }}, function() {
-                        self.structure.dispatch({ uri:'#hist', method:'get', 'accept':'text/html' }, function(response) {
+                    // :TODO: replace
+                    CLI.structure.dispatch({ uri:'#hist', method:'post', 'content-type':'obj', body:{ cmd:command, response:res }}, function() {
+                        CLI.structure.dispatch({ uri:'#hist', method:'get', 'accept':'text/html' }, function(response) {
                             // Get HTML out of the response
                             document.getElementById('lshui-hist').innerHTML = response.body.toString();
                         });
@@ -106,20 +117,19 @@ define(['lib/linkregistry', 'link'], function(LinkRegistry, Link) {
                 }
             }
         };
-        dispatch((cur_request = cmd_requests.shift()), handleResponse);
-        return promise;
+        CLI.structure.dispatch((cur_request = cmd_requests.shift()), handleResponse);
     };
 
     // Parser
     // ======
-    CLI.prototype.parse = function(buffer) {
-        this.parser.buffer = buffer;
-        this.parser.trash = '';
-        this.parser.buffer_position = 0;
-        return this.parser.readCommand();
+    function __parse(buffer) {
+        Parser.buffer = buffer;
+        Parser.trash = '';
+        Parser.buffer_position = 0;
+        return Parser.readCommand();
     };
-    CLI.prototype.parser = { buffer:null, trash:null, buffer_position:0, logging:false };
-    CLI.prototype.parser.readCommand = function() {
+    Parser = { buffer:null, trash:null, buffer_position:0, logging:false };
+    Parser.readCommand = function() {
         // command = request { content-type [ request ] } .
         // ================================================
         var requests = [], curMimeType, defaultMethod = 'get';
@@ -164,7 +174,7 @@ define(['lib/linkregistry', 'link'], function(LinkRegistry, Link) {
         this.log('<< Finished parsing:', requests);
         return requests;
     };
-    CLI.prototype.parser.readRequest = function() {
+    Parser.readRequest = function() {
         // request = [ method ] uri { header-flag } .
         // ==========================================
         var targetUri = false, method = false, headers = {}, start_pos;
@@ -202,7 +212,7 @@ define(['lib/linkregistry', 'link'], function(LinkRegistry, Link) {
         this.log(request);
         return request;
     };
-    CLI.prototype.parser.readContentType = function() {
+    Parser.readContentType = function() {
         // content-type = "[" [ token | string ] "]" .
         // ===========================================
         var match;
@@ -226,7 +236,7 @@ define(['lib/linkregistry', 'link'], function(LinkRegistry, Link) {
         this.log('Read mimetype:', contentType);
         return contentType;
     };
-    CLI.prototype.parser.readHeaderSwitch = function() {
+    Parser.readHeaderSwitch = function() {
         // header-flag = [ "-" | "--" ] header-key "=" header-value .
         // ================================================
         var match, headerKey, headerValue;
@@ -256,18 +266,18 @@ define(['lib/linkregistry', 'link'], function(LinkRegistry, Link) {
         this.log('Read header:', header);
         return header;
     };
-    CLI.prototype.parser.readNonSpaces = function() {
+    Parser.readNonSpaces = function() {
         // read pretty much anything
-        var match = /^(\S*)/.exec(this.buffer);
+        var match = /^\s*(\S*)/.exec(this.buffer);
         if (match) { 
             this.moveBuffer(match[0].length);
-            this.log('Read uri:', match[0]);
-            return match[0];
+            this.log('Read uri:', match[1]);
+            return match[1];
         }
 
         return false;
     };
-    CLI.prototype.parser.readString = function() {
+    Parser.readString = function() {
         var match;
         
         // match opening quote
@@ -288,7 +298,7 @@ define(['lib/linkregistry', 'link'], function(LinkRegistry, Link) {
         this.log('Read string:', string);
         return string;
     };
-    CLI.prototype.parser.readToken = function() {
+    Parser.readToken = function() {
         // read the token
         var match = /^\s*([\w]*)/.exec(this.buffer);
         if (!match) { return false; }
@@ -296,7 +306,7 @@ define(['lib/linkregistry', 'link'], function(LinkRegistry, Link) {
         this.log('Read token:', match[1]);
         return match[1];
     };
-    CLI.prototype.parser.moveBuffer = function(dist) {
+    Parser.moveBuffer = function(dist) {
         this.trash += this.buffer.substring(0, dist);
         this.buffer = this.buffer.substring(dist);
         this.buffer_position += dist;
