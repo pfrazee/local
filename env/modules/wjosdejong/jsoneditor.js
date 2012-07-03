@@ -15,9 +15,8 @@ define(['link','./jsoneditoronline/jsoneditor'], function(Link) {
     // ==============
     Module.prototype.routes = [
         Link.route('instantiate', { uri:'^/?$' }),
-        Link.route('onget', { uri:'^/([0-9]+)/?$', method:'get' }),
-        Link.route('ondelete', { uri:'^/([0-9]+)/?$', method:'delete' }),
-        Link.route('onrender', { uri:'^/([0-9]+)/render/?$', method:'post' })
+        Link.route('getHandler', { uri:'^/([0-9]+)/?$', method:'get' }),
+        Link.route('deleteHandler', { uri:'^/([0-9]+)/?$', method:'delete' }),
     ];
     Module.prototype.instantiate = function(request) {
         // New instance
@@ -34,17 +33,18 @@ define(['link','./jsoneditoronline/jsoneditor'], function(Link) {
             uri:'#dm',
             body:'<h3>JSON Editor Online <small>by Jos de Jong (<a href="https://github.com/wjosdejong/jsoneditoronline" title="github repo">https://github.com/wjosdejong/jsoneditoronline</a>)</small></h3><div class="jsoneditor"></div><style>div.jsoneditor-frame { border:none } td.jsoneditor-menu { background:none; border:none }</style>',
             title:'JSON Editor',
-            ctrl_uri:this.uri + '/' + instid
+            ctrl_uri:this.uri + '/' + instid,
+            onrender:{ cb:__onrender, args:[inst] }
         });
         return Link.response(204);
     };
-    Module.prototype.onget = function(request, match) {
+    Module.prototype.getHandler = function(request, match) {
         var instid = match.uri[1];
         if (!(instid in this.instances)) { return Link.response(404, 0, 0, { reason:"not found" }); }
         var inst = this.instances[instid];
         return Link.response(200, inst.jsoneditor.get(), 'obj');
     };
-    Module.prototype.ondelete = function(request, match) {
+    Module.prototype.deleteHandler = function(request, match) {
         var instid = match.uri[1];
         if (!(instid in this.instances)) { return Link.response(404, 0, 0, { reason:"not found" }); }
         var inst = this.instances[instid];
@@ -53,16 +53,10 @@ define(['link','./jsoneditoronline/jsoneditor'], function(Link) {
         delete this.instances[instid];
         return Link.response(204, 0, 0, { reason:'deleted' });
     }            
-    Module.prototype.onrender = function(request, match) {
-        var div = request.body;
-        var instid = match.uri[1];
-        if (!(instid in this.instances)) { return Link.response(404, 0, 0, { reason:"not found" }); }
-        var inst = this.instances[instid];
-        
+    function __onrender(div_elem, inst) {
         // Find the container
-        var div_elem = document.getElementById(div.elem_id);
         var container = div_elem.getElementsByClassName('jsoneditor')[0];
-        if (!container) { return Link.response(500, 0, 0, { reason:"Unable to find json editor container" }); }
+        if (!container) { throw "Unable to find json editor container"; }
         
         // Create the editor
         inst.jsoneditor = new JSONEditor(container);

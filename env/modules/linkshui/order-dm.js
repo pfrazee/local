@@ -1,4 +1,4 @@
-define(['link'], function(Link) {
+define(['link', 'lib/util'], function(Link, Util) {
     var OrderDm = function(structure, config) {
         this.uri = config.uri;
         this.container_id = config.container_id;
@@ -15,6 +15,7 @@ define(['link'], function(Link) {
     
     // Type interfaces
     // ================
+    // :TODO: replace with appropriate handler behavior
     var toHtml = function() { return '<a href="'+this.data.div_uri+'">\'' + this.data.div_uri + '\'</a> created'; };
 
     // Route Handlers
@@ -123,12 +124,7 @@ define(['link'], function(Link) {
         var title = (index == 0 ? ' last response' : ' user buffer');
         if (request.title) { title = request.title; }
         // construct the body
-        // (convert to string, if we need to)
-        var body = request.body;
-        if (typeof body != 'string') {
-            var type_iface = Link.getTypeInterface(request['content-type'], body);
-            body = type_iface.toHtml ? type_iface.toHtml() : type_iface.toString();
-        }
+        var body = request.body.toString();
         var html = [
             '<div class="orderdiv">',
             '<div class="orderdiv-titlebar">',
@@ -159,13 +155,9 @@ define(['link'], function(Link) {
             ctrl_uri:request.ctrl_uri,
             is_collapsed:(old_div && old_div.is_collapsed)
         };
-        // notify the render URI
-        if (request.ctrl_uri) {
-            this.structure.post({
-                uri:request.ctrl_uri + '/render',
-                'content-type':'obj/lshui.orderdm.index',
-                body:this.divs[index]
-            });
+        // notify the render cb 
+        if (request.onrender) {
+            Util.runCB(request.onrender, [div_elem]);
         }
     };
     var __removeDivFromDom = function(index) {

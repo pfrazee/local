@@ -19,8 +19,7 @@ define(['link', './prettify/prettify'], function(Link) {
         Link.route('banner', { uri:'^/?$', method:'get' }),
         Link.route('prettify', { uri:'^/?$', method:'post' }),
         Link.route('onget', { uri:'^/([0-9]+)/?$', method:'get' }),
-        Link.route('ondelete', { uri:'^/([0-9]+)/?$', method:'delete' }),
-        Link.route('onrender', { uri:'^/([0-9]+)/render/?$', method:'post' })
+        Link.route('ondelete', { uri:'^/([0-9]+)/?$', method:'delete' })
     ];
     Module.prototype.banner = function() {
         return { code:200, body:'<h3>Prettify <small>by Google (<a href="http://code.google.com/p/google-code-prettify/" title="google code repo">http://code.google.com/p/google-code-prettify/</a>)</small></h3><p>documentation todo.', 'content-type':'text/html' };
@@ -40,7 +39,8 @@ define(['link', './prettify/prettify'], function(Link) {
             uri:'#dm',
             title:'prettify',
             body:'<br /><pre class="prettyprint">'+inst.code+'</pre>',
-            ctrl_uri:this.uri + insturi
+            ctrl_uri:this.uri + insturi,
+            onrender:prettyPrint
         });
         return { code:204 };
     };
@@ -57,9 +57,6 @@ define(['link', './prettify/prettify'], function(Link) {
         delete this.instances[instid];
         return { code:204, reason:'deleted' };
     }            
-    Module.prototype.onrender = function() {
-        prettyPrint();
-    };
     
     // Helpers
     // =======
