@@ -1,4 +1,4 @@
-define(['link'], function() {
+define(function() {
     var LinkRegistry = {
         config_links:[],
         response_links:[],

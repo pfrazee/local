@@ -8,7 +8,7 @@ var paths = [
     'lib/env',
     'lib/linkregistry',
     'lib/cli',
-    'modules/linkshui/history',
+    'lib/history',
     'modules/linkshui/order-dm'
 ];
 var def_module_count = paths.length;
@@ -19,13 +19,12 @@ for (var i=0; i < env_config.structure.length; i++) {
     paths.push('modules/' + env_config.structure[i].module);
 }
 // Load using require js
-require(paths, function(Link, Env, LinkRegistry, CLI, LinkshuiHistory, LinkshuiOrderDm) {
+require(paths, function(Link, Env, LinkRegistry, CLI, History, LinkshuiOrderDm) {
     // Enable proxy
     //Link.ajaxConfig('proxy',''); set this to the URL of your proxy
     
     // Build structure
     var structure = new Link.Structure();
-    structure.addModule('#hist', new LinkshuiHistory(structure));
     structure.addModule('#dm', new LinkshuiOrderDm(structure, { uri:'#dm', container_id:'lshui-env' }));
  
     // Add config modules
@@ -40,6 +39,7 @@ require(paths, function(Link, Env, LinkRegistry, CLI, LinkshuiHistory, LinkshuiO
     Env.init(structure);
     LinkRegistry.init(env_config.links);
     CLI.init(structure, 'lshui-cli-input');
+    History.init('lshui-hist');
 
     // Logging
     if (env_config.logging_enabled) {
@@ -49,14 +49,8 @@ require(paths, function(Link, Env, LinkRegistry, CLI, LinkshuiHistory, LinkshuiO
     // Wire the app to the window
     Link.attachToWindow(structure, function(request, response) {
         // Add to the history
-        // :TODO: replace
         var cmd = request.method + ' ' + request.uri;
-        structure.dispatch({ uri:'#hist', method:'post', 'content-type':'js/object', body:{ cmd:cmd, response:response }}, function() {
-            structure.dispatch({ uri:'#hist', method:'get', 'accept':'text/html' }, function(response) {
-               // Set in dom
-               document.getElementById('lshui-hist').innerHTML = response.body.toString();
-            });
-        });
+        History.addEntry(cmd, response);
         // Process
         Env.handleResponse(response);
     });

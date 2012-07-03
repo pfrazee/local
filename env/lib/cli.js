@@ -12,7 +12,7 @@ header-value = token | string .
 uri          = chars
 string       = '"' { token } '"'
 */
-define(['link', 'lib/linkregistry', 'lib/env'], function(Link, LinkRegistry, Env) {
+define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, LinkRegistry, Env, History) {
     // CLI
     // ===
     // Parses a command syntax into Link requests 
@@ -55,14 +55,9 @@ define(['link', 'lib/linkregistry', 'lib/env'], function(Link, LinkRegistry, Env
             var cmd_requests = __parse(command); 
             var request_count = cmd_requests.length;
         } catch(e) {
-            // :TODO: replace this with something sane
+            // Add to history
             var res = Link.response(400, 0, 0, { reason:e.toString() });
-            CLI.structure.dispatch({ uri:'#hist', method:'post', 'content-type':'obj', body:{ cmd:command, response:res }}, function() {
-                CLI.structure.dispatch({ uri:'#hist', method:'get', accept:'text/html' }, function(response) {
-                    // Get HTML out of the response
-                    document.getElementById('lshui-hist').innerHTML = response.body.toString();
-                });
-            });
+            History.addEntry(command, res);
             return;
         }
 
@@ -87,13 +82,7 @@ define(['link', 'lib/linkregistry', 'lib/env'], function(Link, LinkRegistry, Env
                     command = command.replace(cur_request.cli_cmd, '<strong>'+cur_request.cli_cmd+'</strong>');
                 }
                 // Send to history
-                // :TODO: replace
-                CLI.structure.dispatch({ uri:'#hist', method:'post', 'content-type':'obj', body:{ cmd:command, response:res }}, function() {
-                    CLI.structure.dispatch({ uri:'#hist', method:'get', accept:'text/html' }, function(response) {
-                        // Get HTML out of the response
-                        document.getElementById('lshui-hist').innerHTML = response.body.toString();
-                    });
-                });
+                History.addEntry(command, res);
             } else {
                 // Succeeded, continue the chain
                 if (cmd_requests.length) {
@@ -107,13 +96,7 @@ define(['link', 'lib/linkregistry', 'lib/env'], function(Link, LinkRegistry, Env
                     // Chain complete: send to environment
                     Env.handleResponse(res);
                     // Send to history
-                    // :TODO: replace
-                    CLI.structure.dispatch({ uri:'#hist', method:'post', 'content-type':'obj', body:{ cmd:command, response:res }}, function() {
-                        CLI.structure.dispatch({ uri:'#hist', method:'get', 'accept':'text/html' }, function(response) {
-                            // Get HTML out of the response
-                            document.getElementById('lshui-hist').innerHTML = response.body.toString();
-                        });
-                    });
+                    History.addEntry(command, res);
                 }
             }
         };
