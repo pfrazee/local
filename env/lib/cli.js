@@ -250,9 +250,9 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
         return header;
     };
     Parser.readNonSpaces = function() {
-        // read pretty much anything
+        // read pretty much anything 
         var match = /^\s*(\S*)/.exec(this.buffer);
-        if (match) { 
+        if (match && match[1].charAt(0) != '[') { // dont match a pipe
             this.moveBuffer(match[0].length);
             this.log('Read uri:', match[1]);
             return match[1];

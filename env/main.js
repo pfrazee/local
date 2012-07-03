@@ -1,6 +1,6 @@
 require.config({
     paths:{
-        link:'../js/link'
+        link:'../assets/js/link'
     }
 });
 var paths = [
