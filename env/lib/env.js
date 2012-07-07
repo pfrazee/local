@@ -16,7 +16,7 @@ define(['lib/linkregistry'], function(LinkRegistry) {
         LinkRegistry.update(response.link);
         // Send to the div manager
         var html = (response.body ? response.body.toString() : '');
-        this.structure.dispatch({ uri:'#dm/0', method:'put', 'content-type':'text/html', body:html });
+        this.structure.dispatch({ uri:'#dm/0', method:'put', 'content-type':'text/html', body:html, onrender:response.onrender });
     }
 
     return Env;

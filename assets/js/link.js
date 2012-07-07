@@ -76,7 +76,7 @@ define(function() {
                     var cb = module.inst[route.cb];
                     if (!cb) {
                         console.log("Handler callback '" + route.cb + "' not found in object");
-                        return null;
+                        continue;
                     }
                     matched_handlers.push({
                         cb:cb,
