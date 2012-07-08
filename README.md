@@ -1,7 +1,7 @@
 LinkShUI
 ========
 
-A browser CLI for remote web services and [Link](http://github.com/pfraze/link) javascript modules. Just clone a copy and serve statically with a web server.
+A browser CLI for remote web services and [Link](http://github.com/pfraze/linkjs) javascript modules. Just clone a copy and serve statically with a web server.
 
 ### [Screencast Demoing the Tool](http://www.youtube.com/watch?v=y4Y0XO0BdKM)
 
