@@ -5,6 +5,7 @@ define(['link', './prettify/prettify'], function(Link) {
         style.href = '/env/modules/google/prettify/prettify.css';
         style.rel = 'stylesheet'; style.media = 'screen';
         document.head.appendChild(style);
+        prettyPrint();
     };
     
     // Route Handlers

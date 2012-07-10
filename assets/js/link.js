@@ -1,5 +1,38 @@
 if (typeof define !== 'function') { var define = require('amdefine')(module) }
 define(function() {
+
+    // Clone helper
+    // credit to A. Levy
+    // http://stackoverflow.com/questions/728360/copying-an-object-in-javascript
+    function clone(obj) {
+        // Tail condition
+        if (obj == null || typeof obj != "object") { return obj; }
+        var copy, i, ii;
+        // Dates
+        if (obj instanceof Date) {
+            copy = new Date();
+            copy.setTime(obj.getTime());
+            return copy;
+        }
+        // Arrays
+        if (obj instanceof Array) {
+            copy = [];
+            for (i=0, ii=obj.length; i < ii; i++) {
+                copy[i] = clone(obj[i]);
+            }
+            return copy;
+        }
+        // Objects
+        if (obj instanceof Object) {
+            copy = {};
+            for (i in obj) {
+                if (obj.hasOwnProperty(i)) { copy[i] = obj[i]; }
+            }
+            return copy;
+        }
+        throw "Unable to recognize type in clone()";
+    }
+
     // Structure
     // =========
     // passes requests/responses around a uri structure of modules
@@ -95,6 +128,8 @@ define(function() {
     //  - If the request target URI does not start with a hash, will run the remote handler
     var cur_mid = 1;
     Structure.prototype.dispatch = function(request, opt_cb, opt_context) {
+        // Duplicate the request object
+        request = clone(request);
         // Assign an id, for debugging
         Object.defineProperty(request, '__mid', { value:cur_mid++, writable:true });
         // Log
