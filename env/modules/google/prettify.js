@@ -1,11 +1,5 @@
 define(['link', './prettify/prettify'], function(Link) {
     var Module = function(structure, config) {
-        // add stylesheet
-        var style = document.createElement('link');
-        style.href = '/env/modules/google/prettify/prettify.css';
-        style.rel = 'stylesheet'; style.media = 'screen';
-        document.head.appendChild(style);
-        prettyPrint();
     };
     
     // Route Handlers
@@ -20,7 +14,10 @@ define(['link', './prettify/prettify'], function(Link) {
     Module.prototype.prettify = function(request, match, structure) {
         // Get the contents
         var content = request.body ? request.body.toString() : ''; 
-        return Link.response(200, '<br /><pre class="prettyprint">'+content+'</pre>', 'text/html', { onrender:prettyPrint });
+        content = '<br /><pre class="prettyprint">'+content+'</pre>';
+        var style_link = '<link rel="stylesheet" media="screen" href="/env/modules/google/prettify/prettify.css" />';
+        var style_script = '<script>prettyPrint();</script>';
+        return Link.response(200, content + style_link + style_script, 'text/html');
     };
 
     return Module;

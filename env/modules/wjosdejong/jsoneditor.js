@@ -4,11 +4,6 @@ define(['link','./jsoneditoronline/jsoneditor'], function(Link) {
         this.uri = config.uri;
         this.instances = {};
         this.uid = 0;
-        // add styling
-        var style = document.createElement('link');
-        style.href = '/env/modules/wjosdejong/jsoneditoronline/jsoneditor.css';
-        style.rel = 'stylesheet'; style.media = 'screen';
-        document.head.appendChild(style);
     };
     
     // Route Handlers
@@ -27,11 +22,16 @@ define(['link','./jsoneditoronline/jsoneditor'], function(Link) {
         if (request.method == 'post' && request.body) {
             inst.init_data = request.body;
         }
+        
+        // Create html
+        var body = '<h3>JSON Editor Online <small>by Jos de Jong (<a href="https://github.com/wjosdejong/jsoneditoronline" title="github repo">https://github.com/wjosdejong/jsoneditoronline</a>)</small></h3><div class="jsoneditor"></div>';
+        body += '<link rel="stylesheet" media="screen" href="/env/modules/wjosdejong/jsoneditoronline/jsoneditor.css" />';
+        //body += '<script></script>';
 
-        // Create UI
+        // Add to UI
         this.structure.post({
             uri:'#dm',
-            body:'<h3>JSON Editor Online <small>by Jos de Jong (<a href="https://github.com/wjosdejong/jsoneditoronline" title="github repo">https://github.com/wjosdejong/jsoneditoronline</a>)</small></h3><div class="jsoneditor"></div><style>div.jsoneditor-frame { border:none } td.jsoneditor-menu { background:none; border:none }</style>',
+            body:body,
             title:'JSON Editor',
             ctrl_uri:this.uri + '/' + instid,
             onrender:{ cb:__onrender, args:[inst] }

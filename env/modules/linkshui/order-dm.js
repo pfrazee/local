@@ -147,6 +147,8 @@ define(['link', 'lib/util'], function(Link, Util) {
         // add html to dom
         var div_elem = document.getElementById(elem_id);
         div_elem.innerHTML = html;
+        // read any script tags and execute them
+        Util.execElementScripts(document.getElementById(elem_id+'-body'));
         // store info
         this.divs[index] = {
             index:index,
