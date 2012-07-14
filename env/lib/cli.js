@@ -206,7 +206,7 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
         this.moveBuffer(match[0].length);
         
         // read content-type
-        match = /^[\w\/\*.0-9]+/.exec(this.buffer);
+        match = /^[\w\/\*.0-9\+]+/.exec(this.buffer);
         var contentType = (!!match ?  match[0] : null);
         //if (!match) { throw "Content-type expected"; }
         contentType && this.moveBuffer(contentType.length);

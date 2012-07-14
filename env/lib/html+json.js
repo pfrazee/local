@@ -1,12 +1,30 @@
+if (typeof define !== 'function') { var define = require('amdefine')(module) }
 define(function() {
     function encode(obj) {
+        // Convert scripts into strings
+        if (obj._scripts) {
+            for (var k in obj._scripts) {
+                for (var i=0; i < obj._scripts[k].length; i++) {
+                    obj._scripts[k][i].fn = obj._scripts[k][i].fn.toString();
+                }
+            }
+        }
         return JSON.stringify(obj);
     }
     function decode(str) {
-        return JSON.parse(str);
+        var obj = JSON.parse(str);
+        // Eval scripts into functions
+        if (obj._scripts) {
+            for (var k in obj._scripts) {
+                for (var i=0; i < obj._scripts[k].length; i++) {
+                    obj._scripts[k][i].fn = eval('var fn = '+obj._scripts[k][i].fn+'; fn');
+                }
+            }
+        }
+        return obj;
     }
     function toHtml(target) {
-        targetar type = typeof target;
+        var type = typeof target;
         if (type == 'string') {
             // String, assume valid html
             return target;
@@ -15,7 +33,7 @@ define(function() {
             // Array, htmlify and concat
             if (Array.isArray(target)) {
                 var dest = '';
-                target.foreach(function(v) {
+                target.forEach(function(v) {
                     dest += toHtml(v);
                 });
                 return dest;
@@ -54,15 +72,15 @@ define(function() {
         // Scalar, stringify
         return ''+target;
     }
-    function select(target, selector) {
+    function select(selector, target) {
         var type = typeof target;
         if (target && type == 'object') {
             // Array, call on each item
-            if (Array.isArray(target) {
+            if (Array.isArray(target)) {
                 var hits = [];
-                target.foreach(function(v) {
-                    var hit = select(v, selector);
-                    if (hit) { hits = hits.concat(hit)); }
+                target.forEach(function(v) {
+                    var hit = select(selector, v);
+                    if (hit) { hits = hits.concat(hit); }
                 });
                 return hits;
             }
@@ -73,13 +91,11 @@ define(function() {
             var match = false;
             // id search
             if (cur_selector.charAt(0) == '#') {
-                cur_selector = cur_selector.substring(1);
-                if (target.id == cur_selector) { match = true; }
+                if (target.id == cur_selector.substring(1)) { match = true; }
             }
             // class search
             else if (cur_selector.charAt(0) == '.') {
-                cur_selector = cur_selector.substring(1);
-                if (target.className && target.className.indexOf(cur_selector) != -1) {
+                if (target.className && target.className.indexOf(cur_selector.substring(1)) != -1) {
                     match = true;
                 }
             }
@@ -88,23 +104,79 @@ define(function() {
                 if (!target.tagName && cur_selector == 'div') { match = true; }
                 if (target.tagName && cur_selector == target.tagName) { match = true; }
             }
-            // match?
+            // recursion 
             if (match) {
                 if (!remaining_selector) {
-                    return [target];
+                    // no more selector, start adding hits
+                    var hits = [target];
+                    var subhits = select(cur_selector, target.childNodes);
+                    if (subhits) { hits = hits.concat(subhits); }
+                    return hits;
                 } else {
-                    return select(target.childNodes, remaining_selector);
+                    // more selector, search deeper
+                    return select(remaining_selector, target.childNodes);
                 }
+            } else {
+                // look for child hits
+                return select(selector, target.childNodes);
             }
         }
         // Non-object, no hit possible
         return null;
+    }
+    function mknode(tag, idclass, attrs, childNodes) {
+        tag = tag || 'div';
+        idclass = idclass || '';
+        // split idclass into id and className
+        var id = null, className = null;
+        var ids = /\#([^\s\#\.]+)/g.exec(idclass);
+        if (ids) { id = ids[1]; }
+        var classes = [];
+        var classRe = /\.([^\s\#\.]+)/g;
+        while (true) {
+            var match = classRe.exec(idclass);
+            if (match) { classes.push(match[1]); }
+            else { break; }
+        }
+        if (classes.length) { className = classes.join(' '); }
+        // create tag object
+        var node = { tagName:tag };
+        if (id) { node.id = id; }
+        if (className) { node.className = className; }
+        if (attrs && typeof attrs == 'object') {
+            node.attributes = {};
+            for (var k in attrs) {
+                if (k == 'title' || k == 'name') {
+                    node[k] = attrs[k];
+                } else {
+                    node.attributes[k] = attrs[k];
+                }
+            }
+        }
+        if (childNodes) {
+            if (!Array.isArray(childNodes)) {
+                childNodes = [childNodes];
+            }
+            node.childNodes = childNodes;
+        }
+        return node;
+    }
+    function addScript(target, name, fn, context, args) {
+        if (typeof target != 'object') { throw "Invalid target type: must be object"; }
+        if (!target._scripts) { target._scripts = {}; }
+        if (!target._scripts[name]) { target._scripts[name] = []; }
+        var fnObj = { fn:fn };
+        if (context) { fnObj.context = context; }
+        if (args) { fnObj.args = args; }
+        target._scripts[name].push(fnObj);
     }
 
     return {
         encode:encode,
         decode:decode,
         toHtml:toHtml,
-        select:select
+        select:select,
+        mknode:mknode,
+        addScript:addScript
     };
 });

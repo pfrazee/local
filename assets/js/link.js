@@ -108,7 +108,13 @@ define(function() {
     Structure.prototype.dispatch = function(request, opt_cb, opt_context) {
         // Duplicate the request object
         // :TODO: probably shouldn't use this hack for performance reasons
+        if (request.body && request['content-type']) {
+            request.body = encodeType(request.body, request['content-type']);
+        }
         request = JSON.parse(JSON.stringify(request));
+        if (request.body && request['content-type']) {
+            request.body = decodeType(request.body, request['content-type']);
+        }
         // Assign an id, for debugging
         Object.defineProperty(request, '__mid', { value:cur_mid++, writable:true });
         // Log

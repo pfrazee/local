@@ -1,4 +1,4 @@
-define(['link', 'lib/util'], function(Link, Util) {
+define(['link', 'lib/util', 'lib/html+json'], function(Link, Util, HtmlJson) {
     var OrderDm = function(structure, config) {
         this.uri = config.uri;
         this.container_id = config.container_id;
@@ -118,37 +118,56 @@ define(['link', 'lib/util'], function(Link, Util) {
         return document.getElementById(this.container_id);
     };
     var __createDivFromRequest = function(index, request, old_div) {
+        var mknode = HtmlJson.mknode;
         var elem_id = this.container_id + '-div' + index;
         var div_uri = this.uri + '/' + index;
+
         // construct the title
         var title = (index == 0 ? ' last response' : ' user buffer');
         if (request.title) { title = request.title; }
-        // construct the body
-        var body = Link.encodeType(request.body, request['content-type']);
-        var html = [
-            '<div class="orderdiv">',
-            '<div class="orderdiv-titlebar">',
 
-            '<form action="', div_uri, '">',
-            '<div class="orderdiv-titlebar-ctrls btn-group">',
-            '<button formmethod="post" formaction="', div_uri, '/collapse" title="collapse" class="btn btn-mini orderdm-collapse">', (old_div && old_div.is_collapsed) ? '+' : '_', '</button>',
-            '<button formmethod="delete" title="close" class="btn btn-mini">&times;</button>',
-            '</div>',
-            '</form>',
-            
-            '<a href="', div_uri, '">\'', div_uri, '\'</a>',
-            title,
-            '</div>',
-            '<div id="', elem_id + '-body','" class="orderdiv-body">', body, '</div>',
-            
-            '</div>',
-            '</div>'
-        ].join('');
+        // construct the body
+        var body = '';
+        switch (request['content-type']) {
+        case 'application/html+json':
+            body = HtmlJson.toHtml(request.body);
+            break;
+        default:
+            body = Link.encodeType(request.body, request['content-type']);
+        }
+        var nodes = mknode('div','.orderdiv',0,[
+            mknode('div','.orderdiv-titlebar',0,[
+                mknode('form',0,{action:div_uri},[
+                    mknode('div','.orderdiv-titlebar-ctrls.btn-group',0,[
+                        mknode('button','.btn.btn-mini.orderdm-collapse',{formmethod:'post',formaction:div_uri+'/collapse',title:'collapse'},[(old_div && old_div.is_collapsed) ? '+' : '_']),
+                        mknode('button','.btn.btn-mini',{formmethod:'delete',title:'close'},['&times;'])
+                    ])
+                ]),
+                mknode('a',0,{href:div_uri},["'",div_uri,"'"]),
+                title
+            ]),
+            mknode('div','#'+elem_id+'-body.orderdiv-body',0,[body])
+        ]);
+        var html = HtmlJson.toHtml(nodes);
+
         // add html to dom
         var div_elem = document.getElementById(elem_id);
         div_elem.innerHTML = html;
-        // read any script tags and execute them
-        Util.execElementScripts(document.getElementById(elem_id+'-body'));
+
+        // run scripts
+        var div_body_elem = document.getElementById(elem_id+'-body');
+        switch (request['content-type']) {
+        case 'application/html+json':
+            if (request.body._scripts && request.body._scripts.onrender) {
+                var fns = request.body._scripts.onrender;
+                if (!Array.isArray(fns)) { fns = [fns]; }
+                fns.forEach(function(fn) { Util.execFn(fn, div_body_elem); });
+            }
+            break;
+        default:
+            Util.execElementScripts(div_body_elem);
+        }
+
         // store info
         this.divs[index] = {
             index:index,
@@ -157,10 +176,6 @@ define(['link', 'lib/util'], function(Link, Util) {
             ctrl_uri:request.ctrl_uri,
             is_collapsed:(old_div && old_div.is_collapsed)
         };
-        // notify the render cb 
-        if (request.onrender) {
-            Util.runCB(request.onrender, [div_elem]);
-        }
     };
     var __removeDivFromDom = function(index) {
         var div = this.divs[index];

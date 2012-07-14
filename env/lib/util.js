@@ -1,25 +1,25 @@
 define(function() {
     // Helper to run a callback object
-    //  - composes calling arguments from cbObj and calling args
-    //  - cbObj = { cb:function, args:array, context:object }
-    function __runCB(cbObj, args) {
-        if (!cbObj) { return; }
-        if (typeof cbObj == 'function') {
-            cbObj = { cb:cbObj }; // convert to object
+    //  - composes calling arguments from fnObj and calling args
+    //  - fnObj = { fn:function, args:array, context:object }
+    function __execFn(fnObj, args) {
+        if (!fnObj) { return; }
+        if (typeof fnObj == 'function') {
+            fnObj = { fn:fnObj }; // convert to object
         }
 
         // Build args
-        // (caller arguments followed by cb arguments)
+        // (caller arguments followed by fn arguments)
         if (args) {
             if (!Array.isArray(args)) { args = [args]; }
         } else { args = []; }
-        if (cbObj.args) {
-            if (!Array.isArray(cbObj.args)) { cbObj.args = [cjObj.args]; }
-        } else { cbObj.args = []; }
-        args = args.concat(cbObj.args);
+        if (fnObj.args) {
+            if (!Array.isArray(fnObj.args)) { fnObj.args = [fnObj.args]; }
+        } else { fnObj.args = []; }
+        args = args.concat(fnObj.args);
 
         // Call
-        cbObj.cb.apply(cbObj.context, args);
+        fnObj.fn.apply(fnObj.context, args);
     }
 
     // Helper to run the scripts in a DOM element
@@ -57,7 +57,7 @@ define(function() {
 
     // Exports
     return {
-        runCB:__runCB,
+        execFn:__execFn,
         execElementScripts:__execElementScripts
     };
 });

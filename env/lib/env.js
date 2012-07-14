@@ -1,4 +1,4 @@
-define(['link', 'lib/linkregistry'], function(Link, LinkRegistry) {
+define(['link', 'lib/linkregistry', 'lib/html+json'], function(Link, LinkRegistry, HtmlJson) {
     var Env = {
         structure:null,
         init:__init,
@@ -9,9 +9,8 @@ define(['link', 'lib/linkregistry'], function(Link, LinkRegistry) {
         this.structure = structure;
 
         // Add type en/decoders
-        var todo = function(x) { return x; } // uhh... :TODO:
-        Link.setTypeEncoder('application/text+html', todo);
-        Link.setTypeDecoder('application/text+html', todo);
+        Link.setTypeEncoder('application/html+json', HtmlJson.encode);
+        Link.setTypeDecoder('application/html+json', HtmlJson.decode);
     }
 
     function __handleResponse(response) {
