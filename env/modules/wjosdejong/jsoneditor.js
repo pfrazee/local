@@ -42,7 +42,7 @@ define(['link','./jsoneditoronline/jsoneditor'], function(Link) {
         var instid = match.uri[1];
         if (!(instid in this.instances)) { return Link.response(404, 0, 0, { reason:"not found" }); }
         var inst = this.instances[instid];
-        return Link.response(200, inst.jsoneditor.get(), 'obj');
+        return Link.response(200, inst.jsoneditor.get(), 'application/json');
     };
     Module.prototype.deleteHandler = function(request, match) {
         var instid = match.uri[1];

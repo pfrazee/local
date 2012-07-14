@@ -41,7 +41,7 @@ define(['link', 'lib/util'], function(Link, Util) {
         __createDivFromRequest.call(this, i, request);
         // respond
         if (request.v) {
-            return Link.response(200, this.divs[i], 'obj/lshui.orderdm.index');
+            return Link.response(200, this.divs[i], 'application/json');
         }
         return Link.response(205);
     };
@@ -124,7 +124,7 @@ define(['link', 'lib/util'], function(Link, Util) {
         var title = (index == 0 ? ' last response' : ' user buffer');
         if (request.title) { title = request.title; }
         // construct the body
-        var body = request.body.toString();
+        var body = Link.encodeType(request.body, request['content-type']);
         var html = [
             '<div class="orderdiv">',
             '<div class="orderdiv-titlebar">',

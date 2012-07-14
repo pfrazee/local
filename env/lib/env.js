@@ -1,4 +1,4 @@
-define(['lib/linkregistry'], function(LinkRegistry) {
+define(['link', 'lib/linkregistry'], function(Link, LinkRegistry) {
     var Env = {
         structure:null,
         init:__init,
@@ -7,6 +7,11 @@ define(['lib/linkregistry'], function(LinkRegistry) {
     
     function __init(structure) {
         this.structure = structure;
+
+        // Add type en/decoders
+        var todo = function(x) { return x; } // uhh... :TODO:
+        Link.setTypeEncoder('application/text+html', todo);
+        Link.setTypeDecoder('application/text+html', todo);
     }
 
     function __handleResponse(response) {
@@ -15,8 +20,7 @@ define(['lib/linkregistry'], function(LinkRegistry) {
         // Update link registry
         LinkRegistry.update(response.link);
         // Send to the div manager
-        var html = (response.body ? response.body.toString() : '');
-        this.structure.dispatch({ uri:'#dm/0', method:'put', 'content-type':'text/html', body:html, onrender:response.onrender });
+        this.structure.dispatch({ uri:'#dm/0', method:'put', 'content-type':response['content-type'], body:response.body, onrender:response.onrender });
     }
 
     return Env;

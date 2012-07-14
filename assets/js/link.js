@@ -79,9 +79,7 @@ define(function() {
                         }
                     }
                     // Ended the loop because it wasn't a match?
-                    if (!match) {
-                                                continue;
-                    }
+                    if (!match) { continue; }
                     // A match, get the cb
                     if (logMode('routing')) {
                         console.log(' > ',module.inst,route.cb,'MATCH');
@@ -165,6 +163,8 @@ define(function() {
             if (logMode('traffic')) {
                 console.log(this.id ? this.id+'|res' : ' >|', request.__mid, request.uri, response['content-type'] ? '['+response['content-type']+']' : '', response);
             }
+            // Decode to object form
+            response.body = decodeType(response.body, response['content-type']);
             // Send to original promise
             request.__dispatch_promise.fulfill(response);
         }
@@ -210,6 +210,67 @@ define(function() {
         return response;
     };
     
+    // Type En/Decoding
+    // ================
+    var typeEncoders = {};
+    var typeDecoders = {};
+    // Converts objs/strings to from objs/strings
+    var encodeType = function _encodeType(obj, type) {
+        // sanity
+        if (obj == null || typeof(obj) != 'object' || type == null) {
+            return obj;
+        }
+        // find encoder
+        var encoder = __findCoder(typeEncoders, type);
+        if (!encoder) { return obj; }
+        // run
+        return encoder(obj);
+    };
+    var decodeType = function _decodeType(str, type) {
+        // sanity
+        if (str == null || typeof(str) != 'string' || type == null) {
+            return str;
+        }
+        // find decoder
+        var decoder = __findCoder(typeDecoders, type);
+        if (!decoder) { return str; }
+        // run
+        return decoder(str);
+    };
+    // Adds en/decoders to the registries
+    var setTypeEncoder = function _setTypeEncoder(type, fn) {
+        typeEncoders[type] = fn;
+    };
+    var setTypeDecoder = function _setTypeDecoder(type, fn) {
+        typeDecoders[type] = fn;
+    };
+    // Takes a mimetype (text/asdf+html), puts out the applicable types ([text/asdf+html, text/html,text])
+    function __mkTypesList(type) {
+        var parts = type.split('/');
+        if (parts[1]) {
+            var parts2 = parts[1].split('+');
+            if (parts2[1]) { 
+                return [type, parts[0] + '/' + parts2[1], parts[0]];
+            }
+            return [type, parts[0]];
+        }
+        return [type];
+    };
+    // Takes a registry and type, finds the best matching en/decoder
+    function __findCoder(registry, type) {
+        var types = __mkTypesList(type);
+        for (var i=0; i < types.length; i++) {
+            if (types[i] in registry) { return registry[types[i]]; }
+        }
+        return null;
+    };
+    // Default en/decoders
+    setTypeEncoder('application/json', function(obj) {
+        return JSON.stringify(obj);
+    });
+    setTypeDecoder('application/json', function(str) {
+        return JSON.parse(str);
+    });
     
     // Promise
     // =======
@@ -310,7 +371,12 @@ define(function() {
             request[ajax_config.proxy_header] = request.uri;
             target_uri = ajax_config.proxy;
         }
+        // Encode the body
+        if (request.body && typeof(request.body) == 'string' && request['content-type']) {
+            request.body = encodeType(request.body, request['content-type']);
+        }
         xhrRequest.open(request.method, target_uri, true);
+        // Set the request headers
         for (var k in request) {
             if (k == 'method' || k == 'uri' || k == 'body') { continue; }
             if (k.indexOf('__') == 0) { continue; }
@@ -505,6 +571,10 @@ define(function() {
         when           : when,
         whenAll        : whenAll,
         Structure      : Structure,
+        setTypeEncoder : setTypeEncoder,
+        setTypeDecoder : setTypeDecoder,
+        encodeType     : encodeType,
+        decodeType     : decodeType,
         route          : mkroute,
         response       : mkresponse,
         logMode        : logMode,

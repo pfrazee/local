@@ -24,7 +24,7 @@ define(['link', './spahql-min'], function(Link) {
         // Run
         try {
             var q = db.select(select);
-            return Link.response(200, q.values(), 'obj');
+            return Link.response(200, q.values(), 'application/json');
         } catch(e) {
             console.log('spahql exception', e);
             return Link.response(400, 'unable to process query', 'text/html');
