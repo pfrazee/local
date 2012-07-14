@@ -1,38 +1,5 @@
 if (typeof define !== 'function') { var define = require('amdefine')(module) }
 define(function() {
-
-    // Clone helper
-    // credit to A. Levy
-    // http://stackoverflow.com/questions/728360/copying-an-object-in-javascript
-    function clone(obj) {
-        // Tail condition
-        if (obj == null || typeof obj != "object") { return obj; }
-        var copy, i, ii;
-        // Dates
-        if (obj instanceof Date) {
-            copy = new Date();
-            copy.setTime(obj.getTime());
-            return copy;
-        }
-        // Arrays
-        if (obj instanceof Array) {
-            copy = [];
-            for (i=0, ii=obj.length; i < ii; i++) {
-                copy[i] = clone(obj[i]);
-            }
-            return copy;
-        }
-        // Objects
-        if (obj instanceof Object) {
-            copy = {};
-            for (i in obj) {
-                if (obj.hasOwnProperty(i)) { copy[i] = obj[i]; }
-            }
-            return copy;
-        }
-        throw "Unable to recognize type in clone()";
-    }
-
     // Structure
     // =========
     // passes requests/responses around a uri structure of modules
@@ -80,7 +47,9 @@ define(function() {
                         match = true;
                         // key exists
                         if (!(k in request)) {
-                            //console.log(k,'not in',request,' -- ',module.uri);
+                            if (logMode('routing')) {
+                                console.log(' > ',module.inst,route.cb,'MISS ('+k+')');
+                            }
                             match = false;
                             break;
                         }
@@ -90,22 +59,33 @@ define(function() {
                         // regexp test
                         if (route.match[k] instanceof RegExp) {
                             match = route.match[k].exec(reqVal)
-                            if (!match) { break; }
+                            if (!match) { 
+                                if (logMode('routing')) {
+                                    console.log(' > ',module.inst,route.cb,'MISS ('+k+' "'+reqVal+'")');
+                                }
+                                break; 
+                            }
                             matches[k] = match;
                         }
                         // standard equality
                         else {
-                            if (route.match[k] != reqVal) { match = false; break; }
+                            if (route.match[k] != reqVal) { 
+                                if (logMode('routing')) {
+                                    console.log(' > ',module.inst,route.cb,'MISS ('+k+' "'+reqVal+'")');
+                                }
+                                match = false; break; 
+                            }
                             matches[k] = reqVal;
                         }
                     }
                     // Ended the loop because it wasn't a match?
                     if (!match) {
-                        //console.log(reqVal,'not match',route.match[k],' -- ',module.uri);
-                        continue;
+                                                continue;
                     }
                     // A match, get the cb
-                    //console.log(request.uri,'match',module.uri);
+                    if (logMode('routing')) {
+                        console.log(' > ',module.inst,route.cb,'MATCH');
+                    }
                     var cb = module.inst[route.cb];
                     if (!cb) {
                         console.log("Handler callback '" + route.cb + "' not found in object");
@@ -129,7 +109,8 @@ define(function() {
     var cur_mid = 1;
     Structure.prototype.dispatch = function(request, opt_cb, opt_context) {
         // Duplicate the request object
-        request = clone(request);
+        // :TODO: probably shouldn't use this hack for performance reasons
+        request = JSON.parse(JSON.stringify(request));
         // Assign an id, for debugging
         Object.defineProperty(request, '__mid', { value:cur_mid++, writable:true });
         // Log

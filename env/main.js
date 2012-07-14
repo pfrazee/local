@@ -44,6 +44,7 @@ require(paths, function(Link, Env, LinkRegistry, CLI, History, LinkshuiOrderDm) 
     // Logging
     if (env_config.logging_enabled) {
         Link.logMode('traffic', true);
+        //Link.logMode('routing', true);
     }
     
     // Wire the app to the window
