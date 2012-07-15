@@ -1,4 +1,4 @@
-define(['link','./jsoneditoronline/jsoneditor'], function(Link) {
+define(['link', 'lib/html+json', './jsoneditoronline/jsoneditor'], function(Link, HtmlJson) {
     var Module = function(structure, config) {
         this.structure = structure;
         this.uri = config.uri;
@@ -24,17 +24,19 @@ define(['link','./jsoneditoronline/jsoneditor'], function(Link) {
         }
         
         // Create html
-        var body = '<h3>JSON Editor Online <small>by Jos de Jong (<a href="https://github.com/wjosdejong/jsoneditoronline" title="github repo">https://github.com/wjosdejong/jsoneditoronline</a>)</small></h3><div class="jsoneditor"></div>';
-        body += '<link rel="stylesheet" media="screen" href="/env/modules/wjosdejong/jsoneditoronline/jsoneditor.css" />';
-        //body += '<script></script>';
+        var body = HtmlJson.mknode(0,0,0,[
+            '<h3>JSON Editor Online <small>by Jos de Jong (<a href="https://github.com/wjosdejong/jsoneditoronline" title="github repo">https://github.com/wjosdejong/jsoneditoronline</a>)</small></h3><div class="jsoneditor"></div>',
+            '<link rel="stylesheet" media="screen" href="/env/modules/wjosdejong/jsoneditoronline/jsoneditor.css" />'
+        ]);
+        HtmlJson.addScript(body, 'onrender', __onrender, null, inst);
 
         // Add to UI
         this.structure.post({
             uri:'#dm',
             body:body,
+            'content-type':'application/html+json',
             title:'JSON Editor',
-            ctrl_uri:this.uri + '/' + instid,
-            onrender:{ cb:__onrender, args:[inst] }
+            ctrl_uri:this.uri + '/' + instid
         });
         return Link.response(204);
     };
@@ -53,20 +55,15 @@ define(['link','./jsoneditoronline/jsoneditor'], function(Link) {
         delete this.instances[instid];
         return Link.response(204, 0, 0, { reason:'deleted' });
     }            
-    function __onrender(div_elem, inst) {
+    function __onrender(elem, env, inst) {
         // Find the container
-        var container = div_elem.getElementsByClassName('jsoneditor')[0];
+        var container = elem.getElementsByClassName('jsoneditor')[0];
         if (!container) { throw "Unable to find json editor container"; }
-        
+
         // Create the editor
         inst.jsoneditor = new JSONEditor(container);
         if (inst.init_data) { inst.jsoneditor.set(inst.init_data); }
-        
-        // Apply some styling changes
-        var menu = container.getElementsByClassName('jsoneditor-menu')[0];
-        var buttons = menu.getElementsByTagName('button');
-        for (var i=0; i < buttons.length; i++) { buttons[i].className = 'btn btn-mini'; }
-    };
+    }
 
     return Module;
 });

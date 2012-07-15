@@ -1,5 +1,15 @@
 if (typeof define !== 'function') { var define = require('amdefine')(module) }
 define(function() {
+    // deep copy helper
+    // http://keithdevens.com/weblog/archive/2007/Jun/07/javascript.clone
+    // :TODO: not sure this is needed
+    var deepCopy = function _clone(obj) {
+        if (!obj || typeof obj != 'object') { return obj; }
+        var c = new obj.constructor();
+        for (var k in obj) { c[k] = deepCopy(obj[k]); }
+        return c;
+    };
+
     // Structure
     // =========
     // passes requests/responses around a uri structure of modules
@@ -107,14 +117,8 @@ define(function() {
     var cur_mid = 1;
     Structure.prototype.dispatch = function(request, opt_cb, opt_context) {
         // Duplicate the request object
-        // :TODO: probably shouldn't use this hack for performance reasons
-        if (request.body && request['content-type']) {
-            request.body = encodeType(request.body, request['content-type']);
-        }
-        request = JSON.parse(JSON.stringify(request));
-        if (request.body && request['content-type']) {
-            request.body = decodeType(request.body, request['content-type']);
-        }
+        // :TODO: not sure if I want this (complicates obj ref sharing within the browser)
+        //request = clone(request);
         // Assign an id, for debugging
         Object.defineProperty(request, '__mid', { value:cur_mid++, writable:true });
         // Log

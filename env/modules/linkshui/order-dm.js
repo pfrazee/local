@@ -1,4 +1,4 @@
-define(['link', 'lib/util', 'lib/html+json'], function(Link, Util, HtmlJson) {
+define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Util, HtmlJson) {
     var OrderDm = function(structure, config) {
         this.uri = config.uri;
         this.container_id = config.container_id;
@@ -161,7 +161,7 @@ define(['link', 'lib/util', 'lib/html+json'], function(Link, Util, HtmlJson) {
             if (request.body._scripts && request.body._scripts.onrender) {
                 var fns = request.body._scripts.onrender;
                 if (!Array.isArray(fns)) { fns = [fns]; }
-                fns.forEach(function(fn) { Util.execFn(fn, div_body_elem); });
+                fns.forEach(function(fn) { Util.execFn(fn, [div_body_elem, Env]); });
             }
             break;
         default:
