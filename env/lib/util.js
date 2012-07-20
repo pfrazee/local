@@ -2,11 +2,12 @@ define(function() {
     // Helper to run a callback object
     //  - composes calling arguments from fnObj and calling args
     //  - fnObj = { fn:function, args:array, context:object }
-    function __execFn(fnObj, args) {
+    function __execFn(fnObj, args, context) {
         if (!fnObj) { return; }
         if (typeof fnObj == 'function') {
             fnObj = { fn:fnObj }; // convert to object
         }
+        context = context || fnObj.context || undefined;
 
         // Build args
         // (caller arguments followed by fn arguments)
@@ -19,7 +20,7 @@ define(function() {
         args = args.concat(fnObj.args);
 
         // Call
-        fnObj.fn.apply(fnObj.context, args);
+        fnObj.fn.apply(context, args);
     }
 
     // Helper to run the scripts in a DOM element

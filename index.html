@@ -30,6 +30,10 @@
             var env_config = {
                 logging_enabled:1,
                 structure:[
+                    // Inbox
+                    { uri:'#inbox', module:'pfraze/inbox', services: { fixture:{ name:'Fixture' }}},
+                    { uri:'#inbox/services/fixture', module:'pfraze/inbox-srvc-fixture', name:'Fixture' },
+
                     // Test
                     { uri:'#test', module:'linkshui/test' },
             

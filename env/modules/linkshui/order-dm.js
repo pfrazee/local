@@ -161,7 +161,7 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
             if (request.body._scripts && request.body._scripts.onrender) {
                 var fns = request.body._scripts.onrender;
                 if (!Array.isArray(fns)) { fns = [fns]; }
-                fns.forEach(function(fn) { Util.execFn(fn, [div_body_elem, Env]); });
+                fns.forEach(function(fn) { Util.execFn(fn, [div_body_elem, Env], request.body); });
             }
             break;
         default:
