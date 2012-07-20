@@ -40,11 +40,7 @@ define(['link'], function(Link) {
                     }
                     if (--responsesLeft == 0) {
                         // Render response
-                        var body = {
-                            _scripts:{ onrender:__inboxRespRender },
-                            _data:{ messages:allMessages, uri:this.uri },
-                            childNodes:['<table class="table table-condensed"></table>']
-                        };
+                        var body = __mkInboxResp.call(this, allMessages);
                         promise.fulfill(Link.response(200, body, 'application/html+json'));
                     }
                 }, self);
@@ -64,16 +60,21 @@ define(['link'], function(Link) {
             // Cache
             if (response.code == 200) { this.messages = response.body; }
             // Render & respond
-            return; // :TODO:
-            //var inboxView = new Views.Inbox('todo'); //:TODO:
-            //inboxView.addMessages(service.messages);
-            //promise.fulfill(Link.response(200, inboxView.toString(), 'text/html'));
+            var body = __mkInboxResp.call(this, this.messages);
+            promise.fulfill(Link.response(200, body, 'application/html+json'));
         }, service);
         return promise;
     };
 
     // Helpers
     // =======
+    function __mkInboxResp(messages) {
+        return {
+            _scripts:{ onrender:__inboxRespRender },
+            _data:{ messages:messages, uri:this.uri },
+            childNodes:['<table class="table table-condensed"></table>']
+        };
+    }
     function __inboxRespRender(elem, env) {
         if (!this._data.messages) { return; }
         var table = elem.getElementsByTagName('table')[0];
@@ -85,7 +86,7 @@ define(['link'], function(Link) {
         for (var i=0; i < this._data.messages.length; i++) {
             var m = this._data.messages[i];
             var md = new Date(m.date).toLocaleDateString() + ' @' + new Date(m.date).toLocaleTimeString();
-            html += '<tr><td><span class="label">'+m.service+'</span></td><td><a href="'+m.uri+'">'+m.summary+'</a></td><td>'+md+'</td></tr>';
+            html += '<tr><td><span class="label">'+m.service+'</span></td><td><a href="'+m.view_link+'">'+m.summary+'</a></td><td>'+md+'</td></tr>';
         }
         // Add to DOM
         table.innerHTML = html;

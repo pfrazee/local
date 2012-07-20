@@ -39,9 +39,46 @@ define(['link'], function(Link, Views) {
         var message = this.messages[match.uri[1]];
         if (!message) { return Link.response(404); }
         // Build html
-        var messageView = 'todo'; 
-        return Link.response(200, messageView.toString(), 'text/html');
+        var recp = [];
+        for (var i=0; i < message.recp.length; i++) { 
+            recp.push('<span class="label">'+message.recp[i]+'</span>');
+        }
+        var date = new Date(message.date).toLocaleDateString();
+        var time = new Date(message.date).toLocaleTimeString();
+        var html = ''; 
+        html += '<h3 style="margin-bottom:5px">'+message.subject+'</h3>';
+        html += '<p><small>Sent on <span class="label">'+date+' @'+time+'</span> ';
+        html += 'by <span class="label">'+message.author+'</span> ';
+        html += 'to '+recp.join(',')+'</small></p><hr/>';
+        html += '<p>'+message.body+'</p>'
+        return Link.response(200, html, 'text/html');
     };
 
+    // Helpers
+    // =======
+    function __mkInboxResp(messages) {
+        return {
+            _scripts:{ onrender:__inboxRespRender },
+            _data:{ messages:messages, uri:this.uri },
+            childNodes:['<table class="table table-condensed"></table>']
+        };
+    }
+    function __inboxRespRender(elem, env) {
+        if (!this._data.messages) { return; }
+        var table = elem.getElementsByTagName('table')[0];
+        if (!table) { throw "<table> not found"; }
+        // Sort by date
+        this._data.messages.sort(function(a,b) { return ((a.date.getTime() < b.date.getTime()) ? 1 : -1); });
+        // Render to html
+        var html = '';
+        for (var i=0; i < this._data.messages.length; i++) {
+            var m = this._data.messages[i];
+            var md = new Date(m.date).toLocaleDateString() + ' @' + new Date(m.date).toLocaleTimeString();
+            html += '<tr><td><span class="label">'+m.service+'</span></td><td><a href="'+m.view_link+'">'+m.summary+'</a></td><td>'+md+'</td></tr>';
+        }
+        // Add to DOM
+        table.innerHTML = html;
+    }
+    
     return FixtureService;
 });
