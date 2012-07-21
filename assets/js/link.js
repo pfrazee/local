@@ -440,6 +440,18 @@ define(function() {
             }
             node = node.parentNode;
         }
+        // Handle the request, if a link
+        if (e.target.tagName == 'A') {
+            // stop defaults
+            e.preventDefault();
+            if (e.stopPropagation) { e.stopPropagation(); }
+            // extract uri
+            uri = e.target.attributes.href.value;
+            if (uri == null || uri == '') { uri = '#'; }
+            // follow request
+            //expected_hashchange = uri;
+            followRequest({ method:'get', uri:uri, accept:'text/html' });
+        }
     };
 
     // Submit interceptor -- handles forms with requests within the application
@@ -491,8 +503,7 @@ define(function() {
         // Default to the current resource
         if (!target_uri) { target_uri = window.location.hash; }
         
-        // Don't handle if a remote link
-        //if (target_uri.charAt(0) != '#') { return; }
+        // Taking control
         e.preventDefault();
         if (e.stopPropagation) { e.stopPropagation(); }
 
@@ -528,7 +539,7 @@ define(function() {
         // Build the request from the hash
         var uri = window.location.hash;
         if (expected_hashchange == uri || (expected_hashchange == '#' && uri == '')) {
-            expected_hashchange = null; // do nothing if this has been handled elsewhere
+            expected_hashchange = null; // do nothing if this has been handled elsewhere (click handler)
             return;
         }
         expected_hashchange = null;
