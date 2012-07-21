@@ -7,9 +7,9 @@ define(['link'], function(Link, Views) {
         this.uri = config.uri;
         // fixture data
         this.messages = [
-            { date:new Date('April 23 2012 21:20'), author:'rodger', recp:['bsmith'], subject:'Hey, Buddy!', body:'How are you doing?', re:null },
-            { date:new Date('April 24 2012 12:49'), author:'bsmith', recp:['bsmith', 'asmitherson'], subject:'About the meeting', body:'Important business conversation. Things people talk about and stuff', re:null },
-            { date:new Date('April 25 2012 15:12'), author:'asmitherson', recp:['bsmith', 'asmitherson'], subject:'RE: About the meeting', body:'Other stuff about business or whatever.', re:2 }
+            { date:'April 23 2012 21:20', author:'rodger', recp:['bsmith'], subject:'Hey, Buddy!', body:'How are you doing?', re:null },
+            { date:'April 24 2012 12:49', author:'bsmith', recp:['bsmith', 'asmitherson'], subject:'About the meeting', body:'Important business conversation. Things people talk about and stuff', re:null },
+            { date:'April 25 2012 15:12', author:'asmitherson', recp:['bsmith', 'asmitherson'], subject:'RE: About the meeting', body:'Other stuff about business or whatever.', re:2 }
         ];
     };
     
@@ -32,7 +32,7 @@ define(['link'], function(Link, Views) {
                 view_link:this.uri + '/' + i
             });
         }
-        return Link.response(200, retMessages, 'application/json');
+        return Link.response(200, { messages:retMessages }, 'application/json');
     };    
     FixtureService.prototype.messageHtmlHandler = function(request, match) {
         // Find message
@@ -67,8 +67,6 @@ define(['link'], function(Link, Views) {
         if (!this._data.messages) { return; }
         var table = elem.getElementsByTagName('table')[0];
         if (!table) { throw "<table> not found"; }
-        // Sort by date
-        this._data.messages.sort(function(a,b) { return ((a.date.getTime() < b.date.getTime()) ? 1 : -1); });
         // Render to html
         var html = '';
         for (var i=0; i < this._data.messages.length; i++) {

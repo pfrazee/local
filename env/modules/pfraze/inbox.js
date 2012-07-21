@@ -34,7 +34,10 @@ define(['link'], function(Link) {
                 self.structure.get(service.messagesLink).then(function(response) {
                     // Cache
                     if (response.code == 200) {
-                        service.messages = response.body;
+                        service.messages = response.body.messages;
+                        // :HACK; make this more efficient
+                        for (var i=0; i < service.messages.length; i++) { service.messages[i].service = service.name; }
+                        console.log(service.messages[0]);
                         allMessages = allMessages.concat(service.messages);
                     }
                     if (--responsesLeft == 0) {
@@ -80,7 +83,7 @@ define(['link'], function(Link) {
         var table = elem.getElementsByTagName('table')[0];
         if (!table) { throw "<table> not found"; }
         // Sort by date
-        this._data.messages.sort(function(a,b) { return ((a.date.getTime() < b.date.getTime()) ? 1 : -1); });
+        this._data.messages.sort(function(a,b) { return ((new Date(a.date).getTime() < new Date(b.date).getTime()) ? 1 : -1); });
         // Render to html
         var html = '';
         for (var i=0; i < this._data.messages.length; i++) {

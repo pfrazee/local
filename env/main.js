@@ -43,7 +43,7 @@ require(paths, function(Link, Env, LinkRegistry, CLI, History, LinkshuiOrderDm) 
 
     // Logging
     if (env_config.logging_enabled) {
-        Link.logMode('traffic', true);
+        //Link.logMode('traffic', true);
         //Link.logMode('routing', true);
         Link.logMode('err_types', true);
     }
