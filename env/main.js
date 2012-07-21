@@ -45,6 +45,7 @@ require(paths, function(Link, Env, LinkRegistry, CLI, History, LinkshuiOrderDm) 
     if (env_config.logging_enabled) {
         Link.logMode('traffic', true);
         //Link.logMode('routing', true);
+        Link.logMode('err_types', true);
     }
     
     // Wire the app to the window
@@ -56,6 +57,13 @@ require(paths, function(Link, Env, LinkRegistry, CLI, History, LinkshuiOrderDm) 
         Env.handleResponse(response);
     });
     
+    // Follow the given hash
+    // :TODO: give this time to simmer
+    /*var uri = window.location.hash;
+    if (uri != null && uri == '' && uri != '/') { 
+        Link.followRequest({ method:'get', uri:uri, accept:'text/html' });
+    }*/
+
     // Set up the prompt
     var prompt_elem = document.getElementById('lshui-cli-prompt');
     var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];

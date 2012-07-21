@@ -7,9 +7,8 @@ define(['link'], function(Link) {
         this.uri = config.uri;
         this.services = config.services;
         // Prep the structure
-        for (var slug in this.services) {
-            this.serviceCount++;
-            this.services[slug].messagesLink = { uri:'#inbox/services/'+slug, accept:'application/json' };
+        for (var i=0; i < this.services.length; i++) {
+            this.services[i].messagesLink = { uri:this.services[i].uri, accept:'application/json' };
         }
     };
 
@@ -28,7 +27,7 @@ define(['link'], function(Link) {
         var responsesLeft = 0;
         // Get messages from all services
         var allMessages = [];
-        for (var slug in this.services) {
+        for (var i=0; i < this.services.length; i++) {
             responsesLeft++;
             // Capture the service in a closure
             (function(self, service) {
@@ -44,14 +43,15 @@ define(['link'], function(Link) {
                         promise.fulfill(Link.response(200, body, 'application/html+json'));
                     }
                 }, self);
-            })(this, this.services[slug]);
+            })(this, this.services[i]);
         }
         if (responsesLeft == 0) { return Link.response(204); }
         return promise;
     };
     Inbox.prototype.serviceInbox = function _serviceInbox(request, match) {
         // Get the service
-        var service = this.services[match.uri[1]];
+        var sk = parseInt(match.uri[1]);
+        var service = this.services[sk];
         if (!service) { return Link.response(404); }
         
         // Dispatch for messages

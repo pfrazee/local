@@ -56,9 +56,7 @@ define(function() {
                         match = true;
                         // key exists
                         if (!(k in request)) {
-                            if (logMode('routing')) {
-                                console.log(' > ',module.inst,route.cb,'MISS ('+k+')');
-                            }
+                            log('routing', ' > ',module.inst,route.cb,'MISS ('+k+')');
                             match = false;
                             break;
                         }
@@ -69,9 +67,7 @@ define(function() {
                         if (route.match[k] instanceof RegExp) {
                             match = route.match[k].exec(reqVal)
                             if (!match) { 
-                                if (logMode('routing')) {
-                                    console.log(' > ',module.inst,route.cb,'MISS ('+k+' "'+reqVal+'")');
-                                }
+                                log('routing', ' > ',module.inst,route.cb,'MISS ('+k+' "'+reqVal+'")');
                                 break; 
                             }
                             matches[k] = match;
@@ -79,9 +75,7 @@ define(function() {
                         // standard equality
                         else {
                             if (route.match[k] != reqVal) { 
-                                if (logMode('routing')) {
-                                    console.log(' > ',module.inst,route.cb,'MISS ('+k+' "'+reqVal+'")');
-                                }
+                                log('routing', ' > ',module.inst,route.cb,'MISS ('+k+' "'+reqVal+'")');
                                 match = false; break; 
                             }
                             matches[k] = reqVal;
@@ -90,9 +84,7 @@ define(function() {
                     // Ended the loop because it wasn't a match?
                     if (!match) { continue; }
                     // A match, get the cb
-                    if (logMode('routing')) {
-                        console.log(' > ',module.inst,route.cb,'MATCH');
-                    }
+                    log('routing', ' > ',module.inst,route.cb,'MATCH');
                     var cb = module.inst[route.cb];
                     if (!cb) {
                         console.log("Handler callback '" + route.cb + "' not found in object");
@@ -121,14 +113,7 @@ define(function() {
         // Assign an id, for debugging
         Object.defineProperty(request, '__mid', { value:cur_mid++, writable:true });
         // Log
-        if (logMode('traffic')) {
-            console.log(this.id ? this.id+'|req' : '|> ', request.__mid, request.uri, request.accept ? '['+request.accept+']' : '', request);
-        }
-        // If in browser & no hash, use ajax
-        if (typeof window !== 'undefined' && request.uri.charAt(0) != '#') {
-            __sendAjaxRequest(request, opt_cb, opt_context);
-            return;
-        }
+        log('traffic', this.id ? this.id+'|req' : '|> ', request.__mid, request.uri, request.accept ? '['+request.accept+']' : '', request);
         // Pull the query params out, if present
         __processQueryParams(request);
         // Build the handler chain
@@ -168,10 +153,13 @@ define(function() {
             // Out of callbacks -- create a response if we dont have one
             if (!response) { response = mkresponse(404); }
             else if (response.code == 0) { response.code = 404; response.reason = 'not found'; }
-            // Log
-            if (logMode('traffic')) {
-                console.log(this.id ? this.id+'|res' : ' >|', request.__mid, request.uri, response['content-type'] ? '['+response['content-type']+']' : '', response);
+            // 404? check remote
+            if (response.code == 404) { 
+                __dispatchRemote(request);
+                return;
             }
+            // Log
+            log('traffic', this.id ? this.id+'|res' : ' >|', request.__mid, request.uri, response['content-type'] ? '['+response['content-type']+']' : '', response);
             // Decode to object form
             response.body = decodeType(response.body, response['content-type']);
             // Send to original promise
@@ -231,7 +219,10 @@ define(function() {
         }
         // find encoder
         var encoder = __findCoder(typeEncoders, type);
-        if (!encoder) { return obj; }
+        if (!encoder) { 
+            log('err_types', 'Unable to encode', obj,type, ' --no encoder found');
+            return obj; 
+        }
         // run
         return encoder(obj);
     };
@@ -242,7 +233,10 @@ define(function() {
         }
         // find decoder
         var decoder = __findCoder(typeDecoders, type);
-        if (!decoder) { return str; }
+        if (!decoder) { 
+            log('err_types', 'Unable to decode', { body:str }, type, '(no decoder found)');
+            return str; 
+        }
         // run
         return decoder(str);
     };
@@ -363,6 +357,14 @@ define(function() {
         return v;
     };
 
+    // Custom logger
+    var log = function(channel) {
+        if (logMode(channel)) {
+            var args = Array.prototype.slice.call(arguments, 1);
+            console.log.apply(console, args);
+        }
+    };
+
     // Ajax config accessor
     var ajaxConfig = function(k, v) {
         if (v == undefined) { return ajax_config[k]; }
@@ -371,7 +373,12 @@ define(function() {
     };
 
     // Helper to send ajax requests
-    var __sendAjaxRequest = function(request, opt_cb, opt_context) {
+    var __dispatchRemote = function(request) {
+        if (typeof window != 'undefined') {
+            __sendAjaxRequest(request);
+        }
+    };
+    var __sendAjaxRequest = function(request) {
         // Create remote request
         var xhrRequest = new XMLHttpRequest();
         var target_uri = request.uri;
@@ -414,13 +421,12 @@ define(function() {
                 xhrResponse.code = xhrRequest.status;
                 xhrResponse.reason = xhrRequest.statusText;
                 xhrResponse.body = xhrRequest.responseText;
-                if (logMode('traffic')) {
-                    console.log(this.id ? this.id+'|res' : ' >|', request.__mid, request.uri, xhrResponse['content-type'] ? '['+xhrResponse['content-type']+']' : '', xhrResponse);
-                }
                 // Decode into an object (if possible)
                 xhrResponse.body = decodeType(xhrResponse.body, xhrResponse['content-type']);
-                // Pass on
-                opt_cb.call(opt_context, xhrResponse);
+                // Log
+                log('traffic', this.id ? this.id+'|res' : ' >|', request.__mid, request.uri, xhrResponse['content-type'] ? '['+xhrResponse['content-type']+']' : '', xhrResponse);
+                // Send to original promise
+                request.__dispatch_promise.fulfill(xhrResponse);
             }
         };
         xhrRequest.send(request.body);
@@ -580,10 +586,6 @@ define(function() {
         document.onsubmit = __windowSubmitHandler;
         window.onhashchange = __windowHashchangeHandler;
     
-        // Now follow the current hash's uri
-        var uri = window.location.hash;
-        if (uri == null || uri == '') { uri = '#'; }
-        followRequest({ method:'get', uri:uri, accept:'text/html' });
     };
     
     // Exports
@@ -600,6 +602,7 @@ define(function() {
         route          : mkroute,
         response       : mkresponse,
         logMode        : logMode,
+        log            : log,
         ajaxConfig     : ajaxConfig,
         attachToWindow : attachToWindow,
     };

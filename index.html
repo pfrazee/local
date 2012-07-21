@@ -31,23 +31,30 @@
                 logging_enabled:1,
                 structure:[
                     // Inbox
-                    { uri:'#inbox', module:'pfraze/inbox', services: { fixture:{ name:'Fixture' }}},
-                    { uri:'#inbox/services/fixture', module:'pfraze/inbox-srvc-fixture', name:'Fixture' },
+                    { 
+                        uri:'/inbox', 
+                        module:'pfraze/inbox', 
+                        services:[
+                            { name:'Fixture', uri:'/serv/inbox/fixture' },
+                            { name:'pfraze', uri:'/maildir' }
+                        ]
+                    },
+                    { uri:'/serv/inbox/fixture', module:'pfraze/inbox-srvc-fixture', name:'Fixture' },
 
                     // Test
-                    { uri:'#test', module:'linkshui/test' },
+                    { uri:'/test', module:'linkshui/test' },
             
                     // Tools
-                    { uri:"#", module:"linkshui/intro" },
-                    { uri:"#tools/spahql", module:"danski/spahql" },
-                    { uri:"#tools/jeo", module:"wjosdejong/jsoneditor" },
-                    { uri:"#tools/prettify", module:"google/prettify" },
-                    { uri:"#toys/bggl", module:"toys/bggl" },
+                    { uri:"/", module:"linkshui/intro" },
+                    { uri:"/tools/spahql", module:"danski/spahql" },
+                    { uri:"/tools/jeo", module:"wjosdejong/jsoneditor" },
+                    { uri:"/tools/prettify", module:"google/prettify" },
+                    { uri:"/toys/bggl", module:"toys/bggl" },
                 ],
                 links:[
-                    { uri:'#tools/spahql', rel:'spahql' },
-                    { uri:'#tools/jeo', rel:'jeo' },
-                    { uri:'#tools/prettify', rel:'prettify' }
+                    { uri:'/tools/spahql', rel:'spahql' },
+                    { uri:'/tools/jeo', rel:'jeo' },
+                    { uri:'/tools/prettify', rel:'prettify' }
                 ]
             };
         </script>
