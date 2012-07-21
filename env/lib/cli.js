@@ -19,31 +19,61 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
     var CLI = {
         elemInput:null,
         structure:null,
-        init:__init,
-        runCommand:__runCommand,
+        history:[''],
+        hindex:0,
+        hlen:1,
+        init:init,
+        runCommand:runCommand,
+        addHistory:addHistory,
+        moveHistory:moveHistory,
         prototype:{} // tmp
     };
     
     // setup func    
-    function __init(structure, elem_id) {
+    function init(structure, elem_id) {
         this.structure = structure;
         this.elemInput = document.getElementById(elem_id);
         this.elemInput.onkeydown = __clikeydown;
     };
 
     // input event function
+    var KEYS = { enter:13, up:38, down:40 };
     function __clikeydown(e) {
-        if (e.keyCode == 13) { // enter keypress
-            // Pull out and clear the value
-            var command = CLI.elemInput.value;
-            CLI.elemInput.value = '';
-            // Pipe into the command handler
-            CLI.runCommand(command);
-        }
+        switch (e.keyCode) {
+            case KEYS.enter:
+                // Pull out and clear the value
+                var command = CLI.elemInput.value;
+                CLI.elemInput.value = '';
+                // Pipe into the command handler
+                CLI.runCommand(command);
+                CLI.addHistory(command);
+                break;
+            case KEYS.up:
+            case KEYS.down:
+                CLI.moveHistory((e.keyCode == KEYS.up) ? 1 : -1);
+                break;
+         }
     };
 
+    // add to command history
+    function addHistory(cmd) {
+        this.history.push(cmd);
+        this.hlen++;
+        this.hindex = this.hlen;
+    }
+
+    // cycle through command history
+    function moveHistory(dir) {
+        var cmd;
+        CLI.hindex = __clamp(CLI.hindex - dir, 0, this.hlen);
+        if (CLI.hindex == this.hlen) { cmd = ''; }
+        else { cmd = this.history[CLI.hindex]; }
+        CLI.elemInput.value = cmd;
+        return cmd;
+    }
+
     // command handler
-    function __runCommand(command) {
+    function runCommand(command) {
         //Parser.logging = true;
         
         // Make sure we got something
@@ -102,6 +132,13 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
         };
         CLI.structure.dispatch((cur_request = cmd_requests.shift()), handleResponse);
     };
+
+    // range clamp helper
+    function __clamp(v, min, max) {
+        if (v < min) { return min; }
+        else if (v > max) { return max; }
+        return v;
+    }
 
     // Parser
     // ======
