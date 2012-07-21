@@ -417,6 +417,8 @@ define(function() {
                 if (logMode('traffic')) {
                     console.log(this.id ? this.id+'|res' : ' >|', request.__mid, request.uri, xhrResponse['content-type'] ? '['+xhrResponse['content-type']+']' : '', xhrResponse);
                 }
+                // Decode into an object (if possible)
+                xhrResponse.body = decodeType(xhrResponse.body, xhrResponse['content-type']);
                 // Pass on
                 opt_cb.call(opt_context, xhrResponse);
             }
