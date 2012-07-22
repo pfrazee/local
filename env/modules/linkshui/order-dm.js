@@ -127,14 +127,14 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
         if (request.title) { title = request.title; }
 
         // construct the body
-        var body = '';
-        switch (request['content-type']) {
-        case 'application/html+json':
-            body = HtmlJson.toHtml(request.body);
-            break;
-        default:
-            body = Link.encodeType(request.body, request['content-type']);
+        var body = request.body;
+        if (request['content-type'] != 'application/html+json') {
+            // encode to a string
+            body = Link.encodeType(body, request['content-type']);
+            // escape so that html isnt inserted
+            body = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
+        // standard wrapper markup
         var nodes = mknode('div','.orderdiv',0,[
             mknode('div','.orderdiv-titlebar',0,[
                 mknode('form',0,{action:div_uri},[
@@ -154,18 +154,14 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
         var div_elem = document.getElementById(elem_id);
         div_elem.innerHTML = html;
 
-        // run scripts
-        var div_body_elem = document.getElementById(elem_id+'-body');
-        switch (request['content-type']) {
-        case 'application/html+json':
-            if (request.body._scripts && request.body._scripts.onrender) {
-                var fns = request.body._scripts.onrender;
+        // run load script
+        if (request['content-type'] == 'application/html+json') {
+            if (body._scripts && body._scripts.load) {
+                var div_body_elem = document.getElementById(elem_id+'-body');
+                var fns = request.body._scripts.load;
                 if (!Array.isArray(fns)) { fns = [fns]; }
-                fns.forEach(function(fn) { Util.execFn(fn, [div_body_elem, Env], request.body); });
+                fns.forEach(function(fn) { Util.execFn(fn, [div_body_elem, Env], body); });
             }
-            break;
-        default:
-            Util.execElementScripts(div_body_elem);
         }
 
         // store info

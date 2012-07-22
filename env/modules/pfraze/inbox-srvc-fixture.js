@@ -29,7 +29,7 @@ define(['link'], function(Link, Views) {
                 service:this.serviceName,
                 date:message.date,
                 summary:'<strong>' + message.author + '</strong> ' + message.subject,
-                view_link:this.uri + '/' + i
+                URIself:this.uri + '/' + i
             });
         }
         return Link.response(200, { messages:retMessages }, 'application/json');

@@ -35,9 +35,8 @@ define(['link'], function(Link) {
                     // Cache
                     if (response.code == 200) {
                         service.messages = response.body.messages;
-                        // :HACK; make this more efficient
+                        // :HACK: make this more efficient
                         for (var i=0; i < service.messages.length; i++) { service.messages[i].service = service.name; }
-                        console.log(service.messages[0]);
                         allMessages = allMessages.concat(service.messages);
                     }
                     if (--responsesLeft == 0) {
@@ -73,26 +72,24 @@ define(['link'], function(Link) {
     // =======
     function __mkInboxResp(messages) {
         return {
-            _scripts:{ onrender:__inboxRespRender },
-            _data:{ messages:messages, uri:this.uri },
-            childNodes:['<table class="table table-condensed"></table>']
+            _scripts:{ load:__inboxRespLoad },
+            _data:{ messages:messages, uri:this.uri }
         };
     }
-    function __inboxRespRender(elem, env) {
+    function __inboxRespLoad(elem, env) {
         if (!this._data.messages) { return; }
-        var table = elem.getElementsByTagName('table')[0];
-        if (!table) { throw "<table> not found"; }
         // Sort by date
         this._data.messages.sort(function(a,b) { return ((new Date(a.date).getTime() < new Date(b.date).getTime()) ? 1 : -1); });
         // Render to html
-        var html = '';
+        var html = '<table class="table table-condensed">';
         for (var i=0; i < this._data.messages.length; i++) {
             var m = this._data.messages[i];
             var md = new Date(m.date).toLocaleDateString() + ' @' + new Date(m.date).toLocaleTimeString();
-            html += '<tr><td><span class="label">'+m.service+'</span></td><td><a href="'+m.view_link+'">'+m.summary+'</a></td><td>'+md+'</td></tr>';
+            html += '<tr><td><span class="label">'+m.service+'</span></td><td><a href="'+m.URIself+'">'+m.summary+'</a></td><td>'+md+'</td></tr>';
         }
+        html += '</table>';
         // Add to DOM
-        table.innerHTML = html;
+        elem.innerHTML = html;
     }
 
     return Inbox;

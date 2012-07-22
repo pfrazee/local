@@ -220,7 +220,7 @@ define(function() {
         // find encoder
         var encoder = __findCoder(typeEncoders, type);
         if (!encoder) { 
-            log('err_types', 'Unable to encode', obj,type, ' --no encoder found');
+            log('err_types', 'Unable to encode', type, '(no encoder found)');
             return obj; 
         }
         // run
@@ -234,7 +234,7 @@ define(function() {
         // find decoder
         var decoder = __findCoder(typeDecoders, type);
         if (!decoder) { 
-            log('err_types', 'Unable to decode', { body:str }, type, '(no decoder found)');
+            log('err_types', 'Unable to decode', type, '(no decoder found)');
             return str; 
         }
         // run
@@ -408,13 +408,14 @@ define(function() {
             if (xhrRequest.readyState == 4) {
                 // Parse headers
                 var headers = {};
-                var headers_parts = xhrRequest.getAllResponseHeaders().split("\n");
+                var hp = xhrRequest.getAllResponseHeaders().split("\n");
+                var hpp;
                 // :NOTE: a bug in firefox causes getAllResponseHeaders to return an empty string on CORS
                 // we either need to bug them, or iterate the headers we care about with getResponseHeader
-                for (var i=0; i < headers_parts.length; i++) {
-                    if (!headers_parts[i]) { continue; }
-                    var header_parts = headers_parts[i].toLowerCase().split(': ');
-                    headers[header_parts[0]] = header_parts[1];
+                for (var i=0; i < hp.length; i++) {
+                    if (!hp[i]) { continue; }
+                    hpp = hp[i].toLowerCase().replace('\r','').split(': ');
+                    headers[hpp[0]] = hpp[1];
                 }
                 // Build the response
                 var xhrResponse = headers;
@@ -447,16 +448,22 @@ define(function() {
             node = node.parentNode;
         }
         // Handle the request, if a link
-        if (e.target.tagName == 'A') {
+        node = e.target;
+        while (node) {
+            if (node.tagName != 'A') { 
+                node = node.parentNode;
+                continue;
+            }
             // stop defaults
             e.preventDefault();
             if (e.stopPropagation) { e.stopPropagation(); }
             // extract uri
-            uri = e.target.attributes.href.value;
+            uri = node.attributes.href.value;
             if (uri == null || uri == '') { uri = '#'; }
             // follow request
             //expected_hashchange = uri;
             followRequest({ method:'get', uri:uri, accept:'text/html' });
+            break;
         }
     };
 
