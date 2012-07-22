@@ -34,6 +34,18 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
         this.structure = structure;
         this.elemInput = document.getElementById(elem_id);
         this.elemInput.onkeydown = __clikeydown;
+
+        // Set up the prompt
+        var prompt_elem = document.getElementById('lshui-cli-prompt');
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var twoDigits = function(v) { return ((v < 10) ? '0' : '') + v; };
+        var setPrompt = function() {
+            var now = new Date();
+            var tickanim = ['&#9777;','&#9778;','&#9780;','&#9782;','&#9783;','&#9779;'];
+            prompt_elem.innerHTML = '' + twoDigits(now.getHours()) + ':' + twoDigits(now.getMinutes()) + tickanim[now.getSeconds() % tickanim.length] + ' ' + months[now.getMonth()] + twoDigits(now.getDate());
+        };
+        setInterval(setPrompt, 1000);
+        setPrompt();
     };
 
     // input event function

@@ -28,7 +28,7 @@ define(['link', 'lib/html+json', './jsoneditoronline/jsoneditor'], function(Link
             '<h3>JSON Editor Online <small>by Jos de Jong (<a href="https://github.com/wjosdejong/jsoneditoronline" title="github repo">https://github.com/wjosdejong/jsoneditoronline</a>)</small></h3><div class="jsoneditor"></div>',
             '<link rel="stylesheet" media="screen" href="/env/modules/wjosdejong/jsoneditoronline/jsoneditor.css" />'
         ]);
-        HtmlJson.addScript(body, 'onrender', __onrender, null, inst);
+        HtmlJson.addScript(body, 'load', __loadClient, null, inst);
 
         // Add to UI
         this.structure.post({
@@ -55,7 +55,7 @@ define(['link', 'lib/html+json', './jsoneditoronline/jsoneditor'], function(Link
         delete this.instances[instid];
         return Link.response(204, 0, 0, { reason:'deleted' });
     }            
-    function __onrender(elem, env, inst) {
+    function __loadClient(elem, env, inst) {
         // Find the container
         var container = elem.getElementsByClassName('jsoneditor')[0];
         if (!container) { throw "Unable to find json editor container"; }

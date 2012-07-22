@@ -35,44 +35,21 @@ require(paths, function(Link, Env, LinkRegistry, CLI, History, LinkshuiOrderDm) 
         structure.addModule(uri, new Module(structure, env_config.structure[i]));
     }   
 
-    // Init environment libs
-    Env.init(structure);
-    LinkRegistry.init(env_config.links);
-    CLI.init(structure, 'lshui-cli-input');
-    History.init('lshui-hist');
-
     // Logging
     if (env_config.logging_enabled) {
         //Link.logMode('traffic', true);
         //Link.logMode('routing', true);
         Link.logMode('err_types', true);
     }
-    
-    // Wire the app to the window
-    Link.attachToWindow(structure, function(request, response) {
-        // Add to the history
-        var cmd = request.method + ' ' + request.uri;
-        History.addEntry(cmd, response);
-        // Process
-        Env.handleResponse(response);
-    });
+
+    // Init environment libs
+    Env.init(structure);
+    LinkRegistry.init(env_config.links);
+    CLI.init(structure, 'lshui-cli-input');
+    History.init('lshui-hist');
     
     // Follow the given hash
-    // :TODO: give this time to simmer
-    /*var uri = window.location.hash;
-    if (uri != null && uri == '' && uri != '/') { 
-        Link.followRequest({ method:'get', uri:uri, accept:'text/html' });
-    }*/
-
-    // Set up the prompt
-    var prompt_elem = document.getElementById('lshui-cli-prompt');
-    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    var twoDigits = function(v) { return ((v < 10) ? '0' : '') + v; };
-    var setPrompt = function() {
-        var now = new Date();
-        var tickanim = ['&#9777;','&#9778;','&#9780;','&#9782;','&#9783;','&#9779;'];
-        prompt_elem.innerHTML = '' + twoDigits(now.getHours()) + ':' + twoDigits(now.getMinutes()) + tickanim[now.getSeconds() % tickanim.length] + ' ' + months[now.getMonth()] + twoDigits(now.getDate());
-    };
-    setInterval(setPrompt, 1000);
-    setPrompt();
+    var uri = window.location.hash || '';
+    if (uri.charAt(0) == '#') { uri = uri.substring(1); }
+    CLI.runCommand('get '+uri+' [application/html+json]');
 });
