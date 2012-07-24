@@ -12,7 +12,7 @@
 
 ## A Metaphor
 
-The user agent is a stage. It creates the world for actors to create stories. The actors (program agents) take on characters and improvise with the scripts they receive. Sometimes the script says to take on a new character; sometimes the script says to speak new words or take new actions. Together, they create stories directed by the user.
+The user agent is a stage, the program agents are actors, and Web responses are scripts. Sometimes the script says to take on a new character; sometimes the script says to speak words or take new actions. It's all subject to interpretation.
 
 ## Intent
 
