@@ -1,4 +1,4 @@
-text/explanation+plain
+## Dollar Sign Convention
 
 You may have noticed some variables use a dollar sign inside of the identifier.
 
