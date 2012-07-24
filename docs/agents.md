@@ -12,7 +12,7 @@
 
 ## A Metaphor
 
-The user agent is a stage, the program agents are actors, and Web responses are scripts. Sometimes the script says to take on a new character; sometimes the script says to speak words or take new actions. It's all subject to interpretation.
+The user agent is a stage, the program agents are actors, and Web responses are scripts. Sometimes the script says to take on a new character, sometimes the script says to speak words or take new actions, but it's always subject to interpretation.
 
 ## Intent
 
