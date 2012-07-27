@@ -87,7 +87,7 @@ define(function() {
             uri = node.attributes.href.value;
             if (uri == null || uri == '') { uri = '#'; }
             // emit request event
-            __broadcastReqEvent({ method:'get', uri:uri, accept:'text/html' }, agent_id);
+            __broadcastReqEvent({ method:'get', uri:uri, accept:'application/html+json' }, agent_id);
             break;
         }
     }

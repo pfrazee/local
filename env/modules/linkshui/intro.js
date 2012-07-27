@@ -45,7 +45,7 @@ define(['link'], function(Link) {
                 '<p>Unfortunately, that\'s all I have time for. Yeah. Lots to do.</p>'
             ];
             if (/application\/html\+json/.test(request.accept)) {
-                return Link.response(200, { childNodes:[html.join('')] }, 'application/html+json', { link:links });
+                return Link.response(200, { childNodes:[html.join('')] }, 'application/html+json');
             }
             return Link.response(200, html.join(''), 'text/html');
         }

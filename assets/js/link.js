@@ -112,6 +112,10 @@ define(function() {
         request = deepCopy(request);
         // Assign an id, for debugging
         Object.defineProperty(request, '__mid', { value:cur_mid++, writable:true });
+        // Make any auto-corrections
+        if (request.uri.charAt(0) != '/' && /:\/\//.test(request.uri) == false) {
+            request.uri = '/' + request.uri;
+        }
         // Log
         log('traffic', this.id ? this.id+'|req' : '|> ', request.__mid, request.uri, request.accept ? '['+request.accept+']' : '', request);
         // Pull the query params out, if present

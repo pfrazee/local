@@ -70,10 +70,9 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
             elem:null
         };
         // set up DOM
-        var wrapper_html = Env__makeAgentWrapperHtml(id);
-        this.container_elem.innerHTML += wrapper_html;
+        var wrapper_elem = Env__makeAgentWrapperElem(id);
+        this.container_elem.appendChild(wrapper_elem);
         // set up request event listening
-        var wrapper_elem = document.getElementById('agent-'+id);
         RequestEvents.observe(wrapper_elem, id);
         agent.elem = document.getElementById('agent-'+id+'-body');
         // all set
@@ -85,6 +84,9 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
         if (!id || !(id in this.agents)) {
             return false;
         }
+        // remove DOM
+        var wrapper_elem = document.getElementById('agent-'+id);
+        wrapper_elem.parentNode.removeChild(wrapper_elem);
         // :TODO: call an agent destroy func?
         delete this.agents[id];
         return true;
@@ -138,15 +140,18 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
     }
 
     // generates HTML for agents to work within
-    function Env__makeAgentWrapperHtml(id) {
-
-        return agent_template_html
+    function Env__makeAgentWrapperElem(id) {
+        var elem = document.createElement('div');
+        elem.className = "agent";
+        elem.id = "agent-"+id;
+        elem.innerHTML = agent_template_html
             .replace(/{{id}}/g, id)
             .replace(/{{uri}}/g, '/a/'+id)
         ;
+        return elem;
     }
     var agent_template_html = 
-        '<div id="agent-{{id}}" class="agent">' +
+        //'<div id="agent-{{id}}" class="agent">' +
             '<div class="agent-titlebar">' +
                 '<form action="{{uri}}">' +
                     '<div class="agent-titlebar-ctrls btn-group">' +
@@ -156,8 +161,8 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
                 '</form>' +
                 '<a href="{{uri}}">{{uri}}</a>' +
             '</div>' +
-            '<div id="agent-{{id}}-body" class="agent-body"></div>' +
-        '</div>'
+            '<div id="agent-{{id}}-body" class="agent-body"></div>'
+        //'</div>'
     ;
 
     return Env;

@@ -19,9 +19,17 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
         Link.route('deleteHandler', { uri:'^/([^/]+)/?$', method:'delete' }),
     ];
     SimpleAgentServer.prototype.infoHandler = function(request) {
-        if (/html/.match(request.accept)) {
-            return Link.response(200, '<h2>Simple <small>Agent Server</small></h2><p>Simple is as simple does.</p>', 'text/html');
+        // :TODO: add summary of active agents
+        if (/html/.test(request.accept)) {
+            var html = '<h2>Simple <small>Agent Server</small></h2><p>Simple is as simple does.</p>';
+            var type = 'text/html';
+            if (/application\/html\+json/.test(request.accept)) {
+                html = { childNodes:[html] };
+                type = 'application/html+json';
+            }
+            return Link.response(200, html, type);
         }
+        return { code:415 };
     };
     SimpleAgentServer.prototype.createHandler = function(request, match, response) {
         agent = Env.makeAgent();
@@ -44,9 +52,14 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
             return promise;
         } else {
             // no uri, just give the contents of the agent
-            //var elem = document.getElementById(agent.domid + '-body');
-            //return Link.response(200, elem.innerHTML, 'text/html');
-            return Link.response(500); // :TODO:
+            var data = agent.elem.innerHTML;
+            if (/application\/html\+json/.test(request.accept)) {
+                return Link.response(200, { childNodes:[data] }, 'application/html+json');
+            }
+            if (/json/.test(request.accept)) {
+                return Link.response(200, { data:data }, 'application/json');
+            }
+            return Link.response(200, agent.elem.innerHTML, 'text/html');
         }
     };
     SimpleAgentServer.prototype.setHandler = function(request, match, response) {
@@ -62,24 +75,23 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
         var id = match.uri[1];
         var agent = Env.getAgent(id);
         if (!agent) { return { code:404, reason:'agent not found' }; }
-        return; // :TODO: move?
-        // update the agent
-        agent.is_collapsed = !agent.is_collapsed;
-        // update the dom
-        var agent_dom = document.getElementById(agent.domid);
-        var ci = agent_dom.className.indexOf('collapsed');
-        if (agent.is_collapsed && ci == -1) {
-            agent_dom.className += ' collapsed';
-        } else if (!agent.is_collapsed && ci != -1) {
-            agent_dom.className = agent_dom.className.replace(/[\s]*collapsed/i,'');
+        var agent_elem = document.getElementById('agent-'+id);
+        if (!agent_elem) { return { code:500, reason:'unable to find agent elem' }; }
+        // update the agent dom
+        var is_collapsed = /collapsed/.test(agent_elem.className);
+        is_collapsed = !is_collapsed;
+        if (is_collapsed) {
+            agent_elem.className += ' collapsed';
+        } else {
+            agent_elem.className = agent_elem.className.replace(/[\s]*collapsed/i,'');
         }
-        var shutter_dom = agent_dom.getElementsByClassName('shutter-btn')[0];
-        if (shutter_dom) { shutter_dom.innerText = agent.is_collapsed ? '+' : '_'; }
+        var shutter_elem = agent_elem.getElementsByClassName('btn-shutter')[0];
+        if (shutter_elem) { shutter_elem.innerText = is_collapsed ? '+' : '_'; }
         // if a ctrl uri was given, notify it
         // :TODO: reconsider
-        if (agent.program_uri) {
+        /*if (agent.program_uri) {
             this.structure.post({ uri:agent.program_uri + '/collapse' });
-        }
+        }*/
         return Link.response(205);
     };
     SimpleAgentServer.prototype.deleteHandler = function(request, match, response) {
@@ -94,31 +106,6 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
         }*/
         return Link.response(205);
     };
-
-    // Helpers
-    // =======
-    var __updateAgentFromRequest = function(index, request) { // :TODO: rename
-        // get agent dom
-        var agent_domid = this.container_domid + '-agent-' + index;
-        var agent_dom = document.getElementById(agent_domid);
-        if (!agent_dom) { throw "Unable to find agent dom node"; }
-
-        // make active
-        if (/active/.match(agent_dom.className) == false) {
-            agent_dom.className += ' active';
-        }
-
-        // :TODO: call the agent's response handler
-
-        
-        // :TODO: move to def handler
-        
-    };
-    var __closeAgent = function(index) {
-        // :TODO: coordinate with env?
-        var agent = this.agents[index];
-        var elem = agent && document.getElementById(agent.domid);
-    }
-
+    
     return SimpleAgentServer;
 });
