@@ -334,14 +334,8 @@ define(function() {
         }
     };
 
-    // Window Behavior
-    // ===============
-    // Structure listening to window events
-    var window_structure = null;
-    // Handler for window responses
-    var window_handler = { cb:null, context:null };
-    // Used to avoid duplicate hash-change handling
-    var expected_hashchange = null;
+    // Ajax and Util
+    // =============
     // Hash of enabled logging mods
     var active_log_modes = {};
     // Configures remote requests in the browser (proxy)
@@ -433,168 +427,6 @@ define(function() {
         xhrRequest.send(request.body);
     };
 
-    // Click interceptor -- helps with form submissions
-    var __windowClickHandler = function(e) {
-        // Mark as recently clicked, if this (or a parent) is part of a form
-        var node = e.target;
-        while (node) {
-            if (node.form) {
-                for (var i=0; i < node.form.length; i++) {
-                    node.form[i].setAttribute('clicked', null); // clear the others out, to be safe
-                }
-                node.setAttribute('clicked', '1');
-                break;
-            }
-            node = node.parentNode;
-        }
-        // Handle the request, if a link
-        node = e.target;
-        while (node) {
-            if (node.tagName != 'A') { 
-                node = node.parentNode;
-                continue;
-            }
-            // stop defaults
-            e.preventDefault();
-            if (e.stopPropagation) { e.stopPropagation(); }
-            // extract uri
-            uri = node.attributes.href.value;
-            if (uri == null || uri == '') { uri = '#'; }
-            // follow request
-            //expected_hashchange = uri;
-            followRequest({ method:'get', uri:uri, accept:'text/html' });
-            break;
-        }
-    };
-
-    // Submit interceptor -- handles forms with requests within the application
-    var __windowSubmitHandler = function(e) {
-        var form = e.target;
-        var target_uri, enctype, method;
-
-        // :NOTE: a lot of default browser behaviour has to (?) be emulated here
-
-        // Serialize the data
-        var data = {};
-        for (var i=0; i < form.length; i++) {
-            var elem = form[i];
-            // Pull value if it has one
-            if (elem.value) {
-                // don't pull from buttons unless recently clicked
-                if (elem.tagName == 'button' || (elem.tagName == 'input' && (elem.type == 'button' || elem.type == 'submit')) ){
-                    if (elem.getAttribute('clicked')) {
-                        data[elem.name] = elem.value;
-                    }
-                } else {
-                    data[elem.name] = elem.value;
-                }
-            }
-            // If was recently clicked, pull its request attributes-- it's our submitter
-            if (elem.getAttribute('clicked') == '1') {
-                target_uri = elem.getAttribute('formaction');
-                enctype = elem.getAttribute('formenctype');
-                method = elem.getAttribute('formmethod');
-                elem.setAttribute('clicked', '0');
-            }
-        }
-
-        // If no element gave request attributes, pull them from the form
-        if (!target_uri) { target_uri = form.action; }
-        if (!enctype) { enctype = form.enctype; }
-        if (!method) { method = form.method; }
-
-        // Convert the data to the given enctype
-        if (!enctype) { enctype = 'js'; }
-        // :TODO: ?
-        
-        // Strip the base URI
-        var base_uri = window.location.href.split('#')[0];
-        if (target_uri.indexOf(base_uri) != -1) {
-            target_uri = target_uri.substring(base_uri.length);
-        }
-        
-        // Default to the current resource
-        if (!target_uri) { target_uri = window.location.hash; }
-        
-        // Taking control
-        e.preventDefault();
-        if (e.stopPropagation) { e.stopPropagation(); }
-
-        // Build the request
-        var request = {
-            method:method,
-            uri:target_uri,
-            accept:'text/html'
-        };
-        if (form.acceptCharset) { request.accept = form.acceptCharset; }
-
-        // Build request body
-        if (form.method == 'get') {
-            var qparams = [];
-            for (var k in data) {
-                qparams.push(k + '=' + data[k]);
-            }
-            if (qparams.length) {
-                target_uri += '?' + qparams.join('&');
-                request.uri = target_uri;
-            }
-        } else {
-            request.body = data;
-            request['content-type'] = enctype;
-        }
-        
-        // Handle
-        followRequest(request);
-    };
-    
-    // Hashchange interceptor -- handles changes to the hash with requests within the application
-    var __windowHashchangeHandler = function() {
-        // Build the request from the hash
-        var uri = window.location.hash;
-        if (expected_hashchange == uri || (expected_hashchange == '#' && uri == '')) {
-            expected_hashchange = null; // do nothing if this has been handled elsewhere (click handler)
-            return;
-        }
-        expected_hashchange = null;
-        if (uri == null || uri == '') { uri = '#'; }
-        followRequest({ method:'get', uri:uri, accept:'text/html' });
-    };
-
-    // Dispatches a request, then renders it to the window on return
-    var followRequest = function(request) {
-        window_structure.dispatch(request, function(response) {
-            // If a redirect, do that now
-            if (response.code >= 300 && response.code < 400) {
-                followRequest({ method:'get', uri:response.location, accept:'text/html' });
-                return;
-            }
-            // Pass on to handler
-            if (window_handler.cb) {
-                window_handler.cb.call(window_handler.context, request, response);
-            }
-            // If not a 205 Reset Content, then change our hash
-            if (response.code != 205) {
-                var uri = request.uri;
-                if (response['content-location']) { uri = response['content-location']; }
-                if (uri.charAt(0) != '#') { uri = '#' + uri; }
-                expected_hashchange = uri;
-                window.location.hash = uri;
-            }
-        }, this);
-    };
-    
-    // Registers event listeners to the window and handles the current URI
-    var attachToWindow = function(structure, opt_response_cb, opt_response_cb_context) {
-        window_structure = structure;
-        window_handler = { cb:opt_response_cb, context:opt_response_cb_context };
-        
-        // Register handlers
-        document.onclick = __windowClickHandler;
-        document.onsubmit = __windowSubmitHandler;
-        window.onhashchange = __windowHashchangeHandler;
-    
-    };
-    
     // Exports
     // =======
     return {
@@ -610,7 +442,6 @@ define(function() {
         response       : mkresponse,
         logMode        : logMode,
         log            : log,
-        ajaxConfig     : ajaxConfig,
-        attachToWindow : attachToWindow,
+        ajaxConfig     : ajaxConfig
     };
 });

@@ -6,10 +6,8 @@ require.config({
 var paths = [
     'link',
     'lib/env',
-    'lib/linkregistry',
     'lib/cli',
-    'lib/history',
-    'modules/linkshui/order-dm'
+    'lib/simple-agent-server'
 ];
 var def_module_count = paths.length;
 
@@ -19,13 +17,13 @@ for (var i=0; i < env_config.structure.length; i++) {
     paths.push('modules/' + env_config.structure[i].module);
 }
 // Load using require js
-require(paths, function(Link, Env, LinkRegistry, CLI, History, LinkshuiOrderDm) {
+require(paths, function(Link, Env, CLI, AgentServer) {
     // Enable proxy
     //Link.ajaxConfig('proxy',''); set this to the URL of your proxy
     
     // Build structure
     var structure = new Link.Structure();
-    structure.addModule('#dm', new LinkshuiOrderDm(structure, { uri:'#dm', container_id:'lshui-env' }));
+    structure.addModule('/a', new AgentServer(structure, { uri:'/a' }));
  
     // Add config modules
     var Modules = Array.prototype.slice.call(arguments, def_module_count);
@@ -37,19 +35,17 @@ require(paths, function(Link, Env, LinkRegistry, CLI, History, LinkshuiOrderDm) 
 
     // Logging
     if (env_config.logging_enabled) {
-        //Link.logMode('traffic', true);
+        Link.logMode('traffic', true);
         //Link.logMode('routing', true);
-        Link.logMode('err_types', true);
+        //Link.logMode('err_types', true);
     }
 
     // Init environment libs
-    Env.init(structure);
-    LinkRegistry.init(env_config.links);
-    CLI.init(structure, 'lshui-cli-input');
-    History.init('lshui-hist');
+    Env.init(structure, 'lshui-env');
     
     // Follow the given hash
     var uri = window.location.hash || '';
     if (uri.charAt(0) == '#') { uri = uri.substring(1); }
+    if (uri == '' || uri == ' ') { uri = '/'; }
     CLI.runCommand('get '+uri+' [application/html+json]');
 });

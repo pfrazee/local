@@ -2,7 +2,8 @@
 Example:
   apps/foo [ json ] post --pragma="no-cache" convert [ xml ] post apps/bar
 
-command      = request { content-type [ request ] } .
+command      = [ agent ] request { content-type [ request ] } .
+agent        = token '>' .
 request      = [ method ] uri { header-flag } .
 header-flag  = [ "-" | "--" ] header-key "=" header-value .
 content-type = "[" [ token | string ] "]" .
@@ -17,25 +18,31 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
     // ===
     // Parses a command syntax into Link requests 
     var CLI = {
-        elemInput:null,
-        structure:null,
-        history:[''],
-        hindex:0,
-        hlen:1,
-        init:init,
-        runCommand:runCommand,
-        addHistory:addHistory,
-        moveHistory:moveHistory,
-        prototype:{} // tmp
+        init:CLI__init,
+        runCommand:CLI__runCommand,
+        addHistory:CLI__addHistory,
+        moveHistory:CLI__moveHistory,
+        addListener:CLI__addListener,
+        removeListener:CLI__removeListener,
+        removeAllListeners:CLI__removeAllListeners
     };
     
     // setup func    
-    function init(structure, elem_id) {
+    function CLI__init(structure, elem_id) {
+        // init attributes
         this.structure = structure;
         this.elemInput = document.getElementById(elem_id);
         this.elemInput.onkeydown = __clikeydown;
+        this.listeners = {
+            response:[]
+        };
 
-        // Set up the prompt
+        // init history
+        this.history = [''];
+        this.hindex = 0;
+        this.hlen = 1;
+
+        // set up the prompt
         var prompt_elem = document.getElementById('lshui-cli-prompt');
         var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         var twoDigits = function(v) { return ((v < 10) ? '0' : '') + v; };
@@ -68,14 +75,14 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
     };
 
     // add to command history
-    function addHistory(cmd) {
+    function CLI__addHistory(cmd) {
         this.history.push(cmd);
         this.hlen++;
         this.hindex = this.hlen;
     }
 
     // cycle through command history
-    function moveHistory(dir) {
+    function CLI__moveHistory(dir) {
         var cmd;
         CLI.hindex = __clamp(CLI.hindex - dir, 0, this.hlen);
         if (CLI.hindex == this.hlen) { cmd = ''; }
@@ -84,17 +91,52 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
         return cmd;
     }
 
+    // add cbs
+    function CLI__addListener(event, fn, opt_context) {
+        if (!(event in this.listeners)) { return false; }
+        this.listeners[event].push({ fn:fn, context:opt_context });
+        return this.listeners[event].length;
+    }
+
+    // remove cbs
+    function CLI__removeListener(event, fn) {
+        if (!(event in this.listeners)) { return false; }
+        for (var i=0; i < this.listeners[event].length; i++) {
+            if (this.listeners[event][i].fn == fn) {
+                this.listeners[event].splice(i, 1);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // remove all cbs
+    function CLI__removeAllListeners(event) {
+        if (!(event in this.listeners)) { return false; }
+        this.listeners[event].length = 0;
+    }
+
+    // event broadcast
+    function __broadcastResEvent(response, agent_id) {
+        var req_listeners = CLI.listeners['response'];
+        for (var i=0; i < req_listeners.length; i++) {
+            req_listeners[i].fn.call(req_listeners[i].context, response, agent_id);
+        }
+    }
+
     // command handler
-    function runCommand(command) {
+    function CLI__runCommand(command) {
         //Parser.logging = true;
         
         // Make sure we got something
         if (!command) { return; }
-            
+
         // Parse
         try { 
             var cur_request = null;
-            var cmd_requests = __parse(command); 
+            var cmd_parsedata = __parse(command); 
+            var cmd_agentid = cmd_parsedata.agent || 0;
+            var cmd_requests = cmd_parsedata.requests;
             var request_count = cmd_requests.length;
         } catch(e) {
             // Add to history
@@ -108,17 +150,17 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
             cmd_requests[i].uri = LinkRegistry.replace(cmd_requests[i].uri);
         }
         
-        // Default the last request to accept html if no type is given
+        // Default the last request to accept json+html if no type is given
         if (!cmd_requests[cmd_requests.length - 1].accept) {
-            cmd_requests[cmd_requests.length - 1].accept = 'text/html';
+            cmd_requests[cmd_requests.length - 1].accept = 'application/html+json';
         }
             
         // Execute with piping
         var handleResponse = function(res) {
             // If failed, break the chain
             if (res.code >= 400 || res.code == 0) {
-                // Chain broken: send to environment
-                Env.handleResponse(res);
+                // Chain broken, broadcast
+                __broadcastResEvent(res, cmd_agentid);
                 // Highlight the offending command, if multiple exist
                 if (request_count > 1) {
                     command = command.replace(cur_request.cli_cmd, '<strong>'+cur_request.cli_cmd+'</strong>');
@@ -135,8 +177,8 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
                     // Send through the structure
                     CLI.structure.dispatch(cur_request, handleResponse);
                 } else {
-                    // Chain complete: send to environment
-                    Env.handleResponse(res);
+                    // Chain complete, broadcast
+                    __broadcastResEvent(res, cmd_agentid);
                     // Send to history
                     History.addEntry(command, res);
                 }
@@ -162,11 +204,13 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
     };
     Parser = { buffer:null, trash:null, buffer_position:0, logging:false };
     Parser.readCommand = function() {
-        // command = request { content-type [ request ] } .
+        // command = [ agent ] request { content-type [ request ] } .
         // ================================================
-        var requests = [], curMimeType, defaultMethod = 'get';
+        var agent = null, requests = [], curMimeType, defaultMethod = 'get';
         this.log = ((this.logging) ? (function() { console.log.apply(console,arguments); }) : (function() {}));
         this.log('>> Parsing:',this.buffer);
+        // Read agent
+        agent = this.readAgent();
         // Read requests, expecting mimetypes before each extra one
         while (true) {
             // Read request
@@ -203,8 +247,22 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
         if (requests.length == 0) {
             throw "Expected request";
         }
-        this.log('<< Finished parsing:', requests);
-        return requests;
+        this.log('<< Finished parsing:', agent, requests);
+        return { agent:agent, requests:requests };
+    };
+    Parser.readAgent = function() {
+        // agent = token '>' .
+        // ===================
+        // read non spaces...
+        var match = /^\s*(\S*)/.exec(this.buffer);
+        if (match && />/.test(match[1])) { // check for the identifying angle bracket
+            var match_parts = match[1].split('>');
+            var agent = match_parts[0];
+            this.moveBuffer(agent.length+1);
+            this.log('Read agent:', agent);
+            return agent;
+        }
+        return false;
     };
     Parser.readRequest = function() {
         // request = [ method ] uri { header-flag } .
