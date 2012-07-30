@@ -10,10 +10,6 @@
    - serve resource interfaces
    - can be replaced
 
-## A Metaphor
-
-The user agent is a stage, the program agents are actors, and Web responses are scripts. Sometimes the script says to take on a new character, sometimes the script says to speak words or take new actions, but it's always subject to interpretation.
-
 ## Intent
 
 This system is designed to compose program behavior through a set of interpretive layers. The user agent is like a windowing manager, but it's not constrained to that style of behavior. It could, for instance, create a game world for program agents to act as characters and scenery. You might say it sets the mode of behavior for the document; a productivity-focused UA would organize for consistency, while a creativity-focused UA would try to enable cooperation between program agents to create composite interfaces.
