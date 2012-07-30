@@ -28,7 +28,7 @@ define(['link', 'lib/html+json', './jsoneditoronline/jsoneditor'], function(Link
             '<h3>JSON Editor Online <small>by Jos de Jong (<a href="https://github.com/wjosdejong/jsoneditoronline" title="github repo">https://github.com/wjosdejong/jsoneditoronline</a>)</small></h3><div class="jsoneditor"></div>',
             '<link rel="stylesheet" media="screen" href="/env/modules/wjosdejong/jsoneditoronline/jsoneditor.css" />'
         ]);
-        HtmlJson.addScript(body, 'onload', __setupClient, null, inst);
+        HtmlJson.addScript(body, 'onload', __setupAgent, null, inst);
         return Link.response(200, body, 'application/html+json');
     };
     Server.prototype.getHandler = function(request, match) {
@@ -46,23 +46,20 @@ define(['link', 'lib/html+json', './jsoneditoronline/jsoneditor'], function(Link
         delete this.instances[instid];
         return Link.response(204, 0, 0, { reason:'deleted' });
     }            
-    function __setupClient(client, response) {
+    function __setupAgent(agent, response) {
         // Find the container
-        var body_elem = client.getBody();
+        var body_elem = agent.getBody();
         var container = body_elem.getElementsByClassName('jsoneditor')[0];
         if (!container) { throw "Unable to find json editor container"; }
 
         // Create the editor
-        client.jsoneditor = new JSONEditor(container);
+        agent.jsoneditor = new JSONEditor(container);
 
         // Handle requests
-        client.setResponseHandler(function(client, response) {
-            if (/application\/json/.test(response['content-type']) && response.body && typeof(response.body) == 'object') {
-                client.jsoneditor.set(response.body);
-            } else {
-                client.setResponseHandler(client.defhandle);
-                client.defhandle(response);
-            }
+        agent.setRequestHandler(function(request) {
+            agent.dispatch(request).then(function(response) {
+                agent.jsoneditor.set(response.body);
+            });
         });
     }
 

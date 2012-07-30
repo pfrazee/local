@@ -85,15 +85,6 @@ li, p { line-height:21px; }
 }
 #lshui-hist div div { width:144px }
 #lshui-hist div div p.right { float:right; text-align:right; width:140px; white-space:normal }
-#lshui-banner {
-    padding:0 6px;
-    color:white; opacity:0.5;
-    position:fixed;
-    bottom:0; right:0;
-    text-align:right
-}
-#lshui-banner h1 { line-height:24px }
-#lshui-banner p { margin:0; font-size:12px }
 
 #lshui-mainpanel {
     margin:2px 2px 0 148px;

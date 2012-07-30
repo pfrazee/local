@@ -2,21 +2,21 @@
 Example:
   apps/foo [ json ] post --pragma="no-cache" convert [ xml ] post apps/bar
 
-command      = [ agent ] request { content-type [ request ] } .
+command      = [ agent ] request [ content-type ] .
 agent        = token '>' .
 request      = [ method ] uri { header-flag } .
 header-flag  = [ "-" | "--" ] header-key "=" header-value .
-content-type = "[" [ token | string ] "]" .
+content-type = "[" token "]" .
 method       = token .
 header-key   = token .
 header-value = token | string .
-uri          = chars
-string       = '"' { token } '"'
+string       = '"' { token } '"' .
 */
 define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, LinkRegistry, Env, History) {
     // CLI
     // ===
     // Parses a command syntax into Link requests 
+    // :TODO: change command history to command...buffer, I dunno. It conflicts with the request history
     var CLI = {
         init:CLI__init,
         runCommand:CLI__runCommand,
@@ -28,13 +28,12 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
     };
     
     // setup func    
-    function CLI__init(structure, elem_id) {
+    function CLI__init(elem_id) {
         // init attributes
-        this.structure = structure;
         this.elemInput = document.getElementById(elem_id);
         this.elemInput.onkeydown = __clikeydown;
         this.listeners = {
-            response:[]
+            request:[]
         };
 
         // init history
@@ -117,10 +116,10 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
     }
 
     // event broadcast
-    function __broadcastResEvent(response, agent_id) {
-        var req_listeners = CLI.listeners['response'];
-        for (var i=0; i < req_listeners.length; i++) {
-            req_listeners[i].fn.call(req_listeners[i].context, response, agent_id);
+    function __broadcast(event, params) {
+        var listeners = CLI.listeners[event];
+        for (var i=0; i < listeners.length; i++) {
+            listeners[i].fn.apply(listeners[i].context, params);
         }
     }
 
@@ -128,16 +127,13 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
     function CLI__runCommand(command) {
         //Parser.logging = true;
         
-        // Make sure we got something
+        // make sure we got something
         if (!command) { return; }
 
-        // Parse
+        // parse
         try { 
             var cur_request = null;
-            var cmd_parsedata = __parse(command); 
-            var cmd_agentid = cmd_parsedata.agent || 0;
-            var cmd_requests = cmd_parsedata.requests;
-            var request_count = cmd_requests.length;
+            var cmd = __parse(command); 
         } catch(e) {
             // Add to history
             var res = Link.response(400, 0, 0, { reason:e.toString() });
@@ -145,46 +141,13 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
             return;
         }
 
-        // Replace link aliases
-        for (var i=0; i < cmd_requests.length; i++) {
-            cmd_requests[i].uri = LinkRegistry.replace(cmd_requests[i].uri);
-        }
-        
-        // Default the last request to accept json+html if no type is given
-        if (!cmd_requests[cmd_requests.length - 1].accept) {
-            cmd_requests[cmd_requests.length - 1].accept = 'application/html+json';
-        }
-            
-        // Execute with piping
-        var handleResponse = function(res) {
-            // If failed, break the chain
-            if (res.code >= 400 || res.code == 0) {
-                // Chain broken, broadcast
-                __broadcastResEvent(res, cmd_agentid);
-                // Highlight the offending command, if multiple exist
-                if (request_count > 1) {
-                    command = command.replace(cur_request.cli_cmd, '<strong>'+cur_request.cli_cmd+'</strong>');
-                }
-                // Send to history
-                History.addEntry(command, res);
-            } else {
-                // Succeeded, continue the chain
-                if (cmd_requests.length) {
-                    cur_request = cmd_requests.shift();
-                    // Pipe the response into the request
-                    cur_request.body = res.body;
-                    cur_request['content-type'] = res['content-type'];
-                    // Send through the structure
-                    CLI.structure.dispatch(cur_request, handleResponse);
-                } else {
-                    // Chain complete, broadcast
-                    __broadcastResEvent(res, cmd_agentid);
-                    // Send to history
-                    History.addEntry(command, res);
-                }
-            }
-        };
-        CLI.structure.dispatch((cur_request = cmd_requests.shift()), handleResponse);
+        // defaults
+        cmd.agent = cmd.agent || 0;
+        cmd.request.method = cmd.request.method || 'get';
+        cmd.request.accept = cmd.request.accept || 'application/html+json';
+
+        // broadcast
+        __broadcast.call(this, 'request', [cmd.request, cmd.agent, command]);
     };
 
     // range clamp helper
@@ -204,51 +167,20 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
     };
     Parser = { buffer:null, trash:null, buffer_position:0, logging:false };
     Parser.readCommand = function() {
-        // command = [ agent ] request { content-type [ request ] } .
+        // command = [ agent ] request [ request ] .
         // ================================================
-        var agent = null, requests = [], curMimeType, defaultMethod = 'get';
         this.log = ((this.logging) ? (function() { console.log.apply(console,arguments); }) : (function() {}));
         this.log('>> Parsing:',this.buffer);
-        // Read agent
-        agent = this.readAgent();
-        // Read requests, expecting mimetypes before each extra one
-        while (true) {
-            // Read request
-            request = this.readRequest();
-            if (!request) { break; }
 
-            // Default request method
-            if (!request.method) {
-                request.method = defaultMethod;
-                this.log('Set request to default: ', defaultMethod);
-            }
-            
-            // If previously given a mimetype, use it to describe the body of this request
-            if (curMimeType) {
-                request['content-type'] = curMimeType;
-                this.log('Set content-type to ', curMimeType);
-            }
-            
-            // Add to chain
-            requests.push(request);
-            
-            // Read content type
-            curMimeType = this.readContentType();
+        var agent = this.readAgent();
 
-            // Use to describe the expected response body
-            if (curMimeType) {
-                requests[requests.length - 1].accept = curMimeType;
-                this.log('Set accept to', curMimeType);
-            }
+        var request = this.readRequest();
+        if (!request) { throw "Expected request"; }
 
-            // Switch default to POST from here on out
-            defaultMethod = 'post';
-        }
-        if (requests.length == 0) {
-            throw "Expected request";
-        }
-        this.log('<< Finished parsing:', agent, requests);
-        return { agent:agent, requests:requests };
+        request.accept = this.readContentType();    
+
+        this.log('<< Finished parsing:', agent, request);
+        return { agent:agent, request:request };
     };
     Parser.readAgent = function() {
         // agent = token '>' .
@@ -298,7 +230,6 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
         var request = headers;
         request.method = method;
         request.uri = targetUri;
-        Object.defineProperty(request, 'cli_cmd', { value:this.trash.substring(start_pos) });
         this.log(request);
         return request;
     };

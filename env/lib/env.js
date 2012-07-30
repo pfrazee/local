@@ -20,37 +20,31 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
         // Init libs
         //LinkRegistry.init(env_config.links); :TODO: reconsider
         RequestEvents.init();
-        CLI.init(structure, 'lshui-cli-input');
+        CLI.init('lshui-cli-input');
         History.init('lshui-hist');
 
         // Register request handling
-        CLI.addListener('response', function(response, agent_id) {
-            // get/create agent
-            var agent = Env.getAgent(agent_id);
-            if (!agent) { agent = Env.makeAgent(agent_id); }
+        CLI.addListener('request', Env__onRequest, this);
+        RequestEvents.addListener('request', Env__onRequest, this);
+    }
 
-            // run handler
-            agent.onresponse(agent.facade, response);
-        });
-        RequestEvents.addListener('request', function(request, agent_id) { 
-            // get/create agent
-            var agent = Env.getAgent(agent_id);
-            if (!agent) { agent = Env.makeAgent(agent_id); }
+    function Env__onRequest(request, agent_id, command) {
+        // generate command if none is given
+        if (!command) {
+            command = '';
+            if (agent_id) { command += agent_id+'>'; }
+            command += request.method;
+            command += ' '+request.uri;
+            if (request.accept) { command += ' ['+request.accept+']'; }
+        }
 
-            // add handler and dispatch
-            structure.dispatch(request, function(response) {
-                // add to history
-                var cmd = '';
-                if (agent_id) { cmd += agent_id+'>'; }
-                cmd += request.method;
-                cmd += ' '+request.uri;
-                if (request.accept) { cmd += ' ['+request.accept+']'; }
-                History.addEntry(cmd, response);
+        // get/create agent
+        var agent = Env.getAgent(agent_id);
+        if (!agent) { agent = Env.makeAgent(agent_id); }
 
-                // run handler
-                agent.onresponse(agent.facade, response);
-            });
-        });
+        // run handler
+        agent.onrequest(request, agent.facade);
+        // :TODO: addHistory?
     }
 
     // agent get
@@ -69,21 +63,41 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
         }
         var agent = {
             id:id,
-            onresponse:__handleResponse,
+            onrequest:__defhandle,
             elem:null
         };
-        // Create facade
-        agent.facade = __makeAgentFacade(agent);
+        agent.facade = __makeAgentFacade(agent, this.structure);
+
         // set up DOM
         var wrapper_elem = __makeAgentWrapperElem(id);
         this.container_elem.appendChild(wrapper_elem);
+
         // set up request event listening
         RequestEvents.observe(wrapper_elem, id);
         agent.elem = document.getElementById('agent-'+id+'-body');
-        // all set
+
         return (this.agents[id] = agent);
     }
     
+    // generates an open id (numeric)
+    function __makeAgentId() {
+        for (var i=0; i < 100000; i++) { // high enough?
+            if (!this.agents[i]) { return i; }
+        }
+    }
+
+    // creates a new facade object
+    function __makeAgentFacade(agent, structure) {
+        return {
+            getBody:function() { return agent.elem; },
+            setRequestHandler:function(handler) { agent.onrequest = handler; },
+            defhandle:function(request, agent_facade) { 
+                __defhandle(request, agent_facade || agent.facade);
+            },
+            dispatch:function() { return structure.dispatch.apply(structure, arguments); }
+        }
+    }
+
     // agent destroy
     function Env__killAgent(id) {
         if (!id || !(id in this.agents)) {
@@ -97,67 +111,39 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
         return true;
     }
 
-    // default response handler
-    function __handleResponse(agent, response) {
-        // Do nothing if no content
-        if (response.code == 204 || response.code == 205) { return; }
-            
-        // If a redirect, do that now
-        // :TODO:
-        /*if (response.code >= 300 && response.code < 400) {
-            followRequest({ method:'get', uri:response.location, accept:'text/html' });
-            return;
-        }*/
+    // default request handler
+    function __defhandle(request, agent) {
+        agent.dispatch(request).then(function(response) {
+            if (response.code == 204 || response.code == 205) { return; }
+        
+            // Update link registry
+            // :TODO: reconsider
+            //LinkRegistry.update(response.link);
 
-        // Update link registry
-        // :TODO: reconsider
-        //LinkRegistry.update(response.link);
-
-        // update dom 
-        var body = response.body;
-        if (body) {
-            if (response['content-type'] == 'application/html+json') {
-                body = HtmlJson.toHtml(body);
-            } else {
-                // encode to a string
-                body = Link.encodeType(body, request['content-type']);
-                // escape so that html isnt inserted
-                body = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            }
-            agent.getBody().innerHTML = body;
-        }
-
-        // run load script 
-        if (response['content-type'] == 'application/html+json') {
-            if (response.body._scripts && response.body._scripts.onload) {
-                var fns = response.body._scripts.onload;
-                if (!Array.isArray(fns)) { fns = [fns]; }
-                fns.forEach(function(fn) { Util.execFn(fn, [agent, response]); });
-            }
-        }
-    }
-
-    // generates an open id (numeric)
-    function __makeAgentId() {
-        for (var i=0; i < 100000; i++) { // high enough?
-            if (!this.agents[i]) { return i; }
-        }
-    }
-
-    // creates a new facade object
-    function __makeAgentFacade(agent) {
-        return {
-            getBody:function() { return agent.elem; },
-            setResponseHandler:function(handler) { agent.onresponse = handler; },
-            defhandle:function(agent_facade, response) { 
-                // agent_facade is optional
-                if (typeof response == 'undefined') {
-                    response = agent_facade;
-                    agent_facade = agent.facade;
+            // update dom 
+            var body = response.body;
+            if (body) {
+                if (response['content-type'] == 'application/html+json') {
+                    body = HtmlJson.toHtml(body);
+                } else {
+                    // encode to a string
+                    body = Link.encodeType(body, request['content-type']);
+                    // escape so that html isnt inserted
+                    body = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                 }
-                __handleResponse(agent_facade, response);
+                agent.getBody().innerHTML = body;
             }
-        }
+
+            // run load script 
+            if (response['content-type'] == 'application/html+json') {
+                agent.setRequestHandler(__defhandle); // new program
+                if (response.body._scripts && response.body._scripts.onload) {
+                    var fns = response.body._scripts.onload;
+                    if (!Array.isArray(fns)) { fns = [fns]; }
+                    fns.forEach(function(fn) { Util.execFn(fn, [agent, response]); });
+                }
+            }
+        });
     }
 
     // generates HTML for agents to work within
