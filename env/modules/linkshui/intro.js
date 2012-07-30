@@ -18,7 +18,8 @@ define(['link'], function(Link) {
                 '<ul>',
                 '<li>This instance is in active development. If something\'s broken, I\'m probably working on it. Isn\'t that exciting?</li>',
                 //'<li>Try typing `tutorial [] #dm` into the command line at the top.</li>',
-                '</ul>'
+                '</ul>',
+                '<p>Code status: <span class="label label-success">lshui env</span> <span class="label label-important">modules</span></p>'
             ];
             var links = [{ uri:'#tutorial/1', rel:'tutorial' }];
             if (/application\/html\+json/.test(request.accept)) {

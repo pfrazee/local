@@ -30,7 +30,7 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
             if (!agent) { agent = Env.makeAgent(agent_id); }
 
             // run handler
-            agent.onresponse.call(agent, response);
+            agent.onresponse(agent.facade, response);
         });
         RequestEvents.addListener('request', function(request, agent_id) { 
             // get/create agent
@@ -46,7 +46,10 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
                 cmd += ' '+request.uri;
                 if (request.accept) { cmd += ' ['+request.accept+']'; }
                 History.addEntry(cmd, response);
-            }).then(agent.onresponse, agent);
+
+                // run handler
+                agent.onresponse(agent.facade, response);
+            });
         });
     }
 
@@ -60,17 +63,19 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
     // agent create
     function Env__makeAgent(id) {
         // create agent object
-        id = id || Env__makeAgentId.call(this);
+        id = id || __makeAgentId.call(this);
         if (id in this.agents) {
             return false;
         }
         var agent = {
             id:id,
-            onresponse:Env__handleResponse,
+            onresponse:__handleResponse,
             elem:null
         };
+        // Create facade
+        agent.facade = __makeAgentFacade(agent);
         // set up DOM
-        var wrapper_elem = Env__makeAgentWrapperElem(id);
+        var wrapper_elem = __makeAgentWrapperElem(id);
         this.container_elem.appendChild(wrapper_elem);
         // set up request event listening
         RequestEvents.observe(wrapper_elem, id);
@@ -93,7 +98,7 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
     }
 
     // default response handler
-    function Env__handleResponse(response) {
+    function __handleResponse(agent, response) {
         // Do nothing if no content
         if (response.code == 204 || response.code == 205) { return; }
             
@@ -119,28 +124,44 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
                 // escape so that html isnt inserted
                 body = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             }
-            this.elem.innerHTML = body;
+            agent.getBody().innerHTML = body;
         }
 
         // run load script 
         if (response['content-type'] == 'application/html+json') {
-            if (body._scripts && body._scripts.onload) {
+            if (response.body._scripts && response.body._scripts.onload) {
                 var fns = response.body._scripts.onload;
                 if (!Array.isArray(fns)) { fns = [fns]; }
-                fns.forEach(function(fn) { Util.execFn(fn, [response], this); });
+                fns.forEach(function(fn) { Util.execFn(fn, [agent, response]); });
             }
         }
     }
 
     // generates an open id (numeric)
-    function Env__makeAgentId() {
+    function __makeAgentId() {
         for (var i=0; i < 100000; i++) { // high enough?
             if (!this.agents[i]) { return i; }
         }
     }
 
+    // creates a new facade object
+    function __makeAgentFacade(agent) {
+        return {
+            getBody:function() { return agent.elem; },
+            setResponseHandler:function(handler) { agent.onresponse = handler; },
+            defhandle:function(agent_facade, response) { 
+                // agent_facade is optional
+                if (typeof response == 'undefined') {
+                    response = agent_facade;
+                    agent_facade = agent.facade;
+                }
+                __handleResponse(agent_facade, response);
+            }
+        }
+    }
+
     // generates HTML for agents to work within
-    function Env__makeAgentWrapperElem(id) {
+    function __makeAgentWrapperElem(id) {
         var elem = document.createElement('div');
         elem.className = "agent";
         elem.id = "agent-"+id;

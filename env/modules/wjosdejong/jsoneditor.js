@@ -1,5 +1,5 @@
 define(['link', 'lib/html+json', './jsoneditoronline/jsoneditor'], function(Link, HtmlJson) {
-    var Module = function(structure, config) {
+    var Server = function(structure, config) {
         this.structure = structure;
         this.uri = config.uri;
         this.instances = {};
@@ -8,12 +8,12 @@ define(['link', 'lib/html+json', './jsoneditoronline/jsoneditor'], function(Link
     
     // Route Handlers
     // ==============
-    Module.prototype.routes = [
+    Server.prototype.routes = [
         Link.route('instantiate', { uri:'^/?$' }),
         Link.route('getHandler', { uri:'^/([0-9]+)/?$', method:'get' }),
         Link.route('deleteHandler', { uri:'^/([0-9]+)/?$', method:'delete' }),
     ];
-    Module.prototype.instantiate = function(request) {
+    Server.prototype.instantiate = function(request) {
         // New instance
         var instid = this.uid++;
         var inst = this.instances[instid] = {};
@@ -28,25 +28,16 @@ define(['link', 'lib/html+json', './jsoneditoronline/jsoneditor'], function(Link
             '<h3>JSON Editor Online <small>by Jos de Jong (<a href="https://github.com/wjosdejong/jsoneditoronline" title="github repo">https://github.com/wjosdejong/jsoneditoronline</a>)</small></h3><div class="jsoneditor"></div>',
             '<link rel="stylesheet" media="screen" href="/env/modules/wjosdejong/jsoneditoronline/jsoneditor.css" />'
         ]);
-        HtmlJson.addScript(body, 'load', __loadClient, null, inst);
-
-        // Add to UI
-        this.structure.post({
-            uri:'#dm',
-            body:body,
-            'content-type':'application/html+json',
-            title:'JSON Editor',
-            ctrl_uri:this.uri + '/' + instid
-        });
-        return Link.response(204);
+        HtmlJson.addScript(body, 'onload', __setupClient, null, inst);
+        return Link.response(200, body, 'application/html+json');
     };
-    Module.prototype.getHandler = function(request, match) {
+    Server.prototype.getHandler = function(request, match) {
         var instid = match.uri[1];
         if (!(instid in this.instances)) { return Link.response(404, 0, 0, { reason:"not found" }); }
         var inst = this.instances[instid];
         return Link.response(200, inst.jsoneditor.get(), 'application/json');
     };
-    Module.prototype.deleteHandler = function(request, match) {
+    Server.prototype.deleteHandler = function(request, match) {
         var instid = match.uri[1];
         if (!(instid in this.instances)) { return Link.response(404, 0, 0, { reason:"not found" }); }
         var inst = this.instances[instid];
@@ -55,15 +46,25 @@ define(['link', 'lib/html+json', './jsoneditoronline/jsoneditor'], function(Link
         delete this.instances[instid];
         return Link.response(204, 0, 0, { reason:'deleted' });
     }            
-    function __loadClient(elem, env, inst) {
+    function __setupClient(client, response) {
         // Find the container
-        var container = elem.getElementsByClassName('jsoneditor')[0];
+        var body_elem = client.getBody();
+        var container = body_elem.getElementsByClassName('jsoneditor')[0];
         if (!container) { throw "Unable to find json editor container"; }
 
         // Create the editor
-        inst.jsoneditor = new JSONEditor(container);
-        if (inst.init_data) { inst.jsoneditor.set(inst.init_data); }
+        client.jsoneditor = new JSONEditor(container);
+
+        // Handle requests
+        client.setResponseHandler(function(client, response) {
+            if (/application\/json/.test(response['content-type']) && response.body && typeof(response.body) == 'object') {
+                client.jsoneditor.set(response.body);
+            } else {
+                client.setResponseHandler(client.defhandle);
+                client.defhandle(response);
+            }
+        });
     }
 
-    return Module;
+    return Server;
 });
