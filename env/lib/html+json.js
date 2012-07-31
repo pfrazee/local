@@ -4,9 +4,7 @@ define(function() {
         // Convert scripts into strings
         if (obj._scripts) {
             for (var k in obj._scripts) {
-                for (var i=0; i < obj._scripts[k].length; i++) {
-                    obj._scripts[k][i].fn = obj._scripts[k][i].fn.toString();
-                }
+                obj._scripts[k].fn = obj._scripts[k].fn.toString();
             }
         }
         return JSON.stringify(obj);
@@ -16,9 +14,10 @@ define(function() {
         // Eval scripts into functions
         if (obj._scripts) {
             for (var k in obj._scripts) {
-                for (var i=0; i < obj._scripts[k].length; i++) {
-                    obj._scripts[k][i].fn = eval('var fn = '+obj._scripts[k][i].fn+'; fn');
-                }
+                var fn = obj._scripts[k];
+                if (typeof fn == "object") { fn = fn.fn; }
+                else { obj._scripts[k] = {}; }
+                obj._scripts[k].fn = eval('var fn = '+fn+'; fn');
             }
         }
         return obj;

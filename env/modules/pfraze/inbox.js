@@ -58,7 +58,7 @@ define(['link'], function(Link) {
         for (var i=0; i < messages.length; i++) {
             var m = messages[i];
             var md = new Date(m.date).toLocaleDateString() + ' @' + new Date(m.date).toLocaleTimeString();
-            html += '<tr><td><span class="label">'+m.service+'</span></td><td><a href="'+m.uri$self+'">'+m.summary+'</a></td><td>'+md+'</td></tr>';
+            html += '<tr><td><span class="label">'+m.service+'</span></td><td><a href="'+m.uri+'">'+m.summary+'</a></td><td>'+md+'</td></tr>';
         }
         html += '</table>';
         // Add to DOM
