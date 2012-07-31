@@ -127,7 +127,7 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
                     body = HtmlJson.toHtml(body);
                 } else {
                     // encode to a string
-                    body = Link.encodeType(body, request['content-type']);
+                    body = Link.encodeType(body, response['content-type']);
                     // escape so that html isnt inserted
                     body = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                 }
