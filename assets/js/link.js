@@ -386,9 +386,7 @@ define(function() {
             target_uri = ajax_config.proxy;
         }
         // Encode the body
-        if (request.body && typeof(request.body) == 'string' && request['content-type']) {
-            request.body = encodeType(request.body, request['content-type']);
-        }
+        request.body = encodeType(request.body, request['content-type']);
         xhrRequest.open(request.method, target_uri, true);
         // Set the request headers
         for (var k in request) {

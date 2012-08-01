@@ -99,8 +99,7 @@ li, p { line-height:21px; }
 .agent-titlebar {
     font-size:12px;
     margin-bottom:2px;
-    border-bottom:1px solid #eee;
-    height:15px;
+    height:22px;
     color:#bbb;
 }
 .agent-titlebar-ctrls { float:right }
