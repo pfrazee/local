@@ -53,6 +53,7 @@ define(['link'], function(Link) {
     function render(agent, messages) {
         var html = '';
         var body = agent.getBody();
+        var links = agent.getLinks();
 
         messages.sort(function(a,b) { return ((new Date(a.date).getTime() < new Date(b.date).getTime()) ? 1 : -1); });
 
@@ -76,10 +77,13 @@ define(['link'], function(Link) {
         // messages
         html += '<table class="table table-condensed inbox">';
         messages.forEach(function(m, i) {
+            // add html
             var date = new Date(m.date);
             var md = (date.getMonth()+1)+'/'+date.getDate()+'&nbsp;'+date.getHours()+':'+(date.getMinutes() < 10 ? '0' : '')+date.getMinutes();
             var trclass = (m.flags && !m.flags.seen ? 'unread' : '');
-            html += '<tr class="'+trclass+'"><td><input class="msg-checkbox" type="checkbox" /></td><td><span class="label">'+m.service+'</span></td><td><a href="'+m.uri+'">'+m.summary+'</a></td><td><span style="color:gray">'+md+'</span></td></tr>';
+            html += '<tr class="'+trclass+'"><td style="color:gray">'+(i+1)+'</td><td><input class="msg-checkbox" type="checkbox" /></td><td><span class="label">'+m.service+'</span></td><td><a href="'+m.uri+'">'+m.summary+'</a></td><td><span style="color:gray">'+md+'</span></td></tr>';
+            // record link
+            links[i+1] = m.uri;
         });
         html += '</table>';
 

@@ -64,13 +64,14 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
         var agent = {
             id:id,
             onrequest:__defhandle,
-            elem:null
+            elem:null,
+            links:{}
         };
         agent.facade = __makeAgentFacade(agent, this.structure);
 
         // set up DOM
         var wrapper_elem = __makeAgentWrapperElem(id);
-        this.container_elem.appendChild(wrapper_elem);
+        this.container_elem.insertBefore(wrapper_elem, this.container_elem.firstChild);
 
         // set up request event listening
         RequestEvents.observe(wrapper_elem, id);
@@ -91,6 +92,7 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
         return {
             getBody:function() { return agent.elem; },
             setRequestHandler:function(handler) { agent.onrequest = handler; },
+            getLinks:function() { return agent.links; },
             defhandle:function(request, agent_facade) { 
                 __defhandle(request, agent_facade || agent.facade);
             },
@@ -100,7 +102,7 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
 
     // agent destroy
     function Env__killAgent(id) {
-        if (!id || !(id in this.agents)) {
+        if (!(id in this.agents)) {
             return false;
         }
         // remove DOM
@@ -153,20 +155,20 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
         elem.id = "agent-"+id;
         elem.innerHTML = agent_template_html
             .replace(/{{id}}/g, id)
-            .replace(/{{uri}}/g, '/a/'+id)
+            .replace(/{{uri}}/g, './'+id)
         ;
         return elem;
     }
     var agent_template_html = 
         //'<div id="agent-{{id}}" class="agent">' +
             '<div class="agent-titlebar">' +
-                '<form action="{{uri}}">' +
+                '<form action="/{{uri}}">' +
                     '<div class="agent-titlebar-ctrls btn-group">' +
-                        '<button class="btn btn-mini btn-shutter" formmethod="post" formaction="{{uri}}/collapse" title="collapse">_</button>' +
+                        '<button class="btn btn-mini btn-shutter" formmethod="post" formaction="/{{uri}}/collapse" title="collapse">_</button>' +
                         '<button class="btn btn-mini" formmethod="delete" title="close">&times;</button>' +
                     '</div>' +
                 '</form>' +
-                '<a href="{{uri}}">{{uri}}</a>' +
+                '<a href="/{{uri}}">{{uri}}</a>' +
             '</div>' +
             '<div id="agent-{{id}}-body" class="agent-body"></div>'
         //'</div>'
