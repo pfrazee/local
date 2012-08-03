@@ -81,19 +81,26 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
         // find link
         var link = agent.links;
         var path = match.uri[2].split('/');
-        path.some(function(k) {
+        for (var i=0; i < path.length; i++) {
+            var k = path[i];
+            if (typeof link == 'function') {
+                break; // callbacks get passed remaining path
+            }
             if (!(k in link)) {
                 link = null;
-                return true; // break
+                break; // no match at this level
             }
-            link = link[k];
-            return false; // continue
-        });
+            link = link[k]; // travel down the path
+        }
         if (!link) { return { code:404, reason:'link not found' }; }
-        // replace uri and pipe event
-        request.uri = link;
-        // dispatch
-        return this.structure.dispatch(request);
+        if (typeof link == 'string') {
+            // replace uri and pipe
+            request.uri = link;
+            return this.structure.dispatch(request);
+        } else if (typeof link == 'function') {
+            // let callback handle it
+            return link.call(null, request, agent.facade);
+        }
     };
     SimpleAgentServer.prototype.collapseHandler = function(request, match, response) {
         // validate

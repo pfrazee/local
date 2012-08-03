@@ -93,6 +93,7 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
             getBody:function() { return agent.elem; },
             setRequestHandler:function(handler) { agent.onrequest = handler; },
             getLinks:function() { return agent.links; },
+            getUri:function() { return './' + agent.id; },
             defhandle:function(request, agent_facade) { 
                 __defhandle(request, agent_facade || agent.facade);
             },

@@ -67,6 +67,7 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
                 CLI.addHistory(command);
                 break;
             case KEYS.up:
+                e.preventDefault(); // dont let it move the cursor to the start of the line
             case KEYS.down:
                 CLI.moveHistory((e.keyCode == KEYS.up) ? 1 : -1);
                 break;

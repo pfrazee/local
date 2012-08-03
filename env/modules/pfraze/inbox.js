@@ -65,13 +65,13 @@ define(['link'], function(Link) {
         
         // toolbar
         html += '<div style="height:35px">';
-        html += '<span class="btn-group">';
-        html += '<button class="btn tool-select" title="select/deselect"><i class="icon-check"></i></button>';
+        html += '<form method="post"><span class="btn-group">';
+        html += '<button class="btn tool-select" title="select/deselect" formaction="'+agent.getUri()+'/ck"><i class="icon-check"></i> ck</button>';
         html += '</span><span class="btn-group" style="display:inline-block">';
-        html += '<button class="btn tool-markread" title="mark as read"><i class="icon-eye-open"></i></button>';
-        html += '<button class="btn tool-markunread" title="mark as unread"><i class="icon-eye-close"></i></button>';
-        html += '<button class="btn tool-delete" title="delete"><i class="icon-trash"></i></button>';
-        html += '</span>';
+        html += '<button class="btn tool-markread" title="mark as read" formaction="'+agent.getUri()+'/mr"><i class="icon-eye-open"></i> mr</button>';
+        html += '<button class="btn tool-markunread" title="mark as unread" formaction="'+agent.getUri()+'/mu"><i class="icon-eye-close"></i> mu</button>';
+        html += '<button class="btn tool-delete" title="delete"><i class="icon-trash" formaction="'+agent.getUri()+'/d"></i> d</button>';
+        html += '</span></form>';
         html += '</div>';
 
         // messages
@@ -91,75 +91,104 @@ define(['link'], function(Link) {
         body.innerHTML = html;
 
         // register toolbar events
-        var tool_select = body.getElementsByClassName('tool-select');
-        var check_toggle = false;
-        tool_select[0].onclick = function() {
-            // simple toggle
-            check_toggle = !check_toggle;
-            var checkboxes = body.getElementsByClassName('msg-checkbox');
-            Array.prototype.forEach.call(checkboxes, function(checkbox) {
-                checkbox.checked = check_toggle;
-            });
-        };
-        var tool_markread = body.getElementsByClassName('tool-markread');
-        tool_markread[0].onclick = function() {
-            // mark read all checked
-            var checkboxes = body.getElementsByClassName('msg-checkbox');
-            Array.prototype.forEach.call(checkboxes, function(checkbox, i) {
-                if (!checkbox.checked) { return; }
-                // update DOM
-                var row = checkbox.parentNode.parentNode;
-                row.className = row.className.replace('unread','');
-                // send message
-                var m = messages[i];
-                m.flags.seen = true;
-                agent.dispatch({ method:'put', uri:m.uri+'/flags', 'content-type':'application/json', body:{ seen:1 } });
-            });
-        };
-        var tool_markunread = body.getElementsByClassName('tool-markunread');
-        tool_markunread[0].onclick = function() {
-            // mark read all checked
-            var checkboxes = body.getElementsByClassName('msg-checkbox');
-            Array.prototype.forEach.call(checkboxes, function(checkbox, i) {
-                if (!checkbox.checked) { return; }
-                // update DOM
-                var row = checkbox.parentNode.parentNode;
-                if (/unread/.test(row.className) == false) {
-                    row.className += ' unread';
+        links.ck = function(request) {
+            if (/post/i.test(request.method)) {
+                var checkboxes = body.getElementsByClassName('msg-checkbox');
+                // check for a range
+                var range = [0, checkboxes.length];
+                if (request.query && request.query.r) {
+                    var rparts = request.query.r.split('-');
+                    if (rparts.length == 2) {
+                        range[0] = parseInt(rparts[0]) - 1;
+                        range[1] = parseInt(rparts[1]);
+                    } else {
+                        range[0] = parseInt(rparts[0]) - 1;
+                        range[1] = range[0] + 1;
+                    }
                 }
-                // send message
-                var m = messages[i];
-                m.flags.seen = false;
-                agent.dispatch({ method:'put', uri:m.uri+'/flags', 'content-type':'application/json', body:{ seen:0 } });
-            });
+                // figure out if some need to be checked, or all dechecked
+                var should_check = false;
+                for (var i=range[0]; i < range[1]; i++) {
+                    if (!checkboxes[i].checked) {
+                        should_check = true;
+                    }
+                }
+                // update elems
+                for (var i=range[0]; i < range[1]; i++) {
+                    checkboxes[i].checked = should_check;
+                }
+                return Link.response(204);
+            }
+            return { code:405, reason:'method not allowed' };
         };
-        var tool_delete = body.getElementsByClassName('tool-delete');
-        tool_delete[0].onclick = function() {
-            // delete all checked
-            var checkboxes = body.getElementsByClassName('msg-checkbox');
-            var deletions = [];
-            // convert to array (checkboxes=nodelist, which dynamically updates when deleted from)
-            var delindex=0; // used to track index to delete, which will change during splices
-            Array.prototype.forEach.call(checkboxes, function(c) {
-                if (c.checked) {
-                    // queue the deletion
-                    deletions.push({ checkbox:c, index:delindex });
-                    delindex--; // one less index in the world
-                } 
-                delindex++;
-            });
-            deletions.forEach(function(d) {
-                // remove DOM
-                var row = d.checkbox.parentNode.parentNode;
-                row.parentNode.removeChild(row);
-                // send delete message
-                var m = messages[d.index];
-                agent.dispatch({ method:'delete', uri:m.uri, accept:'application/json' });
-                // :TODO: notify user of success?
-                // remove message from cache
-                messages.splice(d.index, 1);
-            });
+        links.mr = function(request) {
+            if (/post/i.test(request.method)) {
+                // mark read all checked
+                var checkboxes = body.getElementsByClassName('msg-checkbox');
+                Array.prototype.forEach.call(checkboxes, function(checkbox, i) {
+                    if (!checkbox.checked) { return; }
+                    // update DOM
+                    var row = checkbox.parentNode.parentNode;
+                    row.className = row.className.replace('unread','');
+                    // send message
+                    var m = messages[i];
+                    m.flags.seen = true;
+                    agent.dispatch({ method:'put', uri:m.uri+'/flags', 'content-type':'application/json', body:{ seen:1 } });
+                });
+                return Link.response(204);
+            }
+            return { code:405, reason:'method not allowed' };
         };
+        links.mu = function(request) {
+            if (/post/i.test(request.method)) {
+                // mark read all checked
+                var checkboxes = body.getElementsByClassName('msg-checkbox');
+                Array.prototype.forEach.call(checkboxes, function(checkbox, i) {
+                    if (!checkbox.checked) { return; }
+                    // update DOM
+                    var row = checkbox.parentNode.parentNode;
+                    if (/unread/.test(row.className) == false) {
+                        row.className += ' unread';
+                    }
+                    // send message
+                    var m = messages[i];
+                    m.flags.seen = false;
+                    agent.dispatch({ method:'put', uri:m.uri+'/flags', 'content-type':'application/json', body:{ seen:0 } });
+                });
+                return Link.response(204);
+            }
+            return { code:405, reason:'method not allowed' };
+        };
+        links.d = function(request) {
+            if (/post/i.test(request.method)) {
+                // delete all checked
+                var checkboxes = body.getElementsByClassName('msg-checkbox');
+                var deletions = [];
+                // convert to array (checkboxes=nodelist, which dynamically updates when deleted from)
+                var delindex=0; // used to track index to delete, which will change during splices
+                Array.prototype.forEach.call(checkboxes, function(c) {
+                    if (c.checked) {
+                        // queue the deletion
+                        deletions.push({ checkbox:c, index:delindex });
+                        delindex--; // one less index in the world
+                    } 
+                    delindex++;
+                });
+                deletions.forEach(function(d) {
+                    // remove DOM
+                    var row = d.checkbox.parentNode.parentNode;
+                    row.parentNode.removeChild(row);
+                    // send delete message
+                    var m = messages[d.index];
+                    agent.dispatch({ method:'delete', uri:m.uri, accept:'application/json' });
+                    // :TODO: notify user of success?
+                    // remove message from cache
+                    messages.splice(d.index, 1);
+                });
+                return Link.response(204);
+            };
+            return { code:405, reason:'method not allowed' };
+        }
     }
 
     return Server;
