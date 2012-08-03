@@ -138,12 +138,11 @@ define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, Li
         } catch(e) {
             // Add to history
             var res = Link.response(400, 0, 0, { reason:e.toString() });
-            History.addEntry(command, res);
             return;
         }
 
         // defaults
-        cmd.agent = cmd.agent || 0;
+        cmd.agent = cmd.agent || '.';
         cmd.request.method = cmd.request.method || 'get';
         cmd.request.accept = cmd.request.accept || 'application/html+json';
 

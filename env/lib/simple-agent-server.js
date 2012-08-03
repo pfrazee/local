@@ -13,11 +13,11 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
     SimpleAgentServer.prototype.routes = [
         Link.route('infoHandler', { uri:'^/?$', method:'get' }),
         Link.route('createHandler', { uri:'^/?$', method:'post' }),
-        Link.route('getHandler', { uri:'^/([^/]*)/?$', method:'get' }),
-        Link.route('setHandler', { uri:'^/([^/]*)/?$', method:'put' }),
-        Link.route('collapseHandler', { uri:'^/([^/]*)/collapse/?$', method:'post' }),
-        Link.route('deleteHandler', { uri:'^/([^/]*)/?$', method:'delete' }),
-        Link.route('linkHandler', { uri:'^/([^/]*)/(.*)' })
+        Link.route('getHandler', { uri:'^/([^/]+)/?$', method:'get' }),
+        Link.route('setHandler', { uri:'^/([^/]+)/?$', method:'put' }),
+        Link.route('collapseHandler', { uri:'^/([^/]+)/collapse/?$', method:'post' }),
+        Link.route('deleteHandler', { uri:'^/([^/]+)/?$', method:'delete' }),
+        Link.route('linkHandler', { uri:'^/([^/]+)/(.*)' })
     ];
     SimpleAgentServer.prototype.infoHandler = function(request) {
         // :TODO: add summary of active agents
@@ -40,7 +40,7 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
     };
     SimpleAgentServer.prototype.getHandler = function(request, match, response) {
         // get obj
-        var id = match.uri[1] || 0;
+        var id = match.uri[1];
         var agent = Env.getAgent(id);
         if (!agent) { return { code:404, reason:'agent not found' }; }
         // if a ctrl uri was given, use that
@@ -65,7 +65,7 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
     };
     SimpleAgentServer.prototype.setHandler = function(request, match, response) {
         // replace
-        var id = match.uri[1] || 0;
+        var id = match.uri[1];
         Env.killAgent(id);
         Env.makeAgent(id);
         // :TODO: fill with request body
@@ -75,7 +75,7 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
         // dont handle if already handled
         if (response && response.code) { return response; }
         // get agent
-        var id = match.uri[1] || 0;
+        var id = match.uri[1];
         var agent = Env.getAgent(id);
         if (!agent) { return { code:404, reason:'agent not found' }; }
         // find link
@@ -104,7 +104,7 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
     };
     SimpleAgentServer.prototype.collapseHandler = function(request, match, response) {
         // validate
-        var id = match.uri[1] || 0;
+        var id = match.uri[1];
         var agent = Env.getAgent(id);
         if (!agent) { return { code:404, reason:'agent not found' }; }
         var agent_elem = document.getElementById('agent-'+id);
@@ -127,7 +127,7 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
         return Link.response(205);
     };
     SimpleAgentServer.prototype.deleteHandler = function(request, match, response) {
-        var id = match.uri[1] || 0;
+        var id = match.uri[1];
         var success = Env.killAgent(id);
         if (!success) { return { code:404, reason:'not found' }; }
         // notify the control

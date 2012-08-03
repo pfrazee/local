@@ -23,7 +23,7 @@ require(paths, function(Link, Env, CLI, AgentServer) {
     
     // Build structure
     var structure = new Link.Structure();
-    structure.addModule('/.', new AgentServer(structure, { uri:'/.' }));
+    structure.addModule('', new AgentServer(structure, { uri:'' }));
  
     // Add config modules
     var Modules = Array.prototype.slice.call(arguments, def_module_count);
@@ -36,7 +36,7 @@ require(paths, function(Link, Env, CLI, AgentServer) {
     // Logging
     if (env_config.logging_enabled) {
         Link.logMode('traffic', true);
-        Link.logMode('routing', true);
+        //Link.logMode('routing', true);
         //Link.logMode('err_types', true);
     }
 

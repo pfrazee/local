@@ -93,7 +93,7 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
             getBody:function() { return agent.elem; },
             setRequestHandler:function(handler) { agent.onrequest = handler; },
             getLinks:function() { return agent.links; },
-            getUri:function() { return './' + agent.id; },
+            getUri:function() { return agent.id; },
             defhandle:function(request, agent_facade) { 
                 __defhandle(request, agent_facade || agent.facade);
             },
@@ -156,20 +156,20 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
         elem.id = "agent-"+id;
         elem.innerHTML = agent_template_html
             .replace(/{{id}}/g, id)
-            .replace(/{{uri}}/g, './'+id)
+            .replace(/{{uri}}/g, '/'+id)
         ;
         return elem;
     }
     var agent_template_html = 
         //'<div id="agent-{{id}}" class="agent">' +
             '<div class="agent-titlebar">' +
-                '<form action="/{{uri}}">' +
+                '<form action="{{uri}}">' +
                     '<div class="agent-titlebar-ctrls btn-group">' +
-                        '<button class="btn btn-mini btn-shutter" formmethod="post" formaction="/{{uri}}/collapse" title="collapse">_</button>' +
+                        '<button class="btn btn-mini btn-shutter" formmethod="post" formaction="{{uri}}/collapse" title="collapse">_</button>' +
                         '<button class="btn btn-mini" formmethod="delete" title="close">&times;</button>' +
                     '</div>' +
                 '</form>' +
-                '<a href="/{{uri}}">{{uri}}</a>' +
+                '<a href="{{uri}}">{{uri}}</a>' +
             '</div>' +
             '<div id="agent-{{id}}-body" class="agent-body"></div>'
         //'</div>'
