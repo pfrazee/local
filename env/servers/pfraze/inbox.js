@@ -1,12 +1,12 @@
 define(['link'], function(Link) {
-    // Inbox Module
+    // Inbox Server
     // ============
-    // generic messages inbox
+    // delivers a simple inbox
     // configuration =
     // {
     //   services: [ { name:..., uri:... }, ... ],
     // }
-    var Server = function(structure, config) {
+    var InboxServer = function(structure, config) {
         this.structure = structure;
         this.uri = config.uri;
         this.services = config.services;
@@ -15,10 +15,10 @@ define(['link'], function(Link) {
             this.services[i].messagesLink = { method:'get', uri:this.services[i].uri, accept:'application/json' };
         }
     };
-    Server.prototype.routes = [
+    InboxServer.prototype.routes = [
         Link.route('serve', { uri:'^/?$', method:'get', accept:/application\/html\+json/i })
     ];
-    Server.prototype.serve = function() {
+    InboxServer.prototype.serve = function() {
         var body = {
             _scripts:{ onload:setupAgent },
             _data:{ services:this.services, uri:this.uri }
@@ -26,26 +26,164 @@ define(['link'], function(Link) {
         return Link.response(200, body, 'application/html+json');
     };
 
-    // Agent
-    // =====
+    // Agent Server
+    // ============
+    // serves for an inbox instance
+    var AgentServer = function(agent) {
+        this.agent = agent;
+        this.messages = [];
+    };
+    AgentServer.prototype.routes = [
+        Link.route('servMsg', { uri:'^/([0-9]+)/?$' }),
+        Link.route('servMsgRange', { uri:'^/([0-9]+)\-([0-9]+)/?$' }),
+        Link.route('servAll', { uri:'^/all/?$' }),
+        Link.route('servChecked', { uri:'^/checked/?$' }),
+        Link.route('servRead', { uri:'^/read/?' }),
+        Link.route('servUnread', { uri:'^/unread/?' })
+    ];
+    AgentServer.prototype.runMethod = function(ids, request) {
+        var f = request.method + 'Method';
+        if (f in this) {
+            return this[f](ids, request);
+        } else {
+            return Link.response(405);
+        }
+    };
+    // Resources
+    AgentServer.prototype.servMsg = function(request, match) {
+        var i = +match.uri[1] - 1;
+        return this.runMethod([i], request);
+    };
+    AgentServer.prototype.servMsgRange = function(request, match) {
+        var low = +match.uri[1] - 1, high = +match.uri[2];
+        var range = [];
+        for (var i=low; i < high; i++) { range.push(i); }
+        return this.runMethod(range, request);
+    };
+    AgentServer.prototype.servAll = function(request) {
+        var range = [];
+        for (var i=0; i < this.messages.length; i++) { range.push(i); }
+        return this.runMethod(range, request);
+    };
+    AgentServer.prototype.servChecked = function(request) {
+        var checkboxes = this.agent.getBody().getElementsByClassName('msg-checkbox');
+        var ids = [];
+        Array.prototype.forEach.call(checkboxes, function(c, i) {
+            if (c.checked) { ids.push(i); }
+        });
+        return this.runMethod(ids, request);
+    };
+    AgentServer.prototype.servRead = function(request) {
+        var ids = [];
+        this.messages.forEach(function(m, i) {
+            if (m.flags.seen) { ids.push(i); }
+        });
+        return this.runMethod(ids, request);
+    };
+    AgentServer.prototype.servUnread = function(request) {
+        var ids = [];
+        this.messages.forEach(function(m, i) {
+            if (!m.flags.seen) { ids.push(i); }
+        });
+        return this.runMethod(ids, request);
+    };
+    // Methods
+    AgentServer.prototype.getMethod = function(ids, request) {
+        if (ids.length > 1) {
+            // :TODO: solve this
+            return { code:501, reason:'unable to GET multiple messages at this time' };
+        }
+        var m = this.messages[ids[0]];
+        if (!m) { return { code:404 }; }
+        // pipe to source service
+        return this.agent.dispatch({ method:'get', uri:m.uri, accept:request.accept });
+    };
+    AgentServer.prototype.ckMethod = function(ids) {
+        var checkboxes = this.agent.getBody().getElementsByClassName('msg-checkbox');
+        // figure out if some need to be checked, or all dechecked
+        var should_check = false;
+        ids.forEach(function(id) {
+            if (!checkboxes[id].checked) {
+                should_check = true;
+            }
+        });
+        // update elems
+        ids.forEach(function(id) {
+            checkboxes[id].checked = should_check;
+        });
+        return Link.response(204);
+    };
+    AgentServer.prototype.mrMethod = function(ids) {
+        var rows = this.agent.getBody().getElementsByTagName('tr');
+        // mark read all given
+        ids.forEach(function(id) {
+            // update DOM
+            var row = rows[id];
+            row.className = row.className.replace('unread','');
+            // send message
+            var m = this.messages[id];
+            m.flags.seen = true;
+            this.agent.dispatch({ method:'put', uri:m.uri+'/flags', 'content-type':'application/json', body:{ seen:1 } });
+        }, this);
+        return Link.response(204);
+    };
+    AgentServer.prototype.muMethod = function(ids) {
+        var rows = this.agent.getBody().getElementsByTagName('tr');
+        // mark read all given
+        ids.forEach(function(id) {
+            // update DOM
+            var row = rows[id];
+            if (/unread/i.test(row.className) == false) {
+                row.className += 'unread';
+            }
+            // send message
+            var m = this.messages[id];
+            m.flags.seen = false;
+            this.agent.dispatch({ method:'put', uri:m.uri+'/flags', 'content-type':'application/json', body:{ seen:0 } });
+        }, this);
+        return Link.response(204);
+    };
+    AgentServer.prototype.deleteMethod = function(ids) {
+        var rows = this.agent.getBody().getElementsByTagName('tr');
+        // delete all given
+        ids.forEach(function(id) {
+            // clear DOM
+            var row = rows[id];
+            row.innerHTML = '';
+            // send delete message
+            var m = this.messages[id];
+            this.agent.dispatch({ method:'delete', uri:m.uri, accept:'application/json' });
+            // clear out entry in messages
+            this.messages[id] = null;
+            // :TODO: notify user of success?
+        }, this);
+        return Link.response(204);
+    };
+
+    // Agent Client
+    // ============
+    // client-side functions
     function setupAgent(agent, response) {
         try { 
             // grab params
             var uri = response.body._data.uri;
             var services = response.body._data.services;
         } catch(e) { throw "malformed response body"; }
-        
+
+        // setup agent
+        agent.attachServer(new AgentServer(agent));
+        var server = agent.getServer();
+
         // get messages from all services
-        var allMessages = [];
         services.forEach(function(service) {
             agent.dispatch(service.messagesLink).then(function(response) {
                 if (response.code == 200) {
                     // cache
                     service.messages = response.body.messages;
                     for (var i=0; i < service.messages.length; i++) { service.messages[i].service = service.name; } // kind of sucks
-                    allMessages = allMessages.concat(service.messages);
+                    server.messages = server.messages.concat(service.messages);
                     // render
-                    render(agent, allMessages);
+                    render(agent, server.messages);
                 }
             });
         });
@@ -53,7 +191,6 @@ define(['link'], function(Link) {
     function render(agent, messages) {
         var html = '';
         var body = agent.getBody();
-        var links = agent.getLinks();
 
         messages.sort(function(a,b) { return ((new Date(a.date).getTime() < new Date(b.date).getTime()) ? 1 : -1); });
 
@@ -62,134 +199,31 @@ define(['link'], function(Link) {
         html += 'table.inbox tr.unread a { color:black }';
         html += 'table.inbox tr a { color:gray }';
         html += '</style>';
-        
+
         // toolbar
         html += '<div style="height:35px">';
-        html += '<form method="post"><span class="btn-group">';
-        html += '<button class="btn tool-select" title="select/deselect" formaction="'+agent.getUri()+'/ck"><i class="icon-check"></i> ck</button>';
+        html += '<form formaction="'+agent.getUri()+'"><span class="btn-group">';
+        html += '<button class="btn tool-select" title="select/deselect" formmethod="check"><i class="icon-check"></i> ck</button>';
         html += '</span><span class="btn-group" style="display:inline-block">';
-        html += '<button class="btn tool-markread" title="mark as read" formaction="'+agent.getUri()+'/mr"><i class="icon-eye-open"></i> mr</button>';
-        html += '<button class="btn tool-markunread" title="mark as unread" formaction="'+agent.getUri()+'/mu"><i class="icon-eye-close"></i> mu</button>';
-        html += '<button class="btn tool-delete" title="delete"><i class="icon-trash" formaction="'+agent.getUri()+'/d"></i> d</button>';
+        html += '<button class="btn tool-markread" title="mark as read" formmethod="mr"><i class="icon-eye-open"></i> mr</button>';
+        html += '<button class="btn tool-markunread" title="mark as unread" formmethod="mu"><i class="icon-eye-close"></i> mu</button>';
+        html += '<button class="btn tool-delete" title="delete"><i class="icon-trash" formmethod="delete"></i> delete</button>';
         html += '</span></form>';
         html += '</div>';
 
         // messages
         html += '<table class="table table-condensed inbox">';
         messages.forEach(function(m, i) {
-            // add html
             var date = new Date(m.date);
             var md = (date.getMonth()+1)+'/'+date.getDate()+'&nbsp;'+date.getHours()+':'+(date.getMinutes() < 10 ? '0' : '')+date.getMinutes();
             var trclass = (m.flags && !m.flags.seen ? 'unread' : '');
             html += '<tr class="'+trclass+'"><td style="color:gray">'+(i+1)+'</td><td><input class="msg-checkbox" type="checkbox" /></td><td><span class="label">'+m.service+'</span></td><td><a href="'+m.uri+'">'+m.summary+'</a></td><td><span style="color:gray">'+md+'</span></td></tr>';
-            // record link
-            links[i+1] = m.uri;
         });
         html += '</table>';
 
         // add to DOM
         body.innerHTML = html;
-
-        // register toolbar events
-        links.ck = function(request) {
-            if (/post/i.test(request.method)) {
-                var checkboxes = body.getElementsByClassName('msg-checkbox');
-                // check for a range
-                var range = [0, checkboxes.length];
-                if (request.query && request.query.r) {
-                    var rparts = request.query.r.split('-');
-                    if (rparts.length == 2) {
-                        range[0] = parseInt(rparts[0]) - 1;
-                        range[1] = parseInt(rparts[1]);
-                    } else {
-                        range[0] = parseInt(rparts[0]) - 1;
-                        range[1] = range[0] + 1;
-                    }
-                }
-                // figure out if some need to be checked, or all dechecked
-                var should_check = false;
-                for (var i=range[0]; i < range[1]; i++) {
-                    if (!checkboxes[i].checked) {
-                        should_check = true;
-                    }
-                }
-                // update elems
-                for (var i=range[0]; i < range[1]; i++) {
-                    checkboxes[i].checked = should_check;
-                }
-                return Link.response(204);
-            }
-            return { code:405, reason:'method not allowed' };
-        };
-        links.mr = function(request) {
-            if (/post/i.test(request.method)) {
-                // mark read all checked
-                var checkboxes = body.getElementsByClassName('msg-checkbox');
-                Array.prototype.forEach.call(checkboxes, function(checkbox, i) {
-                    if (!checkbox.checked) { return; }
-                    // update DOM
-                    var row = checkbox.parentNode.parentNode;
-                    row.className = row.className.replace('unread','');
-                    // send message
-                    var m = messages[i];
-                    m.flags.seen = true;
-                    agent.dispatch({ method:'put', uri:m.uri+'/flags', 'content-type':'application/json', body:{ seen:1 } });
-                });
-                return Link.response(204);
-            }
-            return { code:405, reason:'method not allowed' };
-        };
-        links.mu = function(request) {
-            if (/post/i.test(request.method)) {
-                // mark read all checked
-                var checkboxes = body.getElementsByClassName('msg-checkbox');
-                Array.prototype.forEach.call(checkboxes, function(checkbox, i) {
-                    if (!checkbox.checked) { return; }
-                    // update DOM
-                    var row = checkbox.parentNode.parentNode;
-                    if (/unread/.test(row.className) == false) {
-                        row.className += ' unread';
-                    }
-                    // send message
-                    var m = messages[i];
-                    m.flags.seen = false;
-                    agent.dispatch({ method:'put', uri:m.uri+'/flags', 'content-type':'application/json', body:{ seen:0 } });
-                });
-                return Link.response(204);
-            }
-            return { code:405, reason:'method not allowed' };
-        };
-        links.d = function(request) {
-            if (/post/i.test(request.method)) {
-                // delete all checked
-                var checkboxes = body.getElementsByClassName('msg-checkbox');
-                var deletions = [];
-                // convert to array (checkboxes=nodelist, which dynamically updates when deleted from)
-                var delindex=0; // used to track index to delete, which will change during splices
-                Array.prototype.forEach.call(checkboxes, function(c) {
-                    if (c.checked) {
-                        // queue the deletion
-                        deletions.push({ checkbox:c, index:delindex });
-                        delindex--; // one less index in the world
-                    } 
-                    delindex++;
-                });
-                deletions.forEach(function(d) {
-                    // remove DOM
-                    var row = d.checkbox.parentNode.parentNode;
-                    row.parentNode.removeChild(row);
-                    // send delete message
-                    var m = messages[d.index];
-                    agent.dispatch({ method:'delete', uri:m.uri, accept:'application/json' });
-                    // :TODO: notify user of success?
-                    // remove message from cache
-                    messages.splice(d.index, 1);
-                });
-                return Link.response(204);
-            };
-            return { code:405, reason:'method not allowed' };
-        }
     }
 
-    return Server;
+    return InboxServer;
 });

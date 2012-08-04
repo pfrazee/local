@@ -18,7 +18,6 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
         Link.setTypeDecoder('application/html+json', HtmlJson.decode);
 
         // Init libs
-        //LinkRegistry.init(env_config.links); :TODO: reconsider
         RequestEvents.init();
         CLI.init('lshui-cli-input');
         History.init('lshui-hist');
@@ -65,7 +64,7 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
             id:id,
             onrequest:__defhandle,
             elem:null,
-            links:{}
+            programServer:null
         };
         agent.facade = __makeAgentFacade(agent, this.structure);
 
@@ -92,12 +91,18 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
         return {
             getBody:function() { return agent.elem; },
             setRequestHandler:function(handler) { agent.onrequest = handler; },
-            getLinks:function() { return agent.links; },
             getUri:function() { return agent.id; },
             defhandle:function(request, agent_facade) { 
                 __defhandle(request, agent_facade || agent.facade);
             },
-            dispatch:function() { return structure.dispatch.apply(structure, arguments); }
+            dispatch:function() { return structure.dispatch.apply(structure, arguments); },
+            getStructure:function() { return structure; },
+            attachServer:function(s) { 
+                agent.programServer = s;
+                structure.removeModules(new RegExp('^/'+agent.id+'$', 'i'));
+                structure.addModule('/'+agent.id, s);
+            },
+            getServer:function() { return agent.programServer }
         }
     }
 
@@ -109,7 +114,9 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
         // remove DOM
         var wrapper_elem = document.getElementById('agent-'+id);
         wrapper_elem.parentNode.removeChild(wrapper_elem);
-        // :TODO: call an agent destroy func?
+        // remove program server
+        this.structure.removeModules(new RegExp('^/'+id+'$', 'i'));
+        // :TODO: call program die func?
         delete this.agents[id];
         return true;
     }
@@ -119,10 +126,6 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
         agent.dispatch(request).then(function(response) {
             if (response.code == 204 || response.code == 205) { return; }
         
-            // Update link registry
-            // :TODO: reconsider
-            //LinkRegistry.update(response.link);
-
             // update dom 
             var body = response.body;
             if (body) {

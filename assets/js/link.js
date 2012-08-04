@@ -34,6 +34,17 @@ define(function() {
         this.modules.splice(i, 0, { uri:new_uri, inst:module });
     };
 
+    // Removes all matching modules from the structure
+    //  - non-regexp `uri` must be an exact match
+    Structure.prototype.removeModules = function(uri) {
+        if (!(uri instanceof RegExp)) { uri = new RegExp('^'+uri+'$', 'i'); }
+        this.modules.forEach(function(m, i) {
+            if (uri.test(m.uri)) {
+                this.modules.splice(i, 1);
+            }
+        }, this);
+    };
+
     // Searches modules for handlers for the given request
     //  - returns an array of objects with the keys { cb, module, match, route }
     //  - returns the handlers in the order of module precedence

@@ -15,9 +15,8 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
         Link.route('createHandler', { uri:'^/?$', method:'post' }),
         Link.route('getHandler', { uri:'^/([^/]+)/?$', method:'get' }),
         Link.route('setHandler', { uri:'^/([^/]+)/?$', method:'put' }),
-        Link.route('collapseHandler', { uri:'^/([^/]+)/collapse/?$', method:'post' }),
-        Link.route('deleteHandler', { uri:'^/([^/]+)/?$', method:'delete' }),
-        Link.route('linkHandler', { uri:'^/([^/]+)/(.*)' })
+        Link.route('collapseHandler', { uri:'^/([^/]+)/?$', method:/min|max/i }),
+        Link.route('deleteHandler', { uri:'^/([^/]+)/?$', method:'delete' })
     ];
     SimpleAgentServer.prototype.infoHandler = function(request) {
         // :TODO: add summary of active agents
@@ -71,37 +70,6 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
         // :TODO: fill with request body
         return Link.response(200);
     };
-    SimpleAgentServer.prototype.linkHandler = function(request, match, response) {
-        // dont handle if already handled
-        if (response && response.code) { return response; }
-        // get agent
-        var id = match.uri[1];
-        var agent = Env.getAgent(id);
-        if (!agent) { return { code:404, reason:'agent not found' }; }
-        // find link
-        var link = agent.links;
-        var path = match.uri[2].split('/');
-        for (var i=0; i < path.length; i++) {
-            var k = path[i];
-            if (typeof link == 'function') {
-                break; // callbacks get passed remaining path
-            }
-            if (!(k in link)) {
-                link = null;
-                break; // no match at this level
-            }
-            link = link[k]; // travel down the path
-        }
-        if (!link) { return { code:404, reason:'link not found' }; }
-        if (typeof link == 'string') {
-            // replace uri and pipe
-            request.uri = link;
-            return this.structure.dispatch(request);
-        } else if (typeof link == 'function') {
-            // let callback handle it
-            return link.call(null, request, agent.facade);
-        }
-    };
     SimpleAgentServer.prototype.collapseHandler = function(request, match, response) {
         // validate
         var id = match.uri[1];
@@ -110,15 +78,15 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
         var agent_elem = document.getElementById('agent-'+id);
         if (!agent_elem) { return { code:500, reason:'unable to find agent elem' }; }
         // update the agent dom
+        var should_collapse = (request.method == 'min'); // if max, uncollapse
         var is_collapsed = /collapsed/.test(agent_elem.className);
-        is_collapsed = !is_collapsed;
-        if (is_collapsed) {
+        if (!is_collapsed && should_collapse) {
             agent_elem.className += ' collapsed';
-        } else {
+        } else if (is_collapsed && !should_collapse) {
             agent_elem.className = agent_elem.className.replace(/[\s]*collapsed/i,'');
         }
         var shutter_elem = agent_elem.getElementsByClassName('btn-shutter')[0];
-        if (shutter_elem) { shutter_elem.innerText = is_collapsed ? '+' : '_'; }
+        if (shutter_elem) { shutter_elem.innerText = should_collapse ? '+' : '_'; }
         // if a ctrl uri was given, notify it
         // :TODO: reconsider
         /*if (agent.program_uri) {
