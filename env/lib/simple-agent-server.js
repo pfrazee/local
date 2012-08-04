@@ -86,7 +86,10 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
             agent_elem.className = agent_elem.className.replace(/[\s]*collapsed/i,'');
         }
         var shutter_elem = agent_elem.getElementsByClassName('btn-shutter')[0];
-        if (shutter_elem) { shutter_elem.innerText = should_collapse ? '+' : '_'; }
+        if (shutter_elem) { 
+            shutter_elem.innerText = should_collapse ? '+' : '_';
+            shutter_elem.setAttribute('formmethod', should_collapse ? "max" : "min");
+        }
         // if a ctrl uri was given, notify it
         // :TODO: reconsider
         /*if (agent.program_uri) {
