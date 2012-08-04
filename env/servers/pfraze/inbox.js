@@ -99,17 +99,19 @@ define(['link'], function(Link) {
         return this.agent.dispatch({ method:'get', uri:m.uri, accept:request.accept });
     };
     AgentServer.prototype.ckMethod = function(ids) {
-        var checkboxes = this.agent.getBody().getElementsByClassName('msg-checkbox');
+        var rows = this.agent.getBody().getElementsByTagName('tr');
         // figure out if some need to be checked, or all dechecked
         var should_check = false;
         ids.forEach(function(id) {
-            if (!checkboxes[id].checked) {
+            var c = rows[id].getElementsByClassName('msg-checkbox')[0];
+            if (!c.checked) {
                 should_check = true;
             }
         });
         // update elems
         ids.forEach(function(id) {
-            checkboxes[id].checked = should_check;
+            var c = rows[id].getElementsByClassName('msg-checkbox')[0];
+            c.checked = should_check;
         });
         return Link.response(204);
     };
