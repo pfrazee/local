@@ -123,7 +123,7 @@ define(function() {
         }
 
         // If no element gave request attributes, pull them from the form
-        if (!target_uri) { target_uri = form.action; }
+        if (!target_uri) { target_uri = form.getAttribute('action'); }
         if (!enctype) { enctype = form.enctype; }
         if (!method) { method = form.method; }
 
