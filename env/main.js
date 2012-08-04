@@ -14,7 +14,7 @@ var def_module_count = paths.length;
 // Extract all module paths
 var ordered_uris = [];
 for (var i=0; i < env_config.structure.length; i++) {
-    paths.push('modules/' + env_config.structure[i].module);
+    paths.push('servers/' + env_config.structure[i].module);
 }
 // Load using require js
 require(paths, function(Link, Env, CLI, AgentServer) {
