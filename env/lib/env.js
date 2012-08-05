@@ -62,7 +62,7 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
         }
         var agent = {
             id:id,
-            onrequest:__defhandle,
+            onrequest:__defhandleRequest,
             elem:null,
             programServer:null
         };
@@ -92,8 +92,11 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
             getBody:function() { return agent.elem; },
             setRequestHandler:function(handler) { agent.onrequest = handler; },
             getUri:function() { return agent.id; },
-            defhandle:function(request, agent_facade) { 
-                __defhandle(request, agent_facade || agent.facade);
+            defhandleRequest:function(request, agent_facade) { 
+                __defhandleRequest(request, agent_facade || agent.facade);
+            },
+            defhandleResponse:function(response) {
+                __defhandleResponse(response, agent.facade);
             },
             dispatch:function() { return structure.dispatch.apply(structure, arguments); },
             getStructure:function() { return structure; },
@@ -122,34 +125,34 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
     }
 
     // default request handler
-    function __defhandle(request, agent) {
-        agent.dispatch(request).then(function(response) {
-            if (response.code == 204 || response.code == 205) { return; }
-        
-            // update dom 
-            var body = response.body;
-            if (body) {
-                if (response['content-type'] == 'application/html+json') {
-                    body = HtmlJson.toHtml(body);
-                } else {
-                    // encode to a string
-                    body = Link.encodeType(body, response['content-type']);
-                    // escape so that html isnt inserted
-                    body = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                }
-                agent.getBody().innerHTML = body;
-            }
-
-            // run load script 
+    function __defhandleRequest(request, agent) {
+        agent.dispatch(request).then(agent.defhandleResponse);    
+    }
+    function __defhandleResponse(response, agent) {
+        if (response.code == 204 || response.code == 205) { return; }
+        // update dom 
+        var body = response.body;
+        if (body) {
             if (response['content-type'] == 'application/html+json') {
-                agent.setRequestHandler(__defhandle); // new program
-                if (response.body._scripts && response.body._scripts.onload) {
-                    var fns = response.body._scripts.onload;
-                    if (!Array.isArray(fns)) { fns = [fns]; }
-                    fns.forEach(function(fn) { Util.execFn(fn, [agent, response]); });
-                }
+                body = HtmlJson.toHtml(body);
+            } else {
+                // encode to a string
+                body = Link.encodeType(body, response['content-type']);
+                // escape so that html isnt inserted
+                body = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             }
-        });
+            agent.getBody().innerHTML = body;
+            agent.setRequestHandler(__defhandleRequest); // state changed, reset handler
+        }
+
+        // run load script 
+        if (response['content-type'] == 'application/html+json') {
+            if (response.body._scripts && response.body._scripts.onload) {
+                var fns = response.body._scripts.onload;
+                if (!Array.isArray(fns)) { fns = [fns]; }
+                fns.forEach(function(fn) { Util.execFn(fn, [agent, response]); });
+            }
+        }
     }
 
     // generates HTML for agents to work within
@@ -172,7 +175,7 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
                         '<button class="btn btn-mini" formmethod="delete" title="close">&times;</button>' +
                     '</div>' +
                 '</form>' +
-                '<a href="{{uri}}">{{uri}}</a>' +
+                '<a href="{{uri}}">{{id}}</a>' +
             '</div>' +
             '<div id="agent-{{id}}-body" class="agent-body"></div>'
         //'</div>'
