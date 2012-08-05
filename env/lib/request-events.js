@@ -85,7 +85,7 @@ define(function() {
             if (e.stopPropagation) { e.stopPropagation(); }
             // extract uri
             uri = node.attributes.href.value;
-            if (uri == null || uri == '') { uri = '#'; }
+            if (uri == null || uri == '') { uri = '/'; }
             // emit request event
             __broadcastReqEvent({ method:'get', uri:uri, accept:'application/html+json' }, agent_id);
             break;
@@ -151,7 +151,7 @@ define(function() {
         if (form.acceptCharset) { request.accept = form.acceptCharset; }
 
         // Build request body
-        if (form.method == 'get') {
+        if (method == 'get') {
             var qparams = [];
             for (var k in data) {
                 qparams.push(k + '=' + data[k]);

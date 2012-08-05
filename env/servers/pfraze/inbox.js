@@ -76,14 +76,14 @@ define(['link'], function(Link) {
     AgentServer.prototype.servRead = function(request) {
         var ids = [];
         this.messages.forEach(function(m, i) {
-            if (m.flags.seen) { ids.push(i); }
+            if (m.flags && m.flags.seen) { ids.push(i); }
         });
         return this.runMethod(ids, request);
     };
     AgentServer.prototype.servUnread = function(request) {
         var ids = [];
         this.messages.forEach(function(m, i) {
-            if (!m.flags.seen) { ids.push(i); }
+            if (m.flags && !m.flags.seen) { ids.push(i); }
         });
         return this.runMethod(ids, request);
     };
