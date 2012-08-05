@@ -172,7 +172,7 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
                 '<form action="{{uri}}">' +
                     '<div class="agent-titlebar-ctrls btn-group">' +
                         '<button class="btn btn-mini btn-shutter" formmethod="min" title="collapse">_</button>' +
-                        '<button class="btn btn-mini" formmethod="delete" title="close">&times;</button>' +
+                        '<button class="btn btn-mini" formmethod="close" title="close">&times;</button>' +
                     '</div>' +
                 '</form>' +
                 '<a href="{{uri}}">{{id}}</a>' +

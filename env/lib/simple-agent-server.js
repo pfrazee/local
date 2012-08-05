@@ -16,7 +16,7 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
         Link.route('getHandler', { uri:'^/([^/]+)/?$', method:'get' }),
         Link.route('setHandler', { uri:'^/([^/]+)/?$', method:'put' }),
         Link.route('collapseHandler', { uri:'^/([^/]+)/?$', method:/min|max/i }),
-        Link.route('deleteHandler', { uri:'^/([^/]+)/?$', method:'delete' })
+        Link.route('closeHandler', { uri:'^/([^/]+)/?$', method:'close' })
     ];
     SimpleAgentServer.prototype.infoHandler = function(request) {
         // :TODO: add summary of active agents
@@ -97,7 +97,7 @@ define(['link', 'lib/env', 'lib/util', 'lib/html+json'], function(Link, Env, Uti
         }*/
         return Link.response(205);
     };
-    SimpleAgentServer.prototype.deleteHandler = function(request, match, response) {
+    SimpleAgentServer.prototype.closeHandler = function(request, match, response) {
         var id = match.uri[1];
         var success = Env.killAgent(id);
         if (!success) { return { code:404, reason:'not found' }; }

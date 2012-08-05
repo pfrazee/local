@@ -47,5 +47,5 @@ require(paths, function(Link, Env, CLI, AgentServer) {
     var uri = window.location.hash || '';
     if (uri.charAt(0) == '#') { uri = uri.substring(1); }
     if (uri == '' || uri == ' ') { uri = '/'; }
-    CLI.runCommand('get '+uri+' [application/html+json]');
+    CLI.runCommand('hi>get '+uri+' [application/html+json]');
 });

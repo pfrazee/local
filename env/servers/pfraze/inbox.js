@@ -204,12 +204,12 @@ define(['link'], function(Link) {
 
         // toolbar
         html += '<div style="height:35px">';
-        html += '<form formaction="'+agent.getUri()+'"><span class="btn-group">';
-        html += '<button class="btn tool-select" title="select/deselect" formmethod="check"><i class="icon-check"></i> ck</button>';
+        html += '<form action="'+agent.getUri()+'/checked"><span class="btn-group">';
+        html += '<button class="btn tool-select" title="check '+agent.getUri()+'/all" formmethod="ck" formaction="'+agent.getUri()+'/all"><i class="icon-check"></i> ck</button>';
         html += '</span><span class="btn-group" style="display:inline-block">';
-        html += '<button class="btn tool-markread" title="mark as read" formmethod="mr" formaction="'+agent.getUri()+'/checked"><i class="icon-eye-open"></i> mr</button>';
-        html += '<button class="btn tool-markunread" title="mark as unread" formmethod="mu" formaction="'+agent.getUri()+'/checked"><i class="icon-eye-close"></i> mu</button>';
-        html += '<button class="btn tool-delete" title="delete"><i class="icon-trash" formmethod="delete" formaction="'+agent.getUri()+'/checked"></i> delete</button>';
+        html += '<button class="btn tool-markread" title="mark as read '+agent.getUri()+'/checked" formmethod="mr"><i class="icon-eye-open"></i> mr</button>';
+        html += '<button class="btn tool-markunread" title="mark unread '+agent.getUri()+'/checked" formmethod="mu"><i class="icon-eye-close"></i> mu</button>';
+        html += '<button class="btn tool-delete" title="delete '+agent.getUri()+'/checked"><i class="icon-trash" formmethod="delete"></i> delete</button>';
         html += '</span></form>';
         html += '</div>';
 
