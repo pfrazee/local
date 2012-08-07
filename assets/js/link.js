@@ -396,6 +396,16 @@ define(function() {
             request[ajax_config.proxy_header] = request.uri;
             target_uri = ajax_config.proxy;
         }
+        // Add the query
+        if (request.query) {
+            var q = [];
+            for (var k in request.query) {
+                q.push(k+'='+request.query[k]);
+            }
+            if (q.length) {
+                target_uri += '?' + q.join('&');
+            }
+        }
         // Encode the body
         request.body = encodeType(request.body, request['content-type']);
         xhrRequest.open(request.method, target_uri, true);
