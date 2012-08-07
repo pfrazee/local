@@ -185,11 +185,6 @@ a:hover {
   clear: both;
 }
 
-[class*="span"] {
-  float: left;
-  margin-left: 20px;
-}
-
 .container,
 .navbar-fixed-top .container,
 .navbar-fixed-bottom .container {
@@ -198,50 +193,74 @@ a:hover {
 
 .span12 {
   width: 940px;
+  float: left;
+  margin-left: 20px;
 }
 
 .span11 {
   width: 860px;
+  float: left;
+  margin-left: 20px;
 }
 
 .span10 {
   width: 780px;
+  float: left;
+  margin-left: 20px;
 }
 
 .span9 {
   width: 700px;
+  float: left;
+  margin-left: 20px;
 }
 
 .span8 {
   width: 620px;
+  float: left;
+  margin-left: 20px;
 }
 
 .span7 {
   width: 540px;
+  float: left;
+  margin-left: 20px;
 }
 
 .span6 {
   width: 460px;
+  float: left;
+  margin-left: 20px;
 }
 
 .span5 {
   width: 380px;
+  float: left;
+  margin-left: 20px;
 }
 
 .span4 {
   width: 300px;
+  float: left;
+  margin-left: 20px;
 }
 
 .span3 {
   width: 220px;
+  float: left;
+  margin-left: 20px;
 }
 
 .span2 {
   width: 140px;
+  float: left;
+  margin-left: 20px;
 }
 
 .span1 {
   width: 60px;
+  float: left;
+  margin-left: 20px;
 }
 
 .offset12 {

@@ -209,7 +209,7 @@ define(['link'], function(Link) {
         html += '</span><span class="btn-group" style="display:inline-block">';
         html += '<button class="btn tool-markread" title="mark as read '+agent.getUri()+'/checked" formmethod="mr"><i class="icon-eye-open"></i> mr</button>';
         html += '<button class="btn tool-markunread" title="mark unread '+agent.getUri()+'/checked" formmethod="mu"><i class="icon-eye-close"></i> mu</button>';
-        html += '<button class="btn tool-delete" title="delete '+agent.getUri()+'/checked"><i class="icon-trash" formmethod="delete"></i> delete</button>';
+        html += '<button class="btn tool-delete" title="delete '+agent.getUri()+'/checked" formmethod="delete"><i class="icon-trash" formmethod="delete"></i> delete</button>';
         html += '</span></form>';
         html += '</div>';
 
