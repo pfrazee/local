@@ -1,4 +1,4 @@
-define(['link', 'lib/html+json'], function(Link, HtmlJson) {
+define(['link', 'env/html+json'], function(Link, HtmlJson) {
     var Server = function() {
     };
 

@@ -33,7 +33,9 @@ define(['link'], function(Link) {
         var code = this.code_elem.value;
         eval('var fn = function(agent) { '+code+' }');
         if (fn) {
-            return fn(this.agent, request, new Link.Promise());
+            var res = fn(this.agent, request, new Link.Promise());
+            if (res) { return res; }
+            return { code:200 };
         }
         return { code:400 };
     };

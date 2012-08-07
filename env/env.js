@@ -1,4 +1,4 @@
-define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json', 'lib/util'], function(Link, RequestEvents, CLI, History, HtmlJson, Util) {
+define(['link', 'env/request-events', 'env/cli', 'env/html+json', 'env/util'], function(Link, RequestEvents, CLI, HtmlJson, Util) {
     var Env = {
         init:Env__init,
         getAgent:Env__getAgent,
@@ -20,7 +20,6 @@ define(['link', 'lib/request-events', 'lib/cli', 'lib/history', 'lib/html+json',
         // Init libs
         RequestEvents.init();
         CLI.init('lshui-cli-input');
-        History.init('lshui-hist');
 
         // Register request handling
         CLI.addListener('request', Env__onRequest, this);

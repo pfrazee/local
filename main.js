@@ -5,9 +5,9 @@ require.config({
 });
 var paths = [
     'link',
-    'lib/env',
-    'lib/cli',
-    'lib/simple-agent-server'
+    'env/env',
+    'env/cli',
+    'env/simple-agent-server'
 ];
 var def_module_count = paths.length;
 

@@ -12,7 +12,7 @@ header-key   = token .
 header-value = token | string .
 string       = '"' { token } '"' .
 */
-define(['link', 'lib/linkregistry', 'lib/env', 'lib/history'], function(Link, LinkRegistry, Env, History) {
+define(['link', 'env/env'], function(Link, Env) {
     // CLI
     // ===
     // Parses a command syntax into Link requests 
