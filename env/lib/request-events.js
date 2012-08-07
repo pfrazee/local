@@ -125,7 +125,7 @@ define(function() {
         // If no element gave request attributes, pull them from the form
         if (!target_uri) { target_uri = form.getAttribute('action'); }
         if (!enctype) { enctype = form.enctype; }
-        if (!method) { method = form.method; }
+        if (!method) { method = form.getAttribute('method'); }
 
         // Convert the data to the given enctype
         if (!enctype) { enctype = 'js'; }
