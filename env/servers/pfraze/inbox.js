@@ -66,10 +66,11 @@ define(['link'], function(Link) {
         return this.runMethod(range, request);
     };
     AgentServer.prototype.servChecked = function(request) {
-        var checkboxes = this.agent.getBody().getElementsByClassName('msg-checkbox');
+        var rows = this.agent.getBody().getElementsByTagName('tr');
         var ids = [];
-        Array.prototype.forEach.call(checkboxes, function(c, i) {
-            if (c.checked) { ids.push(i); }
+        Array.prototype.forEach.call(rows, function(r, i) {
+            var c = rows[i].getElementsByClassName('msg-checkbox')[0];
+            if (c && c.checked) { ids.push(i); }
         });
         return this.runMethod(ids, request);
     };
@@ -104,14 +105,16 @@ define(['link'], function(Link) {
         var should_check = false;
         ids.forEach(function(id) {
             var c = rows[id].getElementsByClassName('msg-checkbox')[0];
-            if (!c.checked) {
+            if (c && !c.checked) {
                 should_check = true;
             }
         });
         // update elems
         ids.forEach(function(id) {
             var c = rows[id].getElementsByClassName('msg-checkbox')[0];
-            c.checked = should_check;
+            if (c) {
+                c.checked = should_check;
+            }
         });
         return Link.response(204);
     };
@@ -124,8 +127,10 @@ define(['link'], function(Link) {
             row.className = row.className.replace('unread','');
             // send message
             var m = this.messages[id];
-            m.flags.seen = true;
-            this.agent.dispatch({ method:'put', uri:m.uri+'/flags', 'content-type':'application/json', body:{ seen:1 } });
+            if (m) {
+                m.flags.seen = true;
+                this.agent.dispatch({ method:'put', uri:m.uri+'/flags', 'content-type':'application/json', body:{ seen:1 } });
+            }
         }, this);
         return Link.response(204);
     };
@@ -140,8 +145,10 @@ define(['link'], function(Link) {
             }
             // send message
             var m = this.messages[id];
-            m.flags.seen = false;
-            this.agent.dispatch({ method:'put', uri:m.uri+'/flags', 'content-type':'application/json', body:{ seen:0 } });
+            if (m) {
+                m.flags.seen = false;
+                this.agent.dispatch({ method:'put', uri:m.uri+'/flags', 'content-type':'application/json', body:{ seen:0 } });
+            }
         }, this);
         return Link.response(204);
     };
@@ -154,6 +161,7 @@ define(['link'], function(Link) {
             row.innerHTML = '';
             // send delete message
             var m = this.messages[id];
+            if (!m) { return; }
             this.agent.dispatch({ method:'delete', uri:m.uri, accept:'application/json' });
             // clear out entry in messages
             this.messages[id] = null;
