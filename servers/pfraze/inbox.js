@@ -1,12 +1,12 @@
 define(['link'], function(Link) {
-    // Inbox Server
-    // ============
+    // Inbox Master Server
+    // ===================
     // delivers a simple inbox
     // configuration =
     // {
     //   services: [ { name:..., uri:... }, ... ],
     // }
-    var InboxServer = function(structure, config) {
+    var InboxMS = function(structure, config) {
         this.structure = structure;
         this.uri = config.uri;
         this.services = config.services;
@@ -15,10 +15,10 @@ define(['link'], function(Link) {
             this.services[i].messagesLink = { method:'get', uri:this.services[i].uri, accept:'application/json' };
         }
     };
-    InboxServer.prototype.routes = [
+    InboxMS.prototype.routes = [
         Link.route('serve', { uri:'^/?$', method:'get', accept:/application\/html\+json/i })
     ];
-    InboxServer.prototype.serve = function() {
+    InboxMS.prototype.serve = function() {
         var body = {
             _scripts:{ onload:setupAgent },
             _data:{ services:this.services, uri:this.uri }
@@ -26,14 +26,14 @@ define(['link'], function(Link) {
         return Link.response(200, body, 'application/html+json');
     };
 
-    // Agent Server
-    // ============
-    // serves for an inbox instance
-    var AgentServer = function(agent) {
+    // Inbox Agent Server
+    // ==================
+    // serves an inbox instance
+    var InboxAS = function(agent) {
         this.agent = agent;
         this.messages = [];
     };
-    AgentServer.prototype.routes = [
+    InboxAS.prototype.routes = [
         Link.route('servMsg', { uri:'^/([0-9]+)/?$' }),
         Link.route('servMsgRange', { uri:'^/([0-9]+)\-([0-9]+)/?$' }),
         Link.route('servAll', { uri:'^/all/?$' }),
@@ -41,7 +41,7 @@ define(['link'], function(Link) {
         Link.route('servRead', { uri:'^/read/?' }),
         Link.route('servUnread', { uri:'^/unread/?' })
     ];
-    AgentServer.prototype.runMethod = function(ids, request) {
+    InboxAS.prototype.runMethod = function(ids, request) {
         var f = request.method + 'Method';
         if (f in this) {
             return this[f](ids, request);
@@ -50,22 +50,22 @@ define(['link'], function(Link) {
         }
     };
     // Resources
-    AgentServer.prototype.servMsg = function(request, match) {
+    InboxAS.prototype.servMsg = function(request, match) {
         var i = +match.uri[1] - 1;
         return this.runMethod([i], request);
     };
-    AgentServer.prototype.servMsgRange = function(request, match) {
+    InboxAS.prototype.servMsgRange = function(request, match) {
         var low = +match.uri[1] - 1, high = +match.uri[2];
         var range = [];
         for (var i=low; i < high; i++) { range.push(i); }
         return this.runMethod(range, request);
     };
-    AgentServer.prototype.servAll = function(request) {
+    InboxAS.prototype.servAll = function(request) {
         var range = [];
         for (var i=0; i < this.messages.length; i++) { range.push(i); }
         return this.runMethod(range, request);
     };
-    AgentServer.prototype.servChecked = function(request) {
+    InboxAS.prototype.servChecked = function(request) {
         var rows = this.agent.getBody().getElementsByTagName('tr');
         var ids = [];
         Array.prototype.forEach.call(rows, function(r, i) {
@@ -74,14 +74,14 @@ define(['link'], function(Link) {
         });
         return this.runMethod(ids, request);
     };
-    AgentServer.prototype.servRead = function(request) {
+    InboxAS.prototype.servRead = function(request) {
         var ids = [];
         this.messages.forEach(function(m, i) {
             if (m.flags && m.flags.seen) { ids.push(i); }
         });
         return this.runMethod(ids, request);
     };
-    AgentServer.prototype.servUnread = function(request) {
+    InboxAS.prototype.servUnread = function(request) {
         var ids = [];
         this.messages.forEach(function(m, i) {
             if (m.flags && !m.flags.seen) { ids.push(i); }
@@ -89,7 +89,7 @@ define(['link'], function(Link) {
         return this.runMethod(ids, request);
     };
     // Methods
-    AgentServer.prototype.getMethod = function(ids, request) {
+    InboxAS.prototype.getMethod = function(ids, request) {
         if (ids.length > 1) {
             // :TODO: solve this
             return { code:501, reason:'unable to GET multiple messages at this time' };
@@ -99,7 +99,7 @@ define(['link'], function(Link) {
         // pipe to source service
         return this.agent.dispatch({ method:'get', uri:m.uri, accept:request.accept });
     };
-    AgentServer.prototype.ckMethod = function(ids) {
+    InboxAS.prototype.ckMethod = function(ids) {
         var rows = this.agent.getBody().getElementsByTagName('tr');
         // figure out if some need to be checked, or all dechecked
         var should_check = false;
@@ -118,7 +118,7 @@ define(['link'], function(Link) {
         });
         return Link.response(204);
     };
-    AgentServer.prototype.mrMethod = function(ids) {
+    InboxAS.prototype.mrMethod = function(ids) {
         var rows = this.agent.getBody().getElementsByTagName('tr');
         // mark read all given
         ids.forEach(function(id) {
@@ -134,7 +134,7 @@ define(['link'], function(Link) {
         }, this);
         return Link.response(204);
     };
-    AgentServer.prototype.muMethod = function(ids) {
+    InboxAS.prototype.muMethod = function(ids) {
         var rows = this.agent.getBody().getElementsByTagName('tr');
         // mark read all given
         ids.forEach(function(id) {
@@ -152,7 +152,7 @@ define(['link'], function(Link) {
         }, this);
         return Link.response(204);
     };
-    AgentServer.prototype.deleteMethod = function(ids) {
+    InboxAS.prototype.deleteMethod = function(ids) {
         var rows = this.agent.getBody().getElementsByTagName('tr');
         // delete all given
         ids.forEach(function(id) {
@@ -181,7 +181,8 @@ define(['link'], function(Link) {
         } catch(e) { throw "malformed response body"; }
 
         // setup agent
-        agent.attachServer(new AgentServer(agent));
+        agent.services = services;
+        agent.attachServer(new InboxAS(agent));
         var server = agent.getServer();
 
         // get messages from all services
@@ -221,6 +222,13 @@ define(['link'], function(Link) {
         html += '</span></form>';
         html += '</div>';
 
+        // composebar
+        html += '<div style="height:25px"> Compose: ';
+        agent.services.forEach(function(serv) {
+            html += '<a href="'+serv.uri+'/new" title="compose message with '+serv.name+'"><span class="label label-info">'+serv.name+'</span></a> ';
+        });
+        html += '</div>';
+
         // messages
         html += '<table class="table table-condensed inbox">';
         messages.forEach(function(m, i) {
@@ -235,5 +243,5 @@ define(['link'], function(Link) {
         body.innerHTML = html;
     }
 
-    return InboxServer;
+    return InboxMS;
 });
