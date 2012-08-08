@@ -90,6 +90,7 @@ define(['link', 'env/request-events', 'env/cli', 'env/html+json', 'env/util'], f
         return {
             getBody:function() { return agent.elem; },
             setRequestHandler:function(handler) { agent.onrequest = handler; },
+            getId:function() { return agent.id; },
             getUri:function() { return agent.id; },
             defhandleRequest:function(request, agent_facade) { 
                 __defhandleRequest(request, agent_facade || agent.facade);

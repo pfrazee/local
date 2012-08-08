@@ -54,7 +54,7 @@ define(function() {
             var module = this.modules[i];
             // See if the module's configured URI fits inside the request URI
             var rel_uri_index = request.uri.indexOf(module.uri);
-            if (rel_uri_index != -1) {
+            if (rel_uri_index == 0) {
                 // It does-- pull out the remaining URI and use that to match the request
                 var rel_uri = request.uri.substr(module.uri.length);
                 if (rel_uri.charAt(0) != '/') { rel_uri = '/' + rel_uri; } // prepend the leading slash, for consistency
@@ -264,15 +264,18 @@ define(function() {
     };
     // Takes a mimetype (text/asdf+html), puts out the applicable types ([text/asdf+html, text/html,text])
     function __mkTypesList(type) {
-        var parts = type.split('/');
+        // for now, dump the encoding
+        var parts = type.split(';');
+        var t = parts[0];
+        parts = t.split('/');
         if (parts[1]) {
             var parts2 = parts[1].split('+');
             if (parts2[1]) { 
-                return [type, parts[0] + '/' + parts2[1], parts[0]];
+                return [t, parts[0] + '/' + parts2[1], parts[0]];
             }
-            return [type, parts[0]];
+            return [t, parts[0]];
         }
-        return [type];
+        return [t];
     };
     // Takes a registry and type, finds the best matching en/decoder
     function __findCoder(registry, type) {
@@ -288,6 +291,56 @@ define(function() {
     });
     setTypeDecoder('application/json', function(str) {
         return JSON.parse(str);
+    });
+    setTypeEncoder('application/x-www-form-urlencoded', function(obj) {
+        var enc = encodeURIComponent;
+        var str = [];
+        for (var k in obj) {
+            if (obj[k] === null) {
+                str.push(k+'=');
+            } else if (Array.isArray(obj[k])) {
+                for (var i=0; i < obj[k].length; i++) {
+                    str.push(k+'[]='+enc(obj[k][i]));
+                }
+            } else if (typeof obj[k] == 'object') {
+                for (var k2 in obj[k]) {
+                    str.push(k+'['+k2+']='+enc(obj[k][k2]));
+                }
+            } else {
+                str.push(k+'='+enc(obj[k]));
+            }
+        }
+        return str.join('&');
+    });
+    setTypeDecoder('application/x-www-form-urlencoded', function(params) {
+        // thanks to Brian Donovan
+        // http://stackoverflow.com/a/4672120
+        var pairs = params.split('&'),
+        result = {};
+
+        for (var i = 0; i < pairs.length; i++) {
+            var pair = pairs[i].split('='),
+            key = decodeURIComponent(pair[0]),
+            value = decodeURIComponent(pair[1]),
+            isArray = /\[\]$/.test(key),
+            dictMatch = key.match(/^(.+)\[([^\]]+)\]$/);
+
+            if (dictMatch) {
+                key = dictMatch[1];
+                var subkey = dictMatch[2];
+
+                result[key] = result[key] || {};
+                result[key][subkey] = value;
+            } else if (isArray) {
+                key = key.substring(0, key.length-2);
+                result[key] = result[key] || [];
+                result[key].push(value);
+            } else {
+                result[key] = value;
+            }
+        }
+
+        return result;
     });
     
     // Promise
