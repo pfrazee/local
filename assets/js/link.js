@@ -37,9 +37,10 @@ define(function() {
     // Removes all matching modules from the structure
     //  - non-regexp `uri` must be an exact match
     Structure.prototype.removeModules = function(uri) {
-        if (!(uri instanceof RegExp)) { uri = new RegExp('^'+uri+'$', 'i'); }
+        var isregex = (uri instanceof RegExp);
+        var test = isregex ? uri.test : function(v) { return this == v; };
         this.modules.forEach(function(m, i) {
-            if (uri.test(m.uri)) {
+            if (test.call(uri, m.uri)) {
                 this.modules.splice(i, 1);
             }
         }, this);

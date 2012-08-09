@@ -102,7 +102,7 @@ define(['link', 'env/request-events', 'env/cli', 'env/html+json', 'env/util'], f
             getStructure:function() { return structure; },
             attachServer:function(s) { 
                 agent.programServer = s;
-                structure.removeModules(new RegExp('^/'+agent.id+'$', 'i'));
+                structure.removeModules('/'+agent.id);
                 structure.addModule('/'+agent.id, s);
             },
             getServer:function() { return agent.programServer }
@@ -118,7 +118,7 @@ define(['link', 'env/request-events', 'env/cli', 'env/html+json', 'env/util'], f
         var wrapper_elem = document.getElementById('agent-'+id);
         wrapper_elem.parentNode.removeChild(wrapper_elem);
         // remove program server
-        this.structure.removeModules(new RegExp('^/'+id+'$', 'i'));
+        this.structure.removeModules('/'+id);
         // :TODO: call program die func?
         delete this.agents[id];
         return true;

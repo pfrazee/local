@@ -223,11 +223,11 @@ define(['link'], function(Link) {
         html += '</div>';
 
         // composebar
-        html += '<div style="height:25px"> Compose: ';
+        html += '<p> Compose: ';
         agent.services.forEach(function(serv) {
             html += '<a href="'+serv.uri+'/new" title="compose message with '+serv.name+'"><span class="label label-info">'+serv.name+'</span></a> ';
         });
-        html += '</div>';
+        html += '</p>';
 
         // messages
         html += '<table class="table table-condensed inbox">';
