@@ -56,8 +56,12 @@ define(function() {
             // See if the module's configured URI fits inside the request URI
             var rel_uri_index = request.uri.indexOf(module.uri);
             if (rel_uri_index == 0) {
-                // It does-- pull out the remaining URI and use that to match the request
+                // Is it a complete name match? (/foo matches /foo/bar, not /foobar)
                 var rel_uri = request.uri.substr(module.uri.length);
+                if (!(rel_uri == '' || rel_uri.charAt(0) == '/')) {
+                    continue;
+                }
+                // It is-- use the rel URI to match the request
                 if (rel_uri.charAt(0) != '/') { rel_uri = '/' + rel_uri; } // prepend the leading slash, for consistency
                 // Look for the handler
                 for (var j=0; j < module.inst.routes.length; j++) {

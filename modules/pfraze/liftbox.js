@@ -9,11 +9,9 @@ define(['link'], function(Link) {
         this.structure = structure;
         this.uri = config.uri;
         this.service = config.service;
-        this.service.uri_files = this.service.uri + '/files';
     };
     LiftboxMS.prototype.routes = [
-        Link.route('serveAgent', { uri:'^/?$', method:'get', accept:/application\/html\+json/i }),
-        Link.route('serveFile', { uri:'(.*)', method:'get', accept:'application/json' })
+        Link.route('serveAgent', { uri:'^/?$', method:'get', accept:/application\/html\+json/i })
     ];
     LiftboxMS.prototype.serveAgent = function() {
         var body = {
@@ -29,27 +27,35 @@ define(['link'], function(Link) {
         this.agent = agent;
     };
     LiftboxAS.prototype.routes = [
-        Link.route('servUpdir', { uri:'^/\.\./?' }),
-        Link.route('servItem', { uri:'^/([0-9]+)/?' })
+        Link.route('servUpdir', { uri:/^\/\.\.\/?/i }),
+        Link.route('servNum', { uri:'^/([0-9]+)/?' }),
+        Link.route('servName', { uri:'^/(.+)/?' })
     ];
-    LiftboxAS.prototype.servUpdir = function(request) {
+    LiftboxAS.prototype.servUpdir = function(request, match) {
         // calc from curpath (up one dir)
         var parts = this.agent.curpath.split('/');
         parts.pop();
         var path = parts.join('/');
-        if (!path) { path = '/'; }
+        if (!path) { path = ''; }
         // pipe to service
         request = Object.create(request);
-        request.uri = this.agent.service.uri_files + path;
+        request.uri = this.agent.service.uri + path;
         return this.agent.dispatch(request);
     };
-    LiftboxAS.prototype.servItem = function(request, match) {
+    LiftboxAS.prototype.servNum = function(request, match) {
         // grab file
         var file = this.agent.files[+match.uri[1] - 1];
         if (!file) { return { code:404 }; }
-        // Pipe to service
+        // pipe to service
         request = Object.create(request);
-        request.uri = this.agent.service.uri_files + file.path;
+        request.uri = this.agent.service.uri + file.path;
+        return this.agent.dispatch(request);
+    };
+    LiftboxAS.prototype.servName = function(request, match, response) {
+        if (response && response.code) { return response; }
+        // pipe to service
+        request = Object.create(request);
+        request.uri = this.agent.service.uri + '/' + match.uri[1];
         return this.agent.dispatch(request);
     };
 
@@ -90,7 +96,7 @@ define(['link'], function(Link) {
         // get root
         agent.follow({
             method:'get',
-            uri:agent.service.uri_files,
+            uri:agent.service.uri,
             accept:'application/json'
         });
     }
@@ -106,7 +112,7 @@ define(['link'], function(Link) {
         agent.files.forEach(function(f, i) {
             var date = new Date(f.modified);
             date = (date.getMonth()+1)+'/'+date.getDate()+'&nbsp;'+date.getHours()+':'+(date.getMinutes() < 10 ? '0' : '')+date.getMinutes();
-            html += '<tr><td width="20">'+(i+1)+'</td><td><a href="'+agent.service.uri_files+f.path+'" type="application/json">'+f.path+'</a></td></tr>';
+            html += '<tr><td width="20">'+(i+1)+'</td><td><a href="'+agent.service.uri+f.path+'" type="application/json">'+f.path+'</a></td></tr>';
         });
         html += '</table>';
 
