@@ -1,45 +1,15 @@
-define(function() {
+define(['./event-emitter'], function(EventEmitter) {
     // Request Events
     // ==============
     // observes given elemnts and converts DOM events into linkjs requests
     var RequestEvents = {
         init:RequestEvents__init,
-        addListener:RequestEvents__addListener,
-        removeListener:RequestEvents__removeListener,
-        removeAllListeners:RequestEvents__removeAllListeners,
         observe:RequestEvents__observe
     };
+    EventEmitter.mixin(RequestEvents);
 
     // setup
     function RequestEvents__init() {
-        this.listeners = {
-            'request':[]
-        };
-    }
-
-    // add cbs
-    function RequestEvents__addListener(event, fn, opt_context) {
-        if (!(event in this.listeners)) { return false; }
-        this.listeners[event].push({ fn:fn, context:opt_context });
-        return this.listeners[event].length;
-    }
-
-    // remove cbs
-    function RequestEvents__removeListener(event, fn) {
-        if (!(event in this.listeners)) { return false; }
-        for (var i=0; i < this.listeners[event].length; i++) {
-            if (this.listeners[event][i].fn == fn) {
-                this.listeners[event].splice(i, 1);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // remove all cbs
-    function RequestEvents__removeAllListeners(event) {
-        if (!(event in this.listeners)) { return false; }
-        this.listeners[event].length = 0;
     }
 
     // register a DOM element for observation
@@ -52,13 +22,6 @@ define(function() {
         };
     }
 
-    function __broadcastReqEvent(request, agent_id) {
-        var req_listeners = RequestEvents.listeners['request'];
-        for (var i=0; i < req_listeners.length; i++) {
-            req_listeners[i].fn.call(req_listeners[i].context, request, agent_id);
-        }
-    }
-    
     function __clickHandler(e, observed_elem, agent_id) {
         // Mark as recently clicked, if this (or a parent) is part of a form
         // (this helps out the submit interceptor)
@@ -90,7 +53,7 @@ define(function() {
             var accept = node.getAttribute('type');
             if (!accept) { accept = 'application/html+json'; }
             // emit request event
-            __broadcastReqEvent({ method:'get', uri:uri, accept:accept }, agent_id);
+            RequestEvents.emitEvent('request', { method:'get', uri:uri, accept:accept }, agent_id);
             break;
         }
     }
@@ -168,8 +131,7 @@ define(function() {
             request['content-type'] = enctype;
         }
 
-        // Emit request event
-        __broadcastReqEvent(request, agent_id);
+        RequestEvents.emitEvent('request', request, agent_id);
     }
 
     return RequestEvents;

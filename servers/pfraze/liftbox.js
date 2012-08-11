@@ -106,7 +106,7 @@ define(['link'], function(Link) {
         agent.files.forEach(function(f, i) {
             var date = new Date(f.modified);
             date = (date.getMonth()+1)+'/'+date.getDate()+'&nbsp;'+date.getHours()+':'+(date.getMinutes() < 10 ? '0' : '')+date.getMinutes();
-            html += '<tr><td>'+(i+1)+'</td><td><a href="'+agent.service.uri_files+f.path+'" type="application/json">'+f.path+'</a></td></tr>';
+            html += '<tr><td width="20">'+(i+1)+'</td><td><a href="'+agent.service.uri_files+f.path+'" type="application/json">'+f.path+'</a></td></tr>';
         });
         html += '</table>';
 

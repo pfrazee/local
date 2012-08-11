@@ -12,7 +12,7 @@ header-key   = token .
 header-value = token | string .
 string       = '"' { token } '"' .
 */
-define(['link', 'env/env'], function(Link, Env) {
+define(['link', './env', './event-emitter'], function(Link, Env, EventEmitter) {
     // CLI
     // ===
     // Parses a command syntax into Link requests 
@@ -21,20 +21,15 @@ define(['link', 'env/env'], function(Link, Env) {
         init:CLI__init,
         runCommand:CLI__runCommand,
         addHistory:CLI__addHistory,
-        moveHistory:CLI__moveHistory,
-        addListener:CLI__addListener,
-        removeListener:CLI__removeListener,
-        removeAllListeners:CLI__removeAllListeners
+        moveHistory:CLI__moveHistory
     };
+    EventEmitter.mixin(CLI);
     
     // setup func    
     function CLI__init(elem_id) {
         // init attributes
         this.elemInput = document.getElementById(elem_id);
         this.elemInput.onkeydown = __clikeydown;
-        this.listeners = {
-            request:[]
-        };
 
         // init history
         this.history = [''];
@@ -91,39 +86,6 @@ define(['link', 'env/env'], function(Link, Env) {
         return cmd;
     }
 
-    // add cbs
-    function CLI__addListener(event, fn, opt_context) {
-        if (!(event in this.listeners)) { return false; }
-        this.listeners[event].push({ fn:fn, context:opt_context });
-        return this.listeners[event].length;
-    }
-
-    // remove cbs
-    function CLI__removeListener(event, fn) {
-        if (!(event in this.listeners)) { return false; }
-        for (var i=0; i < this.listeners[event].length; i++) {
-            if (this.listeners[event][i].fn == fn) {
-                this.listeners[event].splice(i, 1);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // remove all cbs
-    function CLI__removeAllListeners(event) {
-        if (!(event in this.listeners)) { return false; }
-        this.listeners[event].length = 0;
-    }
-
-    // event broadcast
-    function __broadcast(event, params) {
-        var listeners = CLI.listeners[event];
-        for (var i=0; i < listeners.length; i++) {
-            listeners[i].fn.apply(listeners[i].context, params);
-        }
-    }
-
     // command handler
     function CLI__runCommand(command) {
         //Parser.logging = true;
@@ -147,7 +109,7 @@ define(['link', 'env/env'], function(Link, Env) {
         cmd.request.accept = cmd.request.accept || 'application/html+json';
 
         // broadcast
-        __broadcast.call(this, 'request', [cmd.request, cmd.agent, command]);
+        this.emitEvent('request', cmd.request, cmd.agent, command);
     };
 
     // range clamp helper
