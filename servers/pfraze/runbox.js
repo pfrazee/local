@@ -54,6 +54,17 @@ define(['link'], function(Link) {
         // start agent server
         var code_elem = agent.getBody().getElementsByClassName('codebox')[0];
         agent.attachServer(new RunboxAS(agent, code_elem));
+
+        // intercept requests
+        agent.setRequestHandler(function(req) {
+            agent.dispatch(req).then(function(res) {
+                if (res.code == 200 && res.body) {
+                    var content = Link.encodeType(res.body, res['content-type']);
+                    var cb = agent.getBody().getElementsByClassName('codebox')[0];
+                    cb.value = content;
+                }
+            });
+        });
     }
 
     return RunboxMS;

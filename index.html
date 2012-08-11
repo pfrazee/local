@@ -33,7 +33,10 @@
                     { uri:'/serv/inbox/fixture', module:'pfraze/inbox-srvc-fixture', name:'Fixture' },
 
                     // Statfeed
-                    { uri:'/statfeed', module:'pfraze/statfeed', service:{ uri:'/serv/statusnet/api' } },
+                    { uri:'/statfeed', module:'pfraze/statfeed', service:{ uri:'/serv/statusnet/api' }},
+
+                    // Liftbox
+                    { uri:'/liftbox', module:'pfraze/liftbox', service:{ uri:'/serv/dropbox' }},
 
                     // Test
                     { uri:'/test', module:'linkshui/test' },

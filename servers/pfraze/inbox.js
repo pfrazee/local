@@ -207,15 +207,17 @@ define(['link'], function(Link) {
 
         // styles
         html += '<style>';
+        html += 'div.inbox-toolbar { height:35px }';
+        html += 'div.inbox-toolbar .btn-group { display:inline-block }';
         html += 'table.inbox tr.unread a { color:black }';
         html += 'table.inbox tr a { color:gray }';
         html += '</style>';
 
         // toolbar
-        html += '<div style="height:35px">';
+        html += '<div class="inbox-toolbar">';
         html += '<form action="'+agent.getUri()+'/checked"><span class="btn-group">';
         html += '<button class="btn tool-select" title="check '+agent.getUri()+'/all" formmethod="ck" formaction="'+agent.getUri()+'/all"><i class="icon-check"></i> ck</button>';
-        html += '</span><span class="btn-group" style="display:inline-block">';
+        html += '</span><span class="btn-group">';
         html += '<button class="btn tool-markread" title="mark as read '+agent.getUri()+'/checked" formmethod="mr"><i class="icon-eye-open"></i> mr</button>';
         html += '<button class="btn tool-markunread" title="mark unread '+agent.getUri()+'/checked" formmethod="mu"><i class="icon-eye-close"></i> mu</button>';
         html += '<button class="btn tool-delete" title="delete '+agent.getUri()+'/checked" formmethod="delete"><i class="icon-trash" formmethod="delete"></i> delete</button>';

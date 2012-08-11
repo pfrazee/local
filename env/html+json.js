@@ -4,7 +4,13 @@ define(function() {
         // Convert scripts into strings
         if (obj._scripts) {
             for (var k in obj._scripts) {
-                obj._scripts[k].fn = obj._scripts[k].fn.toString();
+                if (Array.isArray(obj._scripts[k])) {
+                    obj._scripts[k].forEach(function(s, i) {
+                        obj._scripts[k][i] = s.toString();
+                    });
+                } else {
+                    obj._scripts[k] = obj._scripts[k].toString();
+                }
             }
         }
         return JSON.stringify(obj);
@@ -15,6 +21,7 @@ define(function() {
         if (obj._scripts) {
             for (var k in obj._scripts) {
                 var fn = obj._scripts[k];
+                // :TODO: support arrays
                 if (typeof fn == "object") { fn = fn.fn; }
                 else { obj._scripts[k] = {}; }
                 obj._scripts[k].fn = eval('var fn = '+fn+'; fn');

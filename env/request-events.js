@@ -84,10 +84,13 @@ define(function() {
             e.preventDefault();
             if (e.stopPropagation) { e.stopPropagation(); }
             // extract uri
-            uri = node.attributes.href.value;
+            var uri = node.attributes.href.value;
             if (uri == null || uri == '') { uri = '/'; }
+            // extract accept header
+            var accept = node.getAttribute('type');
+            if (!accept) { accept = 'application/html+json'; }
             // emit request event
-            __broadcastReqEvent({ method:'get', uri:uri, accept:'application/html+json' }, agent_id);
+            __broadcastReqEvent({ method:'get', uri:uri, accept:accept }, agent_id);
             break;
         }
     }

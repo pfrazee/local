@@ -27,14 +27,14 @@ define(['link', 'env/request-events', 'env/cli', 'env/html+json', 'env/util'], f
     }
 
     function Env__onRequest(request, agent_id, command) {
-        // generate command if none is given
-        if (!command) {
+        // generate command for history if none is given
+        /*if (!command) {
             command = '';
             if (agent_id) { command += agent_id+'>'; }
             command += request.method;
             command += ' '+request.uri;
             if (request.accept) { command += ' ['+request.accept+']'; }
-        }
+        }*/
 
         // get/create agent
         var agent = Env.getAgent(agent_id);
@@ -99,7 +99,7 @@ define(['link', 'env/request-events', 'env/cli', 'env/html+json', 'env/util'], f
                 __defhandleResponse(response, agent.facade);
             },
             dispatch:function() { return structure.dispatch.apply(structure, arguments); },
-            getStructure:function() { return structure; },
+            follow:function(request) { return Env__onRequest.call(Env, request, agent.id); },
             attachServer:function(s) { 
                 agent.programServer = s;
                 structure.removeModules('/'+agent.id);
