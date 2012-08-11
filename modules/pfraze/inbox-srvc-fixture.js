@@ -7,37 +7,38 @@ define(['link'], function(Link, Views) {
         this.uri = config.uri;
         // fixture data
         this.messages = [
-            { date:'July 23 2012 21:20', author:'rodger', recp:['bsmith'], subject:'Hey, Buddy!', body:'How are you doing?', re:null },
-            { date:'August 1 2012 12:49', author:'bsmith', recp:['bsmith', 'asmitherson'], subject:'About the meeting', body:'Important business conversation. Things people talk about and stuff', re:null },
-            { date:'August 5 2012 18:12', author:'asmitherson', recp:['bsmith', 'asmitherson'], subject:'RE: About the meeting', body:'Other stuff about business or whatever.', re:2 }
+            { date:'July 23 2012 21:20', author:'rodger', recp:['bsmith'], subject:'Hey, Buddy!', body:'How are you doing?', flags:{ seen:1 } },
+            { date:'August 1 2012 12:49', author:'bsmith', recp:['bsmith', 'asmitherson'], subject:'About the meeting', body:'Important business conversation. Things people talk about and stuff', flags:{ seen:1 } },
+            { date:'August 5 2012 18:12', author:'asmitherson', recp:['bsmith', 'asmitherson'], subject:'RE: About the meeting', body:'Other stuff about business or whatever.', flags:{ seen:0 } }
         ];
     };
     
     // Handler Routes
     // ==============
     FixtureService.prototype.routes = [
-        Link.route('messagesHandler', { uri:'^/?$', accept:'json' }),
-        Link.route('messageHtmlHandler', { uri:'^/([0-9]+)/?$', accept:'html' })
+        Link.route('manyMessageGetJson', { method:'get', uri:'^/?$', accept:'application/json' }),
+        Link.route('oneMessageGetHtmljson', { method:'get', uri:'^/([0-9]+)/?$', accept:/application\/html\+json/ }),
+        Link.route('oneFlagsPutJson', { method:'put', uri:'^/([0-9]+)/flags/?$', 'content-type':'application/json' })
     ];
-    FixtureService.prototype.messagesHandler = function(request) {
+    FixtureService.prototype.manyMessageGetJson = function(request) {
         // Collect messages
         var retMessages = [];
-        for (var i=0; i < this.messages.length; i++) {
-            var message = this.messages[i];
+        this.messages.forEach(function(message, i) {
             retMessages.push({
                 id:i,
                 service:this.serviceName,
                 date:message.date,
                 summary:'<strong>' + message.author + '</strong> ' + message.subject,
-                uri:this.uri + '/' + i
+                uri:this.uri + '/' + i,
+                flags:message.flags
             });
-        }
+        }, this);
         return Link.response(200, { messages:retMessages }, 'application/json');
     };    
-    FixtureService.prototype.messageHtmlHandler = function(request, match) {
+    FixtureService.prototype.oneMessageGetHtmljson = function(request, match) {
         // Find message
         var message = this.messages[match.uri[1]];
-        if (!message) { return Link.response(404); }
+        if (!message) { return { code:404, reason:'not found' }; }
         // Build html
         var recp = [];
         for (var i=0; i < message.recp.length; i++) { 
@@ -50,9 +51,21 @@ define(['link'], function(Link, Views) {
         html += '<p><small>Sent on <span class="label">'+date+' @'+time+'</span> ';
         html += 'by <span class="label">'+message.author+'</span> ';
         html += 'to '+recp.join(',')+'</small></p><hr/>';
-        html += '<p>'+message.body+'</p>'
-        return Link.response(200, html, 'text/html');
+        html += '<p>'+message.body+'</p>';
+        return Link.response(200, { childNodes:[html] }, 'application/html+json');
     };
+    FixtureService.prototype.oneFlagsPutJson = function(request, match) {
+        // Find message
+        var message = this.messages[match.uri[1]];
+        if (!message) { return { code:404, reason:'not found' }; }
+        // Validate body
+        if (!request.body) { return { code:400, reason:'body required' }; }
+        // Update flags
+        if (typeof request.body.seen != 'undefined') {
+            message.flags.seen = request.body.seen;
+        }
+        return { code:200 };
+    }
 
     // Helpers
     // =======
