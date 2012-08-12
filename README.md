@@ -19,7 +19,7 @@ LinkShUI is in early beta, so expect API and runtime instability. These instruct
 
 ## Getting Started
 
-hUI will eventually use a configuration-package system for users to create and distrubute environments. At this stage in development, it stores a single config in a javascript object within index.html.
+LinkShUI will eventually use a configuration-package system for users to create and distrubute environments. At this stage in development, it stores a single config in a javascript object within index.html.
 
 The application is a static set of html, js, css, and image assets which can be served directly by Apache. All of the in-browser servers (the JS modules) should work out of the box. Remote services, however, require some setup due to CORS. LinkShUI offers three options:
 
@@ -91,31 +91,7 @@ If you need to get a better idea of how this works, [watch this demonstration of
 
 ## Developing for the platform
 
-The code under `/modules/pfraze` is a good place to look for examples. I'm going to explain `inbox.js` and `inbox-serv-fixture.js` to make application structure clear. After that, I recommend reviewing the [API docs](#TODO).
-
-Let's get started. TODO -- MOVE TO A SEPARATE DOC
-
-`inbox.js` has 3 main pieces: the Master Server, the Agent Server, and the Agent Client.
-
-**Master Server**
-
-The Master Server (InboxMS) delivers the inbox view. It runs persistently for the life of the environment it's been configured into. Think of it as the "loader" stub; it's really just there to get things started.
-
-The Master Server could easily be located on a remote host. The reason it's not is that `inbox.js` is meant to be easily configured or replaced by the user. The in-browser hosting means the user doesn't need to run a remote host to do that.
-
-**Agent Server**
-
-Agent Server (InboxAS) serves the resource interface to an active inbox. It's responsible for all of the interactions that can occur, either from the GUI or the CLI. It is tightly-coupled to the Agent Client in that it represents and manipulates the state of the DOM.
-
-**Agent Client**
-
-The Agent Client is a collection of functions which define the behavior of the Agent. It is mostly responsible for starting the Agent Server, issuing/interpretting requests, and rendering HTML. In `inbox.js`, request-interpretation is not overridden.
-
-When the response is delivered by the Master Server, the requesting agent will (by default) populate itself with the response's HTML, then call the `onload` function with an agent facade and the response itself. (Refer to [application/html+json](https://github.com/pfraze/application-html-json), lshui's primary format.) The `inbox.js` agent first uses the agent facade to start its server, then requests messages from all of the configured services.With each response, it re-renders the inbox.
-
-The inbox GUI submits its commands to the agent's URI so that the Agent Server can handle them. This avoids the need to listen to individual clicks. The individual messages link to a view-url specified in the message data. This allows the providing service to specify its own view-page. Additionally, each message provides the HTML to its line in the list, allowing it to add individual controls or styles.
-
-`inbox-srvc-fixture.js` is an example service for populating `inbox.js`. It does not create custom agent behavior, so it is only comprised of a single Master Server. For a more complete example, see the [Maildir Service](https://github.com/pfraze/maildir-service).
+<https://github.com/pfraze/linkshui/wiki>
 
 ## Frequently Experienced Frustrations
 

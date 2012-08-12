@@ -26,7 +26,7 @@ define(['link', 'env/html+json', './jsoneditoronline/jsoneditor'], function(Link
         // Create html
         var body = HtmlJson.mknode(0,0,0,[
             '<h3>JSON Editor Online <small>by Jos de Jong (<a href="https://github.com/wjosdejong/jsoneditoronline" title="github repo">https://github.com/wjosdejong/jsoneditoronline</a>)</small></h3><div class="jsoneditor"></div>',
-            '<link rel="stylesheet" media="screen" href="/modules/wjosdejong/jsoneditoronline/jsoneditor.css" />'
+            '<link rel="stylesheet" media="screen" href="/apps/wjosdejong/jsoneditoronline/jsoneditor.css" />'
         ]);
         HtmlJson.addScript(body, 'onload', __setupAgent, null, inst);
         return Link.response(200, body, 'application/html+json');
