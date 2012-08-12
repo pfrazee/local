@@ -1,6 +1,7 @@
 require.config({
     paths:{
-        link:'../assets/js/link'
+        link:'../assets/js/link',
+        notify:'../assets/js/notify.min'
     }
 });
 var paths = [

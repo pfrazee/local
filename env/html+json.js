@@ -20,11 +20,13 @@ define(function() {
         // Eval scripts into functions
         if (obj._scripts) {
             for (var k in obj._scripts) {
-                var fn = obj._scripts[k];
-                // :TODO: support arrays
-                if (typeof fn == "object") { fn = fn.fn; }
-                else { obj._scripts[k] = {}; }
-                obj._scripts[k].fn = eval('var fn = '+fn+'; fn');
+                if (Array.isArray(obj._scripts[k])) {
+                     obj._scripts[k].forEach(function(s, i) {
+                        obj._scripts[k][i] = eval('var fn = '+s+'; fn');
+                    });
+                } else {
+                    obj._scripts[k] = eval('var fn = '+obj._scripts[k]+'; fn');
+                }
             }
         }
         return obj;
@@ -167,14 +169,11 @@ define(function() {
         }
         return node;
     }
-    function addScript(target, name, fn, context, args) {
+    function addScript(target, name, fn) {
         if (typeof target != 'object') { throw "Invalid target type: must be object"; }
         if (!target._scripts) { target._scripts = {}; }
         if (!target._scripts[name]) { target._scripts[name] = []; }
-        var fnObj = { fn:fn };
-        if (context) { fnObj.context = context; }
-        if (args) { fnObj.args = args; }
-        target._scripts[name].push(fnObj);
+        target._scripts[name].push(fn);
     }
 
     return {

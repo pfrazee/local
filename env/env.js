@@ -1,4 +1,4 @@
-define(['link', 'env/request-events', 'env/cli', 'env/html+json', 'env/util'], function(Link, RequestEvents, CLI, HtmlJson, Util) {
+define(['link', 'notify', 'env/request-events', 'env/cli', 'env/html+json', 'env/util'], function(Link, NotificationCenter, RequestEvents, CLI, HtmlJson, Util) {
     var Env = {
         init:Env__init,
         getAgent:Env__getAgent,
@@ -12,6 +12,7 @@ define(['link', 'env/request-events', 'env/cli', 'env/html+json', 'env/util'], f
         this.structure = structure;
         this.agents = {};
         this.container_elem = document.getElementById(container_elem_id);
+        this.nc = new NotificationCenter();
 
         // Add type en/decoders
         Link.setTypeEncoder('application/html+json', HtmlJson.encode);
@@ -24,6 +25,9 @@ define(['link', 'env/request-events', 'env/cli', 'env/html+json', 'env/util'], f
         // Register request handling
         CLI.addListener('request', Env__onRequest, this);
         RequestEvents.addListener('request', Env__onRequest, this);
+
+        // Register structure listeners
+        this.structure.addResponseListener(Env__onResponse, this);
     }
 
     function Env__onRequest(request, agent_id, command) {
@@ -43,6 +47,17 @@ define(['link', 'env/request-events', 'env/cli', 'env/html+json', 'env/util'], f
         // run handler
         agent.onrequest(request, agent.facade);
         // :TODO: addHistory?
+    }
+
+    function Env__onResponse(response) {
+        // notify user of any errors
+        if (response.code >= 400) {
+            var request = response.org_request;
+            var msg = '';
+            msg += '<strong>'+response.code+' '+(response.reason ? response.reason : '')+'</strong><br />';
+            msg += request.method+' '+request.uri+' ['+request.accept+']';
+            this.nc.notify({ html:msg, autoClose:4000 });
+        }
     }
 
     // agent get

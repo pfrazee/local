@@ -15,6 +15,7 @@ define(function() {
     var Structure = function _Structure(id) {
         this.id = id;
         this.modules = [];
+        this.response_cbs = [];
     };
 
     // Configures the module into the uri structure
@@ -151,6 +152,9 @@ define(function() {
         // Store the dispatcher handler
         var dispatchPromise = new Promise();
         opt_cb && dispatchPromise.then(opt_cb, opt_context);
+        this.response_cbs.forEach(function(cb) {
+            dispatchPromise.then(cb.fn, cb.context);
+        });
         Object.defineProperty(request, '__dispatch_promise', { value:dispatchPromise });
         // Begin handling next tick
         var self = this;
@@ -178,6 +182,7 @@ define(function() {
                 __dispatchRemote(request);
                 return;
             }
+            response.org_request = request;
             // Log
             log('traffic', this.id ? this.id+'|res' : ' >|', request.__mid, request.uri, response['content-type'] ? '['+response['content-type']+']' : '', response);
             // Decode to object form
@@ -195,6 +200,18 @@ define(function() {
     Structure.prototype.post = function(request, opt_cb, opt_context) {
         request.method = 'post';
         return this.dispatch(request, opt_cb, opt_context);
+    };
+
+    // Response callbacks
+    Structure.prototype.addResponseListener = function(fn, opt_context) {
+        this.response_cbs.push({ fn:fn, context:opt_context });
+    };
+    Structure.prototype.removeResponseListener = function(fn) {
+        this.response_cbs.forEach(function(cb, i) {
+            if (cb.fn == fn) {
+                this.response_cbs.splice(i, 1);
+            }
+        }, this);
     };
 
     // Pulls the query params into the request.query object
@@ -500,6 +517,7 @@ define(function() {
                 xhrResponse.code = xhrRequest.status;
                 xhrResponse.reason = xhrRequest.statusText;
                 xhrResponse.body = xhrRequest.responseText;
+                xhrResponse.org_request = request;
                 // Decode into an object (if possible)
                 xhrResponse.body = decodeType(xhrResponse.body, xhrResponse['content-type']);
                 // Log

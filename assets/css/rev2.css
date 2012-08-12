@@ -61,3 +61,10 @@ li, p { line-height:21px; }
 .agent-titlebar form { margin:0 }
 #lshui-env .collapsed { opacity:0.5 }
 #lshui-env .collapsed .agent-body { display:none }
+
+.notification-center {
+    top:40px
+}
+.notification {
+    height:auto !important
+}

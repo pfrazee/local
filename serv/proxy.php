@@ -63,10 +63,15 @@ if ( !$url ) {
   curl_setopt( $ch, CURLOPT_USERAGENT, $_GET['user_agent'] ? $_GET['user_agent'] : $_SERVER['HTTP_USER_AGENT'] );
   
   #list( $header, $contents ) = preg_split( '/([\r\n][\r\n])\\1/', curl_exec( $ch ), 2 );
-  $resparts = preg_split( '/([\r\n][\r\n])\\1/', curl_exec( $ch ) );
+  $res = curl_exec( $ch );
+  if (!$res) {
+    header( "HTTP/1.0 404 Not Found" );
+    die;
+  }
+  $resparts = preg_split( '/([\r\n][\r\n])\\1/', $res );
   // only take the last 2, in the event of redirects
-  $contents = array_pop($resparts);
-  $header = array_pop($resparts);
+  $contents = array_pop( $resparts );
+  $header = array_pop( $resparts );
   
   $status = curl_getinfo( $ch );
   
@@ -78,9 +83,9 @@ $header_text = preg_split( '/[\r\n]+/', $header );
 
 // Propagate headers to response.
 foreach ( $header_text as $header ) {
-  if ( preg_match( '/^(?:Content-Type|Content-Language|Set-Cookie):/i', $header ) ) {
+  //if ( preg_match( '/^(?:Content-Type|Content-Language|Set-Cookie):/i', $header ) ) {
     header( $header );
-  }
+  //}
 }
   
 print $contents;
