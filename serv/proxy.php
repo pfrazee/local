@@ -83,9 +83,9 @@ $header_text = preg_split( '/[\r\n]+/', $header );
 
 // Propagate headers to response.
 foreach ( $header_text as $header ) {
-  //if ( preg_match( '/^(?:Content-Type|Content-Language|Set-Cookie):/i', $header ) ) {
+  if ( preg_match( '/^(?:Content-Type|Content-Language|Set-Cookie):/i', $header ) ) {
     header( $header );
-  //}
+  }
 }
   
 print $contents;
