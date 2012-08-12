@@ -83,9 +83,11 @@ Notice that, in that example, only the first request specifies a receiving agent
 
 If you need to get a better idea of how this works, [watch this demonstration of the shell](#TODO).
 
-## Developing Applications
+## Going From Here
 
-[Read the Wiki to get started with your own apps.](https://github.com/pfraze/linkshui/wiki)
+### [Application Dev Wiki](https://github.com/pfraze/linkshui/wiki)
+
+### [LinkShUI Google Group](https://groups.google.com/forum/#!forum/linkshui)
 
 ## Frequently Experienced Frustrations
 
@@ -96,10 +98,6 @@ If you need to get a better idea of how this works, [watch this demonstration of
 **No auto-complete, no `ls` -- how am I supposed to discover the environment, huh?** Oooh, yeaaah, you kind of have to live with that for the moment. I've been designing GUIs to state the requests that will occur when used (for instance, the button to send a reply is labeled "post /re"). I want to get a feel for what's needed before I start forcing in a reflection system.
 
 **This thing is a far cry from a desktop environment, buddy.** Yeah, it's not meant to be.LinkShUI is a configurable web application--it's just there to let you control what's inside the browser tab. Eventually, users will configure a bunch of different environments that they can open separately, but which can share remote resources. That way, 'shui can enforce agent layouts or server compositions that make sense for the application. You'll have your messaging environment, your coding environment, your data-manip environment... each in a different tab!
-
-## Getting Help
-
-[The LinkShUI Google Group](https://groups.google.com/forum/#!forum/linkshui) is available for support and development questions.
 
 ## License
 
