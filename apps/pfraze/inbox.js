@@ -8,12 +8,10 @@ define(['link'], function(Link) {
     // }
     var InboxMS = function(structure, config) {
         this.structure = structure;
-        this.uri = config.uri;
-        this.services = config.services;
-        // Prep the structure
-        for (var i=0; i < this.services.length; i++) {
-            this.services[i].messagesLink = { method:'get', uri:this.services[i].uri, accept:'application/json' };
-        }
+        this.config = config;
+        this.config.services.forEach(function(s) { // prep for convenience
+            s.messagesLink = { method:'get', uri:s.uri, accept:'application/json' };
+        });
     };
     InboxMS.prototype.routes = [
         Link.route('serve', { uri:'^/?$', method:'get', accept:/application\/html\+json/i })
@@ -21,7 +19,7 @@ define(['link'], function(Link) {
     InboxMS.prototype.serve = function() {
         var body = {
             _scripts:{ onload:setupAgent },
-            _data:{ services:this.services, uri:this.uri }
+            _data:{ services:this.config.services, uri:this.config.uri }
         }; 
         return Link.response(200, body, 'application/html+json');
     };
