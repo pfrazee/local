@@ -42,10 +42,4 @@ require(paths, function(Link, Env, CLI, AgentServer) {
 
     // Init environment libs
     Env.init(structure, 'lshui-env');
-    
-    // Follow the given hash
-    var uri = window.location.hash || '';
-    if (uri.charAt(0) == '#') { uri = uri.substring(1); }
-    if (uri == '' || uri == ' ') { uri = '/'; }
-    CLI.runCommand('hi>get '+uri+' [application/html+json]');
 });

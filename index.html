@@ -21,28 +21,22 @@
             var env_config = {
                 logging_enabled:1,
                 structure:[
-                    // Inbox
+                    // Apps
                     { 
-                        uri:'/inbox', 
+                        uri:'/apps/inbox', 
                         module:'pfraze/inbox', 
                         services:[
                             { name:'Fixture', uri:'/serv/inbox/fixture' },
                             { name:'@linkshui', uri:'http://linkshui.com:8600' }
                         ]
                     },
+                    { uri:'/apps/statfeed', module:'pfraze/statfeed', service:{ uri:'/serv/statusnet/api' }},
+                    { uri:'/apps/cab', module:'pfraze/cabinet', service:{ uri:'/serv/files' }},
+
+                    // Services
                     { uri:'/serv/inbox/fixture', module:'pfraze/inbox-srvc-fixture', name:'Fixture' },
-
-                    // Statfeed
-                    { uri:'/statfeed', module:'pfraze/statfeed', service:{ uri:'/serv/statusnet/api' }},
-
-                    // Liftbox
-                    { uri:'/liftbox', module:'pfraze/liftbox', service:{ uri:'/serv/files' }},
-
-                    // Test
-                    { uri:'/test', module:'linkshui/test' },
             
                     // Tools
-                    { uri:"/", module:"linkshui/intro" },
                     { uri:"/tools/spahql", module:"danski/spahql" },
                     { uri:"/tools/jeo", module:"wjosdejong/jsoneditor" },
                     { uri:"/tools/prettify", module:"google/prettify" },

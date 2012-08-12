@@ -1,37 +1,38 @@
 define(['link'], function(Link) {
-    // Liftbox Master Server
+    // Cabinet Master Server
     // =====================
+    // delivers a GUI for navigating and viewing a files service
     // configuration =
     // {
     //   service: { uri:... }
     // }
-    var LiftboxMS = function(structure, config) {
+    var CabinetMS = function(structure, config) {
         this.structure = structure;
         this.uri = config.uri;
         this.service = config.service;
     };
-    LiftboxMS.prototype.routes = [
+    CabinetMS.prototype.routes = [
         Link.route('serveAgent', { uri:'^/?$', method:'get', accept:/application\/html\+json/i })
     ];
-    LiftboxMS.prototype.serveAgent = function() {
+    CabinetMS.prototype.serveAgent = function() {
         var body = {
-            _scripts:{ onload:setupLiftboxAgent },
+            _scripts:{ onload:setupCabinetAgent },
             _data:{ service:this.service }
         }; 
         return Link.response(200, body, 'application/html+json');
     };
 
-    // Liftbox Agent Server
+    // Cabinet Agent Server
     // ====================
-    var LiftboxAS = function(agent) {
+    var CabinetAS = function(agent) {
         this.agent = agent;
     };
-    LiftboxAS.prototype.routes = [
+    CabinetAS.prototype.routes = [
         Link.route('servUpdir', { uri:/^\/\.\.\/?/i }),
         Link.route('servNum', { uri:'^/([0-9]+)/?' }),
         Link.route('servName', { uri:'^/(.+)/?' })
     ];
-    LiftboxAS.prototype.servUpdir = function(request, match) {
+    CabinetAS.prototype.servUpdir = function(request, match) {
         // calc from curpath (up one dir)
         var parts = this.agent.curpath.split('/');
         parts.pop();
@@ -42,7 +43,7 @@ define(['link'], function(Link) {
         request.uri = this.agent.service.uri + path;
         return this.agent.dispatch(request);
     };
-    LiftboxAS.prototype.servNum = function(request, match) {
+    CabinetAS.prototype.servNum = function(request, match) {
         // grab file
         var file = this.agent.files[+match.uri[1] - 1];
         if (!file) { return { code:404 }; }
@@ -51,7 +52,7 @@ define(['link'], function(Link) {
         request.uri = this.agent.service.uri + file.path;
         return this.agent.dispatch(request);
     };
-    LiftboxAS.prototype.servName = function(request, match, response) {
+    CabinetAS.prototype.servName = function(request, match, response) {
         if (response && response.code) { return response; }
         // pipe to service
         request = Object.create(request);
@@ -61,7 +62,7 @@ define(['link'], function(Link) {
 
     // Agent Client
     // ============
-    function setupLiftboxAgent(agent, response) {
+    function setupCabinetAgent(agent, response) {
         try { 
             // grab params
             agent.service = response.body._data.service;
@@ -70,7 +71,7 @@ define(['link'], function(Link) {
         // setup agent
         agent.files = [];
         agent.curpath = '/';
-        agent.attachServer(new LiftboxAS(agent));
+        agent.attachServer(new CabinetAS(agent));
 
         // set up request handler to navigate directories
         agent.setRequestHandler(function(req) {
@@ -104,7 +105,7 @@ define(['link'], function(Link) {
         var html = '';
         var body = agent.getBody();
 
-        html += '<div class="pfraze-liftbox">';
+        html += '<div class="pfraze-cabinet">';
 
         // files
         html += '<p><a href="'+agent.getUri()+'/..">..</a></p>';
@@ -123,7 +124,7 @@ define(['link'], function(Link) {
         var html = '';
         var body = agent.getBody();
 
-        html += '<div class="pfraze-liftbox">';
+        html += '<div class="pfraze-cabinet">';
 
         // output data
         html += '<p><a href="'+agent.getUri()+'/..">..</a></p>';
@@ -134,5 +135,5 @@ define(['link'], function(Link) {
         body.innerHTML = html;
     }
 
-    return LiftboxMS;
+    return CabinetMS;
 });
