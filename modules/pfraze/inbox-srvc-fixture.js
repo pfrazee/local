@@ -18,7 +18,8 @@ define(['link'], function(Link, Views) {
     FixtureService.prototype.routes = [
         Link.route('manyMessageGetJson', { method:'get', uri:'^/?$', accept:'application/json' }),
         Link.route('oneMessageGetHtmljson', { method:'get', uri:'^/([0-9]+)/?$', accept:/application\/html\+json/ }),
-        Link.route('oneFlagsPutJson', { method:'put', uri:'^/([0-9]+)/flags/?$', 'content-type':'application/json' })
+        Link.route('oneFlagsPutJson', { method:'put', uri:'^/([0-9]+)/flags/?$', 'content-type':'application/json' }),
+        Link.route('composeGetHtmljson', { method:'get', uri:'^/new/?$', accept:/application\/html\+json/ })
     ];
     FixtureService.prototype.manyMessageGetJson = function(request) {
         // Collect messages
@@ -66,6 +67,10 @@ define(['link'], function(Link, Views) {
         }
         return { code:200 };
     }
+    FixtureService.prototype.composeGetHtmljson = function(request) {
+        return Link.response(200, { childNodes:['<p>This would be a nice place to write a message</p>'] }, 'application/html+json');
+    };
+
 
     // Helpers
     // =======
