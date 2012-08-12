@@ -414,7 +414,7 @@ define(function() {
     // Configures remote requests in the browser (proxy)
     var ajax_config = {
         proxy:null,
-        proxy_header:'x-proxy-dest',
+        proxy_query_header:'x-proxy-query',
     };
     
     // Hash of active logging modes
@@ -449,20 +449,23 @@ define(function() {
         // Create remote request
         var xhrRequest = new XMLHttpRequest();
         var target_uri = request.uri;
-        // Use the proxy, if enabled
-        if (ajax_config.proxy) {
-            request[ajax_config.proxy_header] = request.uri;
-            target_uri = ajax_config.proxy;
-        }
         // Add the query
+        var query = '';
         if (request.query) {
             var q = [];
             for (var k in request.query) {
                 q.push(k+'='+request.query[k]);
             }
             if (q.length) {
-                target_uri += '?' + q.join('&');
+                query = '?' + q.join('&');
             }
+        }
+        // Use the proxy, if enabled and targetting a protocol-qualified URI
+        if (ajax_config.proxy && /:\/\//.test(target_uri)) {
+            request[ajax_config.proxy_query_header] = query;
+            target_uri = ajax_config.proxy + '?url=' + request.uri;
+        } else {
+            target_uri += query;
         }
         // Encode the body
         request.body = encodeType(request.body, request['content-type']);

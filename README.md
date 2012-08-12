@@ -1,11 +1,135 @@
 LinkShUI
 ========
 
-A browser CLI for remote web services and [Link](http://github.com/pfraze/linkjs) javascript modules. Just clone a copy and serve statically with a web server.
+A CLI-driven browser application made to give the user control over their software.
 
-### [Screencast Demoing the Tool](http://www.youtube.com/watch?v=y4Y0XO0BdKM)
+## Overview
 
-Linkshui is only v0.1.0; please submit any bugs or suggestions in the issues.
+*Link* is an experimental app architecture that uses the REST service structure to organize its software. It is designed to create a highly-composable, Web-focused environment for information work.
+
+The philosophy behind Link is [strongly influenced by Unix](http://en.wikipedia.org/wiki/Unix_philosophy). This translates with some small differences: whereas Unix is file-centric, Link is all about resources. More unusually, however, Link does not have a traditional "program" concept. Rather, Link segments the document into multiple "agents" which can potentially receive a new state from any service. A locally-served inbox list, for instance, can transfer to a message view supplied remotely. As a result, resources (and their services) are built to handle the narrowest task-definition possible, in keeping with the "small and specific" philosophy of Unix.
+
+## How does it work?
+
+LinkShUI uses [RequireJS](http://requirejs.org) to load a configured set of modules into a URI structure. Those modules then use [LinkJS](http://github.com/pfraze/linkjs) to communicate with the environment, remote services, and each other using an HTTP-like API. Typically, the modules issue requests to remote services and use the returned data to serve GUIs.
+
+The environment (LinkShUI) listens to link clicks, form submits, and CLI commands and converts them into new requests for LinkJS to route. The DOM is divided into multiple isolated "agents" which receive the responses. If given the (application/html+json)[https://github.com/pfraze/application-html-json] content-type, the agent will call its "onload" script, which allows the response to set up a custom Agent program.
+
+LinkShUI is in early beta, so expect API and runtime instability. These instructions are geared toward developers who wish to experiment with the software and possibly build their own modules and services.
+
+## Getting Started
+
+hUI will eventually use a configuration-package system for users to create and distrubute environments. At this stage in development, it stores a single config in a javascript object within index.html.
+
+The application is a static set of html, js, css, and image assets which can be served directly by Apache. All of the in-browser servers (the JS modules) should work out of the box. Remote services, however, require some setup due to CORS. LinkShUI offers three options:
+
+First is the /serv directory, which provides a simple routing system (via mode_rewrite and the `index.php`) for PHP web services. The repository currently includes `files.php` which serves everything under `/serv/_files/` with GET and PUT methods. `index.php` will route all requests to `/serv/files` to that service. (This should also work out of the box, but make sure htaccess files are turned on, and that the apache process-owner has read/write permissions to `/serv/_files`.)
+
+Second is the Apache proxy config, which must be set within the host config (not htacess). Here is an example config from the dev machine:
+
+```
+# Service proxies
+ProxyRequests Off
+ProxyPreserveHost On
+<Proxy *>
+    Order allow,deny
+    Allow from all
+</Proxy>
+ProxyPass /serv/maildir http://localhost:8600
+ProxyPassReverse /serv/maildir http://localhost:8600
+ProxyPass /serv/statusnet http://localhost:83
+ProxyPassReverse /serv/statusnet http://localhost:83
+```
+
+Third is the generic proxy, which is configured in `main.js` to be used by LinkJS during ajax when the URI starts with the protocol (http://). The proxy's code is found in `/serv/proxy.php` (based on [Ben Alman's Simple Proxy script](https://github.com/cowboy/php-simple-proxy)). If using LinkShUI publicly, this option might be hard on your server's bandwidth, and it does completely circumvent the CORS security.
+
+Of course, if a target service in another domain offers a [permissive CORS policy](https://www.google.com/search?q=CORS+ajax), the proxy shouldnt be necessary.
+
+Instructions to set up webmail using postfix can be found in the [Maildir Service repository](https://github.com/pfraze/maildir-service).
+
+## Using the Shell
+
+To use LinkShUI effectively, you have to use the command-line. The syntax builds HTTP requests which are issued on behalf of active agents in the environment. (Think of agents as sub-browsers in the browser.)
+
+```[ agent ">" ] [ method ] uri [ "[" content-type "]" ]```
+
+The default agent is '.'; the default method is 'get'; and the default content-type is 'application/html+json'. To help clarify this, here are some examples:
+
+```
+agent1>get /user [application/json]
+/agent1/more
+close /agent1
+```
+
+All of the above are valid requests. If the receiving agent doesnt already exist, it will be created in the document. Every agent intercepts requests made on their behalf, then decides how to execute them. This is so they can interpret the request and its response. (For example, `pfraze/liftbox.js` interprets json to populate its GUI.)
+
+Agents also have the ability to serve their own resources. In that case, their URIs live under the agent name. (e.g. If `agent1` serves `/more` and `/less`, then those URIs would be found at `/agent1/more` and `/agent1/less`). This creates an interface for the user and other agents to run requests.
+
+A typical flow, then, would be to open a program under a named agent, then begin interacting with that agents resources. For instance:
+
+```
+m>/tools/inbox       -- tools/inbox refers to an in-browser server module
+check /m/1-5         -- issue a request with the "CHECK" method to messages 1-5
+mr /m/checked        -- mark the checked messages as "read"
+close /m             -- issue a "CLOSE" request to the m agent 
+```
+
+You can leave out the URI's leading slash, for convenience:
+
+```
+m>tools/inbox
+check m/1-5
+mr m/checked
+close m
+```
+
+The available requests depend entirely on the active programs. The only methods which can be universally expected are `close`, `min`, and `max`, which are provided by the evironment's agent server to, respectively, close, minimize, and unminimize agents.
+
+Notice that, in that example, only the first request specifies a receiving agent. The remaining 3 default to the '.' agent, which tends to be replaced frequently while the user works. In the above example, none of the responses after the `tools/inbox` request were important to the user, so they were allowed to default to the '.' agent.
+
+If you need to get a better idea of how this works, [watch this demonstration of the shell](#TODO).
+
+## Developing for the platform
+
+The code under `/modules/pfraze` is a good place to look for examples. I'm going to explain `inbox.js` and `inbox-serv-fixture.js` to make application structure clear. After that, I recommend reviewing the [API docs](#TODO).
+
+Let's get started. TODO -- MOVE TO A SEPARATE DOC
+
+`inbox.js` has 3 main pieces: the Master Server, the Agent Server, and the Agent Client.
+
+**Master Server**
+
+The Master Server (InboxMS) delivers the inbox view. It runs persistently for the life of the environment it's been configured into. Think of it as the "loader" stub; it's really just there to get things started.
+
+The Master Server could easily be located on a remote host. The reason it's not is that `inbox.js` is meant to be easily configured or replaced by the user. The in-browser hosting means the user doesn't need to run a remote host to do that.
+
+**Agent Server**
+
+Agent Server (InboxAS) serves the resource interface to an active inbox. It's responsible for all of the interactions that can occur, either from the GUI or the CLI. It is tightly-coupled to the Agent Client in that it represents and manipulates the state of the DOM.
+
+**Agent Client**
+
+The Agent Client is a collection of functions which define the behavior of the Agent. It is mostly responsible for starting the Agent Server, issuing/interpretting requests, and rendering HTML. In `inbox.js`, request-interpretation is not overridden.
+
+When the response is delivered by the Master Server, the requesting agent will (by default) populate itself with the response's HTML, then call the `onload` function with an agent facade and the response itself. (Refer to [application/html+json](https://github.com/pfraze/application-html-json), lshui's primary format.) The `inbox.js` agent first uses the agent facade to start its server, then requests messages from all of the configured services.With each response, it re-renders the inbox.
+
+The inbox GUI submits its commands to the agent's URI so that the Agent Server can handle them. This avoids the need to listen to individual clicks. The individual messages link to a view-url specified in the message data. This allows the providing service to specify its own view-page. Additionally, each message provides the HTML to its line in the list, allowing it to add individual controls or styles.
+
+`inbox-srvc-fixture.js` is an example service for populating `inbox.js`. It does not create custom agent behavior, so it is only comprised of a single Master Server. For a more complete example, see the [Maildir Service](https://github.com/pfraze/maildir-service).
+
+## Frequently Experienced Frustrations
+
+**Theres no per-agent history, you jerk.** Not yet. There is, however, command history with the up/down keys.
+
+**Hey, you goon, there's no pipe-and-filter!** Actually, there was once, and, ye, there shall verily be again. But I want to let the agent system mature a bit first. (Should they interpret every request? How would piping work then? You see what I mean.)
+
+**No auto-complete, no `ls` -- how am I supposed to discover the environment, huh?** Oooh, yeaaah, you kind of have to live with that for the moment. I've been designing GUIs to state the requests that will occur when used (for instance, the button to send a reply is labeled "post /re"). I want to get a feel for what's needed before I start forcing in a reflection system.
+
+**This thing is a far cry from a desktop environment, buddy.** Yeah, it's not meant to be.LinkShUI is a configurable web application--it's just there to let you control what's inside the browser tab. Eventually, users will configure a bunch of different environments that they can open separately, but which can share remote resources. That way, 'shui can enforce agent layouts or server compositions that make sense for the application. You'll have your messaging environment, your coding environment, your data-manip environment... each in a different tab!
+
+## Getting Help
+
+[The LinkShUI Google Group](https://groups.google.com/forum/#!forum/linkshui) is available for support and development questions.
 
 ## License
 

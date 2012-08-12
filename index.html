@@ -27,7 +27,7 @@
                         module:'pfraze/inbox', 
                         services:[
                             { name:'Fixture', uri:'/serv/inbox/fixture' },
-                            { name:'@linkshui', uri:'/serv/maildir' }
+                            { name:'@linkshui', uri:'http://linkshui.com:8600' }
                         ]
                     },
                     { uri:'/serv/inbox/fixture', module:'pfraze/inbox-srvc-fixture', name:'Fixture' },
@@ -46,7 +46,8 @@
                     { uri:"/tools/spahql", module:"danski/spahql" },
                     { uri:"/tools/jeo", module:"wjosdejong/jsoneditor" },
                     { uri:"/tools/prettify", module:"google/prettify" },
-                    { uri:"/tools/runbox", module:"pfraze/runbox" }
+                    { uri:"/tools/runbox", module:"pfraze/runbox" },
+                    { uri:"/tools/htmler", module:"pfraze/htmler" }
                 ],
                 links:[
                     { uri:'/tools/spahql', rel:'spahql' },

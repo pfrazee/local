@@ -19,7 +19,7 @@ for (var i=0; i < env_config.structure.length; i++) {
 // Load using require js
 require(paths, function(Link, Env, CLI, AgentServer) {
     // Enable proxy
-    //Link.ajaxConfig('proxy',''); set this to the URL of your proxy
+    Link.ajaxConfig('proxy', '/serv/proxy'); 
     
     // Build structure
     var structure = new Link.Structure();
