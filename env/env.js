@@ -23,14 +23,14 @@ define(['link', 'notify', 'env/request-events', 'env/cli', 'env/html+json', 'env
         CLI.init('lshui-cli-input');
 
         // Register request handling
-        CLI.addListener('request', Env__onRequest, this);
-        RequestEvents.addListener('request', Env__onRequest, this);
+        CLI.addListener('request', Env__onRequestEvent, this);
+        RequestEvents.addListener('request', Env__onRequestEvent, this);
 
         // Register structure listeners
         this.structure.addResponseListener(Env__onResponse, this);
     }
 
-    function Env__onRequest(request, agent_id, command) {
+    function Env__onRequestEvent(request, agent_id, command) {
         // generate command for history if none is given
         /*if (!command) {
             command = '';
@@ -114,7 +114,7 @@ define(['link', 'notify', 'env/request-events', 'env/cli', 'env/html+json', 'env
                 __defhandleResponse(response, agent.facade);
             },
             dispatch:function() { return structure.dispatch.apply(structure, arguments); },
-            follow:function(request) { return Env__onRequest.call(Env, request, agent.id); },
+            follow:function(request) { return Env__onRequestEvent.call(Env, request, agent.id); },
             attachServer:function(s) { 
                 agent.programServer = s;
                 structure.removeModules('/'+agent.id);
