@@ -1,4 +1,4 @@
-define(['link', 'notify', 'env/request-events', 'env/cli', 'env/html+json', 'env/util'], function(Link, NotificationCenter, RequestEvents, CLI, HtmlJson, Util) {
+define(['link', 'notify', 'env/request-events', 'env/cli', 'env/html+json'], function(Link, NotificationCenter, RequestEvents, CLI, HtmlJson) {
     var Env = {
         init:Env__init,
         getAgent:Env__getAgent,
@@ -165,7 +165,7 @@ define(['link', 'notify', 'env/request-events', 'env/cli', 'env/html+json', 'env
             if (response.body._scripts && response.body._scripts.onload) {
                 var fns = response.body._scripts.onload;
                 if (!Array.isArray(fns)) { fns = [fns]; }
-                fns.forEach(function(fn) { Util.execFn(fn, [agent, response]); });
+                fns.forEach(function(fn) { fn(agent, response); });
             }
         }
     }
