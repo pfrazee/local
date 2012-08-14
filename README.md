@@ -9,7 +9,9 @@ LinkShUI uses [RequireJS](http://requirejs.org) to load a configured set of serv
 
 ---
 
-LinkShUI is in early beta, so expect API and runtime instability. These instructions are geared toward developers who wish to experiment with the software and possibly build their own modules and services.
+*LinkShUI is in early beta, so expect API and runtime instability. These instructions are geared toward developers who wish to experiment with the software and possibly build their own modules and services.*
+
+---
 
 ## Getting Started
 
