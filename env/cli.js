@@ -1,6 +1,6 @@
 /*
 Example:
-  apps/foo [ json ] post --pragma="no-cache" convert [ xml ] post apps/bar
+  agent> get apps/foo [application/html+json]
 
 command      = [ agent ] request [ content-type ] .
 agent        = token '>' .

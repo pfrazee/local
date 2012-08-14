@@ -12,7 +12,7 @@ define(function() {
     // Structure
     // =========
     // passes requests/responses around a uri structure of modules
-    var Structure = function _Structure(id) {
+    function Structure(id) {
         this.id = id;
         this.modules = [];
         this.response_cbs = [];
@@ -22,7 +22,7 @@ define(function() {
     //  - maintains precedence in ordering according to the URI
     //    '#/a' is before '#/a/b' is before '#/a/b/c'
     //  - a duplicate URI is inserted after existing modules
-    Structure.prototype.addModule = function(new_uri, module) {
+    Structure.prototype.addModule = function Structure__addModule(new_uri, module) {
         // Find the last URI that fits inside or matches the new one
         var new_uri_slashes = new_uri.split('/').length;
         for (var i=0; i < this.modules.length; i++) {
@@ -37,7 +37,7 @@ define(function() {
 
     // Removes all matching modules from the structure
     //  - non-regexp `uri` must be an exact match
-    Structure.prototype.removeModules = function(uri) {
+    Structure.prototype.removeModules = function Structure__removeModules(uri) {
         var isregex = (uri instanceof RegExp);
         var test = isregex ? uri.test : function(v) { return this == v; };
         this.modules.forEach(function(m, i) {
@@ -50,7 +50,7 @@ define(function() {
     // Searches modules for handlers for the given request
     //  - returns an array of objects with the keys { cb, module, match, route }
     //  - returns the handlers in the order of module precedence
-    Structure.prototype.findHandlers = function(request) {
+    function Structure__findHandlers(request) {
         var matched_handlers = [];
         for (var i=0; i < this.modules.length; i++) {
             var module = this.modules[i];
@@ -117,13 +117,13 @@ define(function() {
             }
         }
         return matched_handlers;
-    };
+    }
 
     // (ASYNC) Builds the handler chain from the request, then runs
     //  - When finished, calls the given cb with the response
     //  - If the request target URI does not start with a hash, will run the remote handler
     var cur_mid = 1;
-    Structure.prototype.dispatch = function(request, opt_cb, opt_context) {
+    Structure.prototype.dispatch = function Structure__dispatch(request, opt_cb, opt_context) {
         // Duplicate the request object
         // :TODO: not sure if I want this (complicates obj ref sharing within the browser)
         request = deepCopy(request);
@@ -138,7 +138,7 @@ define(function() {
         // Pull the query params out, if present
         __processQueryParams(request);
         // Build the handler chain
-        var handlers = this.findHandlers(request);        
+        var handlers = Structure__findHandlers.call(this, request);        
         Object.defineProperty(request, '__bubble_handlers', { value:[], writable:true });
         Object.defineProperty(request, '__capture_handlers', { value:[], writable:true });
         for (var i=0; i < handlers.length; i++) {
@@ -158,12 +158,12 @@ define(function() {
         Object.defineProperty(request, '__dispatch_promise', { value:dispatchPromise });
         // Begin handling next tick
         var self = this;
-        setTimeout(function() { self.runHandlers(request, mkresponse(0)); }, 0);
+        setTimeout(function() { Structure__runHandlers.call(self, request, mkresponse(0)); }, 0);
         return dispatchPromise;
     };
 
     // Processes the request's handler chain
-    Structure.prototype.runHandlers = function _runHandlers(request, response) {
+    function Structure__runHandlers(request, response) {
         // Find next handler
         var handler = request.__capture_handlers.shift();
         if (!handler) { handler = request.__bubble_handlers.shift(); }
@@ -171,7 +171,7 @@ define(function() {
             // Run the cb
             var promise = handler.cb.call(handler.context, request, handler.match, response);
             when(promise, function(response) {
-                this.runHandlers(request, response);
+                Structure__runHandlers.call(this, request, response);
             }, this);
         } else {
             // Out of callbacks -- create a response if we dont have one
@@ -193,20 +193,20 @@ define(function() {
     };
 
     // Dispatch sugars
-    Structure.prototype.get = function(request, opt_cb, opt_context) {
+    Structure.prototype.get = function Structure__get(request, opt_cb, opt_context) {
         request.method = 'get';
         return this.dispatch(request, opt_cb, opt_context);
     };
-    Structure.prototype.post = function(request, opt_cb, opt_context) {
+    Structure.prototype.post = function Structure__post(request, opt_cb, opt_context) {
         request.method = 'post';
         return this.dispatch(request, opt_cb, opt_context);
     };
 
     // Response callbacks
-    Structure.prototype.addResponseListener = function(fn, opt_context) {
+    Structure.prototype.addResponseListener = function Structure__addResponseListener(fn, opt_context) {
         this.response_cbs.push({ fn:fn, context:opt_context });
     };
-    Structure.prototype.removeResponseListener = function(fn) {
+    Structure.prototype.removeResponseListener = function Structure__removeResponseListener(fn) {
         this.response_cbs.forEach(function(cb, i) {
             if (cb.fn == fn) {
                 this.response_cbs.splice(i, 1);
@@ -215,7 +215,7 @@ define(function() {
     };
 
     // Pulls the query params into the request.query object
-    var __processQueryParams = function(request) {
+    function __processQueryParams(request) {
         if (request.uri && request.uri.indexOf('?') != -1) {
             request.query = [];
             // pull uri out
@@ -228,15 +228,15 @@ define(function() {
                 request.query[kv[0]] = kv[1];
             }
         }
-    };
+    }
 
     // Builds a route object
-    var mkroute = function _route(cb, match, bubble) {
+    function mkroute(cb, match, bubble) {
         return { cb:cb, match:match, bubble:bubble };
     };
 
     // Builds a response object
-    var mkresponse = function _response(code, body, contenttype, headers) {
+    function mkresponse(code, body, contenttype, headers) {
         var response = headers || {};
         response.code = code;
         response.body = body || '';
@@ -249,7 +249,7 @@ define(function() {
     var typeEncoders = {};
     var typeDecoders = {};
     // Converts objs/strings to from objs/strings
-    var encodeType = function _encodeType(obj, type) {
+    function encodeType(obj, type) {
         // sanity
         if (obj == null || typeof(obj) != 'object' || type == null) {
             return obj;
@@ -262,8 +262,8 @@ define(function() {
         }
         // run
         return encoder(obj);
-    };
-    var decodeType = function _decodeType(str, type) {
+    }
+    function decodeType(str, type) {
         // sanity
         if (str == null || typeof(str) != 'string' || type == null) {
             return str;
@@ -276,14 +276,14 @@ define(function() {
         }
         // run
         return decoder(str);
-    };
+    }
     // Adds en/decoders to the registries
-    var setTypeEncoder = function _setTypeEncoder(type, fn) {
+    function setTypeEncoder(type, fn) {
         typeEncoders[type] = fn;
-    };
-    var setTypeDecoder = function _setTypeDecoder(type, fn) {
+    }
+    function setTypeDecoder(type, fn) {
         typeDecoders[type] = fn;
-    };
+    }
     // Takes a mimetype (text/asdf+html), puts out the applicable types ([text/asdf+html, text/html,text])
     function __mkTypesList(type) {
         // for now, dump the encoding
@@ -368,14 +368,14 @@ define(function() {
     // Promise
     // =======
     // a value which can defer fulfillment; used for conditional async
-    var Promise = function _Promise() {
+    function Promise() {
         this.is_fulfilled = false;
         this.value = null;
         this.then_cbs = [];
-    };
+    }
 
     // Runs any `then` callbacks with the given value
-    Promise.prototype.fulfill = function(value) {
+    Promise.prototype.fulfill = function Promise__fulfill(value) {
         if (this.is_fulfilled) { return; }
         this.is_fulfilled = true;
         // Store
@@ -388,7 +388,7 @@ define(function() {
     };
 
     // Adds a callback to be run when the promise is fulfilled
-    Promise.prototype.then = function(cb, opt_context) {
+    Promise.prototype.then = function Promise__then(cb, opt_context) {
         if (!this.is_fulfilled) {
             // Queue for later
             this.then_cbs.push({ func:cb, context:opt_context });
@@ -400,16 +400,16 @@ define(function() {
     };
 
     // Helper to register a then if the given value is a promise (or call immediately if it's another value)
-    var when = function _when(value, cb, opt_context) {
+    function when(value, cb, opt_context) {
         if (value instanceof Promise) {
             value.then(cb, opt_context);
         } else {
             cb.call(opt_context, value);
         }
-    };
+    }
 
     // Helper to handle multiple promises in one when statement
-    var whenAll = function _whenAll(values, cb, opt_context) {
+    function whenAll(values, cb, opt_context) {
         var total = values.length, fulfilled = 0;
         // if no length, presume an empty array and call back immediately
         if (!total) { return cb.call(opt_context, []); }
@@ -422,7 +422,7 @@ define(function() {
                 }
             }, { i:i });
         }
-    };
+    }
 
     // Ajax and Util
     // =============
@@ -435,14 +435,14 @@ define(function() {
     };
     
     // Hash of active logging modes
-    var logMode = function(k, v) {
+    function logMode(k, v) {
         if (v === undefined) { return active_log_modes[k]; }
         active_log_modes[k] = v;
         return v;
     };
 
     // Custom logger
-    var log = function(channel) {
+    function log(channel) {
         if (logMode(channel)) {
             var args = Array.prototype.slice.call(arguments, 1);
             console.log.apply(console, args);
@@ -450,19 +450,19 @@ define(function() {
     };
 
     // Ajax config accessor
-    var ajaxConfig = function(k, v) {
+    function ajaxConfig(k, v) {
         if (v == undefined) { return ajax_config[k]; }
         ajax_config[k] = v;
         return v;
     };
 
     // Helper to send ajax requests
-    var __dispatchRemote = function(request) {
+    function __dispatchRemote(request) {
         if (typeof window != 'undefined') {
             __sendAjaxRequest(request);
         }
-    };
-    var __sendAjaxRequest = function(request) {
+    }
+    function __sendAjaxRequest(request) {
         // Create remote request
         var xhrRequest = new XMLHttpRequest();
         var target_uri = request.uri;
