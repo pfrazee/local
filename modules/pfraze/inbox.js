@@ -97,7 +97,7 @@ define(['link'], function(Link) {
         // pipe to source service
         return this.agent.dispatch({ method:'get', uri:m.uri, accept:request.accept });
     };
-    InboxAS.prototype.ckMethod = function(ids) {
+    InboxAS.prototype.checkMethod = function(ids) {
         var rows = this.agent.getBody().getElementsByTagName('tr');
         // figure out if some need to be checked, or all dechecked
         var should_check = false;
@@ -116,7 +116,7 @@ define(['link'], function(Link) {
         });
         return Link.response(204);
     };
-    InboxAS.prototype.mrMethod = function(ids) {
+    InboxAS.prototype.markreadMethod = function(ids) {
         var rows = this.agent.getBody().getElementsByTagName('tr');
         // mark read all given
         ids.forEach(function(id) {
@@ -132,7 +132,7 @@ define(['link'], function(Link) {
         }, this);
         return Link.response(204);
     };
-    InboxAS.prototype.muMethod = function(ids) {
+    InboxAS.prototype.markunreadMethod = function(ids) {
         var rows = this.agent.getBody().getElementsByTagName('tr');
         // mark read all given
         ids.forEach(function(id) {
@@ -214,10 +214,10 @@ define(['link'], function(Link) {
         // toolbar
         html += '<div class="inbox-toolbar">';
         html += '<form action="'+agent.getUri()+'/checked"><span class="btn-group">';
-        html += '<button class="btn tool-select" title="check '+agent.getUri()+'/all" formmethod="ck" formaction="'+agent.getUri()+'/all"><i class="icon-check"></i> ck</button>';
+        html += '<button class="btn tool-select" title="check '+agent.getUri()+'/all" formmethod="check" formaction="'+agent.getUri()+'/all"><i class="icon-check"></i> check</button>';
         html += '</span><span class="btn-group">';
-        html += '<button class="btn tool-markread" title="mark as read '+agent.getUri()+'/checked" formmethod="mr"><i class="icon-eye-open"></i> mr</button>';
-        html += '<button class="btn tool-markunread" title="mark unread '+agent.getUri()+'/checked" formmethod="mu"><i class="icon-eye-close"></i> mu</button>';
+        html += '<button class="btn tool-markread" title="mark as read '+agent.getUri()+'/checked" formmethod="markread"><i class="icon-eye-open"></i> markread</button>';
+        html += '<button class="btn tool-markunread" title="mark unread '+agent.getUri()+'/checked" formmethod="markunread"><i class="icon-eye-close"></i> markunread</button>';
         html += '<button class="btn tool-delete" title="delete '+agent.getUri()+'/checked" formmethod="delete"><i class="icon-trash" formmethod="delete"></i> delete</button>';
         html += '</span></form>';
         html += '</div>';
