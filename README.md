@@ -1,21 +1,23 @@
 LinkShUI
 ========
 
-A user-configurable, CLI-driven application platform for the browser.
+A user-configurable, CLI-driven application platform in the browser. <http://linkshui.com>
 
 ## How does it work?
 
-LinkShUI uses [RequireJS](http://requirejs.org) to load a configured set of server modules into a shared URI structure. Those modules then use an HTTP-like API called [LinkJS](http://github.com/pfraze/linkjs) to communicate with remote services, the environment, and each other. This allows the user to assemble Web applications with their own custom GUIs and any number of online services.
+LinkShUI uses [RequireJS](http://requirejs.org) to load a configured set of server modules into a shared URI structure. Those modules then use an HTTP-like API called [LinkJS](http://github.com/pfraze/linkjs) to communicate with remote services, the environment, and each other. This allows the user to assemble Web applications using their personal software and any number of online services.
+
+---
 
 LinkShUI is in early beta, so expect API and runtime instability. These instructions are geared toward developers who wish to experiment with the software and possibly build their own modules and services.
 
 ## Getting Started
 
-LinkShUI will eventually use a configuration-package system for users to create and distrubute environments. At this stage in development, it stores a single config object within index.html.
+LinkShUI will eventually use a configuration-package system for users to create and distrubute environments. At this stage in development, it stores a single config object within `index.html`.
 
-The application is a static set of html, js, css, and image assets which can be served directly by Apache. All of the in-browser servers (the JS modules) should work out of the box. Remote services, however, require some setup due to CORS. LinkShUI offers three options:
+The application is a directory of static assets which can be served directly by Apache. All in-browser servers (the JS modules) should work out of the box. Remote services, however, require some setup due to CORS. LinkShUI offers three options:
 
-First is the /serv directory, which provides a simple routing system (via mod_rewrite and `index.php`) for PHP web services. The repository currently includes `files.php` which serves everything under `/serv/_files/` with GET and PUT methods. `index.php` will route all requests to `/serv/files` to that script. (This should also work out of the box, but make sure htaccess files are enabled and that the apache process-owner has read/write permissions to `/serv/_files`.)
+First is the /serv directory, which provides a simple routing system (via mod_rewrite and `index.php`) for PHP web services. The repository currently includes `files.php` which serves everything under `/serv/_files/` with GET and PUT methods. `index.php` will route all requests targetting `/serv/files/*` to that script. (Make sure .htaccess files are enabled and that the apache process-owner has read/write permissions to `/serv/_files`.)
 
 Second is the Apache proxy config, which must be set within the host config (not htaccess). Here is an example config from a dev machine:
 
@@ -33,23 +35,23 @@ ProxyPass /serv/statusnet http://localhost:83
 ProxyPassReverse /serv/statusnet http://localhost:83
 ```
 
-Third is the generic proxy, which is configured in `main.js` to be used by LinkJS if making Ajax calls outside of the domain. The proxy's code is found in `/serv/proxy.php` (based on [Ben Alman's Simple Proxy script](https://github.com/cowboy/php-simple-proxy)). If using LinkShUI publicly, this option might be hard on your server's bandwidth, and it does completely circumvent the CORS security.
+Third is the generic proxy, which is configured in `main.js` to be used by LinkJS if making Ajax calls outside of the domain. The proxy's code is found in `/serv/proxy.php` (based on [Ben Alman's Simple Proxy script](https://github.com/cowboy/php-simple-proxy)). If using LinkShUI publicly, this option might be hard on your server's bandwidth, and it does completely circumvent CORS security.
 
 Of course, if a target service in another domain offers a [permissive CORS policy](https://www.google.com/search?q=CORS+ajax), the proxy shouldnt be necessary.
 
-Instructions to set up webmail using postfix can be found in the [Maildir Service repository](https://github.com/pfraze/maildir-service).
+#### Instructions to set up webmail using postfix can be found in the [Maildir Service repository](https://github.com/pfraze/maildir-service).
 
 ## Using the Shell
 
-To use LinkShUI effectively, you have to use its command-line. Its syntax builds HTTP requests which are issued on behalf of active agents in the environment. (Think of agents as sub-browsers in the browser.)
+To use LinkShUI effectively, you have to use the command-line. Its syntax builds HTTP requests which are issued on behalf of active agents in the environment. (Think of agents as sub-browsers in the browser.)
 
 ```[ agent ">" ] [ method ] uri [ "[" content-type "]" ]```
 
-The default agent is '.'; the default method is 'get'; and the default content-type is 'application/html+json'. To help clarify this, here are some examples:
+The default agent is '.'; the default method is 'get'; and the default content-type is 'application/html+json'. To help clarify this, here are some example commands:
 
 ```
 agent1>get http://localhost/users [application/json]
-/agent1/more
+/agent1/more [text/html]
 close /agent1
 ```
 

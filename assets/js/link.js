@@ -52,15 +52,14 @@ define(function() {
     //  - returns the handlers in the order of module precedence
     function Structure__findHandlers(request) {
         var matched_handlers = [];
-        for (var i=0; i < this.modules.length; i++) {
-            var module = this.modules[i];
+        this.modules.forEach(function(module) {
             // See if the module's configured URI fits inside the request URI
             var rel_uri_index = request.uri.indexOf(module.uri);
             if (rel_uri_index == 0) {
                 // Is it a complete name match? (/foo matches /foo/bar, not /foobar)
                 var rel_uri = request.uri.substr(module.uri.length);
                 if (!(rel_uri == '' || rel_uri.charAt(0) == '/')) {
-                    continue;
+                    return;
                 }
                 // It is-- use the rel URI to match the request
                 if (rel_uri.charAt(0) != '/') { rel_uri = '/' + rel_uri; } // prepend the leading slash, for consistency
@@ -115,7 +114,7 @@ define(function() {
                     });
                 }
             }
-        }
+        }, this);
         return matched_handlers;
     }
 
@@ -385,6 +384,7 @@ define(function() {
             var cb = this.then_cbs[i];
             cb.func.call(cb.context, value);
         }
+        this.then_cbs.length = 0;
     };
 
     // Adds a callback to be run when the promise is fulfilled
@@ -460,6 +460,8 @@ define(function() {
     function __dispatchRemote(request) {
         if (typeof window != 'undefined') {
             __sendAjaxRequest(request);
+        } else {
+            request.__dispatch_promise.fulfill(mkresponse(404, 'Not Found'));
         }
     }
     function __sendAjaxRequest(request) {
