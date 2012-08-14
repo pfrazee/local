@@ -2,6 +2,9 @@ define(['link'], function(Link) {
     // Htmler Master Server
     // ====================
     // delivers a program for rendering HTML
+    // to use, start in an agent, then request the html in that agent
+    //   h>/tools/htmler
+    //   h>http://linkshui.com
     // configuration =
     // {
     // }

@@ -1,7 +1,7 @@
 define(['link'], function(Link) {
     // Cabinet Master Server
     // =====================
-    // delivers a GUI for navigating and viewing a files service
+    // delivers a GUI for navigating and viewing a file-system
     // configuration =
     // {
     //   service: { uri:... }

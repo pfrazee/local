@@ -1,23 +1,8 @@
-// statusnet doc
-// http://status.net/wiki/Twitter-compatible_API
-
-// home timeline
-// https://dev.twitter.com/docs/api/1/get/statuses/home_timeline
-// GET /serv/statusnet/api/statuses/home_timeline.json [application/json]
-
-// status update
-// https://dev.twitter.com/docs/api/1/post/statuses/update
-/*agent.dispatch({
-    uri:'/serv/statusnet/api/statuses/update.json',
-    method:'post',
-    body:'status=post%20from%20lshui',
-    'content-type':'application/x-www-form-urlencoded',
-    accept:'application/json'
-});*/
-
 define(['link'], function(Link) {
     // Statfeed Master Server
     // ======================
+    // delivers a GUI for microblogging platforms
+    // tested with StatusNet, should work with twitter as well
     // configuration =
     // {
     //   service: { uri:... }
