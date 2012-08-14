@@ -84,6 +84,7 @@ if ( !$url ) {
   
   $status = curl_getinfo( $ch );
   header( "HTTP/1.1 " . $status['http_code'] );
+  header( "Content-Type: " . $status['content_type'] );
   
   curl_close( $ch );
 
@@ -92,7 +93,7 @@ if ( !$url ) {
 
   // Propagate headers to response.
   foreach ( $header_text as $header ) {
-      if ( preg_match( '/^(?:Content-Type|Content-Language|Set-Cookie):/i', $header ) ) {
+      if ( preg_match( '/^(?:Content-Language|Set-Cookie):/i', $header ) ) {
         header( $header );
       }
   }
