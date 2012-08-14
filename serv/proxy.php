@@ -21,17 +21,15 @@ if ( !$url ) {
 } else {
   // add query params from custom header
   $query = $_SERVER['HTTP_X_PROXY_QUERY'];
-  if ($query) {
+  if ( $query ) {
     $url .= $query;
   }
 
   $ch = curl_init( $url );
   
   if ( strtolower($_SERVER['REQUEST_METHOD']) != 'get' ) {
-    //curl_setopt( $ch, CURLOPT_POST, true );
-    //curl_setopt( $ch, CURLOPT_POSTFIELDS, $_POST );
     curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, $_SERVER['REQUEST_METHOD'] );
-    $body = file_get_contents('php://input');
+    $body = file_get_contents( 'php://input' );
     if ( $body ) {
       curl_setopt( $ch, CURLOPT_POSTFIELDS, $body );
     }
@@ -39,8 +37,8 @@ if ( !$url ) {
 
   // copy over request headers
   $reqheaders = array();
-  foreach(getallheaders() as $key => $value) {
-    if(strtolower($key) == 'x-proxy-query') {
+  foreach( getallheaders() as $key => $value ) {
+    if( strtolower($key) == 'x-proxy-query' ) {
       continue; // dont use our custom headers
     } else { 
       $reqheaders[] = $key . ':' . $value;
@@ -60,39 +58,48 @@ if ( !$url ) {
     curl_setopt( $ch, CURLOPT_COOKIE, $cookie );
   }
   
-  curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true );
+  curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true ); // follow redirects
   curl_setopt( $ch, CURLOPT_HEADER, true );
   curl_setopt( $ch, CURLOPT_HTTPHEADER , $reqheaders ); 
-  curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+  curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true ); // return, dont print
+  curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, false ); // ssl? sure
+  curl_setopt( $ch, CURLOPT_ENCODING , "gzip" ); // properly decompress
   
   curl_setopt( $ch, CURLOPT_USERAGENT, $_GET['user_agent'] ? $_GET['user_agent'] : $_SERVER['HTTP_USER_AGENT'] );
   
-  #list( $header, $contents ) = preg_split( '/([\r\n][\r\n])\\1/', curl_exec( $ch ), 2 );
   $res = curl_exec( $ch );
   if (!$res) {
-    header( "HTTP/1.0 404 Not Found" );
+    header( "HTTP/1.1 404 Not Found" );
     die;
   }
-  $resparts = preg_split( '/([\r\n][\r\n])\\1/', $res );
-  // only take the last 2, in the event of redirects
-  $contents = array_pop( $resparts );
-  $header = array_pop( $resparts );
+
+  // split out headers and body
+  $header_size = curl_getinfo( $ch, CURLINFO_HEADER_SIZE );
+  $header = substr( $res, 0, $header_size );
+  $contents = substr( $res, $header_size );
+
+  // split header, in case of redirects
+  $headerparts = preg_split( '/([\r\n][\r\n])\\1/', $header );
+  $header = array_pop( $headerparts );
   
   $status = curl_getinfo( $ch );
+  header( "HTTP/1.1 " . $status['http_code'] );
   
   curl_close( $ch );
-}
 
-// Split header text into an array.
-$header_text = preg_split( '/[\r\n]+/', $header );
+  // Split header text into an array.
+  $header_text = preg_split( '/[\r\n]+/', $header );
 
-// Propagate headers to response.
-foreach ( $header_text as $header ) {
-  if ( preg_match( '/^(?:Content-Type|Content-Language|Set-Cookie):/i', $header ) ) {
-    header( $header );
+  // Propagate headers to response.
+  foreach ( $header_text as $header ) {
+      if ( preg_match( '/^(?:Content-Type|Content-Language|Set-Cookie):/i', $header ) ) {
+        header( $header );
+      }
   }
-}
   
-print $contents;
+  print $contents;
+
+}
+
   
 ?>

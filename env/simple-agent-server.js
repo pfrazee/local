@@ -1,4 +1,4 @@
-define(['link', 'env/env', 'env/util', 'env/html+json'], function(Link, Env, Util, HtmlJson) {
+define(['link', 'env/env', 'env/html+json'], function(Link, Env, HtmlJson) {
     // Simple Agent Server
     // ===================
     // provides http access to the document's agents
