@@ -34,7 +34,7 @@ define(['link'], function(Link) {
     InboxAS.prototype.routes = [
         Link.route('servMsg', { uri:'^/([0-9]+)/?$' }),
         Link.route('servMsgRange', { uri:'^/([0-9]+)\-([0-9]+)/?$' }),
-        Link.route('servAll', { uri:'^/all/?$' }),
+        Link.route('servAll', { uri:'^(/all)?/?$' }),
         Link.route('servChecked', { uri:'^/checked/?$' }),
         Link.route('servRead', { uri:'^/read/?' }),
         Link.route('servUnread', { uri:'^/unread/?' })
@@ -58,7 +58,8 @@ define(['link'], function(Link) {
         for (var i=low; i < high; i++) { range.push(i); }
         return this.runMethod(range, request);
     };
-    InboxAS.prototype.servAll = function(request) {
+    InboxAS.prototype.servAll = function(request, match, response) {
+        if (match.uri[0] == '/' && request.method != 'get') { return response; } // only handle GET at our base uri
         var range = [];
         for (var i=0; i < this.messages.length; i++) { range.push(i); }
         return this.runMethod(range, request);
@@ -89,8 +90,14 @@ define(['link'], function(Link) {
     // Methods
     InboxAS.prototype.getMethod = function(ids, request) {
         if (ids.length > 1) {
-            // :TODO: solve this
-            return { code:501, reason:'unable to GET multiple messages at this time' };
+            if (request.accept != 'application/json') {
+                return { code:415, reason:'multiple messages can only be served in json' };
+            }
+            var messages = [];
+            ids.forEach(function(id) {
+                messages.push(this.messages[id]);
+            }, this);
+            return Link.response(200, { messages:messages }, 'application/json');
         }
         var m = this.messages[ids[0]];
         if (!m) { return { code:404 }; }

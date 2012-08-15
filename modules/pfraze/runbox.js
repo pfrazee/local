@@ -45,6 +45,7 @@ define(['link'], function(Link) {
     function setupRunboxAgent(agent, response) {
         // add html
         var html = '';
+        html += '<h3>Runbox JS Evaluator <small>by pfraze</small></h3>';
         html += '<form action="'+agent.getUri()+'" method="run">';
         html += '<button class="btn">run '+agent.getUri()+'</button><br />';
         html += '</form>';

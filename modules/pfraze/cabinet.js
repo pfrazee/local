@@ -105,7 +105,7 @@ define(['link'], function(Link) {
         var html = '';
         var body = agent.getBody();
 
-        html += '<div class="pfraze-cabinet">';
+        html += '<div class="pfraze-cabinet"><h3>Cabinet File Browser <small>by pfraze</small></h3>';
 
         // files
         html += '<p><a href="'+agent.getUri()+'/..">..</a></p>';
@@ -124,7 +124,7 @@ define(['link'], function(Link) {
         var html = '';
         var body = agent.getBody();
 
-        html += '<div class="pfraze-cabinet">';
+        html += '<div class="pfraze-cabinet"><h3>Cabinet File Browser <small>by pfraze</small></h3>';
 
         // output data
         html += '<p><a href="'+agent.getUri()+'/..">..</a></p>';
