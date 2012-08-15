@@ -311,7 +311,13 @@ define(function() {
         return JSON.stringify(obj);
     });
     setTypeDecoder('application/json', function(str) {
-        return JSON.parse(str);
+        try {
+            var obj = JSON.parse(str);
+            return obj;
+        } catch (e) {
+            console.log('application/json decode failed', e);
+            return {};
+        }
     });
     setTypeEncoder('application/x-www-form-urlencoded', function(obj) {
         var enc = encodeURIComponent;
