@@ -23,23 +23,21 @@
                 structure:[
                     // Apps
                     { 
-                        uri:'/apps/inbox', 
+                        uri:'/app/inbox', 
                         module:'pfraze/inbox', 
                         services:[
-                            { name:'Fixture', uri:'/lserv/inbox/fixture' },
+                            { name:'Fixture', uri:'/serv/inbox/fixture' },
                             { name:'@linkshui', uri:'http://linkshui.com:8600' }
                         ]
                     },
-                    { uri:'/apps/statfeed', module:'pfraze/statfeed', service:{ uri:'/serv/statusnet/api' }},
-                    { uri:'/apps/cab', module:'pfraze/cabinet', service:{ uri:'/serv/files' }},
+                    { uri:'/app/statfeed', module:'pfraze/statfeed', service:{ uri:'/serv/statusnet/api' }},
+                    { uri:'/app/cab', module:'pfraze/cabinet', service:{ uri:'/serv/files' }},
+                    { uri:'/app/jeo', module:'wjosdejong/jsoneditor' },
+                    { uri:'/app/runbox', module:'pfraze/runbox' },
+                    { uri:'/app/htmler', module:'pfraze/htmler' },
 
                     // Services
-                    { uri:'/lserv/inbox/fixture', module:'pfraze/inbox-srvc-fixture', name:'Fixture' },
-            
-                    // Tools
-                    { uri:"/tools/jeo", module:"wjosdejong/jsoneditor" },
-                    { uri:"/tools/runbox", module:"pfraze/runbox" },
-                    { uri:"/tools/htmler", module:"pfraze/htmler" }
+                    { uri:'/serv/inbox/fixture', module:'pfraze/inbox-srvc-fixture', name:'Fixture' }
                 ],
                 links:[
                     { uri:'/tools/spahql', rel:'spahql' },

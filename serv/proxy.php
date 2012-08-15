@@ -38,8 +38,8 @@ if ( !$url ) {
   // copy over request headers
   $reqheaders = array();
   foreach( getallheaders() as $key => $value ) {
-    if( strtolower($key) == 'x-proxy-query' ) {
-      continue; // dont use our custom headers
+    if( in_array(strtolower($key), array('x-proxy-query', 'referer', 'host')) ) {
+      continue; // dont use
     } else { 
       $reqheaders[] = $key . ':' . $value;
     }
@@ -57,7 +57,7 @@ if ( !$url ) {
     
     curl_setopt( $ch, CURLOPT_COOKIE, $cookie );
   }
-  
+
   curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, true ); // follow redirects
   curl_setopt( $ch, CURLOPT_HEADER, true );
   curl_setopt( $ch, CURLOPT_HTTPHEADER , $reqheaders ); 
