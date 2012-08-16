@@ -1,8 +1,15 @@
 ![LinkShUI](http://linkshui.com/wp-content/uploads/2012/08/lshui_logo.png)
 
-**A CLI-driven environment for in-browser servers and proxies.**
+**Run Javascript servers and proxies in the browser.**
 
-Add program servers, configure your remote services, and own your Web applications.
+LinkShUI is built for two reasons:
+
+ 1. To give the user control over their Web applications
+ 2. To compose applications in the browser using a [Service-Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture)
+
+It does that with [an Ajax library](//github.com/pfraze/linkjs) that allows Javascript modules in the document to respond to requests. That means that active programs can publish links which reflect their state: an inbox can serve `/messages/unread`, or text editor can serve `/lines/2-30`. This allows independent programs to communicate without tight coupling, much like STDIO or a file-system would.
+
+LinkShUI also provides a command line for issuing requests. This allows you to drive the programs with either the keyboard or the mouse -- it's up to you.
 
 #### &middot; [Intro Video](http://www.youtube.com/watch?v=CJLiAdYTDz8&feature=g-upl) &middot; [Blog](http://linkshui.com) &middot; [Some](http://linkshui.com/wp-content/uploads/2012/08/3.png) [Screen](http://linkshui.com/wp-content/uploads/2012/08/6.png) [Shots](http://linkshui.com/wp-content/uploads/2012/08/7.png) &middot; 
 
