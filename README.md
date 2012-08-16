@@ -1,7 +1,9 @@
 LinkShUI
 ========
 
-A user-configurable, CLI-driven application platform in the browser. <http://linkshui.com>
+**User-configurable, in-browser servers in a CLI-driven environment.**
+
+Add JS modules, configure your remote services, and start driving! <http://linkshui.com>
 
 ## How does it work?
 
