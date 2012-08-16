@@ -1,6 +1,6 @@
 ![LinkShUI](http://linkshui.com/wp-content/uploads/2012/08/lshui_logo.png)
 
-**User-configurable, in-browser servers and proxies for a CLI-driven environment.**
+**User-configurable, CLI-driven servers and proxies in the browser**
 
 Add JS modules, configure your remote services, and start driving. <http://linkshui.com>
 
