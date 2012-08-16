@@ -1,6 +1,6 @@
 ![LinkShUI](http://linkshui.com/wp-content/uploads/2012/08/lshui_logo.png)
 
-**User-configurable, CLI-driven servers and proxies in the browser.**
+**A CLI-driven environment for in-browser servers and proxies.**
 
 Add program servers, configure your remote services, and own your Web applications.
 
