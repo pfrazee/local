@@ -4,7 +4,7 @@
 
 Add program servers, configure your remote services, and own your Web applications.
 
-#### &middot; [Intro Video](http://www.youtube.com/watch?v=CJLiAdYTDz8&feature=g-upl) &middot; [Blog](http://linkshui.com) &middot;
+#### &middot; [Intro Video](http://www.youtube.com/watch?v=CJLiAdYTDz8&feature=g-upl) &middot; [Blog](http://linkshui.com) &middot; [Some](http://linkshui.com/wp-content/uploads/2012/08/3.png) [Screen](http://linkshui.com/wp-content/uploads/2012/08/6.png) [Shots](http://linkshui.com/wp-content/uploads/2012/08/7.png) &middot; 
 
 ## How does it work?
 
