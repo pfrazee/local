@@ -1,13 +1,14 @@
-LinkShUI
-========
+![LinkShUI](http://linkshui.com/wp-content/uploads/2012/08/lshui_logo.png)
 
-**User-configurable, in-browser servers in a CLI-driven environment.**
+**User-configurable, in-browser servers and proxies for a CLI-driven environment.**
 
-Add JS modules, configure your remote services, and start driving! <http://linkshui.com>
+Add JS modules, configure your remote services, and start driving. <http://linkshui.com>
 
 ## How does it work?
 
 LinkShUI uses [RequireJS](http://requirejs.org) to load a configured set of server modules into a shared URI structure. Those modules then use an HTTP-like API called [LinkJS](http://github.com/pfraze/linkjs) to communicate with remote services, the environment, and each other. This allows the user to assemble Web applications using their personal software and any number of online services.
+
+![a clear explanation](http://linkshui.com/wp-content/uploads/2012/08/explanation1.png)
 
 ---
 
