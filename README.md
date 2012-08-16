@@ -1,8 +1,10 @@
 ![LinkShUI](http://linkshui.com/wp-content/uploads/2012/08/lshui_logo.png)
 
-**User-configurable, CLI-driven servers and proxies in the browser**
+**User-configurable, CLI-driven servers and proxies in the browser.**
 
-Add JS modules, configure your remote services, and start driving. <http://linkshui.com>
+Add program servers, configure your remote services, and own your Web applications.
+
+#### &middot; [Intro Video](http://www.youtube.com/watch?v=CJLiAdYTDz8&feature=g-upl) &middot; [Blog](http://linkshui.com) &middot;
 
 ## How does it work?
 
@@ -18,31 +20,18 @@ LinkShUI uses [RequireJS](http://requirejs.org) to load a configured set of serv
 
 ## Getting Started
 
+The application is a directory of static assets which can be served directly by Apache. All in-browser servers (the JS modules) should work out of the box: just check out into a served directory and load it in your browser.
+
 LinkShUI will eventually use a configuration-package system for users to create and distrubute environments. At this stage in development, it stores a single config object within `index.html`.
 
-The application is a directory of static assets which can be served directly by Apache. All in-browser servers (the JS modules) should work out of the box. Remote services, however, require some setup due to CORS. LinkShUI offers three options:
 
-First is the /serv directory, which provides a simple routing system (via mod_rewrite and `index.php`) for PHP web services. The repository currently includes `files.php` which serves everything under `/serv/_files/` with GET and PUT methods. `index.php` will route all requests targetting `/serv/files/*` to that script. (Make sure .htaccess files are enabled and that the apache process-owner has read/write permissions to `/serv/_files`.)
+## Remote Services
 
-Second is the Apache proxy config, which must be set within the host config (not htaccess). Here is an example config from a dev machine:
+LinkShUI includes a proxy script at `/serv/proxy.php` to get around CORS. Of course, if a target service in another domain offers a [permissive CORS policy](https://www.google.com/search?q=CORS+ajax), the proxy shouldnt be necessary.
 
-```
-# Service proxies
-ProxyRequests Off
-ProxyPreserveHost On
-<Proxy *>
-    Order allow,deny
-    Allow from all
-</Proxy>
-ProxyPass /serv/maildir http://localhost:8600
-ProxyPassReverse /serv/maildir http://localhost:8600
-ProxyPass /serv/statusnet http://localhost:83
-ProxyPassReverse /serv/statusnet http://localhost:83
-```
+The /serv directory provides a simple routing system (via mod_rewrite and `index.php`) for PHP web services. The repository currently includes `files.php` which serves everything under `/serv/_files/` with GET and PUT methods. `index.php` will route all requests targetting `/serv/files/*` to that script.
 
-Third is the generic proxy, which is configured in `main.js` to be used by LinkJS if making Ajax calls outside of the domain. The proxy's code is found in `/serv/proxy.php` (based on [Ben Alman's Simple Proxy script](https://github.com/cowboy/php-simple-proxy)). If using LinkShUI publicly, this option might be hard on your server's bandwidth, and it does completely circumvent CORS security.
-
-Of course, if a target service in another domain offers a [permissive CORS policy](https://www.google.com/search?q=CORS+ajax), the proxy shouldnt be necessary.
+Make sure .htaccess files are enabled and that the apache process-owner has read/write permissions to `/serv/_files`. Also, if you have problems with the proxy, try adding `php_flag display_errors off` to the .htaccess file.
 
 #### Instructions to set up webmail using postfix can be found in the [Maildir Service repository](https://github.com/pfraze/maildir-service).
 
