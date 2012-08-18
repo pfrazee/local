@@ -9,6 +9,8 @@ LinkShUI is built for two reasons:
 
 It does that with [an Ajax library](//github.com/pfraze/linkjs) that allows Javascript modules in the document to respond to requests. That means that active programs can publish links which reflect their state: an inbox can serve `/messages/unread`, or text editor can serve `/lines/2-30`. This allows independent programs to communicate without tight coupling, much like STDIO does.
 
+The (unix-inspired) primary objective is to compose powerful behaviors using small programs. In this, it differs from a set of proxies on a remote host, which lack the run-time controls of a user-driven space.
+
 #### &middot; [Intro Video](http://www.youtube.com/watch?v=CJLiAdYTDz8&feature=g-upl) &middot; [Blog](http://linkshui.com) &middot; [Some](http://linkshui.com/wp-content/uploads/2012/08/3.png) [Screen](http://linkshui.com/wp-content/uploads/2012/08/6.png) [Shots](http://linkshui.com/wp-content/uploads/2012/08/7.png) &middot; 
 
 ## How does it work?
