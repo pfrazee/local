@@ -29,7 +29,7 @@ define(['link', 'env/env', 'env/html+json'], function(Link, Env, HtmlJson) {
 
         // get obj
         var id = match.uri[1];
-        var agent = Env.getAgent(id);
+        var agent = Env.agents(id, false);
         if (!agent) { return { code:404, reason:'agent not found' }; }
         
         // just give the contents of the agent
@@ -38,7 +38,7 @@ define(['link', 'env/env', 'env/html+json'], function(Link, Env, HtmlJson) {
     SimpleAgentServer.prototype.collapseHandler = function(request, match, response) {
         // validate
         var id = match.uri[1];
-        var agent = Env.getAgent(id);
+        var agent = Env.agents(id, false);
         if (!agent) { return { code:404, reason:'agent not found' }; }
         var agent_elem = document.getElementById('agent-'+id);
         if (!agent_elem) { return { code:500, reason:'unable to find agent elem' }; }

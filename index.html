@@ -3,17 +3,12 @@
     <head>
         <title>LinkShUI</title>
         <link rel="stylesheet" href="/assets/bootstrap/css/bootstrap.css" />
-        <link rel="stylesheet" href="/assets/css/rev2.css" />
+        <link rel="stylesheet" href="/assets/css/rev3.css" />
         <link rel="icon" type="image/vnd.microsoft.icon" href="/assets/prompt.png" />
     </head>
     
     <body>
         <div id="lshui">
-            <div id="lshui-cli">
-                <span id="lshui-cli-prompt">loading</span>
-                <span id="lshui-cli-prompt-end">&rsaquo;</span>
-                <input id="lshui-cli-input" name="cmd" type="text" autofocus autocomplete="off" />
-            </div>
             <div id="lshui-env"></div>
         </div>
 
@@ -38,13 +33,12 @@
                     // Services
                     { uri:'/serv/inbox/fixture', module:'pfraze/inbox-srvc-fixture', name:'Fixture' }
                 ],
-                links:[
-                    { uri:'/tools/spahql', rel:'spahql' },
-                    { uri:'/tools/jeo', rel:'jeo' },
-                    { uri:'/tools/prettify', rel:'prettify' }
+                doclev:[
+                    'pfraze/profile',
                 ]
             };
         </script>
         <script data-main="main" src="/assets/js/require.js"></script>
+        <script src="/doclev.js"></script>
     </body>
 </html>

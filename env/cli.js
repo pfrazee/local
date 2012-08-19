@@ -16,78 +16,25 @@ define(['link', './env', './event-emitter'], function(Link, Env, EventEmitter) {
     // CLI
     // ===
     // Parses a command syntax into Link requests 
-    // :TODO: change command history to command...buffer, I dunno. It conflicts with the request history
     var CLI = {
         init:CLI__init,
         runCommand:CLI__runCommand,
-        addHistory:CLI__addHistory,
-        moveHistory:CLI__moveHistory
     };
     EventEmitter.mixin(CLI);
     
     // setup func    
-    function CLI__init(elem_id) {
-        // init attributes
-        this.elemInput = document.getElementById(elem_id);
-        this.elemInput.onkeydown = __clikeydown;
-
-        // init history
-        this.history = [''];
-        this.hindex = 0;
-        this.hlen = 1;
-
-        // set up the prompt
-        var prompt_elem = document.getElementById('lshui-cli-prompt');
-        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        var twoDigits = function(v) { return ((v < 10) ? '0' : '') + v; };
-        var setPrompt = function() {
-            var now = new Date();
-            var tickanim = ['&#9777;','&#9778;','&#9780;','&#9782;','&#9783;','&#9779;'];
-            prompt_elem.innerHTML = '' + twoDigits(now.getHours()) + ':' + twoDigits(now.getMinutes()) + tickanim[now.getSeconds() % tickanim.length] + ' ' + months[now.getMonth()] + twoDigits(now.getDate());
-        };
-        setInterval(setPrompt, 1000);
-        setPrompt();
+    function CLI__init() {
+        /* :NOTE: this CLI is the skeleton of legacy, reduced now to its parser.
+         * The way it's built now, it keeps consumers from merely parsing the request.
+         * Rather, it emits the request event. It's unclear if the protection or
+         * abstraction still serves any purpose. Should the decision of how a parsed
+         * command should be executed be available to the caller?
+         * :TODO: refactor if yes
+         */
     };
-
-    // input event function
-    var KEYS = { enter:13, up:38, down:40 };
-    function __clikeydown(e) {
-        switch (e.keyCode) {
-            case KEYS.enter:
-                // Pull out and clear the value
-                var command = CLI.elemInput.value;
-                CLI.elemInput.value = '';
-                // Pipe into the command handler
-                CLI.runCommand(command);
-                CLI.addHistory(command);
-                break;
-            case KEYS.up:
-                e.preventDefault(); // dont let it move the cursor to the start of the line
-            case KEYS.down:
-                CLI.moveHistory((e.keyCode == KEYS.up) ? 1 : -1);
-                break;
-         }
-    };
-
-    // add to command history
-    function CLI__addHistory(cmd) {
-        this.history.push(cmd);
-        this.hlen++;
-        this.hindex = this.hlen;
-    }
-
-    // cycle through command history
-    function CLI__moveHistory(dir) {
-        var cmd;
-        CLI.hindex = __clamp(CLI.hindex - dir, 0, this.hlen);
-        if (CLI.hindex == this.hlen) { cmd = ''; }
-        else { cmd = this.history[CLI.hindex]; }
-        CLI.elemInput.value = cmd;
-        return cmd;
-    }
 
     // command handler
-    function CLI__runCommand(command) {
+    function CLI__runCommand(agent, command) {
         //Parser.logging = true;
         
         // make sure we got something
@@ -96,7 +43,7 @@ define(['link', './env', './event-emitter'], function(Link, Env, EventEmitter) {
         // parse
         try { 
             var cur_request = null;
-            var cmd = __parse(command); 
+            var cmd = CLI__parse(command); 
         } catch(e) {
             // Add to history
             var res = Link.response(400, 0, 0, { reason:e.toString() });
@@ -104,12 +51,11 @@ define(['link', './env', './event-emitter'], function(Link, Env, EventEmitter) {
         }
 
         // defaults
-        cmd.agent = cmd.agent || '.';
         cmd.request.method = cmd.request.method || 'get';
         cmd.request.accept = cmd.request.accept || 'application/html+json';
 
         // broadcast
-        this.emitEvent('request', cmd.request, cmd.agent, command);
+        this.emitEvent('request', cmd.request, cmd.agent);
     };
 
     // range clamp helper
@@ -121,7 +67,7 @@ define(['link', './env', './event-emitter'], function(Link, Env, EventEmitter) {
 
     // Parser
     // ======
-    function __parse(buffer) {
+    function CLI__parse(buffer) {
         Parser.buffer = buffer;
         Parser.trash = '';
         Parser.buffer_position = 0;

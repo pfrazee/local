@@ -1,51 +1,42 @@
 define(['link', 'notify', 'env/request-events', 'env/cli', 'env/html+json'], function(Link, NotificationCenter, RequestEvents, CLI, HtmlJson) {
     var Env = {
         init:Env__init,
-        getAgent:Env__getAgent,
-        makeAgent:Env__makeAgent,
-        killAgent:Env__killAgent
+        agents:Env__agentFactory,
+        killAgent:Env__killAgent,
+        AgentConstructor:Agent,
+        structure:null, // linkjs uri structure
+        container_elem:null, 
+        nc:null, // notifications center (plugin to raise alerts)
+        is_loaded:new Link.Promise()
     };
     
     // setup
     function Env__init(structure, container_elem_id) {
         // Init attributes
         this.structure = structure;
-        this.agents = {};
         this.container_elem = document.getElementById(container_elem_id);
         this.nc = new NotificationCenter();
 
-        // Add type en/decoders
         Link.setTypeEncoder('application/html+json', HtmlJson.encode);
         Link.setTypeDecoder('application/html+json', HtmlJson.decode);
 
-        // Init libs
         RequestEvents.init();
-        CLI.init('lshui-cli-input');
+        CLI.init();
 
-        // Register request handling
-        CLI.addListener('request', Env__onRequestEvent, this);
         RequestEvents.addListener('request', Env__onRequestEvent, this);
-
-        // Register structure listeners
+        CLI.addListener('request', Env__onRequestEvent, this);
         this.structure.addResponseListener(Env__onResponse, this);
+
+        // send is_loaded signal
+        this.is_loaded.fulfill(true);
     }
 
-    function Env__onRequestEvent(request, agent_id, command) {
-        // generate command for history if none is given
-        /*if (!command) {
-            command = '';
-            if (agent_id) { command += agent_id+'>'; }
-            command += request.method;
-            command += ' '+request.uri;
-            if (request.accept) { command += ' ['+request.accept+']'; }
-        }*/
-
+    function Env__onRequestEvent(request, agent_id) {
         // get/create agent
-        var agent = Env.getAgent(agent_id);
-        if (!agent) { agent = Env.makeAgent(agent_id); }
+        var agent = Env.agents(agent_id);
 
         // run handler
-        agent.onrequest(request, agent.facade);
+        agent.onrequest(request, agent);
         // :TODO: addHistory?
     }
 
@@ -60,67 +51,51 @@ define(['link', 'notify', 'env/request-events', 'env/cli', 'env/html+json'], fun
         }
     }
 
-    // agent get
-    function Env__getAgent(id) {
-        if (id in this.agents) {
-            return this.agents[id];
-        }
+    // agent prototype
+    function Agent(id, elem) {
+        this.id = id;
+        this.elem = elem;
+        this.onrequest = __defhandleRequest;
     }
+    Agent.prototype.getBody = function Agent__getBody() { return this.elem; };
+    Agent.prototype.setRequestHandler = function Agent__setRequestHandler(handler) { this.onrequest = handler; };
+    Agent.prototype.getId = function Agent__getId() { return this.id; };
+    Agent.prototype.getUri = function Agent__getUri() { return this.id; };
+    Agent.prototype.defhandleRequest = function Agent__defhandleRequest(request) {
+        __defhandleRequest(request, this);
+    };
+    Agent.prototype.defhandleResponse = function Agent__defhandleResponse(response) {
+        __defhandleResponse(response, this);
+    };
+    Agent.prototype.dispatch = function Agent__dispatch() {
+        return Env.structure.dispatch.apply(Env.structure, arguments);
+    };
+    Agent.prototype.follow = function Agent__follow(request) { 
+        return Env__onRequestEvent.call(Env, request, this.id);
+    };
 
-    // agent create
-    function Env__makeAgent(id) {
-        // create agent object
-        id = id || __makeAgentId.call(this);
-        if (id in this.agents) {
-            return false;
+    // agent get/create
+    function Env__agentFactory(id, opt_nocreate) {
+        id = id || Env__makeAgentId.call(Env);
+        if (id in Env.agents) {
+            return Env.agents[id];
+        } else if (opt_nocreate) {
+            return null;
         }
-        var agent = {
-            id:id,
-            onrequest:__defhandleRequest,
-            elem:null,
-            programServer:null
-        };
-        agent.facade = __makeAgentFacade(agent, this.structure);
 
-        // set up DOM
-        var wrapper_elem = __makeAgentWrapperElem(id);
-        this.container_elem.insertBefore(wrapper_elem, this.container_elem.firstChild);
-
-        // set up request event listening
+        // add to DOM
+        var wrapper_elem = Env__makeAgentWrapperElem(id);
+        Env.container_elem.insertBefore(wrapper_elem, Env.container_elem.firstChild);
+        var body_elem = document.getElementById('agent-'+id+'-body');
         RequestEvents.observe(wrapper_elem, id);
-        agent.elem = document.getElementById('agent-'+id+'-body');
 
-        return (this.agents[id] = agent);
+        return (Env.agents[id] = new Agent(id, body_elem));
     }
     
     // generates an open id (numeric)
-    function __makeAgentId() {
+    function Env__makeAgentId() {
         for (var i=0; i < 100000; i++) { // high enough?
             if (!this.agents[i]) { return i; }
-        }
-    }
-
-    // creates a new facade object
-    function __makeAgentFacade(agent, structure) {
-        return {
-            getBody:function() { return agent.elem; },
-            setRequestHandler:function(handler) { agent.onrequest = handler; },
-            getId:function() { return agent.id; },
-            getUri:function() { return agent.id; },
-            defhandleRequest:function(request, agent_facade) { 
-                __defhandleRequest(request, agent_facade || agent.facade);
-            },
-            defhandleResponse:function(response) {
-                __defhandleResponse(response, agent.facade);
-            },
-            dispatch:function() { return structure.dispatch.apply(structure, arguments); },
-            follow:function(request) { return Env__onRequestEvent.call(Env, request, agent.id); },
-            attachServer:function(s) { 
-                agent.programServer = s;
-                structure.removeModules('/'+agent.id);
-                structure.addModule('/'+agent.id, s);
-            },
-            getServer:function() { return agent.programServer }
         }
     }
 
@@ -129,11 +104,8 @@ define(['link', 'notify', 'env/request-events', 'env/cli', 'env/html+json'], fun
         if (!(id in this.agents)) {
             return false;
         }
-        // remove DOM
         var wrapper_elem = document.getElementById('agent-'+id);
         wrapper_elem.parentNode.removeChild(wrapper_elem);
-        // remove program server
-        this.structure.removeModules('/'+id);
         // :TODO: call program die func?
         delete this.agents[id];
         return true;
@@ -141,7 +113,7 @@ define(['link', 'notify', 'env/request-events', 'env/cli', 'env/html+json'], fun
 
     // default request handler
     function __defhandleRequest(request, agent) {
-        agent.dispatch(request).then(agent.defhandleResponse);    
+        agent.dispatch(request).then(agent.defhandleResponse, agent);    
     }
     function __defhandleResponse(response, agent) {
         if (response.code == 204 || response.code == 205) { return; }
@@ -171,7 +143,7 @@ define(['link', 'notify', 'env/request-events', 'env/cli', 'env/html+json'], fun
     }
 
     // generates HTML for agents to work within
-    function __makeAgentWrapperElem(id) {
+    function Env__makeAgentWrapperElem(id) {
         var elem = document.createElement('div');
         elem.className = "agent";
         elem.id = "agent-"+id;

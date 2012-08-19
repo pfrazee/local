@@ -1,0 +1,28 @@
+body { font-size:15px; background:#FF9900; }
+a { color:#06c; }
+li, p { line-height:21px; }
+
+#lshui-env > div {
+    padding:8px 13px;
+    background:#fff;
+    box-shadow:0 0 6px rgba(0,0,0,0.8);
+    margin:6px;
+}
+
+.agent-titlebar {
+    font-size:14px;
+    margin-bottom:2px;
+    height:22px;
+    color:#bbb;
+}
+.agent-titlebar-ctrls { float:right }
+.agent-titlebar form { margin:0 }
+#lshui-env .collapsed { opacity:0.5 }
+#lshui-env .collapsed .agent-body { display:none }
+
+.notification-center {
+    top:40px
+}
+.notification {
+    height:auto !important
+}
