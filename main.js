@@ -8,7 +8,8 @@ var paths = [
     'link',
     'env/env',
     'env/cli',
-    'env/simple-agent-server'
+    'env/simple-agent-server',
+    'env/doclev'
 ];
 var def_module_count = paths.length;
 
