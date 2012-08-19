@@ -4,7 +4,7 @@
 
 LinkShUI is built for two reasons:
 
- 1. To give the user control over their Web applications
+ 1. To give the user more control over Web applications
  2. To compose applications in the browser using a [Service-Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture)
 
 It does that with [an Ajax library](//github.com/pfraze/linkjs) that allows Javascript modules in the document to respond to requests. That means that active programs can publish links which reflect their state: an inbox can serve `/messages/unread`, or text editor can serve `/lines/2-30`. This allows independent programs to communicate without tight coupling, much like STDIO does.
