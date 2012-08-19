@@ -12,13 +12,17 @@ var $prof = { // profile config vars
     def_request_method:'get',
     def_request_accept:'application/html+json'
 };
+var Promise = null; // promise constructor
 
 // make connections to program level
-require(['env/env'], function(Env) {
+require(['env/env', 'assets/js/link'], function(Env, Link) {
     Env.is_loaded.then(function() {
         $a = Env.agents;
         $a_cons = Env.AgentConstructor;
         $io = Env.structure;
+        Promise = Link.Promise;
+        Promise.when = Link.when; // :TODO: this smells
+        Promise.whenAll = Link.whenAll; // :TODO: also smells
         require_doclev(env_config.doclev);
     });
 });
@@ -35,5 +39,11 @@ function require_doclev(uri) {
     var script = document.createElement('script');
     script.type = 'text/javascript';
     script.src = uri;
+    var promise = new Promise();
+    script.onload = function() {
+        promise.fulfill(true);
+    };
     document.head.insertBefore(script, document.head.firstChild);
+
+    return promise;
 }
