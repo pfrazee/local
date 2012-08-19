@@ -4,12 +4,12 @@
 
 LinkShUI is built for two reasons:
 
- 1. To give the user more control over Web applications
- 2. To compose applications in the browser using a [Service-Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture)
+ 1. To create a uniform set of user controls over Web applications
+ 2. To enable runtime program composition from distributed resources using a [Service-Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture)
 
 It does that with [an Ajax library](//github.com/pfraze/linkjs) that allows Javascript modules in the document to respond to requests. That means that active programs can publish links which reflect their state: an inbox can serve `/messages/unread`, or text editor can serve `/lines/2-30`. This allows independent programs to communicate without tight coupling, much like STDIO does.
 
-The (unix-inspired) primary objective is to compose powerful behaviors using small programs. In this, it differs from a set of proxies on a remote host, which lack the run-time controls of a user-driven space. With a configurable resource architecture, LinkShUI hopes to maximise the use of components (local, network, cloud) according to only security and availability concerns - not connectivity or compatibility - thereby reducing IT costs. The goal is large, but the success and ubiquity of the HTTP service model gives the approach a strong head start.
+The (unix-inspired) primary objective is to compose powerful behaviors using small programs. In this, it differs from a set of proxies on a remote host, which lack the run-time controls of a user-driven space. With a configurable resource architecture, LinkShUI hopes to maximise the use of components (local, network, cloud) according to only security and availability concerns - not connectivity or compatibility - thereby reducing IT costs, and expanding the capacity of the user.
 
 #### &middot; [Intro Video](http://www.youtube.com/watch?v=CJLiAdYTDz8&feature=g-upl) &middot; [Blog](http://linkshui.com) &middot; [Some](http://linkshui.com/wp-content/uploads/2012/08/3.png) [Screen](http://linkshui.com/wp-content/uploads/2012/08/6.png) [Shots](http://linkshui.com/wp-content/uploads/2012/08/7.png) &middot; 
 
