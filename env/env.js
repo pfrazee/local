@@ -56,16 +56,25 @@ define(['link', 'notify', 'env/request-events', 'env/cli', 'env/html+json'], fun
         this.id = id;
         this.elem = elem;
         this.onrequest = __defhandleRequest;
+        this.program_server = null;
     }
     Agent.prototype.getBody = function Agent__getBody() { return this.elem; };
     Agent.prototype.setRequestHandler = function Agent__setRequestHandler(handler) { this.onrequest = handler; };
     Agent.prototype.getId = function Agent__getId() { return this.id; };
-    Agent.prototype.getUri = function Agent__getUri() { return this.id; };
+    Agent.prototype.getUri = function Agent__getUri(opt_leading) { return (opt_leading ? '/' : '') + this.id; };
+    Agent.prototype.getServer = function Agent__getServer() { return this.program_server; };
     Agent.prototype.defhandleRequest = function Agent__defhandleRequest(request) {
         __defhandleRequest(request, this);
     };
     Agent.prototype.defhandleResponse = function Agent__defhandleResponse(response) {
         __defhandleResponse(response, this);
+    };
+    Agent.prototype.attachServer = function Agent__attachServer(s) {
+        this.program_server = s;
+        Env.structure.removeModules(this.getUri(true));
+        if (s) {
+            Env.structure.addModule(this.getUri(true), s);
+        }
     };
     Agent.prototype.dispatch = function Agent__dispatch() {
         return Env.structure.dispatch.apply(Env.structure, arguments);
@@ -106,6 +115,7 @@ define(['link', 'notify', 'env/request-events', 'env/cli', 'env/html+json'], fun
         }
         var wrapper_elem = document.getElementById('agent-'+id);
         wrapper_elem.parentNode.removeChild(wrapper_elem);
+        this.agents[id].attachServer(null);
         // :TODO: call program die func?
         delete this.agents[id];
         return true;
