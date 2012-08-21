@@ -1,6 +1,7 @@
 require.config({
     paths:{
         link:'../assets/js/link',
+        // :TODO: should the 'assets' structure should be retired, or is it a good way to isolate 3rd-party packages?
         notify:'../assets/js/notify.min'
     }
 });

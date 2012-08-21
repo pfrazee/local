@@ -190,6 +190,12 @@ define(['link'], function(Link) {
         agent.attachServer(new InboxAS(agent));
         var server = agent.getServer();
 
+        // add links
+        agent.links.get = function(id, opt_agent) {
+            opt_agent = opt_agent || agent;
+            return opt_agent.follow({ method:'get', uri:agent.getUri()+'/'+id, accept:'application/html+json' });
+        };
+
         // get messages from all services
         services.forEach(function(service) {
             agent.dispatch(service.messagesLink).then(function(response) {

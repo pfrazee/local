@@ -8,9 +8,13 @@
     </head>
     
     <body>
-        <div id="lshui">
-            <div id="lshui-env"></div>
-        </div>
+        <table id="lshui-env">
+            <tr>
+                <td class="dropcolumn"></td>
+                <td class="defcolumn"><div class="dropzone"></div></td>
+                <td class="dropcolumn"></td>
+            </tr>
+        </table>
 
         <script>
             var env_config = {
@@ -21,12 +25,14 @@
                         uri:'/app/inbox', 
                         module:'pfraze/inbox', 
                         services:[
+                            //{ name:'@linkshui', uri:'http://linkshui.com:8600' },
                             { name:'Fixture', uri:'/serv/inbox/fixture' }
                         ]
                     },
                     { uri:'/app/statfeed', module:'pfraze/statfeed', service:{ uri:'/serv/statusnet/api' }},
                     { uri:'/app/cab', module:'pfraze/cabinet', service:{ uri:'/serv/files' }},
                     { uri:'/app/jeo', module:'wjosdejong/jsoneditor' },
+                    { uri:'/app/commander', module:'pfraze/commander' },
                     { uri:'/app/runbox', module:'pfraze/runbox' },
                     { uri:'/app/htmler', module:'pfraze/htmler' },
 
