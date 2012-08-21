@@ -57,6 +57,8 @@ define([
                     var dc2 = document.createElement('td');
                     dc2.classList.add('dropcolumn');
                     evt.target.parentNode.insertBefore(dc2, evt.target.nextSibling);
+                } else {
+                    target = evt.target.lastChild;
                 }
             }
             var agent = Env.agents(undefined, false, target);
