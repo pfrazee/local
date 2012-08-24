@@ -10,6 +10,7 @@ define(['./event-emitter'], function(EventEmitter) {
 
     // setup
     function RequestEvents__init() {
+        // :TODO: remove? merge with observe()?
     }
 
     // register a DOM element for observation
@@ -53,9 +54,19 @@ define(['./event-emitter'], function(EventEmitter) {
         RequestEvents__trackFormSubmitter(e.target, observed_elem);
         var request = RequestEvents__extractLinkFromAnchor(e.target, observed_elem);
         if (request) {
+            // interpret the target
+            // :NOTE: (this is the agent manager's job IMO, but only RequestEvents knows who '_self' is)
+            if (!request.target || request.target == '_self') {
+                request.target = agent_id;
+            } else if (request.target == '_parent' || request.target == '_top') {
+                return; // allow default behavior
+            } else if (request.target == '_blank') {
+                request.target = null; // new agent
+            }
+
             e.preventDefault();
             e.stopPropagation && e.stopPropagation();
-            RequestEvents.emitEvent('request', request, agent_id);
+            RequestEvents.emitEvent('request', request);
             return false;
         }
     }
@@ -64,11 +75,22 @@ define(['./event-emitter'], function(EventEmitter) {
         e.preventDefault();
         if (e.stopPropagation) { e.stopPropagation(); }
         var request = RequestEvents__extractLinkFromForm(e.target);
-        // Build the request
         if (request) {
-            RequestEvents.emitEvent('request', request, agent_id);
+            // interpret the target
+            // :NOTE: (this is the agent manager's job IMO, but only RequestEvents knows who '_self' is)
+            if (!request.target || request.target == '_self') {
+                request.target = agent_id;
+            } else if (request.target == '_parent' || request.target == '_top') {
+                return; // allow default behavior
+            } else if (request.target == '_blank') {
+                request.target = null; // new agent
+            }
+
+            e.preventDefault();
+            e.stopPropagation && e.stopPropagation();
+            RequestEvents.emitEvent('request', request);
+            return false;
         }
-        return false;
     }
 
     function RequestEvents__dragstartHandler(e, observed_elem, agent_id) {
@@ -96,9 +118,9 @@ define(['./event-emitter'], function(EventEmitter) {
             console.log('Bad data provided on RequestEvents drop handler', except, evt);
         }
 
-        var agent_id = RequestEvents__findOwningAgent(evt.target);
+        link.target = RequestEvents__findOwningAgent(evt.target);
 
-        RequestEvents.emitEvent('request', link, agent_id);
+        RequestEvents.emitEvent('request', link);
         return false;
     }
 
@@ -135,19 +157,21 @@ define(['./event-emitter'], function(EventEmitter) {
 
             var uri = node.attributes.href.value;
             var accept = node.getAttribute('type');
+            var target = node.getAttribute('target');
 
             if (uri == null || uri == '') { uri = '/'; }
             if (!accept) { accept = 'application/html+json'; }
+            if (!target) { target = '_self'; }
 
-            return { method:'get', uri:uri, accept:accept };
+            return { method:'get', uri:uri, accept:accept, target:target };
         }
         return null;
     }
 
     function RequestEvents__extractLinkFromForm(form) {
-        var target_uri, enctype, method;
+        var target_uri, enctype, method, target;
 
-        // :NOTE: a lot of default browser behaviour has to (?) be emulated here
+        // :NOTE: a lot of default browser behaviour has to (i think & wish otherwise) be emulated here
 
         // Serialize the data
         var data = {};
@@ -169,6 +193,7 @@ define(['./event-emitter'], function(EventEmitter) {
                 target_uri = elem.getAttribute('formaction');
                 enctype = elem.getAttribute('formenctype');
                 method = elem.getAttribute('formmethod');
+                target = elem.getAttribute('formtarget');
                 elem.setAttribute('submitter', '0');
             }
         }
@@ -177,6 +202,7 @@ define(['./event-emitter'], function(EventEmitter) {
         if (!target_uri) { target_uri = form.getAttribute('action'); }
         if (!enctype) { enctype = form.enctype; }
         if (!method) { method = form.getAttribute('method'); }
+        if (!target) { target = form.getAttribute('target'); }
 
         // Strip the base URI
         var base_uri = window.location.href.split('#')[0];
@@ -188,7 +214,8 @@ define(['./event-emitter'], function(EventEmitter) {
         var request = {
             method:method,
             uri:target_uri,
-            accept:'application/html+json'
+            accept:'application/html+json',
+            target:target
         };
         if (form.acceptCharset) { request.accept = form.acceptCharset; }
 

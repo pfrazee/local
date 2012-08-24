@@ -29,7 +29,7 @@ define([
         RequestEvents.addListener('request', Env__onRequestEvent, this);
         this.structure.addResponseListener(Env__onResponse, this);
 
-        // :TODO: move these as needed
+        // :TODO: move the dropzone stuff into another library
         document.body.addEventListener('drop', function(evt) {
             if (!evt.target.classList.contains('dropzone') && !evt.target.classList.contains('dropcolumn')) {
                 return;
@@ -62,8 +62,9 @@ define([
                 }
             }
             var agent = Env.agents(undefined, false, target);
+            link.target = agent.getId();
 
-            Env__onRequestEvent(link, agent.getId());
+            Env__onRequestEvent(link);
             return false;
         }, false);
         document.body.addEventListener('dragover', function(e) {
@@ -89,8 +90,8 @@ define([
         this.is_loaded.fulfill(true);
     }
 
-    function Env__onRequestEvent(request, agent_id) {
-        var agent = Env.agents(agent_id);
+    function Env__onRequestEvent(request) {
+        var agent = Env.agents(request.target);
         agent.onrequest(request, agent);
     }
 
@@ -134,12 +135,13 @@ define([
         return Env.structure.dispatch.apply(Env.structure, arguments);
     };
     Agent.prototype.follow = function Agent__follow(request) { 
-        return Env__onRequestEvent.call(Env, request, this.id);
+        request.target = this.id;
+        return Env__onRequestEvent.call(Env, request);
     };
 
     // agent get/create
     function Env__agentFactory(id, opt_nocreate, opt_before_elem) {
-        id = (typeof id != 'undefined') ? id : Env__makeAgentId.call(Env);
+        id = (id !== null && typeof id != 'undefined') ? id : Env__makeAgentId.call(Env);
         if (id in Env.agents) {
             return Env.agents[id];
         } else if (opt_nocreate) {
