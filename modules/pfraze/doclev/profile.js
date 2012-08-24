@@ -15,7 +15,7 @@ require([
     });
 
     // initial programs
-    load('app/statfeed','feed');
+    //load('app/statfeed','feed');
     load('app/inbox','mail');
 
 });

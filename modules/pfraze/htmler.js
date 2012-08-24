@@ -25,7 +25,7 @@ define(['link'], function(Link) {
     function setupHtmlerAgent(agent, response) {
         // render shell
         agent.getBody().innerHTML = '<h6>HTMLer</h6><hr/><div class="htmler"></div>';
-        var elem = agent.getBody().getElementsByClassName('htmler')[0];
+        var elem = agent.getBody().querySelector('.htmler');
 
         // intercept requests
         agent.setRequestHandler(function(req) {
