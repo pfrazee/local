@@ -109,8 +109,6 @@ define([
     function Agent(id, elem) {
         this.id = id;
         this.elem = elem;
-        function Links() {};
-        this.links = new Links();
         this.onrequest = __defhandleRequest;
         this.program_server = null;
     }
