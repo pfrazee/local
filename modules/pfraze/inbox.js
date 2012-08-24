@@ -221,18 +221,18 @@ define(['link'], function(Link) {
         // toolbar
         html += '<div class="inbox-toolbar">';
         html += '<form action="'+agent.getUri()+'/checked"><span class="btn-group">';
-        html += '<button class="btn tool-select" title="check '+agent.getUri()+'/all" formmethod="check" formaction="'+agent.getUri()+'/all"><i class="icon-check"></i> check</button>';
+        html += '<button class="btn tool-select" title="check '+agent.getUri()+'/all" formmethod="check" formaction="'+agent.getUri()+'/all" draggable="true"><i class="icon-check"></i> check</button>';
         html += '</span><span class="btn-group">';
-        html += '<button class="btn tool-markread" title="mark as read '+agent.getUri()+'/checked" formmethod="markread"><i class="icon-eye-open"></i> markread</button>';
-        html += '<button class="btn tool-markunread" title="mark unread '+agent.getUri()+'/checked" formmethod="markunread"><i class="icon-eye-close"></i> markunread</button>';
-        html += '<button class="btn tool-delete" title="delete '+agent.getUri()+'/checked" formmethod="delete"><i class="icon-trash" formmethod="delete"></i> delete</button>';
+        html += '<button class="btn tool-markread" title="mark as read '+agent.getUri()+'/checked" formmethod="markread" draggable="true"><i class="icon-eye-open"></i> markread</button>';
+        html += '<button class="btn tool-markunread" title="mark unread '+agent.getUri()+'/checked" formmethod="markunread" draggable="true"><i class="icon-eye-close"></i> markunread</button>';
+        html += '<button class="btn tool-delete" title="delete '+agent.getUri()+'/checked" formmethod="delete" draggable="true"><i class="icon-trash" formmethod="delete"></i> delete</button>';
         html += '</span></form>';
         html += '</div>';
 
         // composebar
         html += '<p> Compose: ';
         agent.services.forEach(function(serv) {
-            html += '<a href="'+serv.uri+'/new" title="compose message with '+serv.name+'"><span class="label label-info">'+serv.name+'</span></a> ';
+            html += '<a href="'+serv.uri+'/new" title="compose message with '+serv.name+'" target="_blank"><span class="label label-info">'+serv.name+'</span></a> ';
         });
         html += '</p>';
 
@@ -242,7 +242,7 @@ define(['link'], function(Link) {
             var date = new Date(m.date);
             var md = (date.getMonth()+1)+'/'+date.getDate()+'&nbsp;'+date.getHours()+':'+(date.getMinutes() < 10 ? '0' : '')+date.getMinutes();
             var trclass = (m.flags && !m.flags.seen ? 'unread' : '');
-            html += '<tr class="'+trclass+'"><td style="color:gray">'+(i+1)+'</td><td><input class="msg-checkbox" type="checkbox" /></td><td><span class="label">'+m.service+'</span></td><td><a href="'+m.uri+'">'+m.summary+'</a></td><td><span style="color:gray">'+md+'</span></td></tr>';
+            html += '<tr class="'+trclass+'"><td style="color:gray">'+(i+1)+'</td><td><input class="msg-checkbox" type="checkbox" /></td><td><span class="label">'+m.service+'</span></td><td><a href="'+m.uri+'" target="_blank">'+m.summary+'</a></td><td><span style="color:gray">'+md+'</span></td></tr>';
         });
         html += '</table>';
 

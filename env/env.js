@@ -246,6 +246,7 @@ define([
             '<div class="agent-titlebar">' +
                 '<form action="{{uri}}">' +
                     '<div class="agent-titlebar-ctrls btn-group">' +
+                        '<button class="btn btn-mini" title="move">&there4;</button>' +
                         '<button class="btn btn-mini btn-shutter" formmethod="min" title="collapse">_</button>' +
                         '<button class="btn btn-mini" formmethod="close" title="close">&times;</button>' +
                     '</div>' +
