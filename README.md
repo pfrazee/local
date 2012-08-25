@@ -2,22 +2,11 @@
 
 **An experimental operating environment for applications in the browser.**
 
-LinkShUI is built for two reasons:
+LinkShell gives users runtime control over the composition of Web-based programs. It does this by extending the [Service-Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture) into the document: [an Ajax library](//github.com/pfraze/linkjs) allows Javascript modules to respond to requests. Active programs publish links to behavior (`GET /messages`, `DELETE /lines/2-30`) and standard servers wrap client resources (the DOM, local storage, etc).
 
- 1. To create a uniform set of user controls over Web applications
- 2. To enable runtime program composition from distributed resources using a [Service-Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture)
-
-It does that with [an Ajax library](//github.com/pfraze/linkjs) that allows Javascript modules in the document to respond to requests. That means that active programs can publish links which reflect their state: an inbox can serve `/messages/unread`, or text editor can serve `/lines/2-30`. This allows independent programs to communicate without tight coupling, much like STDIO does.
-
-The (unix-inspired) primary objective is to compose powerful behaviors using small programs. In this, it differs from a set of proxies on a remote host, which lack the run-time controls of a user-driven space. With a configurable resource architecture, LinkShUI hopes to maximise the use of components (local, network, cloud) according to only security and availability concerns - not connectivity or compatibility - thereby reducing IT costs, and expanding the capacity of the user.
+The project objective is to compose behaviors using links (serialized requests) and small, isolated programs. In addition to the services system, LinkShell isolates the document into independent "agents" which are tasked with dispatching the user's requests and interpretting the responses. Programs loaded into the agents can use the traffic to populate its GUI, load new behaviors, or issue further requests.
 
 #### &middot; [Intro Video](http://www.youtube.com/watch?v=CJLiAdYTDz8&feature=g-upl) &middot; [Blog](http://linkshui.com) &middot; [Some](http://linkshui.com/wp-content/uploads/2012/08/3.png) [Screen](http://linkshui.com/wp-content/uploads/2012/08/6.png) [Shots](http://linkshui.com/wp-content/uploads/2012/08/7.png) &middot; 
-
-## How does it work?
-
-LinkShUI uses [RequireJS](http://requirejs.org) to load a configured set of server modules into a local URI space. Those modules then use an HTTP-like API called [LinkJS](http://github.com/pfraze/linkjs) to communicate with remote services, the environment, and each other. This allows the user to assemble Web applications using their personal software and any number of online services.
-
-![a clear explanation](http://linkshui.com/wp-content/uploads/2012/08/explanation1.png)
 
 ---
 
