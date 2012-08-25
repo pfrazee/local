@@ -37,16 +37,6 @@ Make sure .htaccess files are enabled and that the apache process-owner has read
 
 ### [LinkShUI Google Group](https://groups.google.com/forum/#!forum/linkshui)
 
-## Frequently Experienced Frustrations
-
-**Theres no per-agent history, you jerk.** Not yet. There is, however, command history with the up/down keys.
-
-**There's no pipe-and-filter, you jerk** Actually, there was once, and there may be one again, but I want to let the agent system mature a bit first. (Should they interpret every request? How would piping work then? You see what I mean.)
-
-**No auto-complete, no `ls` -- how am I supposed to discover the environment, you jerk?** Yeah, you kind of have to live with that for the moment. I want to get a feel for what's needed before I start forcing in a reflection system.
-
-**This thing is a far cry from a desktop environment, you jerk.** Yeah, it's not meant to be. LinkShUI is a configurable web application--it's just there to let you control what's inside the browser tab. Eventually, users will configure a bunch of different environments that they can open separately, but which can share remote resources. That way, 'shui can enforce agent layouts or server compositions that make sense for the application. You'll have your messaging environment, your coding environment, your news-feed environment... each in a different tab!
-
 ## License
 
 The MIT License (MIT)
