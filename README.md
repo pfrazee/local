@@ -31,48 +31,6 @@ Make sure .htaccess files are enabled and that the apache process-owner has read
 
 #### Instructions to set up webmail using postfix can be found in the [Maildir Service repository](https://github.com/pfraze/maildir-service).
 
-## Using the Shell
-
-To use LinkShUI effectively, you have to use the command-line. Its syntax builds HTTP requests which are issued on behalf of active agents in the environment. (Think of agents as sub-browsers in the browser.)
-
-```[ agent ">" ] [ method ] uri [ "[" content-type "]" ]```
-
-The default agent is '.'; the default method is 'get'; and the default content-type is 'application/html+json'. To help clarify this, here are some example commands:
-
-```
-agent1>get http://localhost/users [application/json]
-/agent1/more [text/html]
-close /agent1
-```
-
-All of the above are valid requests. If the receiving agent doesnt already exist, it will be created in the document. Every agent intercepts requests made on their behalf, then decides how to execute them. This is so they can interpret the request and its response. (For example, `pfraze/cabinet.js` -- a file browser -- interprets json to populate its GUI.)
-
-Agents also have the ability to serve their own resources. In that case, their URIs live under the agent name. (e.g. If `agent1` serves `/more` and `/less`, then those URIs would be found at `/agent1/more` and `/agent1/less`). This creates an interface for the user and other agents to run requests.
-
-A typical flow, then, would be to open a program under a named agent and begin interacting with that agent's resources. For instance:
-
-```
-m>/tools/inbox       -- tools/inbox refers to an in-browser server module
-check /m/1-5         -- issue a request with the "CHECK" method to messages 1-5
-markread /m/checked  -- mark the checked messages as "read"
-close /m             -- issue a "CLOSE" request to the m agent 
-```
-
-You can leave out the URI's leading slash, for convenience:
-
-```
-m>tools/inbox
-check m/1-5
-markread m/checked
-close m
-```
-
-The available requests depend entirely on the active programs. The only methods which can be universally expected are `close`, `min`, and `max`, which are provided by the evironment's core agent server.
-
-Notice that, in the above example, only the first request specifies a receiving agent. The remaining 3 default to the '.' agent, which tends to be replaced frequently while the user works. In the above example, none of the responses after the `tools/inbox` request were important to the user, so they were allowed to default to the '.' agent.
-
-If you need to get a better idea of how this works, [watch this demonstration of the shell](#TODO).
-
 ## Going From Here
 
 ### [Application Dev Wiki](https://github.com/pfraze/linkshui/wiki)
