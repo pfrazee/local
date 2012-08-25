@@ -47,6 +47,8 @@ define([
             agent_id = request.target;
         }
         // :TODO: _parent and _top
+        // strip params that aren't pertinent to the request
+        delete request.target;
 
         var agent = Env.agents(agent_id);
         agent.onrequest(request, agent);
@@ -97,20 +99,26 @@ define([
     };
 
     // agent get/create
+    // - `id` can be null/undefined to create a new agent with an assigned id
+    // - `id` can be the DOM node of the agent; if no agent exists there, it will be created
     function Env__agentFactory(id, opt_nocreate) {
-        id = (id !== null && typeof id != 'undefined') ? id : Env__makeAgentId.call(Env);
+        var given_elem;
+        if (id == null || typeof id == 'undefined') {
+            if (opt_nocreate) { return null; }
+            id = Env__makeAgentId.call(Env);
+        } else if (typeof id == 'object') {
+            if (id instanceof Node) { // dom element?
+                given_elem = id;
+                id = given_elem.id || Env__makeAgentId.call(Env);
+            } else {
+                return null;
+            }
+        }
         if (id in Env.agents) {
             return Env.agents[id];
-        } else if (opt_nocreate) {
-            return null;
         }
 
         // get/create element
-        var given_elem = document.getElementById(id);
-        if (given_elem) {
-            // use our own ID
-            id = Env__makeAgentId.call(Env);
-        } 
         var agent_elem = Env__makeAgentWrapperElem(id, given_elem);
         if (!given_elem) {
             // add to dom

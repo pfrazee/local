@@ -4,7 +4,6 @@ define(['env/event-emitter'], function(EventEmitter) {
         padAgent:Dropzones__padAgent,
         cleanup:Dropzones__cleanup
     };
-    var uid_counter = 0;
     EventEmitter.mixin(Dropzones);
     
     // setup
@@ -76,10 +75,9 @@ define(['env/event-emitter'], function(EventEmitter) {
 
         // create agent's future home
         var agent_elem = document.createElement('div');
-        agent_elem.id = 'unclaimed-agent-'+(uid_counter++);
         column.insertBefore(agent_elem, dropzone);
        
-        return agent_elem.id;
+        return agent_elem;
     }
 
     function Dropzones__padAgent(agent_elem) {

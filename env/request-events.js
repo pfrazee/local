@@ -120,7 +120,7 @@ define(['./event-emitter'], function(EventEmitter) {
     function RequestEvents__findOwningAgent(node) {
         while (node) {
             if (node.classList.contains('agent')) {
-                return node.id.substring(6); // agent-foobar -> foobar
+                return node;
             }
             node = node.parentNode;
         }
