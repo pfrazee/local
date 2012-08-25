@@ -54,19 +54,9 @@ define(['./event-emitter'], function(EventEmitter) {
         RequestEvents__trackFormSubmitter(e.target, observed_elem);
         var request = RequestEvents__extractLinkFromAnchor(e.target, observed_elem);
         if (request) {
-            // interpret the target
-            // :NOTE: (this is the agent manager's job IMO, but only RequestEvents knows who '_self' is)
-            if (!request.target || request.target == '_self') {
-                request.target = agent_id;
-            } else if (request.target == '_parent' || request.target == '_top') {
-                return; // allow default behavior
-            } else if (request.target == '_blank') {
-                request.target = null; // new agent
-            }
-
             e.preventDefault();
             e.stopPropagation && e.stopPropagation();
-            RequestEvents.emitEvent('request', request);
+            RequestEvents.emitEvent('request', request, agent_id);
             return false;
         }
     }
@@ -76,19 +66,9 @@ define(['./event-emitter'], function(EventEmitter) {
         if (e.stopPropagation) { e.stopPropagation(); }
         var request = RequestEvents__extractLinkFromForm(e.target);
         if (request) {
-            // interpret the target
-            // :NOTE: (this is the agent manager's job IMO, but only RequestEvents knows who '_self' is)
-            if (!request.target || request.target == '_self') {
-                request.target = agent_id;
-            } else if (request.target == '_parent' || request.target == '_top') {
-                return; // allow default behavior
-            } else if (request.target == '_blank') {
-                request.target = null; // new agent
-            }
-
             e.preventDefault();
             e.stopPropagation && e.stopPropagation();
-            RequestEvents.emitEvent('request', request);
+            RequestEvents.emitEvent('request', request, agent_id);
             return false;
         }
     }
@@ -120,7 +100,7 @@ define(['./event-emitter'], function(EventEmitter) {
 
         link.target = RequestEvents__findOwningAgent(evt.target);
 
-        RequestEvents.emitEvent('request', link);
+        RequestEvents.emitEvent('request', link, agent_id);
         return false;
     }
 

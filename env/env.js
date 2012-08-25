@@ -2,8 +2,9 @@ define([
     'link', 
     'notify',
     'env/request-events',
+    'env/dropzones',
     'env/html+json'
-], function(Link, NotificationCenter, RequestEvents, HtmlJson) {
+], function(Link, NotificationCenter, RequestEvents, Dropzones, HtmlJson) {
     var Env = {
         init:Env__init,
         agents:Env__agentFactory,
@@ -27,71 +28,27 @@ define([
 
         RequestEvents.init();
         RequestEvents.addListener('request', Env__onRequestEvent, this);
+        Dropzones.init();
+        Dropzones.addListener('request', Env__onRequestEvent, this);
         this.structure.addResponseListener(Env__onResponse, this);
-
-        // :TODO: move the dropzone stuff into another library
-        document.body.addEventListener('drop', function(evt) {
-            if (!evt.target.classList.contains('dropzone') && !evt.target.classList.contains('dropcolumn')) {
-                return;
-            }
-            evt.stopPropagation && evt.stopPropagation(); // no default behavior (redirects)
-
-            try {
-                var link = JSON.parse(evt.dataTransfer.getData('application/link+json'));
-            } catch (except) {
-                console.log('Bad data provided on RequestEvents drop handler', except, evt);
-            }
-
-            // create an agent now, so we can specify where it is made
-            var target = evt.target;
-            if (target.classList.contains('dropcolumn')) {
-                if (target.hasChildNodes() == false) {
-                    // we need a dropzone to act as the target
-                    target = document.createElement('div');
-                    target.classList.add('dropzone');
-                    evt.target.appendChild(target);
-                    // also, will need drop-columns around you
-                    var dc1 = document.createElement('td');
-                    dc1.classList.add('dropcolumn');
-                    evt.target.parentNode.insertBefore(dc1, evt.target);
-                    var dc2 = document.createElement('td');
-                    dc2.classList.add('dropcolumn');
-                    evt.target.parentNode.insertBefore(dc2, evt.target.nextSibling);
-                } else {
-                    target = evt.target.lastChild;
-                }
-            }
-            var agent = Env.agents(undefined, false, target);
-            link.target = agent.getId();
-
-            Env__onRequestEvent(link);
-            return false;
-        }, false);
-        document.body.addEventListener('dragover', function(e) {
-            e.preventDefault && e.preventDefault(); // dont cancel the drop
-            e.dataTransfer.dropEffect = 'link';
-            if (e.target.classList.contains('dropzone') || e.target.classList.contains('dropcolumn')) {
-                e.target.classList.add('request-hover');
-            }
-            return false;
-        }, false);
-        document.body.addEventListener('dragleave', function(e) {
-            Array.prototype.forEach.call(document.querySelectorAll('.dropcolumn, .dropzone'), function(dropzone) {
-                dropzone.classList.remove('request-hover');
-            });
-        }, false);
-        document.body.addEventListener('dragend', function(e) {
-            Array.prototype.forEach.call(document.querySelectorAll('.dropcolumn, .dropzone'), function(dropzone) {
-                dropzone.classList.remove('request-hover');
-            });
-        }, false);
 
         // send is_loaded signal
         this.is_loaded.fulfill(true);
     }
 
-    function Env__onRequestEvent(request) {
-        var agent = Env.agents(request.target);
+    function Env__onRequestEvent(request, org_agent_id) {
+        // figure out the target
+        var agent_id;
+        if (!request.target || request.target == '_self') {
+            agent_id = org_agent_id;
+        } else if (request.target == '_blank') {
+            agent_id = null; // new agent
+        } else {
+            agent_id = request.target;
+        }
+        // :TODO: _parent and _top
+
+        var agent = Env.agents(agent_id);
         agent.onrequest(request, agent);
     }
 
@@ -140,7 +97,7 @@ define([
     };
 
     // agent get/create
-    function Env__agentFactory(id, opt_nocreate, opt_before_elem) {
+    function Env__agentFactory(id, opt_nocreate) {
         id = (id !== null && typeof id != 'undefined') ? id : Env__makeAgentId.call(Env);
         if (id in Env.agents) {
             return Env.agents[id];
@@ -148,25 +105,21 @@ define([
             return null;
         }
 
-        // add to DOM
-        var wrapper_elem = Env__makeAgentWrapperElem(id);
-        opt_before_elem = opt_before_elem || Env.container_elem.querySelector('.defcolumn').firstChild;
-        opt_before_elem.parentNode.insertBefore(wrapper_elem, opt_before_elem);
+        // get/create element
+        var given_elem = document.getElementById(id);
+        if (given_elem) {
+            // use our own ID
+            id = Env__makeAgentId.call(Env);
+        } 
+        var agent_elem = Env__makeAgentWrapperElem(id, given_elem);
+        if (!given_elem) {
+            // add to dom
+            before_elem = Env.container_elem.querySelector('.defcolumn').firstChild;
+            before_elem.parentNode.insertBefore(agent_elem, before_elem);
+        }
         var body_elem = document.getElementById('agent-'+id+'-body');
-        RequestEvents.observe(wrapper_elem, id);
-
-        // pad with dropzones as needed
-        // :NOTE: dont get fancy yet -- this approach may not work
-        var pad = function(sibling) {
-            var attr = sibling + 'Sibling';
-            if (!wrapper_elem[attr] || !wrapper_elem[attr].classList.contains('dropzone')) {
-                var elem = document.createElement('div');
-                elem.className = "dropzone";
-                wrapper_elem.parentNode.insertBefore(elem, (sibling == 'next') ? wrapper_elem.nextSibling : wrapper_elem);
-            }
-        };
-        pad('prev');
-        pad('next');
+        RequestEvents.observe(agent_elem, id);
+        Dropzones.padAgent(agent_elem);
 
         return (Env.agents[id] = new Agent(id, body_elem));
     }
@@ -183,14 +136,10 @@ define([
         if (!(id in this.agents)) {
             return false;
         }
-        var wrapper_elem = document.getElementById('agent-'+id);
-        var column = wrapper_elem.parentNode;
-        column.removeChild(wrapper_elem.nextSibling); // remove dropzone
-        column.removeChild(wrapper_elem);
-        if (column.children.length == 1) { // just one item (dropzone) left?
-            column.parentNode.removeChild(column.nextSibling); // remove trailing dropcolumn
-            column.parentNode.removeChild(column); // remove trailing dropcolumn
-        }
+        var elem = document.getElementById('agent-'+id);
+        var dropzone = elem.previousSibling;
+        elem.parentNode.removeChild(elem);
+        Dropzones.cleanup(dropzone);
 
         this.agents[id].attachServer(null);
         delete this.agents[id];
@@ -230,9 +179,9 @@ define([
     }
     
     // generates HTML for agents to work within
-    function Env__makeAgentWrapperElem(id) {
+    function Env__makeAgentWrapperElem(id, elem) {
         // create div
-        var elem = document.createElement('div');
+        elem = elem || document.createElement('div');
         elem.className = "agent";
         elem.id = "agent-"+id;
         elem.innerHTML = agent_template_html
