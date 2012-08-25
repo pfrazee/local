@@ -27,34 +27,77 @@ define([
         Link.setTypeDecoder('application/html+json', HtmlJson.decode);
 
         RequestEvents.init();
-        RequestEvents.addListener('request', Env__onRequestEvent, this);
         Dropzones.init();
-        Dropzones.addListener('request', Env__onRequestEvent, this);
-        this.structure.addResponseListener(Env__onResponse, this);
+
+        document.body.addEventListener('request', Env__onRequestEvent);
+        document.body.addEventListener('response', Env__onResponseEvent);
+        this.structure.addResponseListener(Env__globalOnResponse, this); // :TODO: remove this whole mechanism
 
         // send is_loaded signal
         this.is_loaded.fulfill(true);
     }
 
-    function Env__onRequestEvent(request, org_agent_id) {
-        // figure out the target
+    function Env__onRequestEvent(e) {
+        var request = e.detail.request;
+
+        // figure out the agent
         var agent_id;
         if (!request.target || request.target == '_self') {
-            agent_id = org_agent_id;
+            // find parent agent
+            var node = e.target;
+            while (node) {
+                if (node.classList && node.classList.contains('agent')) {
+                    agent_id = node;
+                    break;
+                }
+                node = node.parentNode;
+            }
         } else if (request.target == '_blank') {
             agent_id = null; // new agent
         } else {
             agent_id = request.target;
         }
         // :TODO: _parent and _top
-        // strip params that aren't pertinent to the request
-        delete request.target;
 
         var agent = Env.agents(agent_id);
-        agent.onrequest(request, agent);
+        agent.follow(request, e.target);
+    }
+    
+    function Env__onResponseEvent(e) {
+        var request = e.detail.request;
+        var response = e.detail.response;
+        var agent = Env.agents(request.target, true);
+        if (!agent) {
+            throw "Agent not found in response event";
+        }
+
+        if (response.code == 204 || response.code == 205) { return; }
+
+        var body = response.body;
+        if (body) {
+            if (response['content-type'] == 'application/html+json') {
+                body = HtmlJson.toHtml(body);
+            } else {
+                // encode to a string
+                body = Link.encodeType(body, response['content-type']);
+                // escape so that html isnt inserted
+                body = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            }
+            agent.resetBody(); // refreshed state, lose all previous content and listeners
+            agent.getBody().innerHTML = body;
+        }
+
+        // run load script 
+        if (response['content-type'] == 'application/html+json') {
+            if (response.body._scripts && response.body._scripts.onload) {
+                var fns = response.body._scripts.onload;
+                if (!Array.isArray(fns)) { fns = [fns]; }
+                fns.forEach(function(fn) { fn(agent, response); });
+            }
+        }
     }
 
-    function Env__onResponse(response) {
+    function Env__globalOnResponse(response) {
         // notify user of any errors
         if (response.code >= 400) {
             var request = response.org_request;
@@ -69,20 +112,12 @@ define([
     function Agent(id, elem) {
         this.id = id;
         this.elem = elem;
-        this.onrequest = __defhandleRequest;
         this.program_server = null;
     }
     Agent.prototype.getBody = function Agent__getBody() { return this.elem; };
-    Agent.prototype.setRequestHandler = function Agent__setRequestHandler(handler) { this.onrequest = handler; };
     Agent.prototype.getId = function Agent__getId() { return this.id; };
     Agent.prototype.getUri = function Agent__getUri(opt_leading) { return (opt_leading ? '/' : '') + this.id; };
     Agent.prototype.getServer = function Agent__getServer() { return this.program_server; };
-    Agent.prototype.defhandleRequest = function Agent__defhandleRequest(request) {
-        __defhandleRequest(request, this);
-    };
-    Agent.prototype.defhandleResponse = function Agent__defhandleResponse(response) {
-        __defhandleResponse(response, this);
-    };
     Agent.prototype.attachServer = function Agent__attachServer(s) {
         this.program_server = s;
         Env.structure.removeModules(this.getUri(true));
@@ -93,9 +128,21 @@ define([
     Agent.prototype.dispatch = function Agent__dispatch() {
         return Env.structure.dispatch.apply(Env.structure, arguments);
     };
-    Agent.prototype.follow = function Agent__follow(request) { 
+    Agent.prototype.follow = function Agent__follow(request, emitter) { 
         request.target = this.id;
-        return Env__onRequestEvent.call(Env, request);
+        emitter = emitter || this.getBody();
+        this.dispatch(request).then(function(response) {
+            var re = new CustomEvent('response', { bubbles:true, cancelable:true, detail:{ request:request, response:response }});
+            emitter.dispatchEvent(re);
+        });
+    };
+    Agent.prototype.resetBody = function Agent__restBody() {
+        var p = this.elem.parentNode;
+        var n = document.createElement('div');
+        n.id = 'agent-'+this.id+'-body';
+        n.className = 'agent-body';
+        p.replaceChild(n, this.elem);
+        this.elem = n;
     };
 
     // agent get/create
@@ -109,7 +156,9 @@ define([
         } else if (typeof id == 'object') {
             if (id instanceof Node) { // dom element?
                 given_elem = id;
-                id = given_elem.id || Env__makeAgentId.call(Env);
+                id = (given_elem.id)
+                    ? given_elem.id.substr(6) // remove 'agent-'
+                    : Env__makeAgentId.call(Env);
             } else {
                 return null;
             }
@@ -126,8 +175,23 @@ define([
             before_elem.parentNode.insertBefore(agent_elem, before_elem);
         }
         var body_elem = document.getElementById('agent-'+id+'-body');
-        RequestEvents.observe(agent_elem, id);
         Dropzones.padAgent(agent_elem);
+
+        // drag/drop render-state managers
+        agent_elem.addEventListener('dragenter', function(e) {
+            agent_elem.classList.add('request-hover');
+        });
+        agent_elem.addEventListener('dragleave', function(e) {
+            // dragleave is fired on all children, so only pay attention if it dragleaves our region
+            var rect = agent_elem.getBoundingClientRect();
+            if (e.x >= (rect.left + rect.width) || e.x <= rect.left
+             || e.y >= (rect.top + rect.height) || e.y <= rect.top) {
+                agent_elem.classList.remove('request-hover');
+            }
+        });
+        agent_elem.addEventListener('drop', function(e) {
+            agent_elem.classList.remove('request-hover');
+        });
 
         return (Env.agents[id] = new Agent(id, body_elem));
     }
@@ -154,38 +218,7 @@ define([
 
         return true;
     }
-
-    // default request handler
-    function __defhandleRequest(request, agent) {
-        agent.dispatch(request).then(agent.defhandleResponse, agent);    
-    }
-    function __defhandleResponse(response, agent) {
-        if (response.code == 204 || response.code == 205) { return; }
-        // update dom 
-        var body = response.body;
-        if (body) {
-            if (response['content-type'] == 'application/html+json') {
-                body = HtmlJson.toHtml(body);
-            } else {
-                // encode to a string
-                body = Link.encodeType(body, response['content-type']);
-                // escape so that html isnt inserted
-                body = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            }
-            agent.getBody().innerHTML = body;
-            agent.setRequestHandler(__defhandleRequest); // state changed, reset handler
-        }
-
-        // run load script 
-        if (response['content-type'] == 'application/html+json') {
-            if (response.body._scripts && response.body._scripts.onload) {
-                var fns = response.body._scripts.onload;
-                if (!Array.isArray(fns)) { fns = [fns]; }
-                fns.forEach(function(fn) { fn(agent, response); });
-            }
-        }
-    }
-    
+        
     // generates HTML for agents to work within
     function Env__makeAgentWrapperElem(id, elem) {
         // create div

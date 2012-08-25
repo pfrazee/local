@@ -1,33 +1,34 @@
-define(['env/event-emitter'], function(EventEmitter) {
+define(function() {
     var Dropzones = {
         init:Dropzones__init,
         padAgent:Dropzones__padAgent,
         cleanup:Dropzones__cleanup
     };
-    EventEmitter.mixin(Dropzones);
     
     // setup
     function Dropzones__init() {
-        document.body.addEventListener('drop', Dropzones__onDrop, false);
-        document.body.addEventListener('dragover', Dropzones__onDragover, false);
-        document.body.addEventListener('dragleave', Dropzones__onStopdrag, false);
-        document.body.addEventListener('dragend', Dropzones__onStopdrag, false);
+        document.body.addEventListener('drop', Dropzones__onDrop);
+        document.body.addEventListener('dragover', Dropzones__onDragover);
+        document.body.addEventListener('dragleave', Dropzones__onStopdrag);
+        document.body.addEventListener('dragend', Dropzones__onStopdrag);
     }
     
     function Dropzones__onDrop(evt) {
         if (!evt.target.classList.contains('dropzone') && !evt.target.classList.contains('dropcolumn')) {
             return;
         }
-        evt.stopPropagation && evt.stopPropagation(); // no default behavior (redirects)
+        evt.stopPropagation(); // no default behavior (redirects)
+        evt.preventDefault();
 
         try {
-            var link = JSON.parse(evt.dataTransfer.getData('application/link+json'));
+            var request = JSON.parse(evt.dataTransfer.getData('application/link+json'));
         } catch (except) {
-            console.log('Bad data provided on RequestEvents drop handler', except, evt);
+            console.log('Bad data provided on Dropzones drop handler', except, evt);
         }
 
-        link.target = Dropzones__prepareDropTarget(evt.target);
-        Dropzones.emitEvent('request', link);
+        request.target = Dropzones__prepareDropTarget(evt.target);
+        var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:{ request:request }});
+        request.target.dispatchEvent(re);
         return false;
     }
 

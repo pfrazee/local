@@ -1,82 +1,46 @@
-define(['./event-emitter'], function(EventEmitter) {
+define(function() {
     // Request Events
     // ==============
     // observes given elemnts and converts DOM events into linkjs requests
     var RequestEvents = {
-        init:RequestEvents__init,
-        observe:RequestEvents__observe
+        init:RequestEvents__init
     };
-    EventEmitter.mixin(RequestEvents);
 
     // setup
     function RequestEvents__init() {
-        // :TODO: remove? merge with observe()?
+        document.body.addEventListener('click', RequestEvents__clickHandler);
+        document.body.addEventListener('submit', RequestEvents__submitHandler);
+        document.body.addEventListener('dragstart', RequestEvents__dragstartHandler);
+        document.body.addEventListener('drop', RequestEvents__dropHandler);
     }
 
-    // register a DOM element for observation
-    function RequestEvents__observe(elem, agent_id) {
-        elem.addEventListener('click', function(e) {
-            return RequestEvents__clickHandler(e, elem, agent_id);
-        });
-        elem.addEventListener('submit', function(e) {
-            return RequestEvents__submitHandler(e, agent_id);
-        });
-        elem.addEventListener('dragstart', function(e) {
-            return RequestEvents__dragstartHandler(e, elem, agent_id);
-        }, false);
-        elem.addEventListener('drop', function(e) {
-            return RequestEvents__dropHandler(e, elem, agent_id);
-        }, false);
-
-        // DnD render-state managers
-        elem.addEventListener('dragenter', function(e) {
-            elem.classList.add('request-hover');
-        }, false);
-        elem.addEventListener('dragover', function(e) {
-            e.preventDefault && e.preventDefault(); // dont cancel the drop
-            e.dataTransfer.dropEffect = 'link';
-            return false;
-        }, false);
-        elem.addEventListener('dragleave', function(e) {
-            // dragleave is fired on all children, so only pay attention if it dragleaves our region
-            var rect = elem.getBoundingClientRect();
-            if (e.x >= (rect.left + rect.width) || e.x <= rect.left
-             || e.y >= (rect.top + rect.height) || e.y <= rect.top) {
-                elem.classList.remove('request-hover');
-            }
-        }, false);
-        elem.addEventListener('dragend', function(e) {
-            elem.classList.remove('request-hover');
-        }, false);
-    }
-
-    function RequestEvents__clickHandler(e, observed_elem, agent_id) {
-        RequestEvents__trackFormSubmitter(e.target, observed_elem);
-        var request = RequestEvents__extractLinkFromAnchor(e.target, observed_elem);
+    function RequestEvents__clickHandler(e) {
+        RequestEvents__trackFormSubmitter(e.target);
+        var request = RequestEvents__extractLinkFromAnchor(e.target);
         if (request) {
             e.preventDefault();
-            e.stopPropagation && e.stopPropagation();
-            RequestEvents.emitEvent('request', request, agent_id);
+            e.stopPropagation();
+            var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:{ request:request }});
+            e.target.dispatchEvent(re);
             return false;
         }
     }
 
-    function RequestEvents__submitHandler(e, agent_id) {
-        e.preventDefault();
-        if (e.stopPropagation) { e.stopPropagation(); }
+    function RequestEvents__submitHandler(e) {
         var request = RequestEvents__extractLinkFromForm(e.target);
         if (request) {
             e.preventDefault();
-            e.stopPropagation && e.stopPropagation();
-            RequestEvents.emitEvent('request', request, agent_id);
+            e.stopPropagation();
+            var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:{ request:request }});
+            e.target.dispatchEvent(re);
             return false;
         }
     }
 
-    function RequestEvents__dragstartHandler(e, observed_elem, agent_id) {
+    function RequestEvents__dragstartHandler(e) {
         e.dataTransfer.effectAllowed = 'none'; // allow nothing unless there's a valid link
         var link = null, elem = e.srcElement;
-        RequestEvents__trackFormSubmitter(elem, observed_elem);
+        RequestEvents__trackFormSubmitter(elem);
         if (elem.tagName == 'A') {
             link = RequestEvents__extractLinkFromAnchor(elem);
         } else if (elem.form) {
@@ -88,24 +52,26 @@ define(['./event-emitter'], function(EventEmitter) {
         }
     }
 
-    function RequestEvents__dropHandler(evt, observed_elem, agent_id) {
-        evt.stopPropagation && evt.stopPropagation(); // no default behavior (redirects)
-        observed_elem.classList.remove('request-hover');
+    function RequestEvents__dropHandler(evt) {
+        evt.stopPropagation(); // no default behavior (redirects)
 
         try {
-            var link = JSON.parse(evt.dataTransfer.getData('application/link+json'));
+            var request = JSON.parse(evt.dataTransfer.getData('application/link+json'));
         } catch (except) {
             console.log('Bad data provided on RequestEvents drop handler', except, evt);
         }
 
-        link.target = RequestEvents__findOwningAgent(evt.target);
+        // drag/drop is basically a dynamic target attribute
+        request.target = RequestEvents__findOwningAgent(evt.target);
+        if (request.target == null) { return; } // dont handle without an existing context so that dropzones can instead
 
-        RequestEvents.emitEvent('request', link, agent_id);
+        var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:{ request:request }});
+        evt.target.dispatchEvent(re);
         return false;
     }
 
-    function RequestEvents__trackFormSubmitter(node, observed_elem) {
-        while (node && node != observed_elem) {
+    function RequestEvents__trackFormSubmitter(node) {
+        while (node && node.classList && node.classList.contains('agent') == false) {
             if (node.form) {
                 for (var i=0; i < node.form.length; i++) {
                     node.form[i].setAttribute('submitter', null); // clear the others out, to be safe
@@ -119,7 +85,7 @@ define(['./event-emitter'], function(EventEmitter) {
 
     function RequestEvents__findOwningAgent(node) {
         while (node) {
-            if (node.classList.contains('agent')) {
+            if (node.classList && node.classList.contains('agent')) {
                 return node;
             }
             node = node.parentNode;
@@ -127,8 +93,8 @@ define(['./event-emitter'], function(EventEmitter) {
         return null;
     }
 
-    function RequestEvents__extractLinkFromAnchor(node, observed_elem) {
-        while (node && node != observed_elem) {
+    function RequestEvents__extractLinkFromAnchor(node) {
+        while (node && node.classList && node.classList.contains('agent') == false) {
             // filter to the link in this element stack
             if (node.tagName != 'A') { 
                 node = node.parentNode;
@@ -151,7 +117,7 @@ define(['./event-emitter'], function(EventEmitter) {
     function RequestEvents__extractLinkFromForm(form) {
         var target_uri, enctype, method, target;
 
-        // :NOTE: a lot of default browser behaviour has to (i think & wish otherwise) be emulated here
+        // :NOTE: a lot of default browser behaviour has to (i think) be emulated here
 
         // Serialize the data
         var data = {};
