@@ -82,6 +82,9 @@ define(function() {
     }
 
     function Dropzones__padAgent(agent_elem) {
+        if (agent_elem.parentNode.classList.contains('dropcolumn') == false) {
+            return; // leave subagents alone
+        }
         // make sure it has a dropzone above it
         if (!agent_elem.prevSibling || !agent_elem.prevSibling.classList.contains('dropzone')) {
             var dropzone = document.createElement('div');
