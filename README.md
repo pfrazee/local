@@ -2,6 +2,11 @@
 
 **An experimental operating environment for applications in the browser.**
 
+ - Runs multiple programs in a shared tab environment (with security policies & sandboxing on the way)
+ - Uses a client/server, RESTful messaging system between browser components, inspired by Plan9's 9P file system
+ - Drag-and-drop commands: pick up a link and give it to a program to follow and interpret
+ - Works in recent builds of Chrome, probably also Firefox.
+
 LinkShell gives users runtime control over the composition of Web-based programs. It does this by extending the [Service-Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture) into the document: [an Ajax library](//github.com/pfraze/linkjs) allows Javascript modules to respond to requests. Active programs publish links to behavior (`GET /messages`, `DELETE /lines/2-30`) and standard servers wrap client resources (the DOM, local storage, etc).
 
 The project objective is to compose behaviors using links (serialized requests) and small, isolated programs. In addition to the services system, LinkShell isolates the document into independent "agents" which are tasked with dispatching the user's requests and interpretting the responses. Programs loaded into the agents can use the traffic to populate its GUI, load new behaviors, or issue further requests.
