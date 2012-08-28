@@ -1,4 +1,4 @@
-![LinkShUI](http://linkshui.com/wp-content/uploads/2012/08/lshui_logo.png)
+![LinkShell UI](http://linkshui.com/wp-content/uploads/2012/08/lshui_logo.png)
 
 **An experimental operating environment for applications in the browser.**
 
@@ -11,36 +11,25 @@ LinkShell gives users runtime control over the composition of Web-based programs
 
 The project objective is to compose behaviors using links (serialized requests) and small, isolated programs. In addition to the services system, LinkShell isolates the document into independent "agents" which are tasked with dispatching the user's requests and interpretting the responses. Programs loaded into the agents can use the traffic to populate its GUI, load new behaviors, or issue further requests.
 
-#### &middot; [Intro Video](http://www.youtube.com/watch?v=CJLiAdYTDz8&feature=g-upl) &middot; [Blog](http://linkshui.com) &middot; [Some](http://linkshui.com/wp-content/uploads/2012/08/3.png) [Screen](http://linkshui.com/wp-content/uploads/2012/08/6.png) [Shots](http://linkshui.com/wp-content/uploads/2012/08/7.png) &middot; 
+### [Social Computing](https://github.com/pfraze/linkshui/wiki/Social-Computing): a fullyer project description
 
 ---
 
-*LinkShUI is in early beta, so expect API and runtime instability. These instructions are geared toward developers who wish to experiment with the software and possibly build their own modules and services.*
+*LinkShell is in early beta, so expect API and runtime instability. These instructions are geared toward developers who wish to experiment with the software and possibly build their own modules and services.*
 
 ---
 
 ## Getting Started
 
-The application is a directory of static assets which can be served directly by Apache. All in-browser servers (the JS modules) should work out of the box: just check out into a served directory and load it in your browser.
+The application is a directory of static assets which can be served by Apache. LinkShell will eventually use a configuration-package system for users to create and distrubute environments. At this stage in development, it stores a single config object within `index.html`.
 
-LinkShUI will eventually use a configuration-package system for users to create and distrubute environments. At this stage in development, it stores a single config object within `index.html`.
-
-
-## Remote Services
-
-LinkShUI includes a proxy script at `/serv/proxy.php` to get around CORS. Of course, if a target service in another domain offers a [permissive CORS policy](https://www.google.com/search?q=CORS+ajax), the proxy shouldnt be necessary.
-
-The /serv directory provides a simple routing system (via mod_rewrite and `index.php`) for PHP web services. The repository currently includes `files.php` which serves everything under `/serv/_files/` with GET and PUT methods. `index.php` will route all requests targetting `/serv/files/*` to that script.
+LinkShell includes a proxy script at `/serv/proxy.php` to get around CORS in debugging. Of course, if a target service in another domain offers a [permissive CORS policy](https://www.google.com/search?q=CORS+ajax), the proxy shouldnt be necessary.
 
 Make sure .htaccess files are enabled and that the apache process-owner has read/write permissions to `/serv/_files`. Also, if you have problems with the proxy, try adding `php_flag display_errors off` to the .htaccess file.
 
 #### Instructions to set up webmail using postfix can be found in the [Maildir Service repository](https://github.com/pfraze/maildir-service).
 
-## Going From Here
-
-### [Application Dev Wiki](https://github.com/pfraze/linkshui/wiki)
-
-### [LinkShUI Google Group](https://groups.google.com/forum/#!forum/linkshui)
+## [Application Dev Wiki](https://github.com/pfraze/linkshui/wiki)
 
 ## License
 
