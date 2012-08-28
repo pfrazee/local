@@ -11,7 +11,7 @@ LinkShell gives users runtime control over the composition of Web-based programs
 
 The project objective is to compose behaviors using links (serialized requests) and small, isolated programs. In addition to the services system, LinkShell isolates the document into independent "agents" which are tasked with dispatching the user's requests and interpretting the responses. Programs loaded into the agents can use the traffic to populate its GUI, load new behaviors, or issue further requests.
 
-### [Social Computing](https://github.com/pfraze/linkshui/wiki/Social-Computing): a fullyer project description
+### [Read a more detailed project description here](https://github.com/pfraze/linkshui/wiki/Social-Computing)
 
 ---
 
