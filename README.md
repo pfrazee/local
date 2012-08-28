@@ -1,35 +1,29 @@
 ![LinkShell UI](http://linkshui.com/wp-content/uploads/2012/08/lshui_logo.png)
 
-**An experimental operating environment for applications in the browser.**
+LinkShell is a research project to build a more complete HTML5 connectivity toolset. It is designed to:
 
- - Runs multiple programs in a shared tab environment (with security policies & sandboxing on the way)
- - Uses a client/server, RESTful messaging system between browser components, inspired by Plan9's 9P file system
- - Drag-and-drop commands: pick up a link and give it to a program to follow and interpret
- - Works in recent builds of Chrome, probably also Firefox.
+ - Sandbox applications within a shared document
+ - Structure safe interactions between isolated applications
+ - Connect remote services through the browser session without exposing them to each other
+ - Provide a powerful UI for dynamically configuring sessions between applications and services
 
-LinkShell gives users runtime control over the composition of Web-based programs. It does this by extending the [Service-Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture) into the document: [an Ajax library](//github.com/pfraze/linkjs) allows Javascript modules to respond to requests. Active programs publish links to behavior (`GET /messages`, `DELETE /lines/2-30`) and standard servers wrap client resources (the DOM, local storage, etc).
+LinkShell works by extending the [Service-Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture) into the document: [an Ajax library](//github.com/pfraze/linkjs) allows Javascript modules to respond to requests. It then sandboxes portions of the document into Agents which run applications and manage connectivity to remote services.
 
-The project objective is to compose behaviors using links (serialized requests) and small, isolated programs. In addition to the services system, LinkShell isolates the document into independent "agents" which are tasked with dispatching the user's requests and interpretting the responses. Programs loaded into the agents can use the traffic to populate its GUI, load new behaviors, or issue further requests.
+The Agents are simultaneously clients and servers. As clients, they give interfaces to their applications. They may provide inboxes, calendars, editors, widgets, and so on. As servers, they serve the resources to their application. If the Agent's application is to provide a runtime tool like a text editor, its server will host resources like `/lines/2-30` and `/revisions`. If the Agent's application is to control connectivity to a service like email or facebook, its server will host resources like `/messages`.
 
-### [Read a more detailed project description here](https://github.com/pfraze/linkshui/wiki/Social-Computing)
+This mechanism allows agents to mask remote services from each other. Rather than connecting to `gmail.com`, programs talk to the "mail" agent at `/mail`. The mail agent server will route the message to gmail, and its client interface will give the user chances to modify or approve the transaction if needed. Policies are set on each agent to control the software they can load and which agents can talk to them. If the user wants to be completely safe, they can just close the mail agent.
+
+This approach helps the user get a strong view of the environment's composition, as the presence and state of an agent determines the system's behavior. When connectivity needs to change, the user can load a new program into the agent, or alter the settings of an existing program. For instance, a user could switch between home and work scheduling by loading the office's excel program into the calendar agent. He could work with both by creating a duplicate agent (say, calendar2) and loading them with home and work respectively.
+
+Agents are allowed to create subagents which they control through policies and some limited APIs. This allows agent clients and servers to be composed of multiple independent programs. This can serve to contain complexity if there are many similar services (for instance, 15 messengers) that can be merged into one. It can also help build dynamic tools, as the user can drag in the interfaces they need.
+
+Drag-and-drop is, currently, the dominant user interaction. Links and form buttons are dragged to the agents which are meant to execute the request and interpret the response. This allows for dynamic configuration between programs as the user directs them to consume services from each other.
 
 ---
 
-*LinkShell is in early beta, so expect API and runtime instability. These instructions are geared toward developers who wish to experiment with the software and possibly build their own modules and services.*
+*LinkShell is in early beta, so expect runtime, API, and design instability.*
 
 ---
-
-## Getting Started
-
-The application is a directory of static assets which can be served by Apache. LinkShell will eventually use a configuration-package system for users to create and distrubute environments. At this stage in development, it stores a single config object within `index.html`.
-
-LinkShell includes a proxy script at `/serv/proxy.php` to get around CORS in debugging. Of course, if a target service in another domain offers a [permissive CORS policy](https://www.google.com/search?q=CORS+ajax), the proxy shouldnt be necessary.
-
-Make sure .htaccess files are enabled and that the apache process-owner has read/write permissions to `/serv/_files`. Also, if you have problems with the proxy, try adding `php_flag display_errors off` to the .htaccess file.
-
-#### Instructions to set up webmail using postfix can be found in the [Maildir Service repository](https://github.com/pfraze/maildir-service).
-
-## [Application Dev Wiki](https://github.com/pfraze/linkshui/wiki)
 
 ## License
 
