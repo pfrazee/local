@@ -1,21 +1,18 @@
-![LinkShell UI](http://linkshui.com/wp-content/uploads/2012/08/lshui_logo.png)
+LinkShell is a research project to build a more complete HTML5 operating environment. Its goals are to:
 
-LinkShell is a research project to build a more complete HTML5 connectivity toolset. It is designed to:
-
- - Sandbox applications within a shared document
- - Structure safe interactions between isolated applications
+ - Structure safe interactions between isolated applications within a shared document
  - Connect remote services through the browser session without exposing them to each other
- - Provide a powerful UI for dynamically configuring sessions between applications and services
+ - Provide an simple & powerful interface for managing sessions and composing application behavior
 
 LinkShell works by extending the [Service-Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture) into the document: [an Ajax library](//github.com/pfraze/linkjs) allows Javascript modules to respond to requests. It then sandboxes portions of the document into Agents which run applications and manage connectivity to remote services.
 
-The Agents are simultaneously clients and servers. As clients, they give interfaces to their applications. They may provide inboxes, calendars, editors, widgets, and so on. As servers, they serve the resources to their application. If the Agent's application is to provide a runtime tool like a text editor, its server will host resources like `/lines/2-30` and `/revisions`. If the Agent's application is to control connectivity to a service like email or facebook, its server will host resources like `/messages`.
+The Agents are simultaneously clients and servers. As clients, they give interfaces to their applications. They may provide inboxes, calendars, editors, widgets, and so on. As servers, they serve the resources to their application and the environment. If the Agent's application is to provide a runtime tool like a text editor, its server will host resources like `/lines/2-30` and `/revisions`. If the Agent's application is to control connectivity to a service like email or facebook, its server will host proxies to resources like `/messages`. In practice, most servers will be some hybrid of local data & remote proxies.
 
-This mechanism allows agents to mask remote services from each other. Rather than connecting to `gmail.com`, programs talk to the "mail" agent at `/mail`. The mail agent server will route the message to gmail, and its client interface will give the user chances to modify or approve the transaction if needed. Policies are set on each agent to control the software they can load and which agents can talk to them. If the user wants to be completely safe, they can just close the mail agent.
+This mechanism allows agents to mask remote services from each other. Rather than connecting to `gmail.com`, programs talk to the "mail" agent at `/mail`. The mail agent server will route the message to gmail, and its client interface will give the user chances to modify or approve the transaction if needed. Policies are set on each agent to control the software they load and which agents can talk to them. If the user wants to shut down all email, they can just close the mail agent.
 
-This approach helps the user get a strong view of the environment's composition, as the presence and state of an agent determines the system's behavior. When connectivity needs to change, the user can load a new program into the agent, or alter the settings of an existing program. For instance, a user could switch between home and work scheduling by loading the office's outlook program into the calendar agent. He could work with both by creating a duplicate agent (say, calendar2) and loading them with home and work respectively.
+This approach helps the user get a direct view of the environment's composition, as the presence and state of an agent determines the system's behavior. When connectivity needs to change, the user can load a new program into the agent, or alter the settings of an existing program. For instance, a user could switch from home to work scheduling by loading the office's outlook program into the calendar agent.
 
-Agents are allowed to create subagents which they control through policies and some limited APIs. This allows agent clients and servers to be composed of multiple independent programs. This can serve to contain complexity if there are many similar services (for instance, 15 messengers) that can be merged into one. It can also help build dynamic tools, as the user can drag in the interfaces they need.
+Agents are allowed to create subagents which they control through policies and some limited APIs. This allows agent clients and servers to be composed of multiple independent programs, which contains complexity if there are many similar services (for instance, 15 messengers) that can be merged into one. It can also help build dynamic tools, as the user can drag in the interfaces they need.
 
 Drag-and-drop is, currently, the dominant user interaction. Links and form buttons are dragged to the agents which are meant to execute the request and interpret the response. This allows for dynamic configuration between programs as the user directs them to consume services from each other.
 
