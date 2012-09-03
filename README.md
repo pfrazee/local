@@ -1,6 +1,6 @@
 ## LinkShell
 
-LinkShell is a research project to build a more complete HTML5 operating environment. Its goals are to:
+LinkShell is an attempt to build a more complete HTML5 operating environment. Its goals are to:
 
  - Structure safe interactions between isolated applications within a shared document
  - Connect remote services through the browser session without exposing them to each other
@@ -8,7 +8,7 @@ LinkShell is a research project to build a more complete HTML5 operating environ
 
 LinkShell works by extending the [Service-Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture) into the document: [an Ajax library](//github.com/pfraze/linkjs) allows Javascript modules to respond to requests. It then sandboxes portions of the document into Agents which run applications and manage connectivity to remote services.
 
-The Agents are simultaneously clients and servers. As clients, they give interfaces to their applications. They may provide inboxes, calendars, editors, widgets, and so on. As servers, they serve the resources to their application and the environment. If the Agent's application is to provide a runtime tool like a text editor, its server will host resources like `/lines/2-30` and `/revisions`. If the Agent's application is to control connectivity to a service like email or facebook, its server will host proxies to resources like `/messages`. In practice, most servers will be some hybrid of local data & remote proxies.
+The Agents are simultaneously clients and servers. As clients, they give interfaces to their applications. They may provide inboxes, calendars, editors, widgets, and so on. As servers, they serve the resources to their application and the environment. If the Agent's application is to provide a runtime tool like a text editor, its server will host resources like `/lines/2-30` and `/revisions`. If the Agent's application is to control connectivity to a service like email or facebook, its server will host proxies with resources like `/messages`. In practice, most servers will be some hybrid of local state & remote proxies.
 
 This mechanism allows agents to mask remote services from each other. Rather than connecting to `gmail.com`, programs talk to the "mail" agent at `/mail`. The mail agent server will route the message to gmail, and its client interface will give the user chances to modify or approve the transaction if needed. Policies are set on each agent to control the software they load and which agents can talk to them. If the user wants to shut down all email, they can just close the mail agent.
 
