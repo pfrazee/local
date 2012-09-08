@@ -1,7 +1,7 @@
-define(function() {
+var RequestEvents = (function() {
     // Request Events
     // ==============
-    // observes given elemnts and converts DOM events into linkjs requests
+    // converts DOM events into linkjs request events
     var RequestEvents = {
         init:RequestEvents__init
     };
@@ -106,7 +106,6 @@ define(function() {
             var target = node.getAttribute('target');
 
             if (uri == null || uri == '') { uri = '/'; }
-            if (!accept) { accept = 'application/html+json'; }
             if (!target) { target = '_self'; }
 
             return { method:'get', uri:uri, accept:accept, target:target };
@@ -160,7 +159,6 @@ define(function() {
         var request = {
             method:method,
             uri:target_uri,
-            accept:'application/html+json',
             target:target
         };
         if (form.acceptCharset) { request.accept = form.acceptCharset; }
@@ -184,4 +182,4 @@ define(function() {
     }
 
     return RequestEvents;
-});
+})();

@@ -1,37 +1,32 @@
-define([
-    'link', 
-    'notify',
-    'env/request-events',
-    'env/dropzones',
-    'env/html+json'
-], function(Link, NotificationCenter, RequestEvents, Dropzones, HtmlJson) {
+var Env = (function() {
+    // Env
+    // ===
+    // corrals the agents and HTTP traffic
     var Env = {
         init:Env__init,
-        agents:Env__agentFactory,
+        getAgent:Env__getAgent,
+        makeAgent:Env__makeAgent,
         killAgent:Env__killAgent,
-        AgentConstructor:Agent,
-        structure:null, // linkjs uri structure
+
+        io:null, // linkjs uri structure
+        agents:{},
         container_elem:null, 
         nc:null, // notifications center (plugin to raise alerts)
         is_loaded:new Link.Promise()
     };
     
     // setup
-    function Env__init(structure, container_elem_id) {
-        // Init attributes
-        this.structure = structure;
+    function Env__init(io, container_elem_id) {
+        this.io = io;
         this.container_elem = document.getElementById(container_elem_id);
-        this.nc = new NotificationCenter();
-
-        Link.setTypeEncoder('application/html+json', HtmlJson.encode);
-        Link.setTypeDecoder('application/html+json', HtmlJson.decode);
+        this.nc = new notificationCenter();
 
         RequestEvents.init();
         Dropzones.init();
 
         document.body.addEventListener('request', Env__onRequestEvent);
         document.body.addEventListener('response', Env__onResponseEvent);
-        this.structure.addResponseListener(Env__globalOnResponse, this); // :TODO: remove this whole mechanism
+        this.io.addResponseListener(Env__globalOnResponse, this); // :TODO: remove this whole mechanism
 
         // send is_loaded signal
         this.is_loaded.fulfill(true);
@@ -42,58 +37,51 @@ define([
 
         // figure out the agent
         var agent_id;
-        if (!request.target || request.target == '_self') {
-            // find parent agent
-            var node = e.target;
-            while (node) {
-                if (node.classList && node.classList.contains('agent')) {
-                    agent_id = node;
-                    break;
+        switch (request.target) {
+            case false:
+            case '_self':
+                // find parent agent
+                var node = e.target;
+                while (node) {
+                    if (node.classList && node.classList.contains('agent')) {
+                        agent_id = node;
+                        break;
+                    }
+                    node = node.parentNode;
                 }
-                node = node.parentNode;
-            }
-        } else if (request.target == '_blank') {
-            agent_id = null; // new agent
-        } else {
-            agent_id = request.target;
+                break;
+            case '_parent':
+                // :TODO: ?
+            case '_top':
+                // :TODO: ?
+            case '_blank':
+                agent_id = null; // new agent
+                break;
+            default:
+                agent_id = request.target;
         }
-        // :TODO: _parent and _top
 
-        var agent = Env.agents(agent_id);
+        var agent = Env.getAgent(agent_id) || Env.makeAgent(agent_id);
         agent.follow(request, e.target);
     }
     
     function Env__onResponseEvent(e) {
         var request = e.detail.request;
         var response = e.detail.response;
-        var agent = Env.agents(request.target, true);
-        if (!agent) {
+        var agent = Env.getAgent(request.target);
+        if (!agent)
             throw "Agent not found in response event";
-        }
-
+        
         if (response.code == 204 || response.code == 205) { return; }
 
         var body = response.body;
         if (body) {
-            if (response['content-type'] == 'application/html+json') {
-                body = HtmlJson.toHtml(body);
-            } else {
-                // encode to a string
-                body = Link.encodeType(body, response['content-type']);
-                // escape so that html isnt inserted
-                body = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            }
+            // encode to a string
+            body = Link.encodeType(body, response['content-type']);
+            // escape so that html isnt inserted :TODO: should it?
+            // body = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             agent.resetBody(); // refreshed state, lose all previous content and listeners
             agent.getBody().innerHTML = body;
-        }
-
-        // run load script 
-        if (response['content-type'] == 'application/html+json') {
-            if (response.body._scripts && response.body._scripts.onload) {
-                var fns = response.body._scripts.onload;
-                if (!Array.isArray(fns)) { fns = [fns]; }
-                fns.forEach(function(fn) { fn(agent, response); });
-            }
         }
     }
 
@@ -108,76 +96,42 @@ define([
         }
     }
 
-    // agent prototype
-    function Agent(id, elem) {
-        this.id = id;
-        this.elem = elem;
-        this.program_server = null;
-    }
-    Agent.prototype.getBody = function Agent__getBody() { return this.elem; };
-    Agent.prototype.getId = function Agent__getId() { return this.id; };
-    Agent.prototype.getUri = function Agent__getUri(opt_leading) { return (opt_leading ? '/' : '') + this.id; };
-    Agent.prototype.getServer = function Agent__getServer() { return this.program_server; };
-    Agent.prototype.attachServer = function Agent__attachServer(s) {
-        this.program_server = s;
-        Env.structure.removeModules(this.getUri(true));
-        if (s) {
-            Env.structure.addModule(this.getUri(true), s);
-        }
-    };
-    Agent.prototype.dispatch = function Agent__dispatch() {
-        return Env.structure.dispatch.apply(Env.structure, arguments);
-    };
-    Agent.prototype.follow = function Agent__follow(request, emitter) { 
-        request.target = this.id;
-        emitter = emitter || this.getBody();
-        this.dispatch(request).then(function(response) {
-            var re = new CustomEvent('response', { bubbles:true, cancelable:true, detail:{ request:request, response:response }});
-            emitter.dispatchEvent(re);
-        });
-    };
-    Agent.prototype.resetBody = function Agent__restBody() {
-        var p = this.elem.parentNode;
-        var n = document.createElement('div');
-        n.id = 'agent-'+this.id+'-body';
-        n.className = 'agent-body';
-        p.replaceChild(n, this.elem);
-        this.elem = n;
-    };
-
-    // agent get/create
-    // - `id` can be null/undefined to create a new agent with an assigned id
-    // - `id` can be the DOM node of the agent; if no agent exists there, it will be created
-    function Env__agentFactory(id, opt_nocreate) {
-        var given_elem;
-        if (id == null || typeof id == 'undefined') {
-            if (opt_nocreate) { return null; }
-            id = Env__makeAgentId.call(Env);
-        } else if (typeof id == 'object') {
-            if (id instanceof Node) { // dom element?
-                given_elem = id;
-                id = (given_elem.id)
-                    ? given_elem.id.substr(6) // remove 'agent-'
-                    : Env__makeAgentId.call(Env);
-            } else {
-                return null;
-            }
+    // agent get
+    // - `id` can be the id or DOM node of the agent
+    function Env__getAgent(id) {
+        if (typeof id == 'object' && id instanceof Node) { 
+            var given_elem = id;
+            id = (given_elem.id)
+                ? given_elem.id.substr(6) // remove 'agent-'
+                : null;
         }
         if (id in Env.agents) {
             return Env.agents[id];
         }
+        return null;
+    }
 
-        // get/create element
-        var agent_elem = Env__makeAgentWrapperElem(id, given_elem);
-        if (!given_elem) {
-            // add to dom
-            before_elem = Env.container_elem.querySelector('.defcolumn').firstChild;
+    // agent create
+    // - `id` can be null/undefined to create a new agent with an assigned id
+    function Env__makeAgent(id, opt_target_elem) {
+        if (id == null || typeof id == 'undefined') {
+            id = Env__makeAgentId.call(Env);
+        }
+        if (id in this.agents) {
+            return this.agents[id];
+        }
+
+        // add container elem to dom
+        var agent_elem = Env__makeAgentWrapperElem(id, opt_target_elem);
+        if (!opt_target_elem) {
+            var before_elem = this.container_elem.querySelector('.defcolumn').firstChild;
             before_elem.parentNode.insertBefore(agent_elem, before_elem);
         }
         var body_elem = document.getElementById('agent-'+id+'-body');
         Dropzones.padAgent(agent_elem);
 
         // drag/drop render-state managers
+        // :TODO: put in the agent constructor or member function?
         agent_elem.addEventListener('dragenter', function(e) {
             agent_elem.classList.add('request-hover');
         });
@@ -193,30 +147,201 @@ define([
             agent_elem.classList.remove('request-hover');
         });
 
-        return (Env.agents[id] = new Agent(id, body_elem));
+        // create agent
+        var agent = new Agent(id, body_elem);
+        this.io.addModule('/'+id, agent);
+
+        return (this.agents[id] = agent);
     }
     
-    // generates an open id (numeric)
     function Env__makeAgentId() {
         for (var i=0; i < 100000; i++) { // high enough?
             if (!this.agents[i]) { return i; }
         }
     }
 
-    // agent destroy
     function Env__killAgent(id) {
         if (!(id in this.agents)) {
             return false;
         }
-        var elem = document.getElementById('agent-'+id);
-        var dropzone = elem.previousSibling;
-        elem.parentNode.removeChild(elem);
-        Dropzones.cleanup(dropzone);
 
-        this.agents[id].attachServer(null);
-        delete this.agents[id];
+        var p = this.agents[id].killProgram();
+        Link.when(p, function() {
+            var elem = document.getElementById('agent-'+id);
+            var dropzone = elem.previousSibling;
+            elem.parentNode.removeChild(elem);
 
-        return true;
+            Dropzones.cleanup(dropzone);
+
+            delete this.agents[id];
+            this.io.removeModule('/'+id)
+        }, this);
+
+        return p;
+    }
+
+    // Agent prototype
+    // ===============
+    function Agent(id, elem) {
+        this.id = id;
+        this.elem = elem;
+        this.worker = null;
+        this.program_load_promise = null;
+        this.program_kill_promise = null;
+        this.program_kill_timeout = null;
+        this.pending_requests = {};
+    }
+    Agent.prototype.routes = [
+        Link.route('collapseHandler', { uri:'^/?$', method:/min|max/i }),
+        Link.route('closeHandler', { uri:'^/?$', method:'close' }),
+        Link.route('programRequestHandler', { uri:'(.*)' })
+    ];
+    Agent.prototype.getBody = function Agent__getBody() { return this.elem; };
+    Agent.prototype.getId = function Agent__getId() { return this.id; };
+    Agent.prototype.getUri = function Agent__getUri(opt_leading) { return (opt_leading ? '/' : '') + this.id; };
+    Agent.prototype.follow = function Agent__follow(request, emitter) { 
+        request.target = this.id;
+        emitter = emitter || this.getBody();
+        request.accept = request.accept || 'text/html';
+        Env.io.dispatch(request).then(function(response) {
+            var re = new CustomEvent('response', { bubbles:true, cancelable:true, detail:{ request:request, response:response }});
+            emitter.dispatchEvent(re);
+        });
+    };
+    Agent.prototype.resetBody = function Agent__resetBody() {
+        var p = this.elem.parentNode;
+        var n = document.createElement('div');
+        n.id = 'agent-'+this.id+'-body';
+        n.className = 'agent-body';
+        p.replaceChild(n, this.elem);
+        this.elem = n;
+    };
+    Agent.prototype.loadProgram = function Agent__loadProgram(url, config) {
+        var self = this;
+        self.program_load_promise = new Link.Promise();
+
+        Link.when(self.killProgram(), function() {
+            self.worker = new Worker(url);
+
+            // event 'foo' runs 'onWorkerFoo'
+            self.worker.addEventListener('message', function(message) {
+                var evtHandler = 'onWorker' + ucfirst(message.data.event).replace(/:/g, '_');
+                if (evtHandler in self) {
+                    self[evtHandler].call(self, message.data);
+                }
+            });
+
+            self.postWorkerEvent('setup', { config:config });
+        });
+        return self.program_load_promise;
+    };
+    Agent.prototype.killProgram = function Agent__killProgram(opt_force_terminate) {
+        if (!this.worker) { return true; }
+        if (this.program_kill_promise && !opt_force_terminate) { return this.program_kill_promise; }
+        this.program_kill_promise = new Link.Promise();
+
+        // dont let load listeners run, this program is foobared
+        if (this.program_load_promise) {
+            this.program_load_promise = null;
+        }
+
+        if (opt_force_terminate) {
+            clearTimeout(this.program_kill_timeout);
+            this.program_kill_timeout = null;
+
+            this.worker.terminate();
+            this.worker = null;
+
+            this.program_kill_promise.fulfill(true);
+            this.program_kill_promise = null;
+        } else { 
+            // if not forcing termination, send the worker a kill event and give it 10 seconds to send back a 'dead' event
+            this.postWorkerEvent('kill');
+
+            var self = this;
+            this.program_kill_timeout = setTimeout(function() {
+                // :TODO: prompt user to force terminate?
+                self.killProgram(true);
+            }, 10*1000); // 10 seconds
+        }
+        return this.program_kill_promise;
+    };
+    Agent.prototype.postWorkerEvent = function Agent__postWorkerEvent(evt_name, data) {
+        if (!this.worker) { return; } // :TODO: throw? log?
+        data.event = evt_name;
+        this.worker.postMessage(data);
+    };
+    Agent.prototype.onWorkerReady = function Agent__onWorkerReady(data) {
+        if (this.program_load_promise) {
+            this.program_load_promise.fulfill(data);
+            this.program_load_promise = null;
+        }
+    };
+    Agent.prototype.onWorkerDead = function Agent__onWorkerDead() {
+        this.killProgram(true);
+    };
+    Agent.prototype.onWorkerYield = function Agent__onWorkerYield(data) {
+        // 'yield' event means the worker wants to load a new program
+        // :TODO: check permissions and issue 'noyield' if not allowed
+        this.loadProgram(data.url);
+    };
+    Agent.prototype.onWorkerLog = function Agent__onWorkerLog(data) {
+        console.log(this.id+':', data.msg);
+    };
+    Agent.prototype.onWorkerHttp_request = function Agent__onWorkerHttp_request(data) {
+        var fn = (data.follow) ? this.follow : this.dispatch;
+        fn.call(this, data.request).then(function(response) {
+            this.postWorkerEvent('http:response', { mid:request.__mid, response:response })
+        }, this);
+    };
+    Agent.prototype.onWorkerHttp_response = function Agent__onWorkerHttp_response(data) {
+        var response = data.response;
+        var pending_request = this.pending_requests[data.mid];
+        if (!pending_request) { throw "Response received from agent worker with bad message id"; }
+        // if !pendingRequest, make sure the response copied the __mid from the request...
+        // ...and make sure that the response wasnt accidentally sent twice
+        delete this.pending_requests[data.mid];
+
+        pending_request.fulfill(response);
+    };
+    Agent.prototype.collapseHandler = function Agent__collapseHandler(request) {
+        var should_collapse = (request.method == 'min');
+        var is_collapsed = this.elem.classList.contains('collapsed');
+
+        if (is_collapsed != should_collapse) {
+            this.elem.classList.toggle('collapsed');
+        }
+
+        var shutter_btn = this.elem.querySelector('.btn-shutter');
+        if (shutter_btn) { 
+            shutter_btn.innerText = should_collapse ? '+' : '_';
+            shutter_btn.setAttribute('formmethod', should_collapse ? "max" : "min");
+        }
+
+        return Link.response(205);
+    };
+    Agent.prototype.closeHandler = function Agent__closeHandler() {
+        Env.killAgent(this.id);
+    };
+    Agent.prototype.programRequestHandler = function Agent__programRequestHandler(request, match, response) {
+        if (response.code) { return; } // dont handle if already handled
+        if (!this.worker) { return; }
+
+        this.pending_requests[request.__mid] = new Link.Promise();
+
+        var dup_req = JSON.parse(JSON.stringify(request)); // :TODO: use a real copy func
+        dup_req.uri = match.uri[1];
+
+        this.postWorkerEvent('http:request', { mid:request.__mid, request:dup_req });
+
+        return this.pending_requests[request.__mid];
+    };
+
+    // Helpers
+    // =======
+    // fooBar -> Foobar
+    function ucfirst(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
     }
         
     // generates HTML for agents to work within
@@ -248,4 +373,4 @@ define([
     ;
 
     return Env;
-});
+})();

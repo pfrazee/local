@@ -1,5 +1,4 @@
-if (typeof define !== 'function') { var define = require('amdefine')(module) }
-define(function() {
+var Link = (function() {
     // deep copy helper
     // http://keithdevens.com/weblog/archive/2007/Jun/07/javascript.clone
     var deepCopy = function _clone(obj) {
@@ -126,14 +125,14 @@ define(function() {
         // Duplicate the request object
         // :TODO: not sure if I want this (complicates obj ref sharing within the browser)
         request = deepCopy(request);
-        // Assign an id, for debugging
+        // Assign an id, for debugging :TODO: shouldnt this be read-only?
         Object.defineProperty(request, '__mid', { value:cur_mid++, writable:true });
         // Make any auto-corrections
         if (request.uri.charAt(0) != '/' && /:\/\//.test(request.uri) == false) {
             request.uri = '/' + request.uri;
         }
         // Log
-        log('traffic', this.id ? this.id+'|req' : '|> ', request.__mid, request.uri, request.accept ? '['+request.accept+']' : '', request);
+        log('traffic', this.id ? this.id+'|req' : '|> ', request);
         // Pull the query params out, if present
         __processQueryParams(request);
         // Build the handler chain
@@ -183,7 +182,7 @@ define(function() {
             }
             response.org_request = request;
             // Log
-            log('traffic', this.id ? this.id+'|res' : ' >|', request.__mid, request.uri, response['content-type'] ? '['+response['content-type']+']' : '', response);
+            log('traffic', this.id ? this.id+'|res' : ' >|', response);
             // Decode to object form
             response.body = decodeType(response.body, response['content-type']);
             // Send to original promise
@@ -529,7 +528,7 @@ define(function() {
                 // Decode into an object (if possible)
                 xhrResponse.body = decodeType(xhrResponse.body, xhrResponse['content-type']);
                 // Log
-                log('traffic', this.id ? this.id+'|res' : ' >|', request.__mid, request.uri, xhrResponse['content-type'] ? '['+xhrResponse['content-type']+']' : '', xhrResponse);
+                log('traffic', this.id ? this.id+'|res' : ' >|', xhrResponse);
                 // Send to original promise
                 request.__dispatch_promise.fulfill(xhrResponse);
             }
@@ -554,4 +553,4 @@ define(function() {
         log            : log,
         ajaxConfig     : ajaxConfig
     };
-});
+})();

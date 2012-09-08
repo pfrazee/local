@@ -1,4 +1,4 @@
-define(function() {
+var EventEmitter = (function() {
     // Event Emitter
     // ==============
     // a function to mixing event behavior
@@ -59,4 +59,4 @@ define(function() {
     }
     
     return EventEmitter;
-});
+})();

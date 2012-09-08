@@ -1,4 +1,4 @@
-define(function() {
+var Dropzones = (function() {
     var Dropzones = {
         init:Dropzones__init,
         padAgent:Dropzones__padAgent,
@@ -104,4 +104,4 @@ define(function() {
     }
 
     return Dropzones;
-});
+})();

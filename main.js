@@ -1,32 +1,40 @@
-require.config({
-    paths:{
-        link:'../assets/js/link',
-        // :TODO: should the 'assets' structure should be retired, or is it a good way to isolate 3rd-party packages?
-        notify:'../assets/js/notify.min'
-    }
-});
-var paths = [
-    'link',
-    'env/env',
-    'env/cli',
-    'env/simple-agent-server',
-    'env/doclev'
-];
-var def_module_count = paths.length;
+var env_config = {
+    logging_enabled:1,
+    structure:[
+        // Apps
+        { 
+            uri:'/app/inbox', 
+            module:'pfraze/inbox', 
+            services:[
+                { name:'@linkshui', uri:'http://linkshui.com:8600' },
+                { name:'Fixture', uri:'/serv/inbox/fixture' }
+            ]
+        },
+        { uri:'/app/statfeed', module:'pfraze/statfeed', service:{ uri:'/serv/statusnet/api' }},
+        { uri:'/app/cab', module:'pfraze/cabinet', service:{ uri:'/serv/files' }},
+        { uri:'/app/jeo', module:'wjosdejong/jsoneditor' },
+        { uri:'/app/commander', module:'pfraze/commander' },
+        { uri:'/app/runbox', module:'pfraze/runbox' },
+        { uri:'/app/htmler', module:'pfraze/htmler' },
 
-// Extract all module paths
-var ordered_uris = [];
-for (var i=0; i < env_config.structure.length; i++) {
-    paths.push('modules/' + env_config.structure[i].module);
-}
-// Load using require js
-require(paths, function(Link, Env, CLI, AgentServer) {
+        // Services
+        { uri:'/serv/inbox/fixture', module:'pfraze/inbox-srvc-fixture', name:'Fixture' }
+    ]
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Extract all module paths
+    /*var ordered_uris = [];
+    for (var i=0; i < env_config.structure.length; i++) {
+        paths.push('modules/' + env_config.structure[i].module);
+    }*/
+
     // Enable proxy
     Link.ajaxConfig('proxy', '/serv/proxy'); 
     
-    // Build structure
+    // Build structure :TODO:
     var structure = new Link.Structure();
-    structure.addModule('', new AgentServer(structure, { uri:'' }));
+    /*structure.addModule('', new AgentServer(structure, { uri:'' }));
  
     // Add config modules
     var Modules = Array.prototype.slice.call(arguments, def_module_count);
@@ -34,15 +42,19 @@ require(paths, function(Link, Env, CLI, AgentServer) {
         var uri = env_config.structure[i].uri;
         var Module = Modules[i];
         structure.addModule(uri, new Module(structure, env_config.structure[i]));
-    }   
+    }*/
 
-    // Logging
     if (env_config.logging_enabled) {
         Link.logMode('traffic', true);
         //Link.logMode('routing', true);
         //Link.logMode('err_types', true);
     }
 
-    // Init environment libs
     Env.init(structure, 'lshui-env');
+
+    // temporary -- get things started
+    var a = Env.makeAgent('debug');
+    a.loadProgram('/modules/pfraze/debug.js').then(function() {
+        a.follow({ uri:'/debug', method:'get', accept:'text/html' });
+    });
 });
