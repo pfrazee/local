@@ -29,11 +29,9 @@ document.addEventListener('DOMContentLoaded', function() {
         paths.push('modules/' + env_config.structure[i].module);
     }*/
 
-    // Enable proxy
-    Link.ajaxConfig('proxy', '/serv/proxy'); 
-    
     // Build structure :TODO:
-    var structure = new Link.Structure();
+    var router = new HttpRouter();
+    router.ajaxConfig('proxy', '/serv/proxy'); 
     /*structure.addModule('', new AgentServer(structure, { uri:'' }));
  
     // Add config modules
@@ -45,12 +43,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }*/
 
     if (env_config.logging_enabled) {
-        Link.logMode('traffic', true);
-        //Link.logMode('routing', true);
-        //Link.logMode('err_types', true);
+        Util.logMode('traffic', true);
+        //Util.logMode('routing', true);
+        //Util.logMode('err_types', true);
     }
 
-    Env.init(structure, 'lshui-env');
+    Env.init(router, 'lshui-env');
 
     // temporary -- get things started
     var a = Env.makeAgent('debug');

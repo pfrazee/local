@@ -1,14 +1,13 @@
-importScripts('/stdlib/msgevents.js');
-importScripts('/stdlib/httpserver.js');
+importScripts('/stdlib/agent.js');
 
 var server = {
 	routes:[
-		Link.route('hello', { uri:'^/?$', method:'get', accept:'text/html' })
+		HttpRouter.route('hello', { uri:'^/?$', method:'get', accept:'text/html' })
 	],
 	hello:function() {
-		return Link.response(200, '<h1>hello from debug.js!!</h1>', 'text/html');
+		return HttpRouter.response(200, '<h1>hello from debug.js!!</h1>', 'text/html');
 	}
 };
-HttpServer.addModule('/', server);
+Agent.io.addModule('/', server);
 
 postEventMsg('ready');

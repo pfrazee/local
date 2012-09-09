@@ -8,11 +8,11 @@ var Env = (function() {
         makeAgent:Env__makeAgent,
         killAgent:Env__killAgent,
 
-        io:null, // linkjs uri structure
+        io:null, // httprouter instance 
         agents:{},
         container_elem:null, 
         nc:null, // notifications center (plugin to raise alerts)
-        is_loaded:new Link.Promise()
+        is_loaded:new Promise()
     };
     
     // setup
@@ -77,7 +77,7 @@ var Env = (function() {
         var body = response.body;
         if (body) {
             // encode to a string
-            body = Link.encodeType(body, response['content-type']);
+            body = ContentTypes.serialize(body, response['content-type']);
             // escape so that html isnt inserted :TODO: should it?
             // body = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             agent.resetBody(); // refreshed state, lose all previous content and listeners
@@ -166,7 +166,7 @@ var Env = (function() {
         }
 
         var p = this.agents[id].killProgram();
-        Link.when(p, function() {
+        Promise.when(p, function() {
             var elem = document.getElementById('agent-'+id);
             var dropzone = elem.previousSibling;
             elem.parentNode.removeChild(elem);
@@ -192,9 +192,9 @@ var Env = (function() {
         this.pending_requests = {};
     }
     Agent.prototype.routes = [
-        Link.route('collapseHandler', { uri:'^/?$', method:/min|max/i }),
-        Link.route('closeHandler', { uri:'^/?$', method:'close' }),
-        Link.route('programRequestHandler', { uri:'(.*)' })
+        HttpRouter.route('collapseHandler', { uri:'^/?$', method:/min|max/i }),
+        HttpRouter.route('closeHandler', { uri:'^/?$', method:'close' }),
+        HttpRouter.route('programRequestHandler', { uri:'(.*)' })
     ];
     Agent.prototype.getBody = function Agent__getBody() { return this.elem; };
     Agent.prototype.getId = function Agent__getId() { return this.id; };
@@ -218,9 +218,9 @@ var Env = (function() {
     };
     Agent.prototype.loadProgram = function Agent__loadProgram(url, config) {
         var self = this;
-        self.program_load_promise = new Link.Promise();
+        self.program_load_promise = new Promise();
 
-        Link.when(self.killProgram(), function() {
+        Promise.when(self.killProgram(), function() {
             self.worker = new Worker(url);
 
             // event 'foo' runs 'onWorkerFoo'
@@ -238,7 +238,7 @@ var Env = (function() {
     Agent.prototype.killProgram = function Agent__killProgram(opt_force_terminate) {
         if (!this.worker) { return true; }
         if (this.program_kill_promise && !opt_force_terminate) { return this.program_kill_promise; }
-        this.program_kill_promise = new Link.Promise();
+        this.program_kill_promise = new Promise();
 
         // dont let load listeners run, this program is foobared
         if (this.program_load_promise) {
@@ -318,7 +318,7 @@ var Env = (function() {
             shutter_btn.setAttribute('formmethod', should_collapse ? "max" : "min");
         }
 
-        return Link.response(205);
+        return HttpRouter.response(205);
     };
     Agent.prototype.closeHandler = function Agent__closeHandler() {
         Env.killAgent(this.id);
@@ -327,7 +327,7 @@ var Env = (function() {
         if (response.code) { return; } // dont handle if already handled
         if (!this.worker) { return; }
 
-        this.pending_requests[request.__mid] = new Link.Promise();
+        this.pending_requests[request.__mid] = new Promise();
 
         var dup_req = JSON.parse(JSON.stringify(request)); // :TODO: use a real copy func
         dup_req.uri = match.uri[1];
