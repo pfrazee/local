@@ -1,6 +1,6 @@
-// Agent
-// =====
-// standard agent object, should be included by all worker programs
+// Agent Worker
+// ============
+// program setup for agent workers
 
 importScripts('/stdlib/globals.js');
 importScripts('/stdlib/msgevents.js');

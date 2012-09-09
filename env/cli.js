@@ -1,4 +1,6 @@
 /*
+:DEPRECATED: kept here for possible use later
+
 Example:
   agent> get apps/foo [application/html+json]
 

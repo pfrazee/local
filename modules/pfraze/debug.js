@@ -1,13 +1,20 @@
-importScripts('/stdlib/agent.js');
-
 var server = {
 	routes:[
-		HttpRouter.route('hello', { uri:'^/?$', method:'get', accept:'text/html' })
+		HttpRouter.route('hello', { uri:'^/?$', method:'get', accept:'text/html' }),
+		HttpRouter.route('subhello', { uri:'^/sub$', method:'get', accept:'text/html' })
 	],
 	hello:function() {
-		return HttpRouter.response(200, '<h1>hello from debug.js!!</h1>', 'text/html');
+		var p = new Promise();
+		Agent.dispatch({ uri:'/debug/sub', method:'get', accept:'text/html' }).then(function(response){
+			p.fulfill(HttpRouter.response(200, '<h1>"'+response.body+'" from debug.js!!</h1>', 'text/html'));
+		});
+		return p;
+	},
+	subhello:function() {
+		return HttpRouter.response(200, 'sub hello', 'text/html');
 	}
 };
-Agent.io.addModule('/', server);
+//Util.logMode('routing', true);
+Agent.addServer('', server);
 
 postEventMsg('ready');

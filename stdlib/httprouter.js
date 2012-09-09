@@ -53,7 +53,7 @@ if (typeof HttpRouter == 'undefined') {
 
                     // is it a complete name match? (/foo matches /foo/bar, not /foobar)
                     var rel_uri = request.uri.substr(module.uri.length);
-                    if (!(rel_uri == '' || rel_uri.charAt(0) == '/')) {
+                    if (rel_uri != '' && rel_uri.charAt(0) != '/') {
                         return;
                     }
                     if (rel_uri.charAt(0) != '/') { rel_uri = '/' + rel_uri; } // prepend the leading slash, for consistency
@@ -65,7 +65,7 @@ if (typeof HttpRouter == 'undefined') {
                             match = true;
 
                             if (!(k in request)) {
-                                Util.log('routing', ' > ',module.inst,route.cb,'MISS ('+k+')');
+                                Util.log('routing', ' > ',/*module.inst,*/route.cb,'MISS ('+k+')');
                                 match = false;
                                 break;
                             }
@@ -78,14 +78,14 @@ if (typeof HttpRouter == 'undefined') {
                             if (route.match[k] instanceof RegExp) {
                                 match = route.match[k].exec(reqVal)
                                 if (!match) { 
-                                    Util.log('routing', ' > ',module.inst,route.cb,'MISS ('+k+' "'+reqVal+'")');
+                                    Util.log('routing', ' > ',/*module.inst,*/route.cb,'MISS ('+k+' "'+reqVal+'")');
                                     break; 
                                 }
                                 matches[k] = match;
                             }
                             else {
                                 if (route.match[k] != reqVal) { 
-                                    Util.log('routing', ' > ',module.inst,route.cb,'MISS ('+k+' "'+reqVal+'")');
+                                    Util.log('routing', ' > ',/*module.inst,*/route.cb,'MISS ('+k+' "'+reqVal+'")');
                                     match = false; break; 
                                 }
                                 matches[k] = reqVal;
@@ -93,7 +93,7 @@ if (typeof HttpRouter == 'undefined') {
                         }
                         if (!match) { continue; }
 
-                        Util.log('routing', ' > ',module.inst,route.cb,'MATCH');
+                        Util.log('routing', ' > ',/*module.inst,*/route.cb,'MATCH');
                         var cb = module.inst[route.cb];
                         if (!cb) {
                             console.log("Handler callback '" + route.cb + "' not found in object");
@@ -214,8 +214,6 @@ if (typeof HttpRouter == 'undefined') {
         function __dispatchRemote(request) {
             if (typeof window != 'undefined') {
                 __sendAjaxRequest.call(this, request);
-            } else if (typeof self != 'undefined') {
-                // :TODO: workers solution
             } else {
                 request.__dispatch_promise.fulfill(HttpRouter.response(404, 'Not Found'));
             }
@@ -270,7 +268,7 @@ if (typeof HttpRouter == 'undefined') {
                 }
             };
             xhrRequest.send(request.body);
-        };
+        }
 
         HttpRouter.route = function HttpRouter__route(cb, match, bubble) {
             return { cb:cb, match:match, bubble:bubble };

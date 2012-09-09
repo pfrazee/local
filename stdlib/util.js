@@ -23,7 +23,10 @@ if (typeof Util == 'undefined') {
         Util.log = function log(channel) {
             if (Util.logMode(channel)) {
                 var args = Array.prototype.slice.call(arguments, 1);
-                console.log.apply(console, args);
+                if (typeof console != 'undefined')
+                    console.log.apply(console, args);
+                else if (typeof postEventMsg != 'undefined')
+                    postEventMsg('log', { msg:args.join(' ') })
             }
         };
     	

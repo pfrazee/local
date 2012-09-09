@@ -189,7 +189,7 @@ var Env = (function() {
         this.program_load_promise = null;
         this.program_kill_promise = null;
         this.program_kill_timeout = null;
-        this.pending_requests = {};
+        this.pending_requests = [];
     }
     Agent.prototype.routes = [
         HttpRouter.route('collapseHandler', { uri:'^/?$', method:/min|max/i }),
@@ -199,6 +199,9 @@ var Env = (function() {
     Agent.prototype.getBody = function Agent__getBody() { return this.elem; };
     Agent.prototype.getId = function Agent__getId() { return this.id; };
     Agent.prototype.getUri = function Agent__getUri(opt_leading) { return (opt_leading ? '/' : '') + this.id; };
+    Agent.prototype.dispatch = function Agent__dispatch(request) {
+        return Env.io.dispatch(request);
+    };
     Agent.prototype.follow = function Agent__follow(request, emitter) { 
         request.target = this.id;
         emitter = emitter || this.getBody();
@@ -221,7 +224,7 @@ var Env = (function() {
         self.program_load_promise = new Promise();
 
         Promise.when(self.killProgram(), function() {
-            self.worker = new Worker(url);
+            self.worker = new Worker('/env/agent-worker.js');
 
             // event 'foo' runs 'onWorkerFoo'
             self.worker.addEventListener('message', function(message) {
@@ -231,6 +234,8 @@ var Env = (function() {
                 }
             });
 
+            config = config ? Util.deepCopy(config) : {};
+            config.program_url = url;
             self.postWorkerEvent('setup', { config:config });
         });
         return self.program_load_promise;
@@ -268,40 +273,39 @@ var Env = (function() {
     };
     Agent.prototype.postWorkerEvent = function Agent__postWorkerEvent(evt_name, data) {
         if (!this.worker) { return; } // :TODO: throw? log?
+        data = data ? Util.deepCopy(data) : {};
         data.event = evt_name;
         this.worker.postMessage(data);
     };
-    Agent.prototype.onWorkerReady = function Agent__onWorkerReady(data) {
+    Agent.prototype.onWorkerReady = function Agent__onWorkerReady(e) {
         if (this.program_load_promise) {
-            this.program_load_promise.fulfill(data);
+            this.program_load_promise.fulfill(e);
             this.program_load_promise = null;
         }
     };
     Agent.prototype.onWorkerDead = function Agent__onWorkerDead() {
         this.killProgram(true);
     };
-    Agent.prototype.onWorkerYield = function Agent__onWorkerYield(data) {
+    Agent.prototype.onWorkerYield = function Agent__onWorkerYield(e) {
         // 'yield' event means the worker wants to load a new program
         // :TODO: check permissions and issue 'noyield' if not allowed
-        this.loadProgram(data.url);
+        this.loadProgram(e.url);
     };
-    Agent.prototype.onWorkerLog = function Agent__onWorkerLog(data) {
-        console.log(this.id+':', data.msg);
+    Agent.prototype.onWorkerLog = function Agent__onWorkerLog(e) {
+        console.log(this.id+':', e.msg);
     };
-    Agent.prototype.onWorkerHttp_request = function Agent__onWorkerHttp_request(data) {
-        var fn = (data.follow) ? this.follow : this.dispatch;
-        fn.call(this, data.request).then(function(response) {
-            this.postWorkerEvent('http:response', { mid:request.__mid, response:response })
+    Agent.prototype.onWorkerHttp_request = function Agent__onWorkerHttp_request(e) {
+        var fn = (e.follow) ? this.follow : this.dispatch;
+        fn.call(this, e.request).then(function(response) {
+            this.postWorkerEvent('http:response', { mid:e.mid, response:response })
         }, this);
     };
-    Agent.prototype.onWorkerHttp_response = function Agent__onWorkerHttp_response(data) {
-        var response = data.response;
-        var pending_request = this.pending_requests[data.mid];
+    Agent.prototype.onWorkerHttp_response = function Agent__onWorkerHttp_response(e) {
+        var response = e.response;
+        var pending_request = this.pending_requests[e.mid];
         if (!pending_request) { throw "Response received from agent worker with bad message id"; }
-        // if !pendingRequest, make sure the response copied the __mid from the request...
-        // ...and make sure that the response wasnt accidentally sent twice
-        delete this.pending_requests[data.mid];
-
+        // if !pendingRequest, make sure that the response wasnt accidentally sent twice
+        this.pending_requests[e.mid] = null;
         pending_request.fulfill(response);
     };
     Agent.prototype.collapseHandler = function Agent__collapseHandler(request) {
@@ -327,14 +331,15 @@ var Env = (function() {
         if (response.code) { return; } // dont handle if already handled
         if (!this.worker) { return; }
 
-        this.pending_requests[request.__mid] = new Promise();
+        var p = new Promise;
+        var mid = this.pending_requests.length;
+        this.pending_requests.push(p);
 
-        var dup_req = JSON.parse(JSON.stringify(request)); // :TODO: use a real copy func
+        var dup_req = Util.deepCopy(request); 
         dup_req.uri = match.uri[1];
+        this.postWorkerEvent('http:request', { mid:mid, request:dup_req });
 
-        this.postWorkerEvent('http:request', { mid:request.__mid, request:dup_req });
-
-        return this.pending_requests[request.__mid];
+        return p;
     };
 
     // Helpers

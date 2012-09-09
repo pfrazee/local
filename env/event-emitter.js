@@ -2,6 +2,7 @@ var EventEmitter = (function() {
     // Event Emitter
     // ==============
     // a function to mixing event behavior
+    // :DEPRECATED: should probably remove
     var EventEmitter = {
         mixin:EventEmitter__mixin
     };
