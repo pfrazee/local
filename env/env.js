@@ -244,8 +244,11 @@ var Env = (function() {
     };
     Agent.prototype.killProgram = function Agent__killProgram(opt_force_terminate) {
         if (!this.worker) { return true; }
-        if (this.program_kill_promise && !opt_force_terminate) { return this.program_kill_promise; }
-        this.program_kill_promise = new Promise();
+        if (this.program_kill_promise) {
+            if (!opt_force_terminate) { return this.program_kill_promise; }
+        } else {
+            this.program_kill_promise = new Promise();
+        }
 
         // dont let load listeners run, this program is foobared
         if (this.program_load_promise) {
@@ -269,7 +272,7 @@ var Env = (function() {
             this.program_kill_timeout = setTimeout(function() {
                 // :TODO: prompt user to force terminate?
                 self.killProgram(true);
-            }, 10*1000); // 10 seconds
+            }, 1000); // 1 second
         }
         return this.program_kill_promise;
     };
@@ -330,7 +333,7 @@ var Env = (function() {
         Env.killAgent(this.id);
         return HttpRouter.response(205);
     };
-    Agent.prototype.programRequestHandler = function Agent__programRequestHandler(request, match, response) {
+    Agent.prototype.programRequestHandler = function Agent__programRequestHandler(request, match) {
         if (!this.worker) { return; }
 
         var p = new Promise;
@@ -366,7 +369,7 @@ var Env = (function() {
     var agent_template_html = 
         //'<div id="agent-{{id}}" class="agent">' +
             '<div class="agent-titlebar">' +
-                '<form action="{{uri}}">' +
+                '<form action="{{uri}}" target="{{id}}">' +
                     '<div class="agent-titlebar-ctrls btn-group">' +
                         '<button class="btn btn-mini" title="move">&there4;</button>' +
                         '<button class="btn btn-mini btn-shutter" formmethod="min" title="collapse">_</button>' +

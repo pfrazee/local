@@ -43,6 +43,9 @@ if (typeof Agent == 'undefined') {
 			Agent.config = e.config;
 			importScripts(Agent.config.program_url);
 		});
+		addEventMsgListener('kill', function(e) {
+			postEventMsg('dead'); // for now, just die immediately
+		});
 		addEventMsgListener('http:request', function(e) {
 			router.dispatch(e.request).then(function(response) {
 				postEventMsg('http:response', { mid:e.mid, response:response });
