@@ -315,13 +315,13 @@ var Env = (function() {
     };
     Agent.prototype.collapseHandler = function Agent__collapseHandler(request) {
         var should_collapse = (request.method == 'min');
-        var is_collapsed = this.elem.classList.contains('collapsed');
+        var is_collapsed = this.elem.parentNode.classList.contains('collapsed');
 
         if (is_collapsed != should_collapse) {
-            this.elem.classList.toggle('collapsed');
+            this.elem.parentNode.classList.toggle('collapsed');
         }
 
-        var shutter_btn = this.elem.querySelector('.btn-shutter');
+        var shutter_btn = document.querySelector('.btn-shutter', this.elem);
         if (shutter_btn) { 
             shutter_btn.innerText = should_collapse ? '+' : '_';
             shutter_btn.setAttribute('formmethod', should_collapse ? "max" : "min");
@@ -371,7 +371,6 @@ var Env = (function() {
             '<div class="agent-titlebar">' +
                 '<form action="{{uri}}" target="{{id}}">' +
                     '<div class="agent-titlebar-ctrls btn-group">' +
-                        '<button class="btn btn-mini" title="move">&there4;</button>' +
                         '<button class="btn btn-mini btn-shutter" formmethod="min" title="collapse">_</button>' +
                         '<button class="btn btn-mini" formmethod="close" title="close">&times;</button>' +
                     '</div>' +
