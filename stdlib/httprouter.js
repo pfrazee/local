@@ -103,7 +103,7 @@ if (typeof HttpRouter == 'undefined') {
                             cb:cb,
                             context:module.inst,
                             match:matches,
-                            bubble:route.bubble
+                            capture:route.capture
                         });
                     }
                 }
@@ -130,11 +130,10 @@ if (typeof HttpRouter == 'undefined') {
             Object.defineProperty(request, '__bubble_handlers', { value:[], writable:true });
             Object.defineProperty(request, '__capture_handlers', { value:[], writable:true });
             for (var i=0; i < handlers.length; i++) {
-                if (handlers[i].bubble) {
-                    // bubble handlers are FILO, so we prepend
-                    request.__bubble_handlers.unshift(handlers[i]);
-                } else {
+                if (handlers[i].capture) {
                     request.__capture_handlers.push(handlers[i]);
+                } else {
+                    request.__bubble_handlers.push(handlers[i]);
                 }
             }
 
@@ -146,36 +145,37 @@ if (typeof HttpRouter == 'undefined') {
             Object.defineProperty(request, '__dispatch_promise', { value:dispatch_promise });
 
             var self = this;
-            setTimeout(function() { HttpRouter__runHandlers.call(self, request, HttpRouter.response(0)); }, 0);
+            setTimeout(function() { HttpRouter__runHandlers.call(self, request); }, 0);
             return dispatch_promise;
         };
 
-        function HttpRouter__runHandlers(request, response) {
+        function HttpRouter__runHandlers(request) {
             var handler = request.__capture_handlers.shift();
             if (!handler) { handler = request.__bubble_handlers.shift(); }
-            if (handler) {
-                var promise = handler.cb.call(handler.context, request, handler.match, response);
-                Promise.when(promise, function(response) {
-                    HttpRouter__runHandlers.call(this, request, response);
-                }, this);
-            } else {
-                if (!response) { response = HttpRouter.response(404); }
-                else if (response.code == 0) { response.code = 404; response.reason = 'not found'; }
+            if (!handler) { return HttpRouter__finishHandling.call(this, request, null); }
 
-                // 404? check remote
-                if (response.code == 404) { 
-                    __dispatchRemote.call(this, request);
-                    return;
+            var promise = handler.cb.call(handler.context, request, handler.match);
+            Promise.when(promise, function(response) {
+                if (response) {
+                    HttpRouter__finishHandling.call(this, request, response);
+                } else {
+                    HttpRouter__runHandlers.call(this, request);
                 }
-                response.org_request = request; // :TODO: if this isn't necessary, it should go
+            }, this);
+        }
 
-                Util.log('traffic', this.id ? this.id+'|res' : ' >|', response);
-
-                response.body = ContentTypes.deserialize(response.body, response['content-type']);
-
-                request.__dispatch_promise.fulfill(response);
+        function HttpRouter__finishHandling(request, response) {
+            if (!response) { 
+                return __dispatchRemote.call(this, request);
             }
-        };
+
+            Util.log('traffic', this.id ? this.id+'|res' : ' >|', response);
+
+            response.org_request = request; // :TODO: if this isn't necessary, it should go
+            response.body = ContentTypes.deserialize(response.body, response['content-type']);
+
+            request.__dispatch_promise.fulfill(response);
+        }
 
         // :TODO: remove when possible
         HttpRouter.prototype.addResponseListener = function HttpRouter__addResponseListener(fn, opt_context) {
@@ -270,8 +270,8 @@ if (typeof HttpRouter == 'undefined') {
             xhrRequest.send(request.body);
         }
 
-        HttpRouter.route = function HttpRouter__route(cb, match, bubble) {
-            return { cb:cb, match:match, bubble:bubble };
+        HttpRouter.route = function HttpRouter__route(cb, match, capture_phase) {
+            return { cb:cb, match:match, capture:capture_phase };
         };
         HttpRouter.response = function HttpRouter__response(code, body, contenttype, headers) {
             var response = headers || {};

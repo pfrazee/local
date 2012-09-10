@@ -16,6 +16,9 @@ if (typeof Agent == 'undefined') {
 		};
 		var router = new HttpRouter();
 
+		Agent.getId = function() { return Agent.config.agent_id; };
+		Agent.getUri = function() { return Agent.config.agent_uri; };
+
 		// http functions
         Agent.dispatch = function dispatch(request, opt_follow) {
             var p = new Promise();

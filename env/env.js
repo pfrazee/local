@@ -174,7 +174,7 @@ var Env = (function() {
             Dropzones.cleanup(dropzone);
 
             delete this.agents[id];
-            this.io.removeModule('/'+id)
+            this.io.removeModules('/'+id)
         }, this);
 
         return p;
@@ -236,6 +236,8 @@ var Env = (function() {
 
             config = config ? Util.deepCopy(config) : {};
             config.program_url = url;
+            config.agent_id = self.getId();
+            config.agent_uri = self.getUri(true);
             self.postWorkerEvent('setup', { config:config });
         });
         return self.program_load_promise;
@@ -326,9 +328,9 @@ var Env = (function() {
     };
     Agent.prototype.closeHandler = function Agent__closeHandler() {
         Env.killAgent(this.id);
+        return HttpRouter.response(205);
     };
     Agent.prototype.programRequestHandler = function Agent__programRequestHandler(request, match, response) {
-        if (response.code) { return; } // dont handle if already handled
         if (!this.worker) { return; }
 
         var p = new Promise;
