@@ -14,7 +14,7 @@ var server = {
 		return HttpRouter.response(200, 'sub hello <a href="http://news.ycombinator.com" target="_top">bye</a>', 'text/html');
 	}
 };
-//Util.logMode('routing', true);
-Agent.addServer('', server);
+Util.logMode('routing', true);
+Agent.addServer('#/', server);
 
 postEventMsg('ready');

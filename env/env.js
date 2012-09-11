@@ -8,7 +8,7 @@ var Env = (function() {
         makeAgent:Env__makeAgent,
         killAgent:Env__killAgent,
 
-        io:null, // httprouter instance 
+        router:null, 
         agents:{},
         container_elem:null, 
         nc:null, // notifications center (plugin to raise alerts)
@@ -16,8 +16,8 @@ var Env = (function() {
     };
     
     // setup
-    function Env__init(io, container_elem_id) {
-        this.io = io;
+    function Env__init(router, container_elem_id) {
+        this.router = router;
         this.container_elem = document.getElementById(container_elem_id);
         this.nc = new notificationCenter();
 
@@ -26,7 +26,7 @@ var Env = (function() {
 
         document.body.addEventListener('request', Env__onRequestEvent);
         document.body.addEventListener('response', Env__onResponseEvent);
-        this.io.addResponseListener(Env__globalOnResponse, this); // :TODO: remove this whole mechanism
+        this.router.addResponseListener(Env__globalOnResponse, this); // :TODO: remove this whole mechanism
 
         // send is_loaded signal
         this.is_loaded.fulfill(true);
@@ -147,7 +147,7 @@ var Env = (function() {
 
         // create agent
         var agent = new Agent(id, body_elem);
-        this.io.addServer('/'+id, agent);
+        this.router.addServer(agent.getUri(), agent);
 
         return (this.agents[id] = agent);
     }
@@ -171,8 +171,8 @@ var Env = (function() {
 
             Dropzones.cleanup(dropzone);
 
+            this.router.removeServers(this.agents[id].getUri());
             delete this.agents[id];
-            this.io.removeServers('/'+id)
         }, this);
 
         return p;
@@ -196,15 +196,15 @@ var Env = (function() {
     ];
     Agent.prototype.getBody = function Agent__getBody() { return this.elem; };
     Agent.prototype.getId = function Agent__getId() { return this.id; };
-    Agent.prototype.getUri = function Agent__getUri(opt_leading) { return (opt_leading ? '/' : '') + this.id; };
+    Agent.prototype.getUri = function Agent__getUri() { return '#/' + this.id; };
     Agent.prototype.dispatch = function Agent__dispatch(request) {
-        return Env.io.dispatch(request);
+        return Env.router.dispatch(request);
     };
     Agent.prototype.follow = function Agent__follow(request, emitter) { 
         request.target = this.id;
         emitter = emitter || this.getBody();
         request.accept = request.accept || 'text/html';
-        Env.io.dispatch(request).then(function(response) {
+        Env.router.dispatch(request).then(function(response) {
             var re = new CustomEvent('response', { bubbles:true, cancelable:true, detail:{ request:request, response:response }});
             emitter.dispatchEvent(re);
         });
@@ -339,7 +339,7 @@ var Env = (function() {
         this.pending_requests.push(p);
 
         var dup_req = Util.deepCopy(request); 
-        dup_req.uri = match.uri[1];
+        dup_req.uri = '#' + ((match.uri[1].charAt(0) == '/') ? '' : '/') + match.uri[1];
         this.postWorkerEvent('http:request', { mid:mid, request:dup_req });
 
         return p;
@@ -360,7 +360,7 @@ var Env = (function() {
         elem.id = "agent-"+id;
         elem.innerHTML = agent_template_html
             .replace(/{{id}}/g, id)
-            .replace(/{{uri}}/g, '/'+id)
+            .replace(/{{uri}}/g, '#/'+id)
         ;
         return elem;
     }

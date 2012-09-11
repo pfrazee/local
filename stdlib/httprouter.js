@@ -19,11 +19,11 @@ if (typeof HttpRouter == 'undefined') {
         //    '#/a' is before '#/a/b' is before '#/a/b/c'
         //  - a duplicate URI is inserted after existing servers
         HttpRouter.prototype.addServer = function HttpRouter__addServer(new_uri, server) {
-            var new_uri_slashes = new_uri.split('/').length;
+            var new_uri_slashes_count = new_uri.split('/').length;
             for (var i=0; i < this.servers.length; i++) {
                 // Lower URI? done
                 var existing_uri = this.servers[i].uri;
-                if ((existing_uri.indexOf(new_uri) == 0) && (new_uri_slashes < existing_uri.split('/').length)) {
+                if ((existing_uri.indexOf(new_uri) == 0) && (new_uri_slashes_count < existing_uri.split('/').length)) {
                     break;
                 }
             }
@@ -53,9 +53,9 @@ if (typeof HttpRouter == 'undefined') {
 
                     // is it a complete name match? (/foo matches /foo/bar, not /foobar)
                     var rel_uri = request.uri.substr(server.uri.length);
-                    if (rel_uri != '' && rel_uri.charAt(0) != '/') {
+                    /*if (rel_uri != '' && rel_uri.charAt(0) != '/') { :TODO: needed?
                         return;
-                    }
+                    }*/
                     if (rel_uri.charAt(0) != '/') { rel_uri = '/' + rel_uri; } // prepend the leading slash, for consistency
 
                     for (var j=0; j < server.inst.routes.length; j++) {
@@ -116,10 +116,11 @@ if (typeof HttpRouter == 'undefined') {
         //  - If the request target URI does not start with a hash, will run the remote handler
         HttpRouter.prototype.dispatch = function HttpRouter__dispatch(request, opt_cb, opt_context) {
             request = Util.deepCopy(request);
+            Object.defineProperty(request, '__mid', { value:this.cur_mid++ })
 
-            Object.defineProperty(request, '__mid', { value:this.cur_mid++ });
-            if (request.uri.charAt(0) != '/' && /:\/\//.test(request.uri) == false) {
-                request.uri = '/' + request.uri;
+            // URIs that dont target hash URIs should be fetched remotely
+            if (request.uri.charAt(0) != '#') { 
+                return __dispatchRemote.call(this, request);
             }
 
             Util.log('traffic', this.id ? this.id+'|req' : '|> ', request);
@@ -165,10 +166,6 @@ if (typeof HttpRouter == 'undefined') {
         }
 
         function HttpRouter__finishHandling(request, response) {
-            if (!response) { 
-                return __dispatchRemote.call(this, request);
-            }
-
             Util.log('traffic', this.id ? this.id+'|res' : ' >|', response);
 
             response.org_request = request; // :TODO: if this isn't necessary, it should go
@@ -215,7 +212,7 @@ if (typeof HttpRouter == 'undefined') {
             if (typeof window != 'undefined') {
                 __sendAjaxRequest.call(this, request);
             } else {
-                request.__dispatch_promise.fulfill(HttpRouter.response(404, 'Not Found'));
+                request.__dispatch_promise.fulfill(HttpRouter.response(404, 'Not Found', 'text/plain'));
             }
         }
         function __sendAjaxRequest(request) {

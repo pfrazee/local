@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (env_config.logging_enabled) {
         Util.logMode('traffic', true);
-        //Util.logMode('routing', true);
+        Util.logMode('routing', true);
         //Util.logMode('err_types', true);
     }
 
@@ -53,6 +53,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // temporary -- get things started
     var a = Env.makeAgent('debug');
     a.loadProgram('/modules/pfraze/debug.js').then(function() {
-        a.follow({ uri:'/debug', method:'get', accept:'text/html' });
+        a.follow({ uri:'#/debug', method:'get', accept:'text/html' });
     });
 });
