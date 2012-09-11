@@ -35,7 +35,7 @@ if (typeof Agent == 'undefined') {
 
         // request handling functions
         Agent.addServer = function addServer(uri, server) {
-        	router.addModule(uri, server);
+        	router.addServer(uri, server);
         };
 
         // event handlers
@@ -65,3 +65,5 @@ if (typeof Agent == 'undefined') {
 
 // do some sandboxing
 self.XMLHttpRequest = null; // ajax not allowed
+// :TODO: importScripts
+// :TODO: Worker

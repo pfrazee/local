@@ -5,7 +5,7 @@
 if (typeof HttpRouter == 'undefined') {
     (function() {
         globals.HttpRouter = function HttpRouter() {
-            this.modules = [];
+            this.servers = [];
             this.response_cbs = [];
             this.cur_mid = 1;
             this.ajax_config = {
@@ -14,58 +14,58 @@ if (typeof HttpRouter == 'undefined') {
             };
         }
 
-        // Configures the module into the uri structure
+        // Configures the server into the uri structure
         //  - maintains precedence in ordering according to the URI
         //    '#/a' is before '#/a/b' is before '#/a/b/c'
-        //  - a duplicate URI is inserted after existing modules
-        HttpRouter.prototype.addModule = function HttpRouter__addModule(new_uri, module) {
+        //  - a duplicate URI is inserted after existing servers
+        HttpRouter.prototype.addServer = function HttpRouter__addServer(new_uri, server) {
             var new_uri_slashes = new_uri.split('/').length;
-            for (var i=0; i < this.modules.length; i++) {
+            for (var i=0; i < this.servers.length; i++) {
                 // Lower URI? done
-                var existing_uri = this.modules[i].uri;
+                var existing_uri = this.servers[i].uri;
                 if ((existing_uri.indexOf(new_uri) == 0) && (new_uri_slashes < existing_uri.split('/').length)) {
                     break;
                 }
             }
-            this.modules.splice(i, 0, { uri:new_uri, inst:module });
+            this.servers.splice(i, 0, { uri:new_uri, inst:server });
         };
 
-        // Removes all matching modules from the structure
+        // Removes all matching servers from the structure
         //  - non-regexp `uri` must be an exact match
-        HttpRouter.prototype.removeModules = function HttpRouter__removeModules(uri) {
+        HttpRouter.prototype.removeServers = function HttpRouter__removeServers(uri) {
             var isregex = (uri instanceof RegExp);
             var test = isregex ? uri.test : function(v) { return this == v; };
-            this.modules.forEach(function(m, i) {
+            this.servers.forEach(function(m, i) {
                 if (test.call(uri, m.uri)) {
-                    this.modules.splice(i, 1);
+                    this.servers.splice(i, 1);
                 }
             }, this);
         };
 
-        // Searches modules for handlers for the given request
-        //  - returns an array of objects with the keys { cb, module, match, route }
-        //  - returns the handlers in the order of module precedence
+        // Searches servers for handlers for the given request
+        //  - returns an array of objects with the keys { cb, server, match, route }
+        //  - returns the handlers in the order of server precedence
         function HttpRouter__findHandlers(request) {
             var matched_handlers = [];
-            this.modules.forEach(function(module) {
-                var rel_uri_index = request.uri.indexOf(module.uri);
+            this.servers.forEach(function(server) {
+                var rel_uri_index = request.uri.indexOf(server.uri);
                 if (rel_uri_index == 0) {
 
                     // is it a complete name match? (/foo matches /foo/bar, not /foobar)
-                    var rel_uri = request.uri.substr(module.uri.length);
+                    var rel_uri = request.uri.substr(server.uri.length);
                     if (rel_uri != '' && rel_uri.charAt(0) != '/') {
                         return;
                     }
                     if (rel_uri.charAt(0) != '/') { rel_uri = '/' + rel_uri; } // prepend the leading slash, for consistency
 
-                    for (var j=0; j < module.inst.routes.length; j++) {
-                        var route = module.inst.routes[j];
+                    for (var j=0; j < server.inst.routes.length; j++) {
+                        var route = server.inst.routes[j];
                         var match, matches = {};
                         for (var k in route.match) {
                             match = true;
 
                             if (!(k in request)) {
-                                Util.log('routing', ' > ',/*module.inst,*/route.cb,'MISS ('+k+')');
+                                Util.log('routing', ' > ',/*server.inst,*/route.cb,'MISS ('+k+')');
                                 match = false;
                                 break;
                             }
@@ -78,14 +78,14 @@ if (typeof HttpRouter == 'undefined') {
                             if (route.match[k] instanceof RegExp) {
                                 match = route.match[k].exec(reqVal)
                                 if (!match) { 
-                                    Util.log('routing', ' > ',/*module.inst,*/route.cb,'MISS ('+k+' "'+reqVal+'")');
+                                    Util.log('routing', ' > ',/*server.inst,*/route.cb,'MISS ('+k+' "'+reqVal+'")');
                                     break; 
                                 }
                                 matches[k] = match;
                             }
                             else {
                                 if (route.match[k] != reqVal) { 
-                                    Util.log('routing', ' > ',/*module.inst,*/route.cb,'MISS ('+k+' "'+reqVal+'")');
+                                    Util.log('routing', ' > ',/*server.inst,*/route.cb,'MISS ('+k+' "'+reqVal+'")');
                                     match = false; break; 
                                 }
                                 matches[k] = reqVal;
@@ -93,15 +93,15 @@ if (typeof HttpRouter == 'undefined') {
                         }
                         if (!match) { continue; }
 
-                        Util.log('routing', ' > ',/*module.inst,*/route.cb,'MATCH');
-                        var cb = module.inst[route.cb];
+                        Util.log('routing', ' > ',/*server.inst,*/route.cb,'MATCH');
+                        var cb = server.inst[route.cb];
                         if (!cb) {
                             console.log("Handler callback '" + route.cb + "' not found in object");
                             continue;
                         }
                         matched_handlers.push({
                             cb:cb,
-                            context:module.inst,
+                            context:server.inst,
                             match:matches,
                             capture:route.capture
                         });

@@ -108,6 +108,8 @@ var RequestEvents = (function() {
             if (uri == null || uri == '') { uri = '/'; }
             if (!target) { target = '_self'; }
 
+            if (target == '_top') { return null; } // default behavior
+
             return { method:'get', uri:uri, accept:accept, target:target };
         }
         return null;

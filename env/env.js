@@ -52,8 +52,6 @@ var Env = (function() {
                 break;
             case '_parent':
                 // :TODO: ?
-            case '_top':
-                // :TODO: ?
             case '_blank':
                 agent_id = null; // new agent
                 break;
@@ -149,7 +147,7 @@ var Env = (function() {
 
         // create agent
         var agent = new Agent(id, body_elem);
-        this.io.addModule('/'+id, agent);
+        this.io.addServer('/'+id, agent);
 
         return (this.agents[id] = agent);
     }
@@ -174,7 +172,7 @@ var Env = (function() {
             Dropzones.cleanup(dropzone);
 
             delete this.agents[id];
-            this.io.removeModules('/'+id)
+            this.io.removeServers('/'+id)
         }, this);
 
         return p;

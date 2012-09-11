@@ -11,7 +11,7 @@ var server = {
 		return p;
 	},
 	subhello:function() {
-		return HttpRouter.response(200, 'sub hello', 'text/html');
+		return HttpRouter.response(200, 'sub hello <a href="http://news.ycombinator.com" target="_top">bye</a>', 'text/html');
 	}
 };
 //Util.logMode('routing', true);
