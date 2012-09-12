@@ -87,12 +87,19 @@ var Env = (function() {
 
         var body = response.body;
         if (body) {
-            // encode to a string
             body = ContentTypes.serialize(body, response['content-type']);
-            // escape so that html isnt inserted :TODO: should it?
-            // body = body.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             agent.resetBody(); // refreshed state, lose all previous content and listeners
             agent.getBody().innerHTML = body;
+
+            var program_script = agent.getBody().querySelector('script.program');
+            if (program_script) {
+                var program_url = program_script.getAttribute('src');
+                if (!program_url) {
+                    Util.log('errors', 'No url specified in program script');
+                } else {
+                    agent.loadProgram(program_url);
+                }
+            }
         }
     }
 
@@ -245,6 +252,8 @@ var Env = (function() {
     Agent.prototype.loadProgram = function Agent__loadProgram(url, config) {
         var self = this;
         self.program_load_promise = new Promise();
+
+        // :TODO: permissions check
 
         Promise.when(self.killProgram(), function() {
             self.worker = new Worker('/env/agent-worker.js');
