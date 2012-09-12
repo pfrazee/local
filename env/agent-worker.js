@@ -63,6 +63,8 @@ if (typeof Agent == 'undefined') {
 	})();
 }
 
+Util.logMode('errors', true);
+
 // do some sandboxing
 self.XMLHttpRequest = null; // ajax not allowed
 // :TODO: importScripts

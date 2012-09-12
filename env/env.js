@@ -64,7 +64,11 @@ var Env = (function() {
         }
 
         var agent = Env.getAgent(agent_id) || Env.makeAgent(agent_id);
-        agent.follow(request, e.target);
+        if (agent.hasProgram()) {
+            agent.postWorkerEvent('dom:request', { request:request });
+        } else {
+            agent.follow(request, e.target);
+        }
     }
     
     function Env__onResponseEvent(e) {
@@ -73,6 +77,11 @@ var Env = (function() {
         var agent = Env.getAgent(request.target);
         if (!agent)
             throw "Agent not found in response event";
+
+        if (agent.hasProgram()) {
+            agent.postWorkerEvent('dom:response', { request:request, response:response });
+            return;
+        }
         
         if (response.code == 204 || response.code == 205) { return; }
 
@@ -115,10 +124,19 @@ var Env = (function() {
 
     // agent create
     // - `id` can be null/undefined to create a new agent with an assigned id
+    // - `id` can be the id or DOM node of the agent
     function Env__makeAgent(id, opt_target_elem) {
+        if (typeof id == 'object' && id instanceof Node) { 
+            opt_target_elem = id;
+            id = (opt_target_elem.id)
+                ? opt_target_elem.id.substr(6) // remove 'agent-'
+                : null;
+        }
+
         if (id == null || typeof id == 'undefined') {
             id = Env__makeAgentId.call(Env);
         }
+
         if (id in this.agents) {
             return this.agents[id];
         }
@@ -188,6 +206,7 @@ var Env = (function() {
         this.id = id;
         this.elem = elem;
         this.worker = null;
+        this.program_config = null; 
         this.program_load_promise = null;
         this.program_kill_promise = null;
         this.program_kill_timeout = null;
@@ -208,10 +227,12 @@ var Env = (function() {
         request.target = this.id;
         emitter = emitter || this.getBody();
         request.accept = request.accept || 'text/html';
-        Env.router.dispatch(request).then(function(response) {
+        var p = Env.router.dispatch(request);
+        p.then(function(response) {
             var re = new CustomEvent('response', { bubbles:true, cancelable:true, detail:{ request:request, response:response }});
             emitter.dispatchEvent(re);
         });
+        return p;
     };
     Agent.prototype.resetBody = function Agent__resetBody() {
         var p = this.elem.parentNode;
@@ -236,11 +257,16 @@ var Env = (function() {
                 }
             });
 
-            config = config ? Util.deepCopy(config) : {};
-            config.program_url = url;
-            config.agent_id = self.getId();
-            config.agent_uri = self.getUri(true);
-            self.postWorkerEvent('setup', { config:config });
+            self.program_config = config ? Util.deepCopy(config) : {};
+            self.program_config.program_url = url;
+            self.program_config.agent_id = self.getId();
+            self.program_config.agent_uri = self.getUri(true);
+            self.postWorkerEvent('setup', { config:self.program_config });
+
+            var el = self.getBody().parentNode;
+            var screl = el.querySelector('.agent-program');
+            screl.innerHTML = url;
+            screl.title = url;
         });
         return self.program_load_promise;
     };
@@ -263,6 +289,7 @@ var Env = (function() {
 
             this.worker.terminate();
             this.worker = null;
+            this.program_config = null;
 
             this.program_kill_promise.fulfill(true);
             this.program_kill_promise = null;
@@ -278,6 +305,10 @@ var Env = (function() {
         }
         return this.program_kill_promise;
     };
+    Agent.prototype.hasProgram = function Agent__hasProgram() { return !!this.program_config; }
+    Agent.prototype.getProgramConfig = function Agent__getProgramConfig() { 
+        return this.program_config; 
+    }
     Agent.prototype.postWorkerEvent = function Agent__postWorkerEvent(evt_name, data) {
         if (!this.worker) { return; } // :TODO: throw? log?
         data = data ? Util.deepCopy(data) : {};
@@ -377,7 +408,7 @@ var Env = (function() {
                         '<button class="btn btn-mini" formmethod="close" title="close">&times;</button>' +
                     '</div>' +
                 '</form>' +
-                '<a href="{{uri}}">{{id}}</a>' +
+                '<a href="{{uri}}">{{id}}</a> <span class="agent-program"></span>' +
             '</div>' +
             '<div id="agent-{{id}}-body" class="agent-body"></div>'
         //'</div>'

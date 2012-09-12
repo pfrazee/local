@@ -1,17 +1,24 @@
+// server
 var server = {
 	routes:[
 		HttpRouter.route('hello', { uri:'^/?$', method:'get', accept:'text/html' }),
 		HttpRouter.route('subhello', { uri:'^/sub$', method:'get', accept:'text/html' })
 	],
 	hello:function() {
-		setTimeout(function() {
-			Agent.dispatch({ method:'delete', uri:'#/dom/debug/test/0-2/class' });
-		}, 100);
-		return HttpRouter.response(200, '<div class="test">hello 1</div><div class="test">hello 2</div><div class="test">hello 3</div>', 'text/html');
+		return HttpRouter.response(200, '<a href="#/debug/sub">link</a>', 'text/html');
+	},
+	subhello:function() {
+		return HttpRouter.response(200, 'link clicked!', 'text/html');
 	}
 };
-Util.logMode('debug-agent', true);
-//Util.logMode('routing', true);
 Agent.addServer('#/', server);
+
+// client
+addEventMsgListener('dom:request', function(e) {
+	Agent.follow(e.request);
+});
+addEventMsgListener('dom:response', function(e) {
+	Agent.dispatch({ method:'put', uri:'#/dom/debug', 'content-type':'text/html', body:e.response.body });
+});
 
 postEventMsg('ready');

@@ -96,7 +96,7 @@ if (typeof HttpRouter == 'undefined') {
                         Util.log('routing', ' > ',/*server.inst,*/route.cb,'MATCH');
                         var cb = server.inst[route.cb];
                         if (!cb) {
-                            console.log("Handler callback '" + route.cb + "' not found in object");
+                            Util.log('errors', "Handler callback '" + route.cb + "' not found in object");
                             continue;
                         }
                         matched_handlers.push({

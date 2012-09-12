@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }*/
 
     if (env_config.logging_enabled) {
+        Util.logMode('errors', true);
         Util.logMode('traffic', true);
         //Util.logMode('routing', true);
         //Util.logMode('err_types', true);

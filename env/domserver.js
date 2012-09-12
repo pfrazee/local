@@ -190,8 +190,11 @@ if (typeof DomServer == 'undefined') {
 		function getNodes(match) {
 			var agent = document.getElementById('agent-'+match.uri[1]);
 			if (!agent) { return []; }
+			
+			var body = agent.querySelector('.agent-body');
+			if (!match.uri[2]) { return [body]; }
 
-			var nodes = agent.getElementsByClassName(match.uri[2]);
+			var nodes = body.getElementsByClassName(match.uri[2]);
 			var lo=0, hi=nodes.length-1;
 			var rangematch = /([0-9]+)(?:\-([0-9]+))?/.exec(match.uri[3]);
 			if (rangematch) {
