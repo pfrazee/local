@@ -12,7 +12,7 @@ if (typeof HttpRouter == 'undefined') {
                 proxy:null,
                 proxy_query_header:'x-proxy-query'
             };
-        }
+        };
 
         // Configures the server into the uri structure
         //  - maintains precedence in ordering according to the URI
@@ -53,8 +53,8 @@ if (typeof HttpRouter == 'undefined') {
 
                     // is it a complete name match? (/foo matches /foo/bar, not /foobar)
                     var rel_uri = request.uri.substr(server.uri.length);
-                    /*if (rel_uri != '' && rel_uri.charAt(0) != '/') { :TODO: needed?
-                        return;
+                    /*if (rel_uri != '' && rel_uri.charAt(0) != '/') { //:TODO: better way to check this
+                        return [];
                     }*/
                     if (rel_uri.charAt(0) != '/') { rel_uri = '/' + rel_uri; } // prepend the leading slash, for consistency
 
@@ -166,6 +166,9 @@ if (typeof HttpRouter == 'undefined') {
         }
 
         function HttpRouter__finishHandling(request, response) {
+            if (!response) { 
+                response = HttpRouter.response(404, 'Not Found', 'text/plain');
+            }
             Util.log('traffic', this.id ? this.id+'|res' : ' >|', response);
 
             response.org_request = request; // :TODO: if this isn't necessary, it should go

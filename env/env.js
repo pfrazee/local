@@ -9,6 +9,7 @@ var Env = (function() {
         killAgent:Env__killAgent,
 
         router:null, 
+        domserver:null,
         agents:{},
         container_elem:null, 
         nc:null, // notifications center (plugin to raise alerts)
@@ -23,6 +24,9 @@ var Env = (function() {
 
         RequestEvents.init();
         Dropzones.init();
+
+        this.domserver = new DomServer();
+        this.router.addServer('#/dom', this.domserver);
 
         document.body.addEventListener('request', Env__onRequestEvent);
         document.body.addEventListener('response', Env__onResponseEvent);
