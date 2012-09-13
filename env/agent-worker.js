@@ -20,25 +20,25 @@ if (typeof Agent == 'undefined') {
 		Agent.getUri = function() { return Agent.config.agent_uri; };
 
 		// http functions
-        Agent.dispatch = function dispatch(request, opt_follow) {
-            var p = new Promise();
-            var mid = Agent.pending_requests.length;
+		Agent.dispatch = function dispatch(request, opt_follow) {
+			var p = new Promise();
+			var mid = Agent.pending_requests.length;
 
-            Agent.pending_requests.push(p);
-            postEventMsg('http:request', { mid:mid, request:request, follow:opt_follow });
+			Agent.pending_requests.push(p);
+			postEventMsg('http:request', { mid:mid, request:request, follow:opt_follow });
 
-            return p;
-        };
-        Agent.follow = function follow(request) {
-        	return Agent.dispatch(request, true);
-        };
+			return p;
+		};
+		Agent.follow = function follow(request) {
+			return Agent.dispatch(request, true);
+		};
 
-        // request handling functions
-        Agent.addServer = function addServer(uri, server) {
-        	router.addServer(uri, server);
-        };
+		// request handling functions
+		Agent.addServer = function addServer(uri, server) {
+			router.addServer(uri, server);
+		};
 
-        // event handlers
+		// event handlers
 		addEventMsgListener('setup', function(e) {
 			Agent.config = e.config;
 			importScripts(Agent.config.program_url);
@@ -53,11 +53,11 @@ if (typeof Agent == 'undefined') {
 		});
 		addEventMsgListener('http:response', function(e) {
 			var response = e.response;
-	        var pending_request = Agent.pending_requests[e.mid];
-	        if (!pending_request) { throw "Response received from agent worker with bad message id"; }
-	        // if !pendingRequest, make sure that the response wasnt accidentally sent twice
-	        Agent.pending_requests[e.mid] = null;
-	        pending_request.fulfill(response);
+			var pending_request = Agent.pending_requests[e.mid];
+			if (!pending_request) { throw "Response received from agent worker with bad message id"; }
+			// if !pendingRequest, make sure that the response wasnt accidentally sent twice
+			Agent.pending_requests[e.mid] = null;
+			pending_request.fulfill(response);
 		});
 
 	})();

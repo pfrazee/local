@@ -8,7 +8,7 @@ var server = {
 		return HttpRouter.response(200, '<a href="#/debug/sub">link</a>', 'text/html');
 	},
 	subhello:function() {
-		return HttpRouter.response(200, 'link clicked! <script class="program" src="/modules/pfraze/debug.js"></script>', 'text/html');
+		return HttpRouter.response(200, 'link clicked!', /*<script class="program" src="/modules/pfraze/debug.js"></script>',*/ 'text/html');
 	}
 };
 Agent.addServer('#/', server);
