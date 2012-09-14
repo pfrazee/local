@@ -191,8 +191,8 @@ if (typeof HttpRouter == 'undefined') {
 
 		// Pulls the query params into the request.query object
 		function __processQueryParams(request) {
+			request.query = request.query || {};
 			if (request.uri && request.uri.indexOf('?') != -1) {
-				request.query = [];
 				// pull uri out
 				var parts = request.uri.split('?');
 				request.uri = parts.shift();
@@ -200,7 +200,18 @@ if (typeof HttpRouter == 'undefined') {
 				parts = parts.join('').split('&');
 				for (var i=0; i < parts.length; i++) {
 					var kv = parts[i].split('=');
-					request.query[kv[0]] = kv[1];
+                    var k = kv[0], v = kv[1];
+                    if (v.charAt(0) == '"') { v = /"(.*)"/.exec(v)[1]; }
+                    else if (v.charAt(0) == "'") { v = /'(.*)'/.exec(v)[1]; }
+                    if (k in request.query) {
+                        if (Array.isArray(request.query[k])) {
+                            request.query[k].push(v);
+                        } else {
+                            request.query[k] = [v];
+                        }
+                    } else {
+					    request.query[k] = v;
+                    }
 				}
 			}
 		}
@@ -275,9 +286,14 @@ if (typeof HttpRouter == 'undefined') {
 		};
 		HttpRouter.response = function HttpRouter__response(code, body, contenttype, headers) {
 			var response = headers || {};
-			response.code = code;
-			response.body = body || '';
-			response['content-type'] = contenttype || '';
+            if (Array.isArray(code)) {
+			    response.code = code[0];
+                response.reason = code[1];
+            } else {
+                response.code = code;
+            }
+            if (body) { response.body = body; }
+			if (contenttype) { response['content-type'] = contenttype; }
 			return response;
 		};	
 	})();

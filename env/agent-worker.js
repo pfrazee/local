@@ -38,6 +38,18 @@ if (typeof Agent == 'undefined') {
 			router.addServer(uri, server);
 		};
 
+		// dom server wrappers
+		Agent.dom = {
+			dispatch:function(method, opt_query, opt_body, opt_type) { Agent.dispatch({ method:method, uri:'#/dom/'+Agent.getId(), query:opt_query, accept:'text/html', body:opt_body, 'content-type':opt_type }); },
+			get:function(opt_selector) { Agent.dom.dispatch('get', { q:opt_selector }); },
+			put:function(html, opt_selector) { Agent.dom.dispatch('put', { q:opt_selector }, html, 'text/html'); },
+			appendChild:function(html, opt_selector, opt_child_index) { Agent.dom.dispatch('post', { q:opt_selector, append:opt_child_index }, html, 'text/html'); },
+			insertBefore:function(html, opt_selector, opt_child_index) { Agent.dom.dispatch('post', { q:opt_selector, before:(opt_child_index || 0) }, html, 'text/html'); },
+			replaceChild:function(html, opt_selector, opt_child_index) { Agent.dom.dispatch('post', { q:opt_selector, replace:opt_child_index }, html, 'text/html'); },
+			deleteNode:function(opt_selector) { Agent.dom.dispatch('delete', { q:opt_selector }); },
+			listen:function(event, opt_selector) { Agent.dispatch({ method:'listen', uri:'#/dom/'+Agent.getId()+'/'+event, query:{ qall:opt_selector } }); },
+		};
+
 		// event handlers
 		addEventMsgListener('setup', function(e) {
 			Agent.config = e.config;

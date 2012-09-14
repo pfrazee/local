@@ -212,18 +212,20 @@ var Env = (function() {
 	function Agent(id, elem) {
 		this.id = id;
 		this.elem = elem;
+
 		this.worker = null;
 		this.program_config = null; 
+
+		// used by http:request/http:response to track
+		// which requests the agent program server is currently handling
+		this.pending_requests = []; // (an array of promises)
+
+		this.dom_event_handlers = {}; // a hash of events->handler obj array
+
 		this.program_load_promise = null;
 		this.program_kill_promise = null;
 		this.program_kill_timeout = null;
-		this.pending_requests = [];
 	}
-	Agent.prototype.routes = [
-		HttpRouter.route('collapseHandler', { uri:'^/?$', method:/min|max/i }),
-		HttpRouter.route('closeHandler', { uri:'^/?$', method:'close' }),
-		HttpRouter.route('programRequestHandler', { uri:'(.*)' })
-	];
 	Agent.prototype.getBody = function Agent__getBody() { return this.elem; };
 	Agent.prototype.getId = function Agent__getId() { return this.id; };
 	Agent.prototype.getUri = function Agent__getUri() { return '#/' + this.id; };
@@ -249,6 +251,69 @@ var Env = (function() {
 		p.replaceChild(n, this.elem);
 		this.elem = n;
 	};
+
+	// Dom Events
+	Agent.prototype.addDomEventHandler = function Agent__addDomEventHandler(event, selector, opt_stopHandlers) {
+		if (!this.getBody()) { throw "Agent body required"; }
+		if (!(event in this.dom_event_handlers)) {
+			this.dom_event_handlers[event] = [];
+			this.getBody().addEventListener(event, Agent__genericDomEventHandler);
+		}
+		// :TODO: insert based on specificity of selector
+		this.dom_event_handlers[event].push({ selector:selector, stopHandlers:opt_stopHandlers });
+	};
+	Agent.prototype.removeDomEventHandler = function Agent__removeDomEventHandler(event, selector) {
+		if (event in this.dom_event_handlers) {
+			this.dom_event_handlers[event].forEach(function(h, i) {
+				if (h.selector == selector) {
+					this.dom_event_handlers[event].splice(i, 1);
+				}
+			});
+		}
+		if (this.dom_event_handlers[event].length == 0) {
+			// :TODO: remove listener
+		}
+	};
+	Agent.prototype.getDomEventHandlers = function Agent__getDomEventHandlers(event) {
+		return this.dom_event_handlers[event];
+	};
+	function Agent__genericDomEventHandler(e) {
+		var agent = Env.getAgent(this.parentNode);
+		if (!agent) { throw "Agent not found on dom event"; }
+
+		// find all the handlers that match
+		var nodes_cache = { _:[agent.getBody()] }; // underscore is for when no selector is given
+		var stop = false;
+		agent.getDomEventHandlers(e.type).forEach(function(h) {
+			if (stop) { return; }
+
+			var sel = h.selector || '_';
+			if (!(sel in nodes_cache)) {
+				nodes_cache[sel] = agent.getBody().querySelectorAll(sel);
+			}
+
+			// it's a match if the event element is in the node set described by the handler's selector
+			var nodes = nodes_cache[sel];
+			for (var i=0; i < nodes.length; i++) {
+				if (e.target == nodes[i]) {
+					var workerEvent = 'dom:'+e.type;
+					if (h.selector) { workerEvent += ' '+h.selector; }
+					agent.postWorkerEvent(workerEvent);
+
+					if (h.stopHandlers) { stop = true; }
+					break;
+				}
+			}
+		});
+
+		if (stop) {
+			e.stopPropagation();
+			e.preventDefault();
+			return false;
+		}
+	};
+
+	// Worker Program Management
 	Agent.prototype.loadProgram = function Agent__loadProgram(url, config) {
 		var self = this;
 		self.program_load_promise = new Promise();
@@ -318,6 +383,8 @@ var Env = (function() {
 	Agent.prototype.getProgramConfig = function Agent__getProgramConfig() { 
 		return this.program_config; 
 	}
+
+	// Worker Event Handlers
 	Agent.prototype.postWorkerEvent = function Agent__postWorkerEvent(evt_name, data) {
 		if (!this.worker) { return; } // :TODO: throw? log?
 		data = data ? Util.deepCopy(data) : {};
@@ -355,6 +422,13 @@ var Env = (function() {
 		this.pending_requests[e.mid] = null;
 		pending_request.fulfill(response);
 	};
+
+	// HTTP Request Handlers
+	Agent.prototype.routes = [
+		HttpRouter.route('collapseHandler', { uri:'^/?$', method:/min|max/i }),
+		HttpRouter.route('closeHandler', { uri:'^/?$', method:'close' }),
+		HttpRouter.route('programRequestHandler', { uri:'(.*)' })
+	];
 	Agent.prototype.collapseHandler = function Agent__collapseHandler(request) {
 		var should_collapse = (request.method == 'min');
 		var is_collapsed = this.elem.parentNode.classList.contains('collapsed');
