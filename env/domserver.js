@@ -10,13 +10,13 @@ if (typeof DomServer == 'undefined') {
 			HttpRouter.route('put', { method:'put', uri:'^/([^/]*)/?$', 'content-type':'text/.*' }),
 			HttpRouter.route('ins', { method:'post', uri:'^/([^/]*)/?$', 'content-type':'text/.*' }),
 			HttpRouter.route('del', { method:'delete', uri:'^/([^/]*)/?$' }),
-			HttpRouter.route('listen', { method:'listen', uri:'^/([^/]*)/([^/]*)/?$' })
+			HttpRouter.route('listen', { method:'listen|unlisten', uri:'^/([^/]*)/([^/]*)/?$' })
 		];
 
 		DomServer.prototype.banner = function DomServer__banner() {
 			var linkHeader = [
 				{ methods:['get','put','post','delete'], title:'Node', href:'#/dom/{agent}?{selector}&{allSelector}&{append}&{before}&{replace}', type:'text/html' },
-				{ method:'listen', title:'Event', href:'#/dom/{agent}/{event}?{selector}' }
+				{ methods:['listen', 'unlisten'], title:'Event', href:'#/dom/{agent}/{event}?{selector}' }
 			];
 			return HttpRouter.response([200,'ok'], 'Dom Server 0.1', 'text/html', { link:linkHeader });
 		};
@@ -115,7 +115,11 @@ if (typeof DomServer == 'undefined') {
 			var agent = Env.getAgent(match.uri[1]);
 			// :TODO: validate access with session
 
-			agent.addDomEventHandler(match.uri[2], request.query.selector);
+			if (request.method == 'listen') {
+				agent.addDomEventHandler(match.uri[2], request.query.selector);
+			} else {
+				agent.removeDomEventHandler(match.uri[2], request.query.selector);
+			}
 
 			return HttpRouter.response([200,'ok']);
 		};

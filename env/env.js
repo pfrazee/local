@@ -253,14 +253,33 @@ var Env = (function() {
 	};
 
 	// Dom Events
+	function countMatches(m) { return (m ? m.length : 0); }
 	Agent.prototype.addDomEventHandler = function Agent__addDomEventHandler(event, selector, opt_stopHandlers) {
 		if (!this.getBody()) { throw "Agent body required"; }
 		if (!(event in this.dom_event_handlers)) {
 			this.dom_event_handlers[event] = [];
 			this.getBody().addEventListener(event, Agent__genericDomEventHandler);
 		}
-		// :TODO: insert based on specificity of selector
-		this.dom_event_handlers[event].push({ selector:selector, stopHandlers:opt_stopHandlers });
+		// roughly calculate the selector specificity
+		// http://css-tricks.com/specifics-on-css-specificity/
+		var specificity = 0;
+		if (selector) {
+			specificity += countMatches(selector.match(/\#/g)) * 100;
+			specificity += countMatches(selector.match(/\./g)) * 10;	
+			specificity += countMatches(selector.match(/(\s+)/g)) + 1;
+		}
+		var handler = { selector:selector, specificity:specificity }; 
+		var added = false;
+		for (var i=0; i < this.dom_event_handlers[event].length; i++) {
+			if (this.dom_event_handlers[event][i].specificity < specificity) {
+				this.dom_event_handlers[event].splice(i, 0, handler);
+				added = true;
+				break;
+			}
+		}
+		if (!added) {
+			this.dom_event_handlers[event].push(handler);
+		}
 	};
 	Agent.prototype.removeDomEventHandler = function Agent__removeDomEventHandler(event, selector) {
 		if (event in this.dom_event_handlers) {
@@ -268,10 +287,10 @@ var Env = (function() {
 				if (h.selector == selector) {
 					this.dom_event_handlers[event].splice(i, 1);
 				}
-			});
+			}, this);
 		}
 		if (this.dom_event_handlers[event].length == 0) {
-			// :TODO: remove listener
+			this.getBody().removeEventListener(event, Agent__genericDomEventHandler);
 		}
 	};
 	Agent.prototype.getDomEventHandlers = function Agent__getDomEventHandlers(event) {
@@ -282,11 +301,9 @@ var Env = (function() {
 		if (!agent) { throw "Agent not found on dom event"; }
 
 		// find all the handlers that match
+		var workerEventData = null;
 		var nodes_cache = { _:[agent.getBody()] }; // underscore is for when no selector is given
-		var stop = false;
 		agent.getDomEventHandlers(e.type).forEach(function(h) {
-			if (stop) { return; }
-
 			var sel = h.selector || '_';
 			if (!(sel in nodes_cache)) {
 				nodes_cache[sel] = agent.getBody().querySelectorAll(sel);
@@ -298,19 +315,21 @@ var Env = (function() {
 				if (e.target == nodes[i]) {
 					var workerEvent = 'dom:'+e.type;
 					if (h.selector) { workerEvent += ' '+h.selector; }
-					agent.postWorkerEvent(workerEvent);
 
-					if (h.stopHandlers) { stop = true; }
+					if (!workerEventData) { 
+						workerEventData = {};
+						for (var k in e) {
+							if ((/boolean|number|string/).test(typeof e[k])) {
+								workerEventData[k] = e[k];
+							}
+						}
+					}
+
+					agent.postWorkerEvent(workerEvent, workerEventData);
 					break;
 				}
 			}
 		});
-
-		if (stop) {
-			e.stopPropagation();
-			e.preventDefault();
-			return false;
-		}
 	};
 
 	// Worker Program Management
@@ -334,7 +353,7 @@ var Env = (function() {
 			self.program_config = config ? Util.deepCopy(config) : {};
 			self.program_config.program_url = url;
 			self.program_config.agent_id = self.getId();
-			self.program_config.agent_uri = self.getUri(true);
+			self.program_config.agent_uri = self.getUri();
 			self.postWorkerEvent('setup', { config:self.program_config });
 
 			var el = self.getBody().parentNode;
