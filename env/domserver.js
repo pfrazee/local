@@ -5,12 +5,21 @@ if (typeof DomServer == 'undefined') {
 		};
 
 		DomServer.prototype.routes = [
+			HttpRouter.route('banner', { method:'get', uri:'^/?$', accept:'text/.*' }),
 			HttpRouter.route('get', { method:'get', uri:'^/([^/]*)/?$', accept:'text/.*' }),
 			HttpRouter.route('put', { method:'put', uri:'^/([^/]*)/?$', 'content-type':'text/.*' }),
 			HttpRouter.route('ins', { method:'post', uri:'^/([^/]*)/?$', 'content-type':'text/.*' }),
 			HttpRouter.route('del', { method:'delete', uri:'^/([^/]*)/?$' }),
 			HttpRouter.route('listen', { method:'listen', uri:'^/([^/]*)/([^/]*)/?$' })
 		];
+
+		DomServer.prototype.banner = function DomServer__banner() {
+			var linkHeader = [
+				{ methods:['get','put','post','delete'], title:'Node', href:'#/dom/{agent}?{selector}&{allSelector}&{append}&{before}&{replace}', type:'text/html' },
+				{ method:'listen', title:'Event', href:'#/dom/{agent}/{event}?{selector}' }
+			];
+			return HttpRouter.response([200,'ok'], 'Dom Server 0.1', 'text/html', { link:linkHeader });
+		};
 
 		DomServer.prototype.get = function DomServer__get(request, match) {
 			var agent = Env.getAgent(match.uri[1]);
@@ -32,7 +41,7 @@ if (typeof DomServer == 'undefined') {
 		};
 
 		DomServer.prototype.put = function DomServer__put(request, match) {
-            var agent = Env.getAgent(match.uri[1]);
+			var agent = Env.getAgent(match.uri[1]);
 			// :TODO: validate access with session
 			
 			var nodes = getNodes(agent, request.query);
@@ -41,7 +50,7 @@ if (typeof DomServer == 'undefined') {
 			}
 
 			var val = request.body ? request.body.toString() : '';
-            var attr = request.query.attr || 'innerHTML';
+			var attr = request.query.attr || 'innerHTML';
 			nodes.forEach(function(node) {
 				node[attr] = val;
 			});
@@ -50,7 +59,7 @@ if (typeof DomServer == 'undefined') {
 		};
 
 		DomServer.prototype.ins = function DomServer__ins(request, match) {
-            var agent = Env.getAgent(match.uri[1]);
+			var agent = Env.getAgent(match.uri[1]);
 			// :TODO: validate access with session
 			
 			var nodes = getNodes(agent, request.query);
@@ -60,7 +69,7 @@ if (typeof DomServer == 'undefined') {
 
 			var html = request.body ? request.body.toString() : '';
 			nodes.forEach(function(node) {
-                // (can't just do frag.innerHTML = html)
+				// (can't just do frag.innerHTML = html)
 				var el = document.createElement('div');
 				el.innerHTML = html;
 				var frag = document.createDocumentFragment();
@@ -70,15 +79,15 @@ if (typeof DomServer == 'undefined') {
 				}
 
 				var added = false;
-                if ('before' in request.query) {
+				if ('before' in request.query) {
 					node.insertBefore(frag, node.childNodes[request.query.before]);
 					added = true;
-                }
-                if ('replace' in request.query) {
+				}
+				if ('replace' in request.query) {
 					node.replaceChild(frag, node.childNodes[request.query.replace]);
 					added = true;
-                }
-                if (!added || 'append' in request.query) {
+				}
+				if (!added || 'append' in request.query) {
 					node.appendChild(frag);
 				}
 			});
@@ -87,7 +96,7 @@ if (typeof DomServer == 'undefined') {
 		};
 
 		DomServer.prototype.del = function DomServer__del(request, match) {
-            var agent = Env.getAgent(match.uri[1]);
+			var agent = Env.getAgent(match.uri[1]);
 			// :TODO: validate access with session
 
 			var nodes = getNodes(agent, request.query);
@@ -103,10 +112,10 @@ if (typeof DomServer == 'undefined') {
 		};
 
 		DomServer.prototype.listen = function DomServer__listen(request, match) {
-            var agent = Env.getAgent(match.uri[1]);
+			var agent = Env.getAgent(match.uri[1]);
 			// :TODO: validate access with session
 
-			agent.addDomEventHandler(match.uri[2], request.query.qall);
+			agent.addDomEventHandler(match.uri[2], request.query.selector);
 
 			return HttpRouter.response([200,'ok']);
 		};
@@ -199,14 +208,14 @@ if (typeof DomServer == 'undefined') {
 		function getNodes(agent, query) {
 			if (!agent) { return []; }
 
-            var body = agent.getBody();
-            if (!query || (!query.q && !query.qall)) {
-                return [body];
-            }
+			var body = agent.getBody();
+			if (!query || (!query.selector && !query.selectorAll)) {
+				return [body];
+			}
 
-			var nodes = query.qall ? 
-				body.querySelectorAll(query.qall) :
-				[body.querySelector(query.q)];
+			var nodes = query.selectorAll ? 
+				body.querySelectorAll(query.selectorAll) :
+				[body.querySelector(query.selector)];
 			var lo=0, hi=nodes.length-1;
 			/*var rangematch = /([0-9]+)(?:\-([0-9]+))?/.exec(match.uri[3]);
 			if (rangematch) {

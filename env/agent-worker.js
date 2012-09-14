@@ -8,13 +8,15 @@ importScripts('/stdlib/util.js');
 importScripts('/stdlib/promise.js');
 importScripts('/stdlib/contenttypes.js');
 importScripts('/stdlib/httprouter.js');
+importScripts('/stdlib/linkreflector.js');
 
 if (typeof Agent == 'undefined') {
 	(function() {
 		globals.Agent = {
-			pending_requests:[]
+			pending_requests:[],
 		};
 		var router = new HttpRouter();
+		var domready = new Promise();
 
 		Agent.getId = function() { return Agent.config.agent_id; };
 		Agent.getUri = function() { return Agent.config.agent_uri; };
@@ -38,22 +40,12 @@ if (typeof Agent == 'undefined') {
 			router.addServer(uri, server);
 		};
 
-		// dom server wrappers
-		Agent.dom = {
-			dispatch:function(method, opt_query, opt_body, opt_type) { Agent.dispatch({ method:method, uri:'#/dom/'+Agent.getId(), query:opt_query, accept:'text/html', body:opt_body, 'content-type':opt_type }); },
-			get:function(opt_selector) { Agent.dom.dispatch('get', { q:opt_selector }); },
-			put:function(html, opt_selector) { Agent.dom.dispatch('put', { q:opt_selector }, html, 'text/html'); },
-			appendChild:function(html, opt_selector, opt_child_index) { Agent.dom.dispatch('post', { q:opt_selector, append:opt_child_index }, html, 'text/html'); },
-			insertBefore:function(html, opt_selector, opt_child_index) { Agent.dom.dispatch('post', { q:opt_selector, before:(opt_child_index || 0) }, html, 'text/html'); },
-			replaceChild:function(html, opt_selector, opt_child_index) { Agent.dom.dispatch('post', { q:opt_selector, replace:opt_child_index }, html, 'text/html'); },
-			deleteNode:function(opt_selector) { Agent.dom.dispatch('delete', { q:opt_selector }); },
-			listen:function(event, opt_selector) { Agent.dispatch({ method:'listen', uri:'#/dom/'+Agent.getId()+'/'+event, query:{ qall:opt_selector } }); },
-		};
-
 		// event handlers
 		addEventMsgListener('setup', function(e) {
 			Agent.config = e.config;
-			importScripts(Agent.config.program_url);
+			Promise.whenAll([domready], function() {
+				importScripts(Agent.config.program_url);
+			});
 		});
 		addEventMsgListener('kill', function(e) {
 			postEventMsg('dead'); // for now, just die immediately
@@ -71,6 +63,23 @@ if (typeof Agent == 'undefined') {
 			Agent.pending_requests[e.mid] = null;
 			pending_request.fulfill(response);
 		});
+
+		// standard link reflections
+		Agent.dispatch({ method:'get', uri:'#/dom', accept:'text/html' }).then(function(res) {
+			Agent.dom = ReflectLinks(res.link, { agent:Agent.getId() });
+			domready.fulfill(true);
+		});
+
+		/*Agent.dom = {
+			dispatch:function(method, opt_query, opt_body, opt_type) { Agent.dispatch({ method:method, uri:'#/dom/'+Agent.getId(), query:opt_query, accept:'text/html', body:opt_body, 'content-type':opt_type }); },
+			get:function(opt_selector) { Agent.dom.dispatch('get', { q:opt_selector }); },
+			put:function(html, opt_selector) { Agent.dom.dispatch('put', { q:opt_selector }, html, 'text/html'); },
+			appendChild:function(html, opt_selector, opt_child_index) { Agent.dom.dispatch('post', { q:opt_selector, append:opt_child_index }, html, 'text/html'); },
+			insertBefore:function(html, opt_selector, opt_child_index) { Agent.dom.dispatch('post', { q:opt_selector, before:(opt_child_index || 0) }, html, 'text/html'); },
+			replaceChild:function(html, opt_selector, opt_child_index) { Agent.dom.dispatch('post', { q:opt_selector, replace:opt_child_index }, html, 'text/html'); },
+			deleteNode:function(opt_selector) { Agent.dom.dispatch('delete', { q:opt_selector }); },
+			listen:function(event, opt_selector) { Agent.dispatch({ method:'listen', uri:'#/dom/'+Agent.getId()+'/'+event, query:{ qall:opt_selector } }); },
+		};*/
 
 	})();
 }

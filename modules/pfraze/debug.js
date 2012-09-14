@@ -18,19 +18,19 @@ addEventMsgListener('dom:request', function(e) {
 	Agent.follow(e.request);
 });
 addEventMsgListener('dom:response', function(e) {
-	Agent.dom.put(e.response.body);
-	Agent.dom.listen('click');
-	Agent.dom.listen('click', 'p');
-	Agent.dom.listen('click', 'a');
+	Agent.dom.putNode({}, e.response.body, 'text/html');
+	Agent.dom.listenEvent({ event:'click' });
+	Agent.dom.listenEvent({ event:'click', selector:'p' });
+	Agent.dom.listenEvent({ event:'click', selector:'a' });
 });
 addEventMsgListener('dom:click', function(e) {
-	Agent.dom.appendChild('<p>body click!</p>');
+	Agent.dom.postNode({}, '<p>body click!</p>', 'text/html');
 });
 addEventMsgListener('dom:click p', function(e) {
-	Agent.dom.appendChild('<p>paragraph click!</p>');
+	Agent.dom.postNode({}, '<p>paragraph click!</p>', 'text/html');
 });
 addEventMsgListener('dom:click a', function(e) {
-	Agent.dom.appendChild('<p>link click!</p>');
+	Agent.dom.postNode({}, '<p>link click!</p>', 'text/html');
 });
 
 postEventMsg('ready');

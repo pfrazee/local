@@ -199,6 +199,7 @@ if (typeof HttpRouter == 'undefined') {
 				// iterate the values
 				parts = parts.join('').split('&');
 				for (var i=0; i < parts.length; i++) {
+					if (!parts[i]) { continue; }
 					var kv = parts[i].split('=');
                     var k = kv[0], v = kv[1];
                     if (v.charAt(0) == '"') { v = /"(.*)"/.exec(v)[1]; }

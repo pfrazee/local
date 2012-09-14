@@ -52,7 +52,7 @@ if (typeof Promise == 'undefined') {
 			if (!total) { return cb.call(opt_context, []); }
 			// wait for all to finish
 			for (var i=0; i < total; i++) {
-				when(values[i], function(v) {
+				Promise.when(values[i], function(v) {
 					values[this.i] = v; // replace with result
 					if (++fulfilled == total) {
 						cb.call(opt_context, values);
