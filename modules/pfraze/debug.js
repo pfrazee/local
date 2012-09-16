@@ -11,7 +11,6 @@ var server = {
 		return HttpRouter.response(200, 'link clicked!<script class="program" src="/modules/pfraze/debug.js"></script>', 'text/html');
 	}
 };
-Agent.addServer('#/', server);
 
 // client
 addEventMsgListener('dom:request', function(e) {
@@ -34,6 +33,5 @@ addEventMsgListener('dom:click p span', function(e) {
 addEventMsgListener('dom:click span', function(e) {
 	Agent.dom.postNode({}, '<p>span click!</p>', 'text/html');
 });
-
 
 postEventMsg('ready');

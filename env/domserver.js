@@ -6,16 +6,16 @@ if (typeof DomServer == 'undefined') {
 
 		DomServer.prototype.routes = [
 			HttpRouter.route('banner', { method:'get', uri:'^/?$', accept:'text/.*' }),
-			HttpRouter.route('get', { method:'get', uri:'^/([^/]*)/?$', accept:'text/.*' }),
-			HttpRouter.route('put', { method:'put', uri:'^/([^/]*)/?$', 'content-type':'text/.*' }),
-			HttpRouter.route('ins', { method:'post', uri:'^/([^/]*)/?$', 'content-type':'text/.*' }),
-			HttpRouter.route('del', { method:'delete', uri:'^/([^/]*)/?$' }),
-			HttpRouter.route('listen', { method:'listen|unlisten', uri:'^/([^/]*)/([^/]*)/?$' })
+			HttpRouter.route('get', { method:'get', uri:'^/([^/]*)/?$', accept:'text/.*' }), // :agent
+			HttpRouter.route('put', { method:'put', uri:'^/([^/]*)/?$', 'content-type':'text/.*' }), // :agent
+			HttpRouter.route('ins', { method:'post', uri:'^/([^/]*)/?$', 'content-type':'text/.*' }), // :agent
+			HttpRouter.route('del', { method:'delete', uri:'^/([^/]*)/?$' }), // :agent
+			HttpRouter.route('event', { method:'listen|unlisten', uri:'^/([^/]*)/([^/]*)/?$' }) // /:agent/:event
 		];
 
 		DomServer.prototype.banner = function DomServer__banner() {
 			var linkHeader = [
-				{ methods:['get','put','post','delete'], title:'Node', href:'#/dom/{agent}?{selector}&{allSelector}&{append}&{before}&{replace}', type:'text/html' },
+				{ methods:['get','put','post','delete'], title:'Node', href:'#/dom/{agent}?{selector}&{selectorAll}&{attr}&{append}&{before}&{replace}&{add}&{remove}&{toggle}', type:'text/html' },
 				{ methods:['listen', 'unlisten'], title:'Event', href:'#/dom/{agent}/{event}?{selector}' }
 			];
 			return HttpRouter.response([200,'ok'], 'Dom Server 0.1', 'text/html', { link:linkHeader });
@@ -26,7 +26,7 @@ if (typeof DomServer == 'undefined') {
 			// :TODO: validate access with session
 			
 			var nodes = getNodes(agent, request.query);
-			if (nodes.length == 0) {
+			if (nodes.length === 0) {
 				return HttpRouter.response([404,'node(s) not found']);
 			}
 
@@ -45,7 +45,7 @@ if (typeof DomServer == 'undefined') {
 			// :TODO: validate access with session
 			
 			var nodes = getNodes(agent, request.query);
-			if (nodes.length == 0) {
+			if (nodes.length === 0) {
 				return HttpRouter.response([404,'node(s) not found']);
 			}
 
@@ -55,7 +55,7 @@ if (typeof DomServer == 'undefined') {
 				node[attr] = val;
 			});
 
-			return HttpRouter.response([200,'ok']);
+			return HttpRouter.response([204,'ok']);
 		};
 
 		DomServer.prototype.ins = function DomServer__ins(request, match) {
@@ -63,36 +63,47 @@ if (typeof DomServer == 'undefined') {
 			// :TODO: validate access with session
 			
 			var nodes = getNodes(agent, request.query);
-			if (nodes.length == 0) {
+			if (nodes.length === 0) {
 				return HttpRouter.response([404,'node(s) not found']);
 			}
 
-			var html = request.body ? request.body.toString() : '';
+			var val = request.body ? request.body.toString() : '';
+			var attr = request.query.attr || 'innerHTML';
 			nodes.forEach(function(node) {
-				// (can't just do frag.innerHTML = html)
-				var el = document.createElement('div');
-				el.innerHTML = html;
-				var frag = document.createDocumentFragment();
-				while (el.childNodes.length) {
-					var chel = el.removeChild(el.childNodes[0]);
-					frag.appendChild(chel);
-				}
+				if (!attr || /html/i.test(attr)) {
+					// (can't just do frag.innerHTML = html)
+					var el = document.createElement('div');
+					el.innerHTML = val;
+					var frag = document.createDocumentFragment();
+					while (el.childNodes.length) {
+						var chel = el.removeChild(el.childNodes[0]);
+						frag.appendChild(chel);
+					}
 
-				var added = false;
-				if ('before' in request.query) {
-					node.insertBefore(frag, node.childNodes[request.query.before]);
-					added = true;
-				}
-				if ('replace' in request.query) {
-					node.replaceChild(frag, node.childNodes[request.query.replace]);
-					added = true;
-				}
-				if (!added || 'append' in request.query) {
-					node.appendChild(frag);
+					var added = false;
+					if ('before' in request.query) {
+						node.insertBefore(frag, node.childNodes[request.query.before]);
+						added = true;
+					}
+					if ('replace' in request.query) {
+						node.replaceChild(frag, node.childNodes[request.query.replace]);
+						added = true;
+					}
+					if (!added || 'append' in request.query) {
+						node.appendChild(frag);
+					}
+				} else if (attr == 'class') {
+					if ('remove' in request.query) {
+						node.classList.remove(val);
+					} else if ('toggle' in request.query) {
+						node.classList.toggle(val);
+					} else {
+						node.classList.add(val);
+					}
 				}
 			});
 
-			return HttpRouter.response([200,'ok']);
+			return HttpRouter.response([204,'ok']);
 		};
 
 		DomServer.prototype.del = function DomServer__del(request, match) {
@@ -100,7 +111,7 @@ if (typeof DomServer == 'undefined') {
 			// :TODO: validate access with session
 
 			var nodes = getNodes(agent, request.query);
-			if (nodes.length == 0) {
+			if (nodes.length === 0) {
 				return HttpRouter.response([404,'node(s) not found']);
 			}
 
@@ -108,10 +119,10 @@ if (typeof DomServer == 'undefined') {
 				node.parentNode.removeChild(node);
 			});
 
-			return HttpRouter.response([200,'ok']);
+			return HttpRouter.response([204,'ok']);
 		};
 
-		DomServer.prototype.listen = function DomServer__listen(request, match) {
+		DomServer.prototype.event = function DomServer__event(request, match) {
 			var agent = Env.getAgent(match.uri[1]);
 			// :TODO: validate access with session
 
@@ -121,7 +132,7 @@ if (typeof DomServer == 'undefined') {
 				agent.removeDomEventHandler(match.uri[2], request.query.selector);
 			}
 
-			return HttpRouter.response([200,'ok']);
+			return HttpRouter.response([204,'ok']);
 		};
 
 		/*DomServer.prototype.getAttrText = function getAttrText(request, match) {
@@ -217,7 +228,7 @@ if (typeof DomServer == 'undefined') {
 				return [body];
 			}
 
-			var nodes = query.selectorAll ? 
+			var nodes = query.selectorAll ?
 				body.querySelectorAll(query.selectorAll) :
 				[body.querySelector(query.selector)];
 			var lo=0, hi=nodes.length-1;
@@ -232,14 +243,14 @@ if (typeof DomServer == 'undefined') {
 				nodearr.push(nodes[i]);
 			}
 			return nodearr;
-		};
+		}
 
 		// helper to make a uri match regexp
 		// :TODO: should http router just get this support?
-		function urimatch(str) {
+		/*function urimatch(str) {
 			return str
 				.replace(/\/\:[A-z]+\?/g, '(?:/([^/]*))?') // optional segment
-				.replace(/\/\:[A-z]+/g, '/([^/]*)') // non-optional segment
-		}
+				.replace(/\/\:[A-z]+/g, '/([^/]*)'); // non-optional segment
+		}*/
 	})();
 }

@@ -23,7 +23,7 @@ if (typeof HttpRouter == 'undefined') {
 			for (var i=0; i < this.servers.length; i++) {
 				// Lower URI? done
 				var existing_uri = this.servers[i].uri;
-				if ((existing_uri.indexOf(new_uri) == 0) && (new_uri_slashes_count < existing_uri.split('/').length)) {
+				if ((existing_uri.indexOf(new_uri) === 0) && (new_uri_slashes_count < existing_uri.split('/').length)) {
 					break;
 				}
 			}
@@ -49,7 +49,7 @@ if (typeof HttpRouter == 'undefined') {
 			var matched_handlers = [];
 			this.servers.forEach(function(server) {
 				var rel_uri_index = request.uri.indexOf(server.uri);
-				if (rel_uri_index == 0) {
+				if (rel_uri_index === 0) {
 
 					// is it a complete name match? (/foo matches /foo/bar, not /foobar)
 					var rel_uri = request.uri.substr(server.uri.length);
@@ -76,17 +76,17 @@ if (typeof HttpRouter == 'undefined') {
 							// test for match
 							var reqVal = (k == 'uri' ? rel_uri : request[k]);
 							if (route.match[k] instanceof RegExp) {
-								match = route.match[k].exec(reqVal)
-								if (!match) { 
+								match = route.match[k].exec(reqVal);
+								if (!match) {
 									Util.log('routing', ' > ',/*server.inst,*/route.cb,'MISS ('+k+' "'+reqVal+'")');
-									break; 
+									break;
 								}
 								matches[k] = match;
 							}
 							else {
-								if (route.match[k] != reqVal) { 
+								if (route.match[k] != reqVal) {
 									Util.log('routing', ' > ',/*server.inst,*/route.cb,'MISS ('+k+' "'+reqVal+'")');
-									match = false; break; 
+									match = false; break;
 								}
 								matches[k] = reqVal;
 							}
@@ -116,18 +116,26 @@ if (typeof HttpRouter == 'undefined') {
 		//  - If the request target URI does not start with a hash, will run the remote handler
 		HttpRouter.prototype.dispatch = function HttpRouter__dispatch(request, opt_cb, opt_context) {
 			request = Util.deepCopy(request);
-			Object.defineProperty(request, '__mid', { value:this.cur_mid++ })
+			Object.defineProperty(request, '__mid', { value:this.cur_mid++ });
+
+			var dispatch_promise = new Promise();
+			if (opt_cb) { dispatch_promise.then(opt_cb, opt_context); }
+			this.response_cbs.forEach(function(cb) {
+				dispatch_promise.then(cb.fn, cb.context);
+			});
+			Object.defineProperty(request, '__dispatch_promise', { value:dispatch_promise });
+
+			__processQueryParams(request);
 
 			// URIs that dont target hash URIs should be fetched remotely
-			if (request.uri.charAt(0) != '#') { 
-				return __dispatchRemote.call(this, request);
+			if (request.uri.charAt(0) != '#') {
+				__dispatchRemote.call(this, request);
+				return dispatch_promise;
 			}
 
 			Util.log('traffic', this.id ? this.id+'|req' : '|> ', request);
 
-			__processQueryParams(request);
-
-			var handlers = HttpRouter__findHandlers.call(this, request);        
+			var handlers = HttpRouter__findHandlers.call(this, request);
 			Object.defineProperty(request, '__bubble_handlers', { value:[], writable:true });
 			Object.defineProperty(request, '__capture_handlers', { value:[], writable:true });
 			for (var i=0; i < handlers.length; i++) {
@@ -137,13 +145,6 @@ if (typeof HttpRouter == 'undefined') {
 					request.__bubble_handlers.push(handlers[i]);
 				}
 			}
-
-			var dispatch_promise = new Promise();
-			opt_cb && dispatch_promise.then(opt_cb, opt_context);
-			this.response_cbs.forEach(function(cb) {
-				dispatch_promise.then(cb.fn, cb.context);
-			});
-			Object.defineProperty(request, '__dispatch_promise', { value:dispatch_promise });
 
 			var self = this;
 			setTimeout(function() { HttpRouter__runHandlers.call(self, request); }, 0);
@@ -166,7 +167,7 @@ if (typeof HttpRouter == 'undefined') {
 		}
 
 		function HttpRouter__finishHandling(request, response) {
-			if (!response) { 
+			if (!response) {
 				response = HttpRouter.response(404, 'Not Found', 'text/plain');
 			}
 			Util.log('traffic', this.id ? this.id+'|res' : ' >|', response);
@@ -211,7 +212,7 @@ if (typeof HttpRouter == 'undefined') {
                             request.query[k] = [v];
                         }
                     } else {
-					    request.query[k] = v;
+						request.query[k] = v;
                     }
 				}
 			}
@@ -225,19 +226,20 @@ if (typeof HttpRouter == 'undefined') {
 
 		function __dispatchRemote(request) {
 			if (typeof window != 'undefined') {
-				__sendAjaxRequest.call(this, request);
+				return __sendAjaxRequest.call(this, request);
 			} else {
-				request.__dispatch_promise.fulfill(HttpRouter.response(404, 'Not Found', 'text/plain'));
+				request.__dispatch_promise.fulfill(HttpRouter.response([418,'teapots dont ajax'], 'Agents can not route to remote resources', 'text/plain'));
 			}
 		}
 		function __sendAjaxRequest(request) {
 			var xhrRequest = new XMLHttpRequest();
 			var target_uri = request.uri;
 
+			var k;
 			var query = '';
 			if (request.query) {
 				var q = [];
-				for (var k in request.query) {
+				for (k in request.query) {
 					q.push(k+'='+request.query[k]);
 				}
 				if (q.length) {
@@ -254,7 +256,7 @@ if (typeof HttpRouter == 'undefined') {
 
 			request.body = ContentTypes.serialize(request.body, request['content-type']);
 			xhrRequest.open(request.method, target_uri, true);
-			for (var k in request) {
+			for (k in request) {
 				if (k == 'method' || k == 'uri' || k == 'body') { continue; }
 				xhrRequest.setRequestHeader(k, request[k]);
 			}
@@ -288,7 +290,7 @@ if (typeof HttpRouter == 'undefined') {
 		HttpRouter.response = function HttpRouter__response(code, body, contenttype, headers) {
 			var response = headers || {};
             if (Array.isArray(code)) {
-			    response.code = code[0];
+				response.code = code[0];
                 response.reason = code[1];
             } else {
                 response.code = code;
@@ -296,6 +298,6 @@ if (typeof HttpRouter == 'undefined') {
             if (body) { response.body = body; }
 			if (contenttype) { response['content-type'] = contenttype; }
 			return response;
-		};	
+		};
 	})();
 }

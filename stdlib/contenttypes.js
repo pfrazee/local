@@ -9,26 +9,26 @@ if (typeof ContentTypes == 'undefined') {
 		var deserializers = {};
 
 		ContentTypes.serialize = function serialize(obj, type) {
-			if (obj == null || typeof(obj) != 'object' || type == null) {
+			if (obj === null || typeof(obj) != 'object' || type === null) {
 				return obj;
 			}
 			var fn = __find(serializers, type);
-			if (!fn) { 
+			if (!fn) {
 				Util.log('err_types', 'Unable to serialize', type, '(no serializer found)');
-				return obj; 
+				return obj;
 			}
 			return fn(obj);
 		};
 		ContentTypes.deserialize = function deserialize(str, type) {
-			if (str == null || typeof(str) != 'string' || type == null) {
+			if (str === null || typeof(str) != 'string' || type === null) {
 				return str;
 			}
 			var fn = __find(deserializers, type);
-			if (!fn) { 
+			if (!fn) {
 				Util.log('err_types', 'Unable to deserialize', type, '(no deserializer found)');
-				return str; 
+				return str;
 			}
-			return decoder(str);
+			return fn(str);
 		};
 
 		ContentTypes.setSerializer = function setSerializer(type, fn) {
@@ -45,13 +45,13 @@ if (typeof ContentTypes == 'undefined') {
 			parts = t.split('/');
 			if (parts[1]) {
 				var parts2 = parts[1].split('+');
-				if (parts2[1]) { 
+				if (parts2[1]) {
 					return [t, parts[0] + '/' + parts2[1], parts[0]];
 				}
 				return [t, parts[0]];
 			}
 			return [t];
-		};
+		}
 
 		function __find(registry, type) {
 			var types = __mkTypesList(type);
@@ -59,7 +59,7 @@ if (typeof ContentTypes == 'undefined') {
 				if (types[i] in registry) { return registry[types[i]]; }
 			}
 			return null;
-		};
+		}
 
 		ContentTypes.setSerializer('application/json', function(obj) {
 			return JSON.stringify(obj);

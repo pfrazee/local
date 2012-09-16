@@ -8,10 +8,10 @@ var Env = (function() {
 		makeAgent:Env__makeAgent,
 		killAgent:Env__killAgent,
 
-		router:null, 
+		router:null,
 		domserver:null,
 		agents:{},
-		container_elem:null, 
+		container_elem:null,
 		nc:null, // notifications center (plugin to raise alerts)
 		is_loaded:new Promise()
 	};
@@ -43,6 +43,8 @@ var Env = (function() {
 		var agent_id;
 		switch (request.target) {
 			case false:
+			case undefined:
+			case null:
 			case '_self':
 				// find parent agent
 				var node = e.target;
@@ -117,11 +119,9 @@ var Env = (function() {
 	// agent get
 	// - `id` can be the id or DOM node of the agent
 	function Env__getAgent(id) {
-		if (typeof id == 'object' && id instanceof Node) { 
+		if (typeof id == 'object' && id instanceof Node) {
 			var given_elem = id;
-			id = (given_elem.id)
-				? given_elem.id.substr(6) // remove 'agent-'
-				: null;
+			id = (given_elem.id) ? given_elem.id.substr(6) /* remove 'agent-' */ : null;
 		}
 		if (id in Env.agents) {
 			return Env.agents[id];
@@ -133,14 +133,12 @@ var Env = (function() {
 	// - `id` can be null/undefined to create a new agent with an assigned id
 	// - `id` can be the id or DOM node of the agent
 	function Env__makeAgent(id, opt_target_elem) {
-		if (typeof id == 'object' && id instanceof Node) { 
+		if (typeof id == 'object' && id instanceof Node) {
 			opt_target_elem = id;
-			id = (opt_target_elem.id)
-				? opt_target_elem.id.substr(6) // remove 'agent-'
-				: null;
+			id = (given_elem.id) ? given_elem.id.substr(6) /* remove 'agent-' */ : null;
 		}
 
-		if (id == null || typeof id == 'undefined') {
+		if (id === null || typeof id == 'undefined') {
 			id = Env__makeAgentId.call(Env);
 		}
 
@@ -165,8 +163,7 @@ var Env = (function() {
 		agent_elem.addEventListener('dragleave', function(e) {
 			// dragleave is fired on all children, so only pay attention if it dragleaves our region
 			var rect = agent_elem.getBoundingClientRect();
-			if (e.x >= (rect.left + rect.width) || e.x <= rect.left
-			 || e.y >= (rect.top + rect.height) || e.y <= rect.top) {
+			if (e.x >= (rect.left + rect.width) || e.x <= rect.left || e.y >= (rect.top + rect.height) || e.y <= rect.top) {
 				agent_elem.classList.remove('request-hover');
 			}
 		});
@@ -214,7 +211,7 @@ var Env = (function() {
 		this.elem = elem;
 
 		this.worker = null;
-		this.program_config = null; 
+		this.program_config = null;
 
 		// used by http:request/http:response to track
 		// which requests the agent program server is currently handling
@@ -232,7 +229,7 @@ var Env = (function() {
 	Agent.prototype.dispatch = function Agent__dispatch(request) {
 		return Env.router.dispatch(request);
 	};
-	Agent.prototype.follow = function Agent__follow(request, emitter) { 
+	Agent.prototype.follow = function Agent__follow(request, emitter) {
 		request.target = this.id;
 		emitter = emitter || this.getBody();
 		request.accept = request.accept || 'text/html';
@@ -265,10 +262,10 @@ var Env = (function() {
 		var specificity = 0;
 		if (selector) {
 			specificity += countMatches(selector.match(/\#/g)) * 100;
-			specificity += countMatches(selector.match(/\./g)) * 10;	
+			specificity += countMatches(selector.match(/\./g)) * 10;
 			specificity += countMatches(selector.match(/(\s+)/g)) + 1;
 		}
-		var handler = { selector:selector, specificity:specificity }; 
+		var handler = { selector:selector, specificity:specificity };
 		var added = false;
 		for (var i=0; i < this.dom_event_handlers[event].length; i++) {
 			if (this.dom_event_handlers[event][i].specificity < specificity) {
@@ -289,7 +286,7 @@ var Env = (function() {
 				}
 			}, this);
 		}
-		if (this.dom_event_handlers[event].length == 0) {
+		if (this.dom_event_handlers[event].length === 0) {
 			this.getBody().removeEventListener(event, Agent__genericDomEventHandler);
 		}
 	};
@@ -316,13 +313,14 @@ var Env = (function() {
 					var workerEvent = 'dom:'+e.type;
 					if (h.selector) { workerEvent += ' '+h.selector; }
 
-					if (!workerEventData) { 
+					if (!workerEventData) {
 						workerEventData = {};
 						for (var k in e) {
 							if ((/boolean|number|string/).test(typeof e[k])) {
 								workerEventData[k] = e[k];
 							}
 						}
+						workerEventData.target_index = i;
 					}
 
 					agent.postWorkerEvent(workerEvent, workerEventData);
@@ -330,7 +328,7 @@ var Env = (function() {
 				}
 			}
 		});
-	};
+	}
 
 	// Worker Program Management
 	Agent.prototype.loadProgram = function Agent__loadProgram(url, config) {
@@ -386,7 +384,7 @@ var Env = (function() {
 
 			this.program_kill_promise.fulfill(true);
 			this.program_kill_promise = null;
-		} else { 
+		} else {
 			// if not forcing termination, send the worker a kill event and give it 10 seconds to send back a 'dead' event
 			this.postWorkerEvent('kill');
 
@@ -398,10 +396,10 @@ var Env = (function() {
 		}
 		return this.program_kill_promise;
 	};
-	Agent.prototype.hasProgram = function Agent__hasProgram() { return !!this.program_config; }
-	Agent.prototype.getProgramConfig = function Agent__getProgramConfig() { 
-		return this.program_config; 
-	}
+	Agent.prototype.hasProgram = function Agent__hasProgram() { return !!this.program_config; };
+	Agent.prototype.getProgramConfig = function Agent__getProgramConfig() {
+		return this.program_config;
+	};
 
 	// Worker Event Handlers
 	Agent.prototype.postWorkerEvent = function Agent__postWorkerEvent(evt_name, data) {
@@ -430,7 +428,7 @@ var Env = (function() {
 	Agent.prototype.onWorkerHttp_request = function Agent__onWorkerHttp_request(e) {
 		var fn = (e.follow) ? this.follow : this.dispatch;
 		fn.call(this, e.request).then(function(response) {
-			this.postWorkerEvent('http:response', { mid:e.mid, response:response })
+			this.postWorkerEvent('http:response', { mid:e.mid, response:response });
 		}, this);
 	};
 	Agent.prototype.onWorkerHttp_response = function Agent__onWorkerHttp_response(e) {
@@ -457,7 +455,7 @@ var Env = (function() {
 		}
 
 		var shutter_btn = document.querySelector('.btn-shutter', this.elem);
-		if (shutter_btn) { 
+		if (shutter_btn) {
 			shutter_btn.innerText = should_collapse ? '+' : '_';
 			shutter_btn.setAttribute('formmethod', should_collapse ? "max" : "min");
 		}
@@ -471,11 +469,11 @@ var Env = (function() {
 	Agent.prototype.programRequestHandler = function Agent__programRequestHandler(request, match) {
 		if (!this.worker) { return; }
 
-		var p = new Promise;
+		var p = new Promise();
 		var mid = this.pending_requests.length;
 		this.pending_requests.push(p);
 
-		var dup_req = Util.deepCopy(request); 
+		var dup_req = Util.deepCopy(request);
 		dup_req.uri = '#' + ((match.uri[1].charAt(0) == '/') ? '' : '/') + match.uri[1];
 		this.postWorkerEvent('http:request', { mid:mid, request:dup_req });
 
@@ -496,12 +494,12 @@ var Env = (function() {
 		elem.className = "agent";
 		elem.id = "agent-"+id;
 		elem.innerHTML = agent_template_html
-			.replace(/{{id}}/g, id)
-			.replace(/{{uri}}/g, '#/'+id)
+			.replace(/\{\{id\}\}/g, id)
+			.replace(/\{\{uri\}\}/g, '#/'+id)
 		;
 		return elem;
 	}
-	var agent_template_html = 
+	var agent_template_html =
 		//'<div id="agent-{{id}}" class="agent">' +
 			'<div class="agent-titlebar">' +
 				'<form action="{{uri}}" target="{{id}}">' +

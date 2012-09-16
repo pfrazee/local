@@ -2,9 +2,9 @@ var env_config = {
 	logging_enabled:1,
 	structure:[
 		// Apps
-		{ 
-			uri:'/app/inbox', 
-			module:'pfraze/inbox', 
+		{
+			uri:'/app/inbox',
+			module:'pfraze/inbox',
 			services:[
 				{ name:'@linkshui', uri:'http://linkshui.com:8600' },
 				{ name:'Fixture', uri:'/serv/inbox/fixture' }
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	// Build structure :TODO:
 	var router = new HttpRouter();
-	router.ajaxConfig('proxy', '/serv/proxy'); 
+	router.ajaxConfig('proxy', '/serv/proxy');
 	/*structure.addModule('', new AgentServer(structure, { uri:'' }));
  
 	// Add config modules
@@ -52,8 +52,10 @@ document.addEventListener('DOMContentLoaded', function() {
 	Env.init(router, 'lshui-env');
 
 	// temporary -- get things started
-	var a = Env.makeAgent('debug');
-	a.loadProgram('/modules/pfraze/debug.js').then(function() {
-		a.follow({ uri:'#/debug', method:'get', accept:'text/html' });
-	});
+	var a = Env.makeAgent('inbox');
+	a.loadProgram('/usr/pfraze/inbox.js', {
+		services:[{ name:'@linkshui', uri:'http://linkshui.com:8600' }]
+	});/*.then(function() {
+		a.follow({ uri:'#/inbox', method:'get', accept:'text/html' });
+	});*/
 });
