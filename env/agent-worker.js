@@ -7,15 +7,15 @@ importScripts('/stdlib/msgevents.js');
 importScripts('/stdlib/util.js');
 importScripts('/stdlib/promise.js');
 importScripts('/stdlib/contenttypes.js');
-importScripts('/stdlib/httprouter.js');
+importScripts('/stdlib/http.js');
 importScripts('/stdlib/linkreflector.js');
 
 if (typeof Agent == 'undefined') {
 	(function() {
 		globals.Agent = {
-			pending_requests:[],
+			pending_requests:[]
 		};
-		var router = new HttpRouter();
+		var router = new Http.Router();
 		var domready = new Promise();
 
 		Agent.getId = function() { return Agent.config.agent_id; };

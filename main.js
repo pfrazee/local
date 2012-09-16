@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	}*/
 
 	// Build structure :TODO:
-	var router = new HttpRouter();
+	var router = new Http.Router();
 	router.ajaxConfig('proxy', '/serv/proxy');
 	/*structure.addModule('', new AgentServer(structure, { uri:'' }));
  

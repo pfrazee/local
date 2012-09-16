@@ -1,14 +1,14 @@
 // server
 var server = {
 	routes:[
-		HttpRouter.route('hello', { uri:'^/?$', method:'get', accept:'text/html' }),
-		HttpRouter.route('subhello', { uri:'^/sub$', method:'get', accept:'text/html' })
+		Http.route('hello', { uri:'^/?$', method:'get', accept:'text/html' }),
+		Http.route('subhello', { uri:'^/sub$', method:'get', accept:'text/html' })
 	],
 	hello:function() {
-		return HttpRouter.response(200, '<p><span>paragraph</span></p><a href="#/debug/sub">link</a><input type="checkbox" />', 'text/html');
+		return Http.response(200, '<p><span>paragraph</span></p><a href="#/debug/sub">link</a><input type="checkbox" />', 'text/html');
 	},
 	subhello:function() {
-		return HttpRouter.response(200, 'link clicked!<script class="program" src="/modules/pfraze/debug.js"></script>', 'text/html');
+		return Http.response(200, 'link clicked!<script class="program" src="/modules/pfraze/debug.js"></script>', 'text/html');
 	}
 };
 

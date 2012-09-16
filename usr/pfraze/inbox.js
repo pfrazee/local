@@ -6,19 +6,19 @@ var Server = {
 	messages:[]
 };
 Server.routes = [
-	HttpRouter.route('servMsg', { uri:'^/([0-9]+)/?$' }),
-	HttpRouter.route('servMsgRange', { uri:'^/([0-9]+)-([0-9]+)/?$' }),
-	HttpRouter.route('servAll', { uri:'^(/all)?/?$' }),
-	HttpRouter.route('servChecked', { uri:'^/checked/?$' }),
-	HttpRouter.route('servRead', { uri:'^/read/?' }),
-	HttpRouter.route('servUnread', { uri:'^/unread/?' })
+	Http.route('servMsg', { uri:'^/([0-9]+)/?$' }),
+	Http.route('servMsgRange', { uri:'^/([0-9]+)-([0-9]+)/?$' }),
+	Http.route('servAll', { uri:'^(/all)?/?$' }),
+	Http.route('servChecked', { uri:'^/checked/?$' }),
+	Http.route('servRead', { uri:'^/read/?' }),
+	Http.route('servUnread', { uri:'^/unread/?' })
 ];
 Server.runMethod = function(ids, request) {
 	var f = request.method + 'Method';
 	if (f in this) {
 		return this[f](ids, request);
 	} else {
-		return HttpRouter.response(405);
+		return Http.response(405);
 	}
 };
 Server.makeRowSelector = function(ids, opt_more) {
@@ -83,7 +83,7 @@ Server.getMethod = function(ids, request) {
 		ids.forEach(function(id) {
 			messages.push(this.messages[id]);
 		}, this);
-		return HttpRouter.response(200, { messages:messages }, 'application/json');
+		return Http.response(200, { messages:messages }, 'application/json');
 	}
 	var m = this.messages[ids[0]];
 	if (!m) { return { code:404 }; }
@@ -105,7 +105,7 @@ Server.checkMethod = function(ids) {
 		this.messages[ids[i]].checked = should_check;
 	}
 	Agent.dom.putNode({ selectorAll:this.makeRowSelector(ids, '.msg-checkbox'), attr:'checked' }, should_check, 'text/plain');
-	return HttpRouter.response([204, 'ok']);
+	return Http.response([204, 'ok']);
 };
 Server.markreadMethod = function(ids) {
 	ids.forEach(function(id) {
@@ -114,7 +114,7 @@ Server.markreadMethod = function(ids) {
 		Agent.dispatch({ method:'put', uri:m.uri+'/flags', 'content-type':'application/json', body:{ seen:1 } });
 	}, this);
 	Agent.dom.postNode({ selectorAll:this.makeRowSelector(ids), attr:'class', remove:1 }, 'unread', 'text/plain');
-	return HttpRouter.response([204, 'ok']);
+	return Http.response([204, 'ok']);
 };
 Server.markunreadMethod = function(ids) {
 	ids.forEach(function(id) {
@@ -123,7 +123,7 @@ Server.markunreadMethod = function(ids) {
 		Agent.dispatch({ method:'put', uri:m.uri+'/flags', 'content-type':'application/json', body:{ seen:0 } });
 	}, this);
 	Agent.dom.postNode({ selectorAll:this.makeRowSelector(ids), attr:'class', add:1 }, 'unread', 'text/plain');
-	return HttpRouter.response([204, 'ok']);
+	return Http.response([204, 'ok']);
 };
 Server.deleteMethod = function(ids) {
 	ids.forEach(function(id) {
@@ -132,7 +132,7 @@ Server.deleteMethod = function(ids) {
 		// :TODO: notify user of success?
 	}, this);
 	Agent.dom.putNode({ selectorAll:this.makeRowSelector(ids) }, '', 'text/html'); // dont delete so that our ids still match up to the dom node
-	return HttpRouter.response(204);
+	return Http.response(204);
 };
 Agent.addServer('#/', Server);
 

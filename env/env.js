@@ -442,9 +442,9 @@ var Env = (function() {
 
 	// HTTP Request Handlers
 	Agent.prototype.routes = [
-		HttpRouter.route('collapseHandler', { uri:'^/?$', method:/min|max/i }),
-		HttpRouter.route('closeHandler', { uri:'^/?$', method:'close' }),
-		HttpRouter.route('programRequestHandler', { uri:'(.*)' })
+		Http.route('collapseHandler', { uri:'^/?$', method:/min|max/i }),
+		Http.route('closeHandler', { uri:'^/?$', method:'close' }),
+		Http.route('programRequestHandler', { uri:'(.*)' })
 	];
 	Agent.prototype.collapseHandler = function Agent__collapseHandler(request) {
 		var should_collapse = (request.method == 'min');
@@ -460,11 +460,11 @@ var Env = (function() {
 			shutter_btn.setAttribute('formmethod', should_collapse ? "max" : "min");
 		}
 
-		return HttpRouter.response(205);
+		return Http.response(205);
 	};
 	Agent.prototype.closeHandler = function Agent__closeHandler() {
 		Env.killAgent(this.id);
-		return HttpRouter.response(205);
+		return Http.response(205);
 	};
 	Agent.prototype.programRequestHandler = function Agent__programRequestHandler(request, match) {
 		if (!this.worker) { return; }

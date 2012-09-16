@@ -5,12 +5,12 @@ if (typeof DomServer == 'undefined') {
 		};
 
 		DomServer.prototype.routes = [
-			HttpRouter.route('banner', { method:'get', uri:'^/?$', accept:'text/.*' }),
-			HttpRouter.route('get', { method:'get', uri:'^/([^/]*)/?$', accept:'text/.*' }), // :agent
-			HttpRouter.route('put', { method:'put', uri:'^/([^/]*)/?$', 'content-type':'text/.*' }), // :agent
-			HttpRouter.route('ins', { method:'post', uri:'^/([^/]*)/?$', 'content-type':'text/.*' }), // :agent
-			HttpRouter.route('del', { method:'delete', uri:'^/([^/]*)/?$' }), // :agent
-			HttpRouter.route('event', { method:'listen|unlisten', uri:'^/([^/]*)/([^/]*)/?$' }) // /:agent/:event
+			Http.route('banner', { method:'get', uri:'^/?$', accept:'text/.*' }),
+			Http.route('get', { method:'get', uri:'^/([^/]*)/?$', accept:'text/.*' }), // :agent
+			Http.route('put', { method:'put', uri:'^/([^/]*)/?$', 'content-type':'text/.*' }), // :agent
+			Http.route('ins', { method:'post', uri:'^/([^/]*)/?$', 'content-type':'text/.*' }), // :agent
+			Http.route('del', { method:'delete', uri:'^/([^/]*)/?$' }), // :agent
+			Http.route('event', { method:'listen|unlisten', uri:'^/([^/]*)/([^/]*)/?$' }) // /:agent/:event
 		];
 
 		DomServer.prototype.banner = function DomServer__banner() {
@@ -18,7 +18,7 @@ if (typeof DomServer == 'undefined') {
 				{ methods:['get','put','post','delete'], title:'Node', href:'#/dom/{agent}?{selector}&{selectorAll}&{attr}&{append}&{before}&{replace}&{add}&{remove}&{toggle}', type:'text/html' },
 				{ methods:['listen', 'unlisten'], title:'Event', href:'#/dom/{agent}/{event}?{selector}' }
 			];
-			return HttpRouter.response([200,'ok'], 'Dom Server 0.1', 'text/html', { link:linkHeader });
+			return Http.response([200,'ok'], 'Dom Server 0.1', 'text/html', { link:linkHeader });
 		};
 
 		DomServer.prototype.get = function DomServer__get(request, match) {
@@ -27,7 +27,7 @@ if (typeof DomServer == 'undefined') {
 			
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
-				return HttpRouter.response([404,'node(s) not found']);
+				return Http.response([404,'node(s) not found']);
 			}
 
 			var val = '';
@@ -37,7 +37,7 @@ if (typeof DomServer == 'undefined') {
 			});
 
 			var type = (/html/i.test(attr)) ? 'text/html' : 'text/plain';
-			return HttpRouter.response([200,'ok'], val, type);
+			return Http.response([200,'ok'], val, type);
 		};
 
 		DomServer.prototype.put = function DomServer__put(request, match) {
@@ -46,7 +46,7 @@ if (typeof DomServer == 'undefined') {
 			
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
-				return HttpRouter.response([404,'node(s) not found']);
+				return Http.response([404,'node(s) not found']);
 			}
 
 			var val = request.body ? request.body.toString() : '';
@@ -55,7 +55,7 @@ if (typeof DomServer == 'undefined') {
 				node[attr] = val;
 			});
 
-			return HttpRouter.response([204,'ok']);
+			return Http.response([204,'ok']);
 		};
 
 		DomServer.prototype.ins = function DomServer__ins(request, match) {
@@ -64,7 +64,7 @@ if (typeof DomServer == 'undefined') {
 			
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
-				return HttpRouter.response([404,'node(s) not found']);
+				return Http.response([404,'node(s) not found']);
 			}
 
 			var val = request.body ? request.body.toString() : '';
@@ -103,7 +103,7 @@ if (typeof DomServer == 'undefined') {
 				}
 			});
 
-			return HttpRouter.response([204,'ok']);
+			return Http.response([204,'ok']);
 		};
 
 		DomServer.prototype.del = function DomServer__del(request, match) {
@@ -112,14 +112,14 @@ if (typeof DomServer == 'undefined') {
 
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
-				return HttpRouter.response([404,'node(s) not found']);
+				return Http.response([404,'node(s) not found']);
 			}
 
 			nodes.forEach(function(node) {
 				node.parentNode.removeChild(node);
 			});
 
-			return HttpRouter.response([204,'ok']);
+			return Http.response([204,'ok']);
 		};
 
 		DomServer.prototype.event = function DomServer__event(request, match) {
@@ -132,7 +132,7 @@ if (typeof DomServer == 'undefined') {
 				agent.removeDomEventHandler(match.uri[2], request.query.selector);
 			}
 
-			return HttpRouter.response([204,'ok']);
+			return Http.response([204,'ok']);
 		};
 
 		/*DomServer.prototype.getAttrText = function getAttrText(request, match) {
@@ -140,7 +140,7 @@ if (typeof DomServer == 'undefined') {
  
 			var nodes = getNodes(match);
 			if (nodes.length == 0) {
-				return HttpRouter.response(404, 0, 0, { reason:'node(s) not found' });
+				return Http.response(404, 0, 0, { reason:'node(s) not found' });
 			}
 			var attr = match.uri[4];
 
@@ -150,7 +150,7 @@ if (typeof DomServer == 'undefined') {
 			});
 			vals = vals.join("\r\n");
 
-			return HttpRouter.response(200, vals, 'text/plain', { reason:'ok' });
+			return Http.response(200, vals, 'text/plain', { reason:'ok' });
 		};
 
 		DomServer.prototype.getAttrJson = function getAttrJson(request, match) {
@@ -158,7 +158,7 @@ if (typeof DomServer == 'undefined') {
 
 			var nodes = getNodes(match);
 			if (nodes.length == 0) {
-				return HttpRouter.response(404, 0, 0, { reason:'node(s) not found' });
+				return Http.response(404, 0, 0, { reason:'node(s) not found' });
 			}
 			var attr = match.uri[4];
 
@@ -167,7 +167,7 @@ if (typeof DomServer == 'undefined') {
 				vals.push(node.getAttribute(attr));
 			});
 
-			return HttpRouter.response(200, vals, 'application/json', { reason:'ok' });
+			return Http.response(200, vals, 'application/json', { reason:'ok' });
 		};
 
 		DomServer.prototype.setAttrText = function setAttrText(request, match) {
@@ -175,7 +175,7 @@ if (typeof DomServer == 'undefined') {
 
 			var nodes = getNodes(match);
 			if (nodes.length == 0) {
-				return HttpRouter.response(404, 0, 0, { reason:'node(s) not found' });
+				return Http.response(404, 0, 0, { reason:'node(s) not found' });
 			}
 			var attr = match.uri[4];
 
@@ -183,7 +183,7 @@ if (typeof DomServer == 'undefined') {
 				node.setAttribute(attr, request.body);
 			});
 
-			return HttpRouter.response(200, 0, 0, { reason:'ok' });
+			return Http.response(200, 0, 0, { reason:'ok' });
 		};
 
 		DomServer.prototype.setAttrJson = function setAttrText(request, match) {
@@ -191,7 +191,7 @@ if (typeof DomServer == 'undefined') {
 
 			var nodes = getNodes(match);
 			if (nodes.length == 0) {
-				return HttpRouter.response(404, 0, 0, { reason:'node(s) not found' });
+				return Http.response(404, 0, 0, { reason:'node(s) not found' });
 			}
 			var attr = match.uri[4];
 
@@ -201,7 +201,7 @@ if (typeof DomServer == 'undefined') {
 				node.setAttribute(attr, val);
 			});
 
-			return HttpRouter.response(200, 0, 0, { reason:'ok' });
+			return Http.response(200, 0, 0, { reason:'ok' });
 		};
 
 		DomServer.prototype.clearAttr = function clearAttr(request, match) {
@@ -209,7 +209,7 @@ if (typeof DomServer == 'undefined') {
 
 			var nodes = getNodes(match);
 			if (nodes.length == 0) {
-				return HttpRouter.response(404, 0, 0, { reason:'node(s) not found' });
+				return Http.response(404, 0, 0, { reason:'node(s) not found' });
 			}
 			var attr = match.uri[4];
 
@@ -217,7 +217,7 @@ if (typeof DomServer == 'undefined') {
 				node.removeAttribute(attr);
 			});
 
-			return HttpRouter.response(200, 0, 0, { reason:'ok' });
+			return Http.response(200, 0, 0, { reason:'ok' });
 		};*/
 		
 		function getNodes(agent, query) {

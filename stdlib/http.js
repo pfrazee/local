@@ -1,10 +1,18 @@
-// HTTP Router
-// ===========
-// routes http messages to js handler functions
+// HTTP
+// ====
+// provides Http.Router and Http.* functions
 
-if (typeof HttpRouter == 'undefined') {
+if (typeof Http == 'undefined') {
 	(function() {
-		globals.HttpRouter = function HttpRouter() {
+		globals.Http = {
+			Router:Router,
+			route:Http__route,
+			response:Http__response
+		};
+
+		// Router
+		// ======
+		function Router() {
 			this.servers = [];
 			this.response_cbs = [];
 			this.cur_mid = 1;
@@ -18,7 +26,7 @@ if (typeof HttpRouter == 'undefined') {
 		//  - maintains precedence in ordering according to the URI
 		//    '#/a' is before '#/a/b' is before '#/a/b/c'
 		//  - a duplicate URI is inserted after existing servers
-		HttpRouter.prototype.addServer = function HttpRouter__addServer(new_uri, server) {
+		Router.prototype.addServer = function Router__addServer(new_uri, server) {
 			var new_uri_slashes_count = new_uri.split('/').length;
 			for (var i=0; i < this.servers.length; i++) {
 				// Lower URI? done
@@ -32,7 +40,7 @@ if (typeof HttpRouter == 'undefined') {
 
 		// Removes all matching servers from the structure
 		//  - non-regexp `uri` must be an exact match
-		HttpRouter.prototype.removeServers = function HttpRouter__removeServers(uri) {
+		Router.prototype.removeServers = function Router__removeServers(uri) {
 			var isregex = (uri instanceof RegExp);
 			var test = isregex ? uri.test : function(v) { return this == v; };
 			this.servers.forEach(function(m, i) {
@@ -45,7 +53,7 @@ if (typeof HttpRouter == 'undefined') {
 		// Searches servers for handlers for the given request
 		//  - returns an array of objects with the keys { cb, server, match, route }
 		//  - returns the handlers in the order of server precedence
-		function HttpRouter__findHandlers(request) {
+		function Router__findHandlers(request) {
 			var matched_handlers = [];
 			this.servers.forEach(function(server) {
 				var rel_uri_index = request.uri.indexOf(server.uri);
@@ -114,7 +122,7 @@ if (typeof HttpRouter == 'undefined') {
 		// (ASYNC) Builds the handler chain from the request, then runs
 		//  - When finished, calls the given cb with the response
 		//  - If the request target URI does not start with a hash, will run the remote handler
-		HttpRouter.prototype.dispatch = function HttpRouter__dispatch(request, opt_cb, opt_context) {
+		Router.prototype.dispatch = function Router__dispatch(request, opt_cb, opt_context) {
 			request = Util.deepCopy(request);
 			Object.defineProperty(request, '__mid', { value:this.cur_mid++ });
 
@@ -135,7 +143,7 @@ if (typeof HttpRouter == 'undefined') {
 
 			Util.log('traffic', this.id ? this.id+'|req' : '|> ', request);
 
-			var handlers = HttpRouter__findHandlers.call(this, request);
+			var handlers = Router__findHandlers.call(this, request);
 			Object.defineProperty(request, '__bubble_handlers', { value:[], writable:true });
 			Object.defineProperty(request, '__capture_handlers', { value:[], writable:true });
 			for (var i=0; i < handlers.length; i++) {
@@ -147,28 +155,28 @@ if (typeof HttpRouter == 'undefined') {
 			}
 
 			var self = this;
-			setTimeout(function() { HttpRouter__runHandlers.call(self, request); }, 0);
+			setTimeout(function() { Router__runHandlers.call(self, request); }, 0);
 			return dispatch_promise;
 		};
 
-		function HttpRouter__runHandlers(request) {
+		function Router__runHandlers(request) {
 			var handler = request.__capture_handlers.shift();
 			if (!handler) { handler = request.__bubble_handlers.shift(); }
-			if (!handler) { return HttpRouter__finishHandling.call(this, request, null); }
+			if (!handler) { return Router__finishHandling.call(this, request, null); }
 
 			var promise = handler.cb.call(handler.context, request, handler.match);
 			Promise.when(promise, function(response) {
 				if (response) {
-					HttpRouter__finishHandling.call(this, request, response);
+					Router__finishHandling.call(this, request, response);
 				} else {
-					HttpRouter__runHandlers.call(this, request);
+					Router__runHandlers.call(this, request);
 				}
 			}, this);
 		}
 
-		function HttpRouter__finishHandling(request, response) {
+		function Router__finishHandling(request, response) {
 			if (!response) {
-				response = HttpRouter.response(404, 'Not Found', 'text/plain');
+				response = Http.response(404, 'Not Found', 'text/plain');
 			}
 			Util.log('traffic', this.id ? this.id+'|res' : ' >|', response);
 
@@ -179,10 +187,10 @@ if (typeof HttpRouter == 'undefined') {
 		}
 
 		// :TODO: remove when possible
-		HttpRouter.prototype.addResponseListener = function HttpRouter__addResponseListener(fn, opt_context) {
+		Router.prototype.addResponseListener = function Router__addResponseListener(fn, opt_context) {
 			this.response_cbs.push({ fn:fn, context:opt_context });
 		};
-		HttpRouter.prototype.removeResponseListener = function HttpRouter__removeResponseListener(fn) {
+		Router.prototype.removeResponseListener = function Router__removeResponseListener(fn) {
 			this.response_cbs.forEach(function(cb, i) {
 				if (cb.fn == fn) {
 					this.response_cbs.splice(i, 1);
@@ -218,7 +226,7 @@ if (typeof HttpRouter == 'undefined') {
 			}
 		}
 
-		HttpRouter.prototype.ajaxConfig = function ajaxConfig(k, v) {
+		Router.prototype.ajaxConfig = function ajaxConfig(k, v) {
 			if (typeof v == "undefined") { return this.ajax_config[k]; }
 			this.ajax_config[k] = v;
 			return v;
@@ -228,7 +236,7 @@ if (typeof HttpRouter == 'undefined') {
 			if (typeof window != 'undefined') {
 				return __sendAjaxRequest.call(this, request);
 			} else {
-				request.__dispatch_promise.fulfill(HttpRouter.response([418,'teapots dont ajax'], 'Agents can not route to remote resources', 'text/plain'));
+				request.__dispatch_promise.fulfill(Http.response([418,'teapots dont ajax'], 'Agents can not route to remote resources', 'text/plain'));
 			}
 		}
 		function __sendAjaxRequest(request) {
@@ -284,10 +292,10 @@ if (typeof HttpRouter == 'undefined') {
 			xhrRequest.send(request.body);
 		}
 
-		HttpRouter.route = function HttpRouter__route(cb, match, capture_phase) {
+		function Http__route(cb, match, capture_phase) {
 			return { cb:cb, match:match, capture:capture_phase };
 		};
-		HttpRouter.response = function HttpRouter__response(code, body, contenttype, headers) {
+		function Http__response(code, body, contenttype, headers) {
 			var response = headers || {};
             if (Array.isArray(code)) {
 				response.code = code[0];
