@@ -34,6 +34,23 @@ if (typeof Agent == 'undefined') {
 		Agent.follow = function follow(request) {
 			return Agent.dispatch(request, true);
 		};
+		Agent.renderResponse = function renderResponse(response, opt_noyield) {
+			if (response.code == 204 || response.code == 205) { return; }
+
+			var body = response.body;
+			if (body) {
+				body = ContentTypes.serialize(body, response['content-type']);
+				Agent.dom.putNode({}, body, 'text/html');
+
+				if (!opt_noyield) {
+					Agent.dom.getNode({ selector:'script.program', attr:'src' }).then(function(res) {
+						if (res.code == 200 && res.body) {
+							postEventMsg('yield', { url:res.body });
+						}
+					});
+				}
+			}
+		};
 
 		// request handling functions
 		Agent.addServer = function addServer(uri, server) {
@@ -48,6 +65,7 @@ if (typeof Agent == 'undefined') {
 			});
 		});
 		addEventMsgListener('kill', function(e) {
+			// :TODO: let the program do cleanup?
 			postEventMsg('dead'); // for now, just die immediately
 		});
 		addEventMsgListener('http:request', function(e) {
@@ -59,7 +77,7 @@ if (typeof Agent == 'undefined') {
 			var response = e.response;
 			var pending_request = Agent.pending_requests[e.mid];
 			if (!pending_request) { throw "Response received from agent worker with bad message id"; }
-			// if !pendingRequest, make sure that the response wasnt accidentally sent twice
+			// if you get a !pendingRequest, make sure that the response wasnt accidentally sent twice
 			Agent.pending_requests[e.mid] = null;
 			pending_request.fulfill(response);
 		});
@@ -69,18 +87,6 @@ if (typeof Agent == 'undefined') {
 			Agent.dom = ReflectLinks(res.link, { agent:Agent.getId() });
 			domready.fulfill(true);
 		});
-
-		/*Agent.dom = {
-			dispatch:function(method, opt_query, opt_body, opt_type) { Agent.dispatch({ method:method, uri:'#/dom/'+Agent.getId(), query:opt_query, accept:'text/html', body:opt_body, 'content-type':opt_type }); },
-			get:function(opt_selector) { Agent.dom.dispatch('get', { q:opt_selector }); },
-			put:function(html, opt_selector) { Agent.dom.dispatch('put', { q:opt_selector }, html, 'text/html'); },
-			appendChild:function(html, opt_selector, opt_child_index) { Agent.dom.dispatch('post', { q:opt_selector, append:opt_child_index }, html, 'text/html'); },
-			insertBefore:function(html, opt_selector, opt_child_index) { Agent.dom.dispatch('post', { q:opt_selector, before:(opt_child_index || 0) }, html, 'text/html'); },
-			replaceChild:function(html, opt_selector, opt_child_index) { Agent.dom.dispatch('post', { q:opt_selector, replace:opt_child_index }, html, 'text/html'); },
-			deleteNode:function(opt_selector) { Agent.dom.dispatch('delete', { q:opt_selector }); },
-			listen:function(event, opt_selector) { Agent.dispatch({ method:'listen', uri:'#/dom/'+Agent.getId()+'/'+event, query:{ qall:opt_selector } }); },
-		};*/
-
 	})();
 }
 

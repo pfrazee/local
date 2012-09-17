@@ -163,7 +163,7 @@ addEventMsgListener('dom:request', function(e) {
 	Agent.follow(e.request);
 });
 addEventMsgListener('dom:response', function(e) {
-	// :TODO:
+	Agent.renderResponse(e.response);
 });
 
 function render() {

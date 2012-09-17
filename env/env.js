@@ -90,6 +90,7 @@ var Env = (function() {
 		var body = response.body;
 		if (body) {
 			body = ContentTypes.serialize(body, response['content-type']);
+			// :TODO: resetBody may be pointless if theres no agent program
 			agent.resetBody(); // refreshed state, lose all previous content and listeners
 			agent.getBody().innerHTML = body;
 
@@ -119,7 +120,7 @@ var Env = (function() {
 	// agent get
 	// - `id` can be the id or DOM node of the agent
 	function Env__getAgent(id) {
-		if (typeof id == 'object' && id instanceof Node) {
+		if (typeof id == 'object' && id instanceof Node) { // this may be the worst code in the project
 			var given_elem = id;
 			id = (given_elem.id) ? given_elem.id.substr(6) /* remove 'agent-' */ : null;
 		}
@@ -133,9 +134,9 @@ var Env = (function() {
 	// - `id` can be null/undefined to create a new agent with an assigned id
 	// - `id` can be the id or DOM node of the agent
 	function Env__makeAgent(id, opt_target_elem) {
-		if (typeof id == 'object' && id instanceof Node) {
+		if (typeof id == 'object' && id instanceof Node) { // this may be the second worst code in the project
 			opt_target_elem = id;
-			id = (given_elem.id) ? given_elem.id.substr(6) /* remove 'agent-' */ : null;
+			id = (opt_target_elem.id) ? opt_target_elem.id.substr(6) /* remove 'agent-' */ : null;
 		}
 
 		if (id === null || typeof id == 'undefined') {
