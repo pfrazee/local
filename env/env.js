@@ -26,7 +26,7 @@ var Env = (function() {
 		Dropzones.init();
 
 		this.domserver = new DomServer();
-		this.router.addServer('#/dom', this.domserver);
+		this.router.addServer('#//dom', this.domserver);
 
 		document.body.addEventListener('request', Env__onRequestEvent);
 		document.body.addEventListener('response', Env__onResponseEvent);
@@ -226,7 +226,7 @@ var Env = (function() {
 	}
 	Agent.prototype.getBody = function Agent__getBody() { return this.elem; };
 	Agent.prototype.getId = function Agent__getId() { return this.id; };
-	Agent.prototype.getUri = function Agent__getUri() { return '#/' + this.id; };
+	Agent.prototype.getUri = function Agent__getUri() { return '#//' + this.id + '.ui'; };
 	Agent.prototype.dispatch = function Agent__dispatch(request) {
 		return Env.router.dispatch(request);
 	};
@@ -496,7 +496,7 @@ var Env = (function() {
 		elem.id = "agent-"+id;
 		elem.innerHTML = agent_template_html
 			.replace(/\{\{id\}\}/g, id)
-			.replace(/\{\{uri\}\}/g, '#/'+id)
+			.replace(/\{\{uri\}\}/g, '#//'+id+'.ui')
 		;
 		return elem;
 	}
