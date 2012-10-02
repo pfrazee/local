@@ -21,7 +21,7 @@ var RequestEvents = (function() {
 			e.preventDefault();
 			e.stopPropagation();
 			var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:{ request:request }});
-			/*RequestEvents__findOwningAgent(e.target)*/e.target.dispatchEvent(re);
+			e.target.dispatchEvent(re);
 			return false;
 		}
 	}
@@ -32,7 +32,7 @@ var RequestEvents = (function() {
 			e.preventDefault();
 			e.stopPropagation();
 			var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:{ request:request }});
-			/*RequestEvents__findOwningAgent(e.target)*/e.target.dispatchEvent(re);
+			e.target.dispatchEvent(re);
 			return false;
 		}
 	}
@@ -66,7 +66,7 @@ var RequestEvents = (function() {
 		}
 
 		var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:{ request:request }});
-		/*RequestEvents__findOwningAgent(e.target)*/evt.target.dispatchEvent(re);
+		evt.target.dispatchEvent(re);
 		return false;
 	}
 

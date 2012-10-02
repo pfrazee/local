@@ -8,8 +8,9 @@ var Agent = (function() {
 
 		this.worker = null;
 		this.program_config = null;
-		this.domain_auths = {};
 		this.program_counter = 1; // used to track when programs have changed
+
+		this.domain_auths = {};
 
 		// used by http:request/http:response to track work in progress
 		this.in_requests_to_process = []; // (an array of promises)
@@ -35,6 +36,7 @@ var Agent = (function() {
 		n.className = 'agent-body';
 		this.elem_agent.replaceChild(n, this.elem_body);
 		this.elem_body = n;
+		this.dom_event_handlers.length = 0;
 	};
 
 	Agent.prototype.dispatch = function Agent__dispatch(request, opt_follow) {
@@ -70,6 +72,7 @@ var Agent = (function() {
 			selector:selector
 		};
 		this.dom_event_handlers[event + ' ' + selector] = handler;
+		// :TODO: the dom_event_handlers will not know to remove handlers if the element is removed -- memory leak?
 
 		Array.prototype.forEach.call(nodes, function(el) {
 			el.addEventListener(event, handler);
@@ -128,7 +131,7 @@ var Agent = (function() {
 		Promise.when(self.killProgram(), function() {
 			self.worker = new Worker('/env/agent-worker.js');
 
-			// event 'foo' runs 'onWorkerFoo'
+			// :NOTE: event 'foo:bar' runs function 'onWorkerFoo_bar'
 			self.worker.addEventListener('message', function(message) {
 				var evtHandler = 'onWorker' + ucfirst(message.data.event).replace(/:/g, '_');
 				if (evtHandler in self) {
@@ -136,16 +139,15 @@ var Agent = (function() {
 				}
 			});
 
-			self.program_config = config ? Util.deepCopy(config) : {};
+			self.program_config             = config ? Util.deepCopy(config) : {};
 			self.program_config.program_url = url;
-			self.program_config.agent_id = self.getId();
-			self.program_config.agent_uri = self.getUri();
+			self.program_config.agent_id    = self.getId();
+			self.program_config.agent_uri   = self.getUri();
 			self.postWorkerEvent('setup', { config:self.program_config });
 
-			var el = self.getBody().parentNode;
-			var screl = el.querySelector('.agent-program');
-			screl.innerHTML = url;
-			screl.title = url;
+			// update agent header
+			var header_el = self.getContainer().querySelector('.agent-program');
+			header_el.innerHTML = url; header_el.title = url;
 		});
 		return self.program_load_promise;
 	};
@@ -228,6 +230,7 @@ var Agent = (function() {
 			}
 
 			if (response.code == 401) {
+				// :TODO: actually finish this
 				// 401 means we need auth info/permissions from the user
 				var challenges = response['www-authenticate'];
 				Env__promptAuthChallenges(challenges).then(handlePromptResult);

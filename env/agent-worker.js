@@ -13,10 +13,10 @@ importScripts('/stdlib/linkreflector.js');
 if (typeof Agent == 'undefined') {
 	(function() {
 		globals.Agent = {
-			pending_requests:[]
 		};
 		var router = new Http.Router();
 		var domready = new Promise();
+		var out_pending_requests = [];
 
 		Agent.getId = function() { return Agent.config.agent_id; };
 		Agent.getUri = function() { return Agent.config.agent_uri; };
@@ -24,15 +24,12 @@ if (typeof Agent == 'undefined') {
 		// http functions
 		Agent.dispatch = function dispatch(request) {
 			var p = new Promise();
-			var mid = Agent.pending_requests.length;
+			out_pending_requests.push(p);
 
-			Agent.pending_requests.push(p);
+			var mid = out_pending_requests.length - 1;
 			postEventMsg('http:request', { mid:mid, request:request });
 
 			return p;
-		};
-		Agent.follow = function follow(request) {
-			throw "is this needed?"; // if so, it should emit the request event in the DOM
 		};
 		Agent.renderResponse = function renderResponse(response, opt_noyield) {
 			if (response.code == 204 || response.code == 205) { return; }
@@ -90,10 +87,9 @@ if (typeof Agent == 'undefined') {
 		addEventMsgListener('http:response', function(e) {
 			// worker has received an http response
 			var response = e.response;
-			var pending_request = Agent.pending_requests[e.mid];
+			var pending_request = out_pending_requests[e.mid];
 			if (!pending_request) { throw "Response received from agent worker with bad message id ("+e.mid+")"; }
-			// if you get a !pendingRequest, make sure that the response wasnt accidentally sent twice
-			Agent.pending_requests[e.mid] = null;
+			out_pending_requests[e.mid] = null;
 			pending_request.fulfill(response);
 		});
 
