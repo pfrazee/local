@@ -7,20 +7,21 @@ if (typeof Http == 'undefined') {
 		globals.Http = {
 			Router:Router,
 			route:Http__route,
-			response:Http__response
+			response:Http__response,
+            reflectLinks:reflectLinks,
+			parseUri:parseUri
 		};
 
 		// Router
 		// ======
 		function Router() {
 			this.servers = [];
-			this.response_cbs = [];
 			this.cur_mid = 1;
 			this.ajax_config = {
 				proxy:null,
 				proxy_query_header:'x-proxy-query'
 			};
-		};
+		}
 
 		// Configures the server into the uri structure
 		//  - maintains precedence in ordering according to the URI
@@ -128,20 +129,17 @@ if (typeof Http == 'undefined') {
 
 			var dispatch_promise = new Promise();
 			if (opt_cb) { dispatch_promise.then(opt_cb, opt_context); }
-			this.response_cbs.forEach(function(cb) {
-				dispatch_promise.then(cb.fn, cb.context);
-			});
 			Object.defineProperty(request, '__dispatch_promise', { value:dispatch_promise });
 
 			__processQueryParams(request);
+
+			Util.log('traffic', this.id ? this.id+'|>' : '|> ', request.__mid, request.method, request.uri, request);
 
 			// URIs that dont target hash URIs should be fetched remotely
 			if (request.uri.charAt(0) != '#') {
 				__dispatchRemote.call(this, request);
 				return dispatch_promise;
 			}
-
-			Util.log('traffic', this.id ? this.id+'|req' : '|> ', request);
 
 			var handlers = Router__findHandlers.call(this, request);
 			Object.defineProperty(request, '__bubble_handlers', { value:[], writable:true });
@@ -178,25 +176,13 @@ if (typeof Http == 'undefined') {
 			if (!response) {
 				response = Http.response(404, 'Not Found', 'text/plain');
 			}
-			Util.log('traffic', this.id ? this.id+'|res' : ' >|', response);
+			Util.log('traffic', this.id ? this.id+'>|' : ' >|', request.__mid, response.code, response.reason, response);
 
 			response.org_request = request; // :TODO: if this isn't necessary, it should go
 			response.body = ContentTypes.deserialize(response.body, response['content-type']);
 
 			request.__dispatch_promise.fulfill(response);
 		}
-
-		// :TODO: remove when possible
-		Router.prototype.addResponseListener = function Router__addResponseListener(fn, opt_context) {
-			this.response_cbs.push({ fn:fn, context:opt_context });
-		};
-		Router.prototype.removeResponseListener = function Router__removeResponseListener(fn) {
-			this.response_cbs.forEach(function(cb, i) {
-				if (cb.fn == fn) {
-					this.response_cbs.splice(i, 1);
-				}
-			}, this);
-		};
 
 		// Pulls the query params into the request.query object
 		function __processQueryParams(request) {
@@ -285,16 +271,18 @@ if (typeof Http == 'undefined') {
 					response.org_request = request; // :TODO: remove if possible
 					response.body = ContentTypes.deserialize(xhrRequest.responseText, response['content-type']);
 
-					Util.log('traffic', this.id ? this.id+'|res' : ' >|', response);
+					Util.log('traffic', this.id ? this.id+'>|' : ' >|', request.__mid, response.code, response.reason, response);
 					request.__dispatch_promise.fulfill(response);
 				}
 			};
 			xhrRequest.send(request.body);
 		}
 
+        // Maker Functions
+        // ===============
 		function Http__route(cb, match, capture_phase) {
 			return { cb:cb, match:match, capture:capture_phase };
-		};
+		}
 		function Http__response(code, body, contenttype, headers) {
 			var response = headers || {};
             if (Array.isArray(code)) {
@@ -306,6 +294,111 @@ if (typeof Http == 'undefined') {
             if (body) { response.body = body; }
 			if (contenttype) { response['content-type'] = contenttype; }
 			return response;
+		}
+		Http__response.unauthorized = function(challenge) {
+			var res = Http.response(401, null, null, { 'www-authenticate':challenge });
+		};
+		Http__response.badperms = function(perm_tag, prompt) {
+			var res = Http.response.unauthorized({
+				scheme:'perms',
+				tag:perm_tag,
+				prompt:prompt
+			});
+			return res;
+		};
+
+        // Link Reflector
+        // ==============
+		function reflectLinks(links, static_params) {
+			if (!Array.isArray(links)) { links = [links]; }
+			var fns = {};
+			links.forEach(function(link) {
+				var methods = Array.isArray(link.methods) ? link.methods : [link.method];
+				if (methods.length == 0) { methods = ['get']; }
+				methods.forEach(function(method) {
+					var fn_name = method+link.title;
+					fn_name = fn_name.replace(/ /g, '_');
+					fns[fn_name] = reflectLinks__makeFunc(method, link, static_params);
+				})
+			});
+			return fns;
+		}
+		// moved here to reduce closure size
+		function reflectLinks__makeFunc(method, link, static_params) {
+			return function(params, opt_body, opt_type, opt_headers, opt_follow) {
+				var request = opt_headers || {};
+				if (opt_body) { request.body = opt_body; }
+				if (opt_type) { request['content-type'] = opt_type; }
+
+				params = params || {};
+				for (var k in static_params) {
+					if (!(k in params)) {
+						params[k] = static_params[k];
+					}
+				}
+
+				var href_parts = link.href.split('?');
+				var uri = href_parts[0]; 
+				var query = href_parts[1];
+				for (var k in params) {
+					uri = uri.replace('{'+k+'}', params[k]);
+					if (query) {
+						query = query.replace('{'+k+'}', k+'="'+params[k]+'"');
+					}
+				}
+				request.uri = uri.replace(/\{.*\}/g, '');
+				if (query) {
+					query = query
+						.replace(/\{[A-z0-9]*\}/g, '') // empty {}s
+						.replace(/&+/g,'&') // repeating &s
+						.replace(/^&/,'') // & at beginning
+						.replace(/&$/,''); // & at end
+					request.uri += '?' + query;
+				}
+
+				if (!request.method) {
+					request.method = method;
+				}
+				if (!request.accept && link.type) {
+					request.accept = link.type;
+				}
+
+				return Agent.dispatch(request, opt_follow);
+			};
+		}
+
+		// parseUri 1.2.2
+        // ==============
+		// (c) Steven Levithan <stevenlevithan.com>
+		// MIT License
+
+		function parseUri (str) {
+			var	o   = parseUri.options,
+				m   = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
+				uri = {},
+				i   = 14;
+
+			while (i--) uri[o.key[i]] = m[i] || "";
+
+			uri[o.q.name] = {};
+			uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
+				if ($1) uri[o.q.name][$1] = $2;
+			});
+
+			return uri;
+		}
+
+		parseUri.options = {
+			strictMode: false,
+			key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
+			q:   {
+				name:   "queryKey",
+				parser: /(?:^|&)([^&=]*)=?([^&]*)/g
+			},
+			parser: {
+				strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+				loose:  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+			}
 		};
 	})();
 }

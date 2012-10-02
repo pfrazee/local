@@ -53,9 +53,9 @@ var Dropzones = (function() {
 		var column, dropzone;
 		if (target.classList.contains('dropcolumn')) {
 			column = target;
-			if (target.hasChildNodes() == false) {
+			if (target.hasChildNodes() === false) {
 				// we need a dropzone to act as the target
-				var dropzone = document.createElement('div');
+				dropzone = document.createElement('div');
 				dropzone.classList.add('dropzone');
 				column.appendChild(dropzone);
 
@@ -77,19 +77,25 @@ var Dropzones = (function() {
 		// create agent's future home
 		var agent_elem = document.createElement('div');
 		column.insertBefore(agent_elem, dropzone);
-	   
+
 		return agent_elem;
 	}
 
 	function Dropzones__padAgent(agent_elem) {
-		if (agent_elem.parentNode.classList.contains('dropcolumn') == false) {
+		var dropzone;
+		if (!agent_elem.parentNode.classList.contains('dropcolumn')) {
 			return; // leave subagents alone
 		}
-		// make sure it has a dropzone above it
-		if (!agent_elem.prevSibling || !agent_elem.prevSibling.classList.contains('dropzone')) {
-			var dropzone = document.createElement('div');
+		// make sure it has a dropzone above and below it
+		if (!agent_elem.previousSibling || !agent_elem.previousSibling.classList.contains('dropzone')) {
+			dropzone = document.createElement('div');
 			dropzone.className = "dropzone";
 			agent_elem.parentNode.insertBefore(dropzone, agent_elem);
+		}
+		if (!agent_elem.nextSibling || !agent_elem.nextSibling.classList.contains('dropzone')) {
+			dropzone = document.createElement('div');
+			dropzone.className = "dropzone";
+			agent_elem.parentNode.insertBefore(dropzone, agent_elem.nextSibling);
 		}
 	}
 

@@ -28,7 +28,7 @@ table#lshui-env tr td.request-hover { min-width:100px; background:rgba(255,255,2
 }
 .agent-titlebar-ctrls { float:right }
 .agent-titlebar form { margin:0 }
-.agent.collapsed { opacity:0.5; min-width:100px }
+.agent.collapsed { opacity:0.5; min-width:250px }
 .agent.collapsed .agent-body { display:none }
 
 .dropzone { height:10px; }

@@ -55,7 +55,5 @@ document.addEventListener('DOMContentLoaded', function() {
 	var a = Env.makeAgent('inbox');
 	a.loadProgram('/usr/pfraze/inbox.js', {
 		services:[{ name:'@linkshui', uri:'http://linkshui.com:8600' }]
-	});/*.then(function() {
-		a.follow({ uri:'#/inbox', method:'get', accept:'text/html' });
-	});*/
+	});
 });

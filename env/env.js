@@ -9,10 +9,8 @@ var Env = (function() {
 		killAgent:Env__killAgent,
 
 		router:null,
-		domserver:null,
 		agents:{},
-		container_elem:null,
-		nc:null, // notifications center (plugin to raise alerts)
+
 		is_loaded:new Promise()
 	};
 	
@@ -20,17 +18,13 @@ var Env = (function() {
 	function Env__init(router, container_elem_id) {
 		this.router = router;
 		this.container_elem = document.getElementById(container_elem_id);
-		this.nc = new notificationCenter();
 
 		RequestEvents.init();
 		Dropzones.init();
 
-		this.domserver = new DomServer();
-		this.router.addServer('#//dom', this.domserver);
+		this.router.addServer('#//dom.env', new DomServer());
 
 		document.body.addEventListener('request', Env__onRequestEvent);
-		document.body.addEventListener('response', Env__onResponseEvent);
-		this.router.addResponseListener(Env__globalOnResponse, this); // :TODO: remove this whole mechanism
 
 		// send is_loaded signal
 		this.is_loaded.fulfill(true);
@@ -39,82 +33,21 @@ var Env = (function() {
 	function Env__onRequestEvent(e) {
 		var request = e.detail.request;
 
-		// figure out the agent
-		var agent_id;
-		switch (request.target) {
-			case false:
-			case undefined:
-			case null:
-			case '_self':
-				// find parent agent
-				var node = e.target;
-				while (node) {
-					if (node.classList && node.classList.contains('agent')) {
-						agent_id = node;
-						break;
-					}
-					node = node.parentNode;
-				}
+		var agent_id = null;
+
+		var node = e.target;
+		while (node) {
+			if (node.classList && node.classList.contains('agent')) {
+				agent_id = node;
 				break;
-			case '_parent':
-				// :TODO: ?
-			case '_blank':
-				agent_id = null; // new agent
-				break;
-			default:
-				agent_id = request.target;
-		}
-
-		var agent = Env.getAgent(agent_id) || Env.makeAgent(agent_id);
-		if (agent.hasProgram()) {
-			agent.postWorkerEvent('dom:request', { request:request });
-		} else {
-			agent.follow(request, e.target);
-		}
-	}
-	
-	function Env__onResponseEvent(e) {
-		var request = e.detail.request;
-		var response = e.detail.response;
-		var agent = Env.getAgent(request.target);
-		if (!agent)
-			throw "Agent not found in response event";
-
-		if (agent.hasProgram()) {
-			agent.postWorkerEvent('dom:response', { request:request, response:response });
-			return;
-		}
-		
-		if (response.code == 204 || response.code == 205) { return; }
-
-		var body = response.body;
-		if (body) {
-			body = ContentTypes.serialize(body, response['content-type']);
-			// :TODO: resetBody may be pointless if theres no agent program
-			agent.resetBody(); // refreshed state, lose all previous content and listeners
-			agent.getBody().innerHTML = body;
-
-			var program_script = agent.getBody().querySelector('script.program');
-			if (program_script) {
-				var program_url = program_script.getAttribute('src');
-				if (!program_url) {
-					Util.log('errors', 'No url specified in program script');
-				} else {
-					agent.loadProgram(program_url);
-				}
 			}
+			node = node.parentNode;
 		}
-	}
 
-	function Env__globalOnResponse(response) {
-		// notify user of any errors
-		if (response.code >= 400) {
-			var request = response.org_request;
-			var msg = '';
-			msg += '<strong>'+response.code+' '+(response.reason ? response.reason : '')+'</strong><br />';
-			msg += request.method+' '+request.uri+' ['+request.accept+']';
-			this.nc.notify({ html:msg, autoClose:4000 });
-		}
+		var agent = Env.getAgent(agent_id) || Env.makeAgent(agent_id, e.target);
+		Promise.when(agent.program_load_promise, function() {
+			agent.postWorkerEvent('dom:request', { detail:{ request:request }});
+		});
 	}
 
 	// agent get
@@ -150,10 +83,8 @@ var Env = (function() {
 		// add container elem to dom
 		var agent_elem = Env__makeAgentWrapperElem(id, opt_target_elem);
 		if (!opt_target_elem) {
-			var before_elem = this.container_elem.querySelector('.defcolumn').firstChild;
-			before_elem.parentNode.insertBefore(agent_elem, before_elem);
+			this.container_elem.querySelector('.defcolumn').appendChild(agent_elem);
 		}
-		var body_elem = document.getElementById('agent-'+id+'-body');
 		Dropzones.padAgent(agent_elem);
 
 		// drag/drop render-state managers
@@ -173,8 +104,9 @@ var Env = (function() {
 		});
 
 		// create agent
-		var agent = new Agent(id, body_elem);
+		var agent = new Agent(id, agent_elem);
 		this.router.addServer(agent.getUri(), agent);
+        agent.loadProgram(null);
 
 		return (this.agents[id] = agent);
 	}
@@ -205,289 +137,8 @@ var Env = (function() {
 		return p;
 	}
 
-	// Agent prototype
-	// ===============
-	function Agent(id, elem) {
-		this.id = id;
-		this.elem = elem;
-
-		this.worker = null;
-		this.program_config = null;
-
-		// used by http:request/http:response to track
-		// which requests the agent program server is currently handling
-		this.pending_requests = []; // (an array of promises)
-
-		this.dom_event_handlers = {}; // a hash of events->handler obj array
-
-		this.program_load_promise = null;
-		this.program_kill_promise = null;
-		this.program_kill_timeout = null;
-	}
-	Agent.prototype.getBody = function Agent__getBody() { return this.elem; };
-	Agent.prototype.getId = function Agent__getId() { return this.id; };
-	Agent.prototype.getUri = function Agent__getUri() { return '#//' + this.id + '.ui'; };
-	Agent.prototype.dispatch = function Agent__dispatch(request) {
-		return Env.router.dispatch(request);
-	};
-	Agent.prototype.follow = function Agent__follow(request, emitter) {
-		request.target = this.id;
-		emitter = emitter || this.getBody();
-		request.accept = request.accept || 'text/html';
-		var p = Env.router.dispatch(request);
-		p.then(function(response) {
-			var re = new CustomEvent('response', { bubbles:true, cancelable:true, detail:{ request:request, response:response }});
-			emitter.dispatchEvent(re);
-		});
-		return p;
-	};
-	Agent.prototype.resetBody = function Agent__resetBody() {
-		var p = this.elem.parentNode;
-		var n = document.createElement('div');
-		n.id = 'agent-'+this.id+'-body';
-		n.className = 'agent-body';
-		p.replaceChild(n, this.elem);
-		this.elem = n;
-	};
-
-	// Dom Events
-	function countMatches(m) { return (m ? m.length : 0); }
-	Agent.prototype.addDomEventHandler = function Agent__addDomEventHandler(event, selector, opt_stopHandlers) {
-		if (!this.getBody()) { throw "Agent body required"; }
-		if (!(event in this.dom_event_handlers)) {
-			this.dom_event_handlers[event] = [];
-			this.getBody().addEventListener(event, Agent__genericDomEventHandler);
-		}
-		// roughly calculate the selector specificity
-		// http://css-tricks.com/specifics-on-css-specificity/
-		var specificity = 0;
-		if (selector) {
-			specificity += countMatches(selector.match(/\#/g)) * 100;
-			specificity += countMatches(selector.match(/\./g)) * 10;
-			specificity += countMatches(selector.match(/(\s+)/g)) + 1;
-		}
-		var handler = { selector:selector, specificity:specificity };
-		var added = false;
-		for (var i=0; i < this.dom_event_handlers[event].length; i++) {
-			if (this.dom_event_handlers[event][i].specificity < specificity) {
-				this.dom_event_handlers[event].splice(i, 0, handler);
-				added = true;
-				break;
-			}
-		}
-		if (!added) {
-			this.dom_event_handlers[event].push(handler);
-		}
-	};
-	Agent.prototype.removeDomEventHandler = function Agent__removeDomEventHandler(event, selector) {
-		if (event in this.dom_event_handlers) {
-			this.dom_event_handlers[event].forEach(function(h, i) {
-				if (h.selector == selector) {
-					this.dom_event_handlers[event].splice(i, 1);
-				}
-			}, this);
-		}
-		if (this.dom_event_handlers[event].length === 0) {
-			this.getBody().removeEventListener(event, Agent__genericDomEventHandler);
-		}
-	};
-	Agent.prototype.getDomEventHandlers = function Agent__getDomEventHandlers(event) {
-		return this.dom_event_handlers[event];
-	};
-	function Agent__genericDomEventHandler(e) {
-		var agent = Env.getAgent(this.parentNode);
-		if (!agent) { throw "Agent not found on dom event"; }
-
-		// find all the handlers that match
-		var workerEventData = null;
-		var nodes_cache = { _:[agent.getBody()] }; // underscore is for when no selector is given
-		agent.getDomEventHandlers(e.type).forEach(function(h) {
-			var sel = h.selector || '_';
-			if (!(sel in nodes_cache)) {
-				nodes_cache[sel] = agent.getBody().querySelectorAll(sel);
-			}
-
-			// it's a match if the event element is in the node set described by the handler's selector
-			var nodes = nodes_cache[sel];
-			for (var i=0; i < nodes.length; i++) {
-				if (e.target == nodes[i]) {
-					var workerEvent = 'dom:'+e.type;
-					if (h.selector) { workerEvent += ' '+h.selector; }
-
-					if (!workerEventData) {
-						workerEventData = {};
-						for (var k in e) {
-							if ((/boolean|number|string/).test(typeof e[k])) {
-								workerEventData[k] = e[k];
-							}
-						}
-						workerEventData.target_index = i;
-					}
-
-					agent.postWorkerEvent(workerEvent, workerEventData);
-					break;
-				}
-			}
-		});
-	}
-
-	// Worker Program Management
-	Agent.prototype.loadProgram = function Agent__loadProgram(url, config) {
-		var self = this;
-		self.program_load_promise = new Promise();
-
-		// :TODO: permissions check
-
-		Promise.when(self.killProgram(), function() {
-			self.worker = new Worker('/env/agent-worker.js');
-
-			// event 'foo' runs 'onWorkerFoo'
-			self.worker.addEventListener('message', function(message) {
-				var evtHandler = 'onWorker' + ucfirst(message.data.event).replace(/:/g, '_');
-				if (evtHandler in self) {
-					self[evtHandler].call(self, message.data);
-				}
-			});
-
-			self.program_config = config ? Util.deepCopy(config) : {};
-			self.program_config.program_url = url;
-			self.program_config.agent_id = self.getId();
-			self.program_config.agent_uri = self.getUri();
-			self.postWorkerEvent('setup', { config:self.program_config });
-
-			var el = self.getBody().parentNode;
-			var screl = el.querySelector('.agent-program');
-			screl.innerHTML = url;
-			screl.title = url;
-		});
-		return self.program_load_promise;
-	};
-	Agent.prototype.killProgram = function Agent__killProgram(opt_force_terminate) {
-		if (!this.worker) { return true; }
-		if (this.program_kill_promise) {
-			if (!opt_force_terminate) { return this.program_kill_promise; }
-		} else {
-			this.program_kill_promise = new Promise();
-		}
-
-		// dont let load listeners run, this program is foobared
-		if (this.program_load_promise) {
-			this.program_load_promise = null;
-		}
-
-		if (opt_force_terminate) {
-			clearTimeout(this.program_kill_timeout);
-			this.program_kill_timeout = null;
-
-			this.worker.terminate();
-			this.worker = null;
-			this.program_config = null;
-
-			this.program_kill_promise.fulfill(true);
-			this.program_kill_promise = null;
-		} else {
-			// if not forcing termination, send the worker a kill event and give it 10 seconds to send back a 'dead' event
-			this.postWorkerEvent('kill');
-
-			var self = this;
-			this.program_kill_timeout = setTimeout(function() {
-				// :TODO: prompt user to force terminate?
-				self.killProgram(true);
-			}, 1000); // 1 second
-		}
-		return this.program_kill_promise;
-	};
-	Agent.prototype.hasProgram = function Agent__hasProgram() { return !!this.program_config; };
-	Agent.prototype.getProgramConfig = function Agent__getProgramConfig() {
-		return this.program_config;
-	};
-
-	// Worker Event Handlers
-	Agent.prototype.postWorkerEvent = function Agent__postWorkerEvent(evt_name, data) {
-		if (!this.worker) { return; } // :TODO: throw? log?
-		data = data ? Util.deepCopy(data) : {};
-		data.event = evt_name;
-		this.worker.postMessage(data);
-	};
-	Agent.prototype.onWorkerReady = function Agent__onWorkerReady(e) {
-		if (this.program_load_promise) {
-			this.program_load_promise.fulfill(e);
-			this.program_load_promise = null;
-		}
-	};
-	Agent.prototype.onWorkerDead = function Agent__onWorkerDead() {
-		this.killProgram(true);
-	};
-	Agent.prototype.onWorkerYield = function Agent__onWorkerYield(e) {
-		// 'yield' event means the worker wants to load a new program
-		// :TODO: check permissions and issue 'noyield' if not allowed
-		this.loadProgram(e.url);
-	};
-	Agent.prototype.onWorkerLog = function Agent__onWorkerLog(e) {
-		console.log(this.id+':', e.msg);
-	};
-	Agent.prototype.onWorkerHttp_request = function Agent__onWorkerHttp_request(e) {
-		var fn = (e.follow) ? this.follow : this.dispatch;
-		fn.call(this, e.request).then(function(response) {
-			this.postWorkerEvent('http:response', { mid:e.mid, response:response });
-		}, this);
-	};
-	Agent.prototype.onWorkerHttp_response = function Agent__onWorkerHttp_response(e) {
-		var response = e.response;
-		var pending_request = this.pending_requests[e.mid];
-		if (!pending_request) { throw "Response received from agent worker with bad message id"; }
-		// if !pendingRequest, make sure that the response wasnt accidentally sent twice
-		this.pending_requests[e.mid] = null;
-		pending_request.fulfill(response);
-	};
-
-	// HTTP Request Handlers
-	Agent.prototype.routes = [
-		Http.route('collapseHandler', { uri:'^/?$', method:/min|max/i }),
-		Http.route('closeHandler', { uri:'^/?$', method:'close' }),
-		Http.route('programRequestHandler', { uri:'(.*)' })
-	];
-	Agent.prototype.collapseHandler = function Agent__collapseHandler(request) {
-		var should_collapse = (request.method == 'min');
-		var is_collapsed = this.elem.parentNode.classList.contains('collapsed');
-
-		if (is_collapsed != should_collapse) {
-			this.elem.parentNode.classList.toggle('collapsed');
-		}
-
-		var shutter_btn = document.querySelector('.btn-shutter', this.elem);
-		if (shutter_btn) {
-			shutter_btn.innerText = should_collapse ? '+' : '_';
-			shutter_btn.setAttribute('formmethod', should_collapse ? "max" : "min");
-		}
-
-		return Http.response(205);
-	};
-	Agent.prototype.closeHandler = function Agent__closeHandler() {
-		Env.killAgent(this.id);
-		return Http.response(205);
-	};
-	Agent.prototype.programRequestHandler = function Agent__programRequestHandler(request, match) {
-		if (!this.worker) { return; }
-
-		var p = new Promise();
-		var mid = this.pending_requests.length;
-		this.pending_requests.push(p);
-
-		var dup_req = Util.deepCopy(request);
-		dup_req.uri = '#' + ((match.uri[1].charAt(0) == '/') ? '' : '/') + match.uri[1];
-		this.postWorkerEvent('http:request', { mid:mid, request:dup_req });
-
-		return p;
-	};
-
 	// Helpers
 	// =======
-	// fooBar -> Foobar
-	function ucfirst(str) {
-		return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-	}
-		
 	// generates HTML for agents to work within
 	function Env__makeAgentWrapperElem(id, elem) {
 		// create div
@@ -509,7 +160,7 @@ var Env = (function() {
 						'<button class="btn btn-mini" formmethod="close" title="close">&times;</button>' +
 					'</div>' +
 				'</form>' +
-				'<a href="{{uri}}">{{id}}</a> <span class="agent-program"></span>' +
+				'<a href="{{uri}}">{{id}}</a>&nbsp;<span class="agent-program"></span>' +
 			'</div>' +
 			'<div id="agent-{{id}}-body" class="agent-body"></div>'
 		//'</div>'

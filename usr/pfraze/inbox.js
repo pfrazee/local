@@ -108,6 +108,7 @@ Server.checkMethod = function(ids) {
 	return Http.response([204, 'ok']);
 };
 Server.markreadMethod = function(ids) {
+	if (ids.length === 0) { return Http.response([204,'ok']); }
 	ids.forEach(function(id) {
 		var m = this.messages[id];
 		m.flags.seen = true;
@@ -117,6 +118,7 @@ Server.markreadMethod = function(ids) {
 	return Http.response([204, 'ok']);
 };
 Server.markunreadMethod = function(ids) {
+	if (ids.length === 0) { return Http.response([204,'ok']); }
 	ids.forEach(function(id) {
 		var m = this.messages[id];
 		m.flags.seen = false;
@@ -126,6 +128,7 @@ Server.markunreadMethod = function(ids) {
 	return Http.response([204, 'ok']);
 };
 Server.deleteMethod = function(ids) {
+	if (ids.length === 0) { return Http.response([204,'ok']); }
 	ids.forEach(function(id) {
 		Agent.dispatch({ method:'delete', uri:this.messages[id].uri, accept:'application/json' });
 		this.messages[id] = null;
@@ -150,20 +153,18 @@ Agent.config.services.forEach(function(s) {
 	});
 });
 
-Agent.dom.listenEvent({ event:'click', selector:'.msg-checkbox' });
+// event handlers
 addEventMsgListener('dom:click .msg-checkbox', function(e) {
-	//postEventMsg('log', {msg:e});
 	var m = Server.messages[e.target_index];
+	postEventMsg('log', {msg:e.target_index +' checked'});
 	if (m) {
 		m.checked = (m.checked) ? false : true;
 	}
 });
 
+Agent.dom.listenEvent({ event:'request' });
 addEventMsgListener('dom:request', function(e) {
-	Agent.follow(e.request);
-});
-addEventMsgListener('dom:response', function(e) {
-	Agent.renderResponse(e.response);
+	Agent.dispatch(e.detail.request).then(Agent.renderResponse);
 });
 
 function render() {
@@ -208,6 +209,9 @@ function render() {
 	html += '</table>';
 
 	Agent.dom.putNode({}, html, 'text/html');
+
+	// event listeners
+	Agent.dom.listenEvent({ event:'click', selector:'.msg-checkbox' });
 }
 
 render();

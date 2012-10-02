@@ -9,9 +9,13 @@ if (typeof Util == 'undefined') {
 		// http://keithdevens.com/weblog/archive/2007/Jun/07/javascript.clone
 		Util.deepCopy = function deepCopy(obj) {
 			if (!obj || typeof obj != 'object') { return obj; }
-			var c = new obj.constructor();
-			for (var k in obj) { c[k] = deepCopy(obj[k]); }
-			return c;
+			try {
+				var c = new obj.constructor();
+				for (var k in obj) { c[k] = deepCopy(obj[k]); }
+				return c;
+			} catch(e) {
+				return null;
+			}
 		};
 
 		Util.logMode = function logMode(k, v) {
@@ -26,7 +30,7 @@ if (typeof Util == 'undefined') {
 				if (typeof console != 'undefined')
 					console.log.apply(console, args);
 				else if (typeof postEventMsg != 'undefined')
-					postEventMsg('log', { msg:args.join(' ') })
+					postEventMsg('log', { msg:args.join(' ') });
 			}
 		};
 		

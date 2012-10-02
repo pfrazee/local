@@ -15,15 +15,18 @@ if (typeof DomServer == 'undefined') {
 
 		DomServer.prototype.banner = function DomServer__banner() {
 			var linkHeader = [
-				{ methods:['get','put','post','delete'], title:'Node', href:'#//dom/{agent}?{selector}&{selectorAll}&{attr}&{append}&{before}&{replace}&{add}&{remove}&{toggle}', type:'text/html' },
-				{ methods:['listen', 'unlisten'], title:'Event', href:'#//dom/{agent}/{event}?{selector}' }
+				{ methods:['get','put','post','delete'], title:'Node', href:'#//dom.env/{agent}?{selector}&{selectorAll}&{attr}&{append}&{before}&{replace}&{add}&{remove}&{toggle}', type:'text/html' },
+				{ methods:['listen', 'unlisten'], title:'Event', href:'#//dom.env/{agent}/{event}?{selector}' }
 			];
 			return Http.response([200,'ok'], 'Dom Server 0.1', 'text/html', { link:linkHeader });
 		};
 
-		DomServer.prototype.get = function DomServer__get(request, match) {
+		DomServer.prototype.get = function DomServer__get(request, match, session) {
 			var agent = Env.getAgent(match.uri[1]);
-			// :TODO: validate access with session
+
+            /*if (session.getAgentId() != agent.getId()) {
+                return Http.response([403,'agents can not modify other agent doms']);
+            }*/
 			
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
@@ -40,9 +43,12 @@ if (typeof DomServer == 'undefined') {
 			return Http.response([200,'ok'], val, type);
 		};
 
-		DomServer.prototype.put = function DomServer__put(request, match) {
+		DomServer.prototype.put = function DomServer__put(request, match, session) {
 			var agent = Env.getAgent(match.uri[1]);
-			// :TODO: validate access with session
+
+            /*if (session.getAgentId() != agent.getId()) {
+                return Http.response([403,'agents can not modify other agent doms']);
+            }*/
 			
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
@@ -58,9 +64,12 @@ if (typeof DomServer == 'undefined') {
 			return Http.response([204,'ok']);
 		};
 
-		DomServer.prototype.ins = function DomServer__ins(request, match) {
+		DomServer.prototype.ins = function DomServer__ins(request, match, session) {
 			var agent = Env.getAgent(match.uri[1]);
-			// :TODO: validate access with session
+
+            /*if (session.getAgentId() != agent.getId()) {
+                return Http.response([403,'agents can not modify other agent doms']);
+            }*/
 			
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
@@ -106,9 +115,12 @@ if (typeof DomServer == 'undefined') {
 			return Http.response([204,'ok']);
 		};
 
-		DomServer.prototype.del = function DomServer__del(request, match) {
+		DomServer.prototype.del = function DomServer__del(request, match, session) {
 			var agent = Env.getAgent(match.uri[1]);
-			// :TODO: validate access with session
+
+            /*if (session.getAgentId() != agent.getId()) {
+                return Http.response([403,'agents can not modify other agent doms']);
+            }*/
 
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
@@ -122,9 +134,12 @@ if (typeof DomServer == 'undefined') {
 			return Http.response([204,'ok']);
 		};
 
-		DomServer.prototype.event = function DomServer__event(request, match) {
+		DomServer.prototype.event = function DomServer__event(request, match, session) {
 			var agent = Env.getAgent(match.uri[1]);
-			// :TODO: validate access with session
+
+            /*if (session.getAgentId() != agent.getId()) {
+                return Http.response([403,'agents can not modify other agent doms']);
+            }*/
 
 			if (request.method == 'listen') {
 				agent.addDomEventHandler(match.uri[2], request.query.selector);
@@ -135,91 +150,6 @@ if (typeof DomServer == 'undefined') {
 			return Http.response([204,'ok']);
 		};
 
-		/*DomServer.prototype.getAttrText = function getAttrText(request, match) {
-			// :TODO: validate access with session
- 
-			var nodes = getNodes(match);
-			if (nodes.length == 0) {
-				return Http.response(404, 0, 0, { reason:'node(s) not found' });
-			}
-			var attr = match.uri[4];
-
-			var vals = [];
-			nodes.forEach(function(node) {
-				vals.push(node.getAttribute(attr));
-			});
-			vals = vals.join("\r\n");
-
-			return Http.response(200, vals, 'text/plain', { reason:'ok' });
-		};
-
-		DomServer.prototype.getAttrJson = function getAttrJson(request, match) {
-			// :TODO: validate access with session
-
-			var nodes = getNodes(match);
-			if (nodes.length == 0) {
-				return Http.response(404, 0, 0, { reason:'node(s) not found' });
-			}
-			var attr = match.uri[4];
-
-			var vals = [];
-			nodes.forEach(function(node) {
-				vals.push(node.getAttribute(attr));
-			});
-
-			return Http.response(200, vals, 'application/json', { reason:'ok' });
-		};
-
-		DomServer.prototype.setAttrText = function setAttrText(request, match) {
-			// :TODO: validate access with session
-
-			var nodes = getNodes(match);
-			if (nodes.length == 0) {
-				return Http.response(404, 0, 0, { reason:'node(s) not found' });
-			}
-			var attr = match.uri[4];
-
-			nodes.forEach(function(node) {
-				node.setAttribute(attr, request.body);
-			});
-
-			return Http.response(200, 0, 0, { reason:'ok' });
-		};
-
-		DomServer.prototype.setAttrJson = function setAttrText(request, match) {
-			// :TODO: validate access with session
-
-			var nodes = getNodes(match);
-			if (nodes.length == 0) {
-				return Http.response(404, 0, 0, { reason:'node(s) not found' });
-			}
-			var attr = match.uri[4];
-
-			var val = null;
-			nodes.forEach(function(node, i) {
-				val = request.body[i] || val;
-				node.setAttribute(attr, val);
-			});
-
-			return Http.response(200, 0, 0, { reason:'ok' });
-		};
-
-		DomServer.prototype.clearAttr = function clearAttr(request, match) {
-			// :TODO: validate access with session
-
-			var nodes = getNodes(match);
-			if (nodes.length == 0) {
-				return Http.response(404, 0, 0, { reason:'node(s) not found' });
-			}
-			var attr = match.uri[4];
-
-			nodes.forEach(function(node) {
-				node.removeAttribute(attr);
-			});
-
-			return Http.response(200, 0, 0, { reason:'ok' });
-		};*/
-		
 		function getNodes(agent, query) {
 			if (!agent) { return []; }
 

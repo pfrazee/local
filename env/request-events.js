@@ -21,7 +21,7 @@ var RequestEvents = (function() {
 			e.preventDefault();
 			e.stopPropagation();
 			var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:{ request:request }});
-			e.target.dispatchEvent(re);
+			/*RequestEvents__findOwningAgent(e.target)*/e.target.dispatchEvent(re);
 			return false;
 		}
 	}
@@ -32,7 +32,7 @@ var RequestEvents = (function() {
 			e.preventDefault();
 			e.stopPropagation();
 			var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:{ request:request }});
-			e.target.dispatchEvent(re);
+			/*RequestEvents__findOwningAgent(e.target)*/e.target.dispatchEvent(re);
 			return false;
 		}
 	}
@@ -53,25 +53,25 @@ var RequestEvents = (function() {
 	}
 
 	function RequestEvents__dropHandler(evt) {
+		if (evt.target.classList.contains('dropzone') || evt.target.classList.contains('dropcolumn')) {
+			return; // let DropZones handle
+		}
+		var request;
 		evt.stopPropagation(); // no default behavior (redirects)
 
 		try {
-			var request = JSON.parse(evt.dataTransfer.getData('application/link+json'));
+			request = JSON.parse(evt.dataTransfer.getData('application/link+json'));
 		} catch (except) {
 			console.log('Bad data provided on RequestEvents drop handler', except, evt);
 		}
 
-		// drag/drop is basically a dynamic target attribute
-		request.target = RequestEvents__findOwningAgent(evt.target);
-		if (request.target == null) { return; } // dont handle without an existing context so that dropzones can instead
-
 		var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:{ request:request }});
-		evt.target.dispatchEvent(re);
+		/*RequestEvents__findOwningAgent(e.target)*/evt.target.dispatchEvent(re);
 		return false;
 	}
 
 	function RequestEvents__trackFormSubmitter(node) {
-		while (node && node.classList && node.classList.contains('agent') == false) {
+		while (node && node.classList && node.classList.contains('agent') === false) {
 			if (node.form) {
 				for (var i=0; i < node.form.length; i++) {
 					node.form[i].setAttribute('submitter', null); // clear the others out, to be safe
@@ -82,21 +82,20 @@ var RequestEvents = (function() {
 			node = node.parentNode;
 		}
 	}
-
-	function RequestEvents__findOwningAgent(node) {
+    
+    function RequestEvents__findOwningAgent(node) {
 		while (node) {
-			if (node.classList && node.classList.contains('agent')) {
-				return node;
-			}
+            if (node.classList && node.classList.contains('agent')) {
+                return node;
+            }
 			node = node.parentNode;
 		}
-		return null;
 	}
 
 	function RequestEvents__extractLinkFromAnchor(node) {
-		while (node && node.classList && node.classList.contains('agent') == false) {
+		while (node && node.classList && node.classList.contains('agent') === false) {
 			// filter to the link in this element stack
-			if (node.tagName != 'A') { 
+			if (node.tagName != 'A') {
 				node = node.parentNode;
 				continue;
 			}
@@ -105,7 +104,7 @@ var RequestEvents = (function() {
 			var accept = node.getAttribute('type');
 			var target = node.getAttribute('target');
 
-			if (uri == null || uri == '') { uri = '/'; }
+			if (uri === null || uri === '') { uri = '/'; }
 			if (!target) { target = '_self'; }
 
 			if (target == '_top') { return null; } // default behavior

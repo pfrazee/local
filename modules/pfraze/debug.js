@@ -13,25 +13,9 @@ var server = {
 };
 
 // client
+Agent.dom.listenEvent({ event:'request' });
 addEventMsgListener('dom:request', function(e) {
-	Agent.follow(e.request);
-});
-addEventMsgListener('dom:response', function(e) {
-	Agent.dom.putNode({}, e.response.body, 'text/html');
-});
-
-Agent.dom.listenEvent({ event:'click' });
-Agent.dom.listenEvent({ event:'click', selector:'p span' });
-Agent.dom.listenEvent({ event:'click', selector:'span' });
-addEventMsgListener('dom:click', function(e) {
-	Agent.dom.postNode({}, '<p>body click!</p>', 'text/html');
-	Agent.dom.unlistenEvent({ event:'click' });
-});
-addEventMsgListener('dom:click p span', function(e) {
-	Agent.dom.postNode({}, '<p>p span click!</p>', 'text/html');
-});
-addEventMsgListener('dom:click span', function(e) {
-	Agent.dom.postNode({}, '<p>span click!</p>', 'text/html');
+    Agent.dispatch(e.request).then(Agent.renderResponse);
 });
 
 postEventMsg('ready');
