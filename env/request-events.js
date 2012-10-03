@@ -53,9 +53,9 @@ var RequestEvents = (function() {
 	}
 
 	function RequestEvents__dropHandler(evt) {
-		if (evt.target.classList.contains('dropzone') || evt.target.classList.contains('dropcolumn')) {
-			return; // let DropZones handle
-		}
+		var target = RequestEvents__findDropTarget(evt.target);
+		if (!target) { return; }
+
 		var request;
 		evt.stopPropagation(); // no default behavior (redirects)
 
@@ -66,7 +66,7 @@ var RequestEvents = (function() {
 		}
 
 		var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:{ request:request }});
-		evt.target.dispatchEvent(re);
+		target.dispatchEvent(re);
 		return false;
 	}
 
@@ -83,9 +83,9 @@ var RequestEvents = (function() {
 		}
 	}
     
-    function RequestEvents__findOwningAgent(node) {
+    function RequestEvents__findDropTarget(node) {
 		while (node) {
-            if (node.classList && node.classList.contains('agent')) {
+            if (node.classList && (node.classList.contains('agent') || node.classList.contains('droptarget'))) {
                 return node;
             }
 			node = node.parentNode;
