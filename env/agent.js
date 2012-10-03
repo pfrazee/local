@@ -57,8 +57,8 @@ var Agent = (function() {
 	function countMatches(m) { return (m ? m.length : 0); }
 	function getEventNodes(selector) {
 		return selector ?
-			this.getContainer().querySelectorAll(selector) :
-			[this.getContainer()];
+			this.getBody().querySelectorAll(selector) :
+			[this.getBody()];
 	}
 	Agent.prototype.addDomEventHandler = function Agent__addDomEventHandler(event, selector) {
 		if (!this.getContainer()) { throw "Agent DOM required"; }
@@ -292,7 +292,7 @@ var Agent = (function() {
 		this.in_requests_to_process.push(p);
 
 		var dup_req = Util.deepCopy(request);
-		dup_req.uri = '#' + ((match.uri[1].charAt(0) == '/') ? '' : '/') + match.uri[1];
+		dup_req.uri = match.uri[1];
 
 		this.postWorkerEvent('http:request', { mid:mid, request:dup_req });
 

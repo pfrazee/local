@@ -136,7 +136,8 @@ if (typeof Http == 'undefined') {
 			Util.log('traffic', this.id ? this.id+'|>' : '|> ', request.__mid, request.method, request.uri, request);
 
 			// URIs that dont target hash URIs should be fetched remotely
-			if (request.uri.charAt(0) != '#') {
+			var protocol = request.uri.split('://');
+			if (protocol.length == 2 && protocol[0] != '#') {
 				__dispatchRemote.call(this, request);
 				return dispatch_promise;
 			}

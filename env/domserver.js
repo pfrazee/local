@@ -5,20 +5,40 @@ if (typeof DomServer == 'undefined') {
 		};
 
 		DomServer.prototype.routes = [
-			Http.route('banner', { method:'get', uri:'^/?$', accept:'text/.*' }),
-			Http.route('get', { method:'get', uri:'^/([^/]*)/?$', accept:'text/.*' }), // :agent
-			Http.route('put', { method:'put', uri:'^/([^/]*)/?$', 'content-type':'text/.*' }), // :agent
-			Http.route('ins', { method:'post', uri:'^/([^/]*)/?$', 'content-type':'text/.*' }), // :agent
-			Http.route('del', { method:'delete', uri:'^/([^/]*)/?$' }), // :agent
-			Http.route('event', { method:'listen|unlisten', uri:'^/([^/]*)/([^/]*)/?$' }) // /:agent/:event
+			Http.route('banner', { method:'get', uri:'^/?$', accept:'text/.*' }), // /
+			Http.route('makeagent', { method:'post', uri:'^/agent/?$', accept:'application/json' }), // /agent
+			Http.route('get', { method:'get', uri:'^/agent/([^/]*)/node/?$', accept:'text/.*' }), // /agent/:agent/node
+			Http.route('put', { method:'put', uri:'^/agent/([^/]*)/node/?$', 'content-type':'text/.*' }), // /agent/:agent/node
+			Http.route('ins', { method:'post', uri:'^/agent/([^/]*)/node/?$', 'content-type':'text/.*' }), // /agent/:agent/node
+			Http.route('del', { method:'delete', uri:'^/agent/([^/]*)/node/?$' }), // /agent/:agent/node
+			Http.route('event', { method:'listen|unlisten|trigger', uri:'^/agent/([^/]*)/event/([^/]*)/?$' }) // /agent/:agent/event/:event
 		];
 
 		DomServer.prototype.banner = function DomServer__banner() {
 			var linkHeader = [
-				{ methods:['get','put','post','delete'], title:'Node', href:'#//dom.env/{agent}?{selector}&{selectorAll}&{attr}&{append}&{before}&{replace}&{add}&{remove}&{toggle}', type:'text/html' },
-				{ methods:['listen', 'unlisten'], title:'Event', href:'#//dom.env/{agent}/{event}?{selector}' }
+				{ methods:['post'], title:'Agent', href:'#//dom.env/agent', type:'application/json' },
+				{ methods:['get','put','post','delete'], title:'Node', href:'#//dom.env/agent/{agent}/node?{selector}&{selectorAll}&{attr}&{append}&{before}&{replace}&{add}&{remove}&{toggle}', type:'text/html' },
+				{ methods:['listen', 'unlisten', 'trigger'], title:'Event', href:'#//dom.env/agent/{agent}/event/{event}?{selector}' }
 			];
 			return Http.response([200,'ok'], 'Dom Server 0.1', 'text/html', { link:linkHeader });
+		};
+
+		DomServer.prototype.makeagent = function DomServer__makeagent(request, match, session) {
+			var params = request.body || {};
+			var agent = Env.makeAgent();
+
+			if (params.program) {
+				agent.loadProgram(params.program, params.config);
+			}
+
+			var p = new Promise();
+			Promise.when(agent.program_load_promise, function() {
+				if (params.request) {
+					agent.postWorkerEvent('dom:request', { detail:{ request:params.request }});
+				}
+				p.fulfill(Http.response([200,'ok'], { id:agent.getId() }, 'application/json'));
+			});
+			return p;
 		};
 
 		DomServer.prototype.get = function DomServer__get(request, match, session) {
@@ -136,15 +156,24 @@ if (typeof DomServer == 'undefined') {
 
 		DomServer.prototype.event = function DomServer__event(request, match, session) {
 			var agent = Env.getAgent(match.uri[1]);
-
+			if (!agent) { agent = Env.makeAgent(); }
             /*if (session.getAgentId() != agent.getId()) {
                 return Http.response([403,'agents can not modify other agent doms']);
             }*/
 
-			if (request.method == 'listen') {
-				agent.addDomEventHandler(match.uri[2], request.query.selector);
-			} else {
-				agent.removeDomEventHandler(match.uri[2], request.query.selector);
+            switch (request.method) {
+				case 'listen':
+					agent.addDomEventHandler(match.uri[2], request.query.selector);
+					break;
+				case 'unlisten':
+					agent.removeDomEventHandler(match.uri[2], request.query.selector);
+					break;
+				case 'trigger':
+					// :TODO: permissions
+					agent.postWorkerEvent('dom:'+match.uri[2], request.body);
+					break;
+				default:
+					return Http.response([405,'method not supported']);
 			}
 
 			return Http.response([204,'ok']);

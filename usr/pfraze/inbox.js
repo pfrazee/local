@@ -137,7 +137,7 @@ Server.deleteMethod = function(ids) {
 	Agent.dom.putNode({ selectorAll:this.makeRowSelector(ids) }, '', 'text/html'); // dont delete so that our ids still match up to the dom node
 	return Http.response(204);
 };
-Agent.addServer('#/', Server);
+Agent.addServer(Server);
 
 // Client
 // ======
@@ -156,14 +156,14 @@ Agent.config.services.forEach(function(s) {
 // event handlers
 addEventMsgListener('dom:click .msg-checkbox', function(e) {
 	var m = Server.messages[e.target_index];
-	postEventMsg('log', {msg:e.target_index +' checked'});
 	if (m) {
 		m.checked = (m.checked) ? false : true;
 	}
 });
-
-Agent.dom.listenEvent({ event:'request' });
 addEventMsgListener('dom:request', function(e) {
+	Agent.dom.postAgent(0, { request:e.detail.request }, 'application/json');
+});
+addEventMsgListener('dom:request .inbox-toolbar', function(e) {
 	Agent.dispatch(e.detail.request).then(Agent.renderResponse);
 });
 
@@ -183,11 +183,11 @@ function render() {
 	// toolbar
 	html += '<div class="inbox-toolbar">';
 	html += '<form action="'+Agent.getUri()+'/checked"><span class="btn-group">';
-	html += '<button class="btn tool-select" title="check '+Agent.getUri()+'/all" formmethod="check" formaction="'+Agent.getUri()+'/all" draggable="true"><i class="icon-check"></i> check</button>';
+	html += '<button class="btn tool-select" title="check '+Agent.getUri()+'/all" formmethod="check" formaction="'+Agent.getUri()+'/all" draggable="true"><i class="icon-check"></i></button>';
 	html += '</span><span class="btn-group">';
-	html += '<button class="btn tool-markread" title="mark as read '+Agent.getUri()+'/checked" formmethod="markread" draggable="true"><i class="icon-eye-open"></i> markread</button>';
-	html += '<button class="btn tool-markunread" title="mark unread '+Agent.getUri()+'/checked" formmethod="markunread" draggable="true"><i class="icon-eye-close"></i> markunread</button>';
-	html += '<button class="btn tool-delete" title="delete '+Agent.getUri()+'/checked" formmethod="delete" draggable="true"><i class="icon-trash" formmethod="delete"></i> delete</button>';
+	html += '<button class="btn tool-markread" title="mark as read '+Agent.getUri()+'/checked" formmethod="markread" draggable="true"><i class="icon-eye-open"></i></button>';
+	html += '<button class="btn tool-markunread" title="mark unread '+Agent.getUri()+'/checked" formmethod="markunread" draggable="true"><i class="icon-eye-close"></i></button>';
+	html += '<button class="btn tool-delete" title="delete '+Agent.getUri()+'/checked" formmethod="delete" draggable="true"><i class="icon-trash" formmethod="delete"></i></button>';
 	html += '</span></form>';
 	html += '</div>';
 
@@ -211,8 +211,10 @@ function render() {
 	Agent.dom.putNode({}, html, 'text/html');
 
 	// event listeners
+	Agent.dom.listenEvent({ event:'request', selector:'.inbox-toolbar' });
 	Agent.dom.listenEvent({ event:'click', selector:'.msg-checkbox' });
 }
 
 render();
+Agent.dom.listenEvent({ event:'request' });
 postEventMsg('ready');
