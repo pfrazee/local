@@ -2,12 +2,12 @@ body { font-size:15px; background:#eee }
 a { color:#06c; }
 li, p { line-height:21px; }
 
-table#lshui-env { margin:0 auto; }
-table#lshui-env tr td { vertical-align:top }
-table#lshui-env tr td:empty { min-width:10px; }
-table#lshui-env tr td:empty:first-child { width:50px; }
-table#lshui-env tr td:empty:last-child { width:50px; }
-table#lshui-env tr td.request-hover { min-width:100px; background:rgba(255,255,255,0.4) }
+#lshui-env > table { margin:0 auto; }
+#lshui-env > table tr td { vertical-align:top }
+#lshui-env > table tr td:empty { min-width:10px; }
+#lshui-env > table tr td:empty:first-child { width:50px; }
+#lshui-env > table tr td:empty:last-child { width:50px; }
+#lshui-env > table tr td.request-hover { min-width:100px; background:rgba(255,255,255,0.4) }
 
 .agent {
     padding:8px 13px;

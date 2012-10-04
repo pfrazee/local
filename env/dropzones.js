@@ -6,7 +6,11 @@ var Dropzones = (function() {
 	};
 	
 	// setup
-	function Dropzones__init() {
+	function Dropzones__init(container) {
+		var table = document.createElement('table');
+		table.innerHTML = '<tr><td class="dropcolumn"></td><td class="dropcolumn defcolumn"><div class="dropzone"></div></td><td class="dropcolumn"></td></tr>';
+		container.appendChild(table);
+
 		document.body.addEventListener('drop', Dropzones__onDrop);
 		document.body.addEventListener('dragover', Dropzones__onDragover);
 		document.body.addEventListener('dragleave', Dropzones__onStopdrag);
@@ -20,8 +24,9 @@ var Dropzones = (function() {
 		evt.stopPropagation(); // no default behavior (redirects)
 		evt.preventDefault();
 
+		var request;
 		try {
-			var request = JSON.parse(evt.dataTransfer.getData('application/link+json'));
+			request = JSON.parse(evt.dataTransfer.getData('application/link+json'));
 		} catch (except) {
 			console.log('Bad data provided on Dropzones drop handler', except, evt);
 		}

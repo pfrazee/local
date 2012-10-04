@@ -109,7 +109,7 @@ var RequestEvents = (function() {
 
 			if (target == '_top') { return null; } // default behavior
 
-			return { method:'get', uri:uri, accept:accept, target:target };
+			return { method:'get', uri:uri, accept:accept/*, target:target :TODO: needed? */ };
 		}
 		return null;
 	}
@@ -159,8 +159,8 @@ var RequestEvents = (function() {
 
 		var request = {
 			method:method,
-			uri:target_uri,
-			target:target
+			uri:target_uri//,
+			/*target:target :TODO: needed? */
 		};
 		if (form.acceptCharset) { request.accept = form.acceptCharset; }
 

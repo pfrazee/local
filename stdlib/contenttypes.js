@@ -9,7 +9,7 @@ if (typeof ContentTypes == 'undefined') {
 		var deserializers = {};
 
 		ContentTypes.serialize = function serialize(obj, type) {
-			if (obj === null || typeof(obj) != 'object' || type === null) {
+			if (!obj || typeof(obj) != 'object' || !type) {
 				return obj;
 			}
 			var fn = __find(serializers, type);
@@ -20,7 +20,7 @@ if (typeof ContentTypes == 'undefined') {
 			return fn(obj);
 		};
 		ContentTypes.deserialize = function deserialize(str, type) {
-			if (str === null || typeof(str) != 'string' || type === null) {
+			if (!str || typeof(str) != 'string' || !type) {
 				return str;
 			}
 			var fn = __find(deserializers, type);

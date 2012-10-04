@@ -179,7 +179,6 @@ if (typeof Http == 'undefined') {
 			}
 			Util.log('traffic', this.id ? this.id+'>|' : ' >|', request.__mid, response.code, response.reason, response);
 
-			response.org_request = request; // :TODO: if this isn't necessary, it should go
 			response.body = ContentTypes.deserialize(response.body, response['content-type']);
 
 			request.__dispatch_promise.fulfill(response);
@@ -240,6 +239,7 @@ if (typeof Http == 'undefined') {
 				if (q.length) {
 					query = '?' + q.join('&');
 				}
+				delete request.query;
 			}
 
 			if (this.ajax_config.proxy && /:\/\//.test(target_uri)) { // only use proxy if a protocol-qualified URL
@@ -269,7 +269,6 @@ if (typeof Http == 'undefined') {
 
 					response.code = xhrRequest.status;
 					response.reason = xhrRequest.statusText;
-					response.org_request = request; // :TODO: remove if possible
 					response.body = ContentTypes.deserialize(xhrRequest.responseText, response['content-type']);
 
 					Util.log('traffic', this.id ? this.id+'>|' : ' >|', request.__mid, response.code, response.reason, response);

@@ -40,7 +40,7 @@ var Agent = (function() {
 	};
 
 	Agent.prototype.dispatch = function Agent__dispatch(request, opt_follow) {
-		request.target = this.id;
+		//request.target = this.id; :TODO: needed?
 		request.accept = request.accept || 'text/html';
 		request.authorization = this.getSessionAuth(request);
 

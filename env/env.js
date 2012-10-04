@@ -15,12 +15,12 @@ var Env = (function() {
 	};
 	
 	// setup
-	function Env__init(router, container_elem_id) {
-		this.router = router;
+	function Env__init(container_elem_id) {
+		this.router = new Http.Router();
 		this.container_elem = document.getElementById(container_elem_id);
 
 		RequestEvents.init();
-		Dropzones.init();
+		Dropzones.init(this.container_elem);
 
 		this.router.addServer('#//dom.env', new DomServer());
 
