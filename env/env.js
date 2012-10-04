@@ -50,7 +50,7 @@ var Env = (function() {
 			Env.router.dispatch(e.detail.request);
 		} else {
 			// create a new agent to handle the request
-			agent = Env.makeAgent(agent_id, e.target);
+			agent = Env.makeAgent(agent_id, { elem:e.target });
 			Promise.when(agent.program_load_promise, function() {
 				agent.postWorkerEvent('dom:request', { detail:e.detail });
 			});
@@ -73,10 +73,11 @@ var Env = (function() {
 	// agent create
 	// - `id` can be null/undefined to create a new agent with an assigned id
 	// - `id` can be the id or DOM node of the agent
-	function Env__makeAgent(id, opt_target_elem) {
+	function Env__makeAgent(id, options) {
+		options = options || {};
 		if (typeof id == 'object' && id instanceof Node) { // this may be the second worst code in the project
-			opt_target_elem = id;
-			id = (opt_target_elem.id) ? opt_target_elem.id.substr(6) /* remove 'agent-' */ : null;
+			options.elem = id;
+			id = (options.elem.id) ? options.elem.id.substr(6) /* remove 'agent-' */ : null;
 		}
 
 		if (id === null || typeof id == 'undefined') {
@@ -88,11 +89,15 @@ var Env = (function() {
 		}
 
 		// add container elem to dom
-		var agent_elem = Env__makeAgentWrapperElem(id, opt_target_elem);
-		if (!opt_target_elem) {
+		var agent_elem = Env__makeAgentWrapperElem(id, options.elem);
+		if (!options.elem) {
 			this.container_elem.querySelector('.defcolumn').appendChild(agent_elem);
 		}
 		Dropzones.padAgent(agent_elem);
+
+		var toolbar_ctrls = agent_elem.querySelector('.agent-titlebar-ctrls');
+		if (options.noclose) { toolbar_ctrls.removeChild(toolbar_ctrls.querySelector('.btn-close')); }
+		if (options.nocollapse) { toolbar_ctrls.removeChild(toolbar_ctrls.querySelector('.btn-shutter')); }
 
 		// drag/drop render-state managers
 		// :TODO: put in the agent constructor or member function?
@@ -164,7 +169,7 @@ var Env = (function() {
 				'<form action="{{uri}}" target="{{id}}">' +
 					'<div class="agent-titlebar-ctrls btn-group">' +
 						'<button class="btn btn-mini btn-shutter" formmethod="min" title="collapse">_</button>' +
-						'<button class="btn btn-mini" formmethod="close" title="close">&times;</button>' +
+						'<button class="btn btn-mini btn-close" formmethod="close" title="close">&times;</button>' +
 					'</div>' +
 				'</form>' +
 				'<a href="{{uri}}">{{id}}</a>&nbsp;<span class="agent-program"></span>' +

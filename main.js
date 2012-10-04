@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	Env.init('lshui-env');
 
-	var a = Env.makeAgent('inbox');
+	var a = Env.makeAgent('inbox', { noclose:true });
 	a.loadProgram('/usr/pfraze/inbox.js', {
 		services:[{ name:'@linkshui', uri:'http://linkshui.com:8600' }]
 	});
