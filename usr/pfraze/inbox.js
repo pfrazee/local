@@ -182,12 +182,12 @@ function render() {
 
 	// toolbar
 	html += '<div class="inbox-toolbar">';
-	html += '<form action="'+Agent.getUri()+'/checked"><span class="btn-group">';
-	html += '<button class="btn tool-select" title="check '+Agent.getUri()+'/all" formmethod="check" formaction="'+Agent.getUri()+'/all" draggable="true"><i class="icon-check"></i></button>';
+	html += '<form action="'+Agent.getUri()+'/app/checked"><span class="btn-group">';
+	html += '<button class="btn tool-select" title="check/uncheck" formmethod="check" formaction="'+Agent.getUri()+'/app/all" draggable="true"><i class="icon-check"></i></button>';
 	html += '</span><span class="btn-group">';
-	html += '<button class="btn tool-markread" title="mark as read '+Agent.getUri()+'/checked" formmethod="markread" draggable="true"><i class="icon-eye-open"></i></button>';
-	html += '<button class="btn tool-markunread" title="mark unread '+Agent.getUri()+'/checked" formmethod="markunread" draggable="true"><i class="icon-eye-close"></i></button>';
-	html += '<button class="btn tool-delete" title="delete '+Agent.getUri()+'/checked" formmethod="delete" draggable="true"><i class="icon-trash" formmethod="delete"></i></button>';
+	html += '<button class="btn tool-markread" title="mark as read" formmethod="markread" draggable="true"><i class="icon-eye-open"></i></button>';
+	html += '<button class="btn tool-markunread" title="mark unread" formmethod="markunread" draggable="true"><i class="icon-eye-close"></i></button>';
+	html += '<button class="btn tool-delete" title="delete" formmethod="delete" draggable="true"><i class="icon-trash" formmethod="delete"></i></button>';
 	html += '</span></form>';
 	html += '</div>';
 
@@ -208,13 +208,18 @@ function render() {
 	});
 	html += '</table>';
 
-	Agent.dom.putNode({}, html, 'text/html');
+	var ps = [];
+	ps.push(Agent.dom.putNode({}, html, 'text/html'));
 
 	// event listeners
-	Agent.dom.listenEvent({ event:'request', selector:'.inbox-toolbar' });
-	Agent.dom.listenEvent({ event:'click', selector:'.msg-checkbox' });
+	ps.push(Agent.dom.listenEvent({ event:'request', selector:'.inbox-toolbar' }));
+	ps.push(Agent.dom.listenEvent({ event:'click', selector:'.msg-checkbox' }));
+	return Promise.combine(ps);
 }
 
-render();
-Agent.dom.listenEvent({ event:'request' });
-postEventMsg('ready');
+Promise.whenAll([
+	render(),
+	Agent.dom.listenEvent({ event:'request' })
+], function() {
+	postEventMsg('ready');
+});

@@ -42,7 +42,7 @@ if (typeof Agent == 'undefined') {
 				if (!opt_noyield) {
 					Agent.dom.getNode({ selector:'script.program', attr:'src' }).then(function(res) {
 						if (res.code == 200 && res.body) {
-							postEventMsg('yield', { url:res.body });
+							postEventMsg('yield', { uri:res.body });
 						}
 					});
 				}
@@ -62,15 +62,16 @@ if (typeof Agent == 'undefined') {
 		addEventMsgListener('setup', function(e) {
 			Agent.config = e.config;
 			Promise.whenAll([domready], function() {
-				if (Agent.config.program_url) {
-					importScripts(Agent.config.program_url);
+				if (Agent.config.program_uri) {
+					importScripts(Agent.config.program_uri);
 				} else {
 					// null program
-					Agent.dom.listenEvent({ event:'request' });
 					addEventMsgListener('dom:request', function(e) {
 						Agent.dispatch(e.detail.request).then(Agent.renderResponse);
 					});
-					postEventMsg('ready');
+					Agent.dom.listenEvent({ event:'request' }).then(function() {
+						postEventMsg('ready');
+					});
 				}
 			});
 		});

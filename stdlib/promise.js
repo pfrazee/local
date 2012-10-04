@@ -47,18 +47,26 @@ if (typeof Promise == 'undefined') {
 
 		// Helper to handle multiple promises in one when statement
 		Promise.whenAll = function whenAll(values, cb, opt_context) {
+			var p = Promise.combine(values);
+			p.then(cb, opt_context);
+			return p;
+		};
+
+		Promise.combine = function combine(values) {
+			var p = new Promise();
 			var total = values.length, fulfilled = 0;
 			// if no length, presume an empty array and call back immediately
-			if (!total) { return cb.call(opt_context, []); }
+			if (!total) { p.fulfill([]); return; }
 			// wait for all to finish
 			for (var i=0; i < total; i++) {
 				Promise.when(values[i], function(v) {
 					values[this.i] = v; // replace with result
 					if (++fulfilled == total) {
-						cb.call(opt_context, values);
+						p.fulfill(values);
 					}
 				}, { i:i });
 			}
+			return p;
 		};
 
 	})();

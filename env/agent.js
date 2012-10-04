@@ -10,7 +10,7 @@ var Agent = (function() {
 		this.program_config = null;
 		this.program_counter = 1; // used to track when programs have changed
 
-		this.domain_auths = {};
+		this.sessions = {}; // a hash of domain -> session data
 
 		// used by http:request/http:response to track work in progress
 		this.in_requests_to_process = []; // (an array of promises)
@@ -25,11 +25,15 @@ var Agent = (function() {
 	Agent.prototype.getBody = function Agent__getBody() { return this.elem_body; };
 	Agent.prototype.getId = function Agent__getId() { return this.id; };
 	Agent.prototype.getUri = function Agent__getUri() { return '#//' + this.id + '.ui'; };
+	Agent.prototype.getProgramUri = function Agent__getProgramUri() { return (this.program_config) ? this.program_config.program_uri : null; };
 
 	Agent.prototype.emitDomRequestEvent = function Agent__emitDomRequestEvent(request) {
-		var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:{ request:request }});
-		this.getBody().dispatchEvent(re);
+		Promise.when(this.program_load_promise, function() {
+			var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:{ request:request }});
+			this.getBody().dispatchEvent(re);
+		}, this);
 	};
+
 	Agent.prototype.resetBody = function Agent__resetBody() {
 		var n = document.createElement('div');
 		n.id = this.elem_body.id;
@@ -39,17 +43,17 @@ var Agent = (function() {
 		this.dom_event_handlers.length = 0;
 	};
 
-	Agent.prototype.dispatch = function Agent__dispatch(request, opt_follow) {
-		//request.target = this.id; :TODO: needed?
-		request.accept = request.accept || 'text/html';
-		request.authorization = this.getSessionAuth(request);
-
-		return Env.router.dispatch(request);
-	};
 	Agent.prototype.getSessionAuth = function Agent__getSessionAuth(request) {
-		// :TODO:
-		var dest_domain = Http.parseUri(request.uri).host;
-		return this.domain_auths[dest_domain];
+		return null;
+		var domain = Http.parseUri(request.uri).host;
+		var session = this.sessions[domain];
+		if (!session) {
+			session = this.sessions[domain] = Env.makeSession(this.getId(), this.getProgramUri(), domain);
+		}
+		return { scheme:'LSHSession', id:session.id, perms:session.perms };
+	};
+	Agent.prototype.invalidateSession = function Agent__invalidateSession(domain) {
+		delete this.sessions[domain];
 	};
 
 	// Dom Events
@@ -122,7 +126,7 @@ var Agent = (function() {
 
 	// Worker Program Management
 	// =========================
-	Agent.prototype.loadProgram = function Agent__loadProgram(url, config) {
+	Agent.prototype.loadProgram = function Agent__loadProgram(uri, config) {
 		var self = this;
 		self.program_load_promise = new Promise();
 
@@ -140,14 +144,14 @@ var Agent = (function() {
 			});
 
 			self.program_config             = config ? Util.deepCopy(config) : {};
-			self.program_config.program_url = url;
+			self.program_config.program_uri = uri;
 			self.program_config.agent_id    = self.getId();
 			self.program_config.agent_uri   = self.getUri();
 			self.postWorkerEvent('setup', { config:self.program_config });
 
 			// update agent header
 			var header_el = self.getContainer().querySelector('.agent-program');
-			header_el.innerHTML = url; header_el.title = url;
+			header_el.innerHTML = uri; header_el.title = uri;
 		});
 		return self.program_load_promise;
 	};
@@ -216,15 +220,21 @@ var Agent = (function() {
 	Agent.prototype.onWorkerYield = function Agent__onWorkerYield(e) {
 		// 'yield' event means the worker wants to load a new program
 		// :TODO: check permissions and issue 'noyield' if not allowed
-		this.loadProgram(e.url);
+		this.loadProgram(e.uri);
 	};
 	Agent.prototype.onWorkerLog = function Agent__onWorkerLog(e) {
 		console.log(this.id+':', e);
 	};
 	Agent.prototype.onWorkerHttp_request = function Agent__onWorkerHttp_request(e) {
 		// worker has made an http request
+
+		var request = e.request;
+		//request.target = this.id; :TODO: needed?
+		request.accept = request.accept || 'text/html';
+		request.authorization = this.getSessionAuth(request);
+
 		var org_program_counter = this.program_counter;
-		this.dispatch(e.request).then(function(response) {
+		Env.router.dispatch(request).then(function(response) {
 			if (org_program_counter != this.program_counter) {
 				return; // we must have changed programs since this was dispatched
 			}
@@ -233,7 +243,7 @@ var Agent = (function() {
 				// :TODO: actually finish this
 				// 401 means we need auth info/permissions from the user
 				var challenges = response['www-authenticate'];
-				Env__promptAuthChallenges(challenges).then(handlePromptResult);
+				Env.promptAuthChallenges(this, challenges).then(handlePromptResult);
 
 				var handlePromptResult = function(success) {
 					if (success) {
@@ -262,7 +272,7 @@ var Agent = (function() {
 	Agent.prototype.routes = [
 		Http.route('collapseHandler', { uri:'^/?$', method:/min|max/i }),
 		Http.route('closeHandler', { uri:'^/?$', method:'close' }),
-		Http.route('programRequestHandler', { uri:'(.*)' })
+		Http.route('programRequestHandler', { uri:'^/app/(.*)' })
 	];
 	Agent.prototype.collapseHandler = function Agent__collapseHandler(request) {
 		var should_collapse = (request.method == 'min');
