@@ -95,7 +95,7 @@ if (typeof Agent == 'undefined') {
 		});
 
 		// standard link reflections
-		Agent.dispatch({ method:'get', uri:'#//dom.env', accept:'text/html' }).then(function(res) {
+		Agent.dispatch({ method:'get', uri:'lsh://dom.env', accept:'text/html' }).then(function(res) {
 			Agent.dom = ReflectLinks(res.link, { agent:Agent.getId() });
 			domready.fulfill(true);
 		});

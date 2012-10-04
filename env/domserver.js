@@ -16,9 +16,9 @@ if (typeof DomServer == 'undefined') {
 
 		DomServer.prototype.banner = function DomServer__banner() {
 			var linkHeader = [
-				{ methods:['post'], title:'Agent', href:'#//dom.env/agent', type:'application/json' },
-				{ methods:['get','put','post','delete'], title:'Node', href:'#//dom.env/agent/{agent}/node?{selector}&{selectorAll}&{attr}&{append}&{before}&{replace}&{add}&{remove}&{toggle}', type:'text/html' },
-				{ methods:['listen', 'unlisten', 'trigger'], title:'Event', href:'#//dom.env/agent/{agent}/event/{event}?{selector}' }
+				{ methods:['post'], title:'Agent', href:'lsh://dom.env/agent', type:'application/json' },
+				{ methods:['get','put','post','delete'], title:'Node', href:'lsh://dom.env/agent/{agent}/node?{selector}&{selectorAll}&{attr}&{append}&{before}&{replace}&{add}&{remove}&{toggle}', type:'text/html' },
+				{ methods:['listen', 'unlisten', 'trigger'], title:'Event', href:'lsh://dom.env/agent/{agent}/event/{event}?{selector}' }
 			];
 			return Http.response([200,'ok'], 'Dom Server 0.1', 'text/html', { link:linkHeader });
 		};

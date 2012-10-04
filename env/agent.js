@@ -10,7 +10,7 @@ var Agent = (function() {
 		this.program_config = null;
 		this.program_counter = 1; // used to track when programs have changed
 
-		this.sessions = {}; // a hash of domain -> session data
+		this.sessions = {}; // a hash of domain -> Session
 
 		// used by http:request/http:response to track work in progress
 		this.in_requests_to_process = []; // (an array of promises)
@@ -24,7 +24,7 @@ var Agent = (function() {
 	Agent.prototype.getContainer = function Agent__getContainer() { return this.elem_agent; };
 	Agent.prototype.getBody = function Agent__getBody() { return this.elem_body; };
 	Agent.prototype.getId = function Agent__getId() { return this.id; };
-	Agent.prototype.getUri = function Agent__getUri() { return '#//' + this.id + '.ui'; };
+	Agent.prototype.getUri = function Agent__getUri() { return 'lsh://' + this.id + '.ui'; };
 	Agent.prototype.getProgramUri = function Agent__getProgramUri() { return (this.program_config) ? this.program_config.program_uri : null; };
 
 	Agent.prototype.emitDomRequestEvent = function Agent__emitDomRequestEvent(request) {
@@ -43,17 +43,16 @@ var Agent = (function() {
 		this.dom_event_handlers.length = 0;
 	};
 
-	Agent.prototype.getSessionAuth = function Agent__getSessionAuth(request) {
-		return null;
-		var domain = Http.parseUri(request.uri).host;
-		var session = this.sessions[domain];
+	Agent.prototype.getSession = function Agent__getSession(uri) {
+		var uri_desc = Http.parseUri(uri);
+		var session = this.sessions[uri_desc.host];
 		if (!session) {
-			session = this.sessions[domain] = Env.makeSession(this.getId(), this.getProgramUri(), domain);
+			session = this.sessions[uri_desc.host] = Session.make(uri_desc.protocol);
 		}
-		return { scheme:'LSHSession', id:session.id, perms:session.perms };
+		return session;
 	};
-	Agent.prototype.invalidateSession = function Agent__invalidateSession(domain) {
-		delete this.sessions[domain];
+	Agent.prototype.getSessionAuth = function Agent__getSessionAuth(request) {
+		return this.getSession(request.uri).getAuthHeader();
 	};
 
 	// Dom Events
@@ -177,6 +176,8 @@ var Agent = (function() {
 			this.program_config = null;
 			this.program_counter++;
 
+			this.sessions = {};
+
 			this.program_kill_promise.fulfill(true);
 			this.program_kill_promise = null;
 
@@ -240,7 +241,6 @@ var Agent = (function() {
 			}
 
 			if (response.code == 401) {
-				// :TODO: actually finish this
 				// 401 means we need auth info/permissions from the user
 				var challenges = response['www-authenticate'];
 				Env.promptAuthChallenges(this, challenges).then(handlePromptResult);

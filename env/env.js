@@ -4,9 +4,12 @@ var Env = (function() {
 	// corrals the agents and HTTP traffic
 	var Env = {
 		init:Env__init,
+
 		getAgent:Env__getAgent,
 		makeAgent:Env__makeAgent,
 		killAgent:Env__killAgent,
+
+		promptAuthChallenges:Env__promptAuthChallenges,
 
 		router:null,
 		agents:{},
@@ -17,14 +20,13 @@ var Env = (function() {
 	// setup
 	function Env__init(container_elem_id) {
 		this.router = new Http.Router();
+		this.router.addServer('lsh://dom.env', new DomServer());
+
 		this.container_elem = document.getElementById(container_elem_id);
+		document.body.addEventListener('request', Env__onRequestEvent);
 
 		RequestEvents.init();
 		Dropzones.init(this.container_elem);
-
-		this.router.addServer('#//dom.env', new DomServer());
-
-		document.body.addEventListener('request', Env__onRequestEvent);
 
 		// send is_loaded signal
 		this.is_loaded.fulfill(true);
@@ -74,6 +76,8 @@ var Env = (function() {
 	// - `id` can be null/undefined to create a new agent with an assigned id
 	// - `id` can be the id or DOM node of the agent
 	function Env__makeAgent(id, options) {
+		// :TODO: this function could use a cleanup
+
 		options = options || {};
 		if (typeof id == 'object' && id instanceof Node) { // this may be the second worst code in the project
 			options.elem = id;
@@ -149,6 +153,12 @@ var Env = (function() {
 		return p;
 	}
 
+	function Env__promptAuthChallenges(agent, challenges) {
+		var p = new Promise();
+		p.fulfill(false); // :TODO;
+		return p;
+	}
+
 	// Helpers
 	// =======
 	// generates HTML for agents to work within
@@ -159,7 +169,7 @@ var Env = (function() {
 		elem.id = "agent-"+id;
 		elem.innerHTML = agent_template_html
 			.replace(/\{\{id\}\}/g, id)
-			.replace(/\{\{uri\}\}/g, '#//'+id+'.ui')
+			.replace(/\{\{uri\}\}/g, 'lsh://'+id+'.ui')
 		;
 		return elem;
 	}

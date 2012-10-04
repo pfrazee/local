@@ -137,7 +137,7 @@ if (typeof Http == 'undefined') {
 
 			// URIs that dont target hash URIs should be fetched remotely
 			var protocol = request.uri.split('://');
-			if (protocol.length == 2 && protocol[0] != '#') {
+			if (protocol.length == 2 && protocol[0] != 'lsh') {
 				__dispatchRemote.call(this, request);
 				return dispatch_promise;
 			}
