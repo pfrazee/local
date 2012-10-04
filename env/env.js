@@ -31,10 +31,10 @@ var Env = (function() {
 	}
 
 	function Env__onRequestEvent(e) {
-		var request = e.detail.request;
+		// this handler is called when no agent program is there to catch it first
 
+		// try to find owning agent
 		var agent_id = null;
-
 		var node = e.target;
 		while (node) {
 			if (node.classList && node.classList.contains('agent')) {
@@ -44,10 +44,17 @@ var Env = (function() {
 			node = node.parentNode;
 		}
 
-		var agent = Env.getAgent(agent_id) || Env.makeAgent(agent_id, e.target);
-		Promise.when(agent.program_load_promise, function() {
-			agent.postWorkerEvent('dom:request', { detail:{ request:request }});
-		});
+		var agent = Env.getAgent(agent_id);
+		if (agent) {
+			// agent not listening -- dispatch, but ignore the result
+			Env.router.dispatch(e.detail.request);
+		} else {
+			// create a new agent to handle the request
+			agent = Env.makeAgent(agent_id, e.target);
+			Promise.when(agent.program_load_promise, function() {
+				agent.postWorkerEvent('dom:request', { detail:e.detail });
+			});
+		}
 	}
 
 	// agent get
