@@ -47,7 +47,7 @@ var Agent = (function() {
 		var uri_desc = Http.parseUri(uri);
 		var session = this.sessions[uri_desc.host];
 		if (!session) {
-			session = this.sessions[uri_desc.host] = Session.make(uri_desc.protocol);
+			session = this.sessions[uri_desc.host] = Session.make(uri_desc.protocol, this);
 		}
 		return session;
 	};
@@ -243,9 +243,7 @@ var Agent = (function() {
 			if (response.code == 401) {
 				// 401 means we need auth info/permissions from the user
 				var challenges = response['www-authenticate'];
-				Env.promptAuthChallenges(this, challenges).then(handlePromptResult);
-
-				var handlePromptResult = function(success) {
+				var handleEnvResult = function(success) {
 					if (success) {
 						// try again with the updated session
 						this.onWorkerHttp_request(e);
@@ -254,6 +252,7 @@ var Agent = (function() {
 						this.postWorkerEvent('http:response', { mid:e.mid, response:response });
 					}
 				};
+				Env.handleAuthChallenge(this, challenges).then(handleEnvResult, this);
 			} else {
 				this.postWorkerEvent('http:response', { mid:e.mid, response:response });
 			}

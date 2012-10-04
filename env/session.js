@@ -7,15 +7,15 @@ var Session = (function() {
 	};
 	var __uidcounter = 1;
 
-	function Session__make(protocol) {
+	function Session__make(protocol, agent) {
 		var id = __uidcounter++;
 
 		switch(protocol) {
 			case 'http':
 			case 'https':
-				return new Basic(id);
+				return new Basic(id, agent);
 			case 'lsh':
-				return new LSHSession(id);
+				return new LSHSession(id, agent);
 		}
 
 		throw "undefined protocol given to session make";
@@ -25,7 +25,7 @@ var Session = (function() {
 	// ============
 
 	// Basic
-	function Basic(id) {
+	function Basic(id, agent) {
 		this.id = id;
 		this.username = '';
 		this.password = '';
@@ -45,21 +45,23 @@ var Session = (function() {
 	}
 
 	// LinkSHell Session
-	function LSHSession(id) {
+	function LSHSession(id, agent) {
 		this.id = id;
+		this.agent = agent.getId();
 		this.perms = [];
 	}
 	LSHSession.prototype.getAuthHeader = function() {
 		var header = {
 			scheme:'LSHSession',
 			id:this.id,
+			agent:this.agent,
 			perms:this.perms
 		};
 		Object.defineProperty(header, 'toString', { value:stringLSHSession });
 		return header;
 	};
 	function stringLSHSession() {
-		return 'LSHSession id='+this.id+' perms='+this.perms.join(',');
+		return 'LSHSession id='+this.id+' agent='+this.agent+' perms='+this.perms.join(',');
 	}
 	
 	return Session;

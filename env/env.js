@@ -9,7 +9,7 @@ var Env = (function() {
 		makeAgent:Env__makeAgent,
 		killAgent:Env__killAgent,
 
-		promptAuthChallenges:Env__promptAuthChallenges,
+		handleAuthChallenge:Env__handleAuthChallenge,
 
 		router:null,
 		agents:{},
@@ -153,7 +153,7 @@ var Env = (function() {
 		return p;
 	}
 
-	function Env__promptAuthChallenges(agent, challenges) {
+	function Env__handleAuthChallenge(agent, challenges) {
 		var p = new Promise();
 		p.fulfill(false); // :TODO;
 		return p;

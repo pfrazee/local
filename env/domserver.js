@@ -23,7 +23,7 @@ if (typeof DomServer == 'undefined') {
 			return Http.response([200,'ok'], 'Dom Server 0.1', 'text/html', { link:linkHeader });
 		};
 
-		DomServer.prototype.makeagent = function DomServer__makeagent(request, match, session) {
+		DomServer.prototype.makeagent = function DomServer__makeagent(request, match) {
 			var params = request.body || {};
 			var agent = Env.makeAgent();
 
@@ -41,12 +41,12 @@ if (typeof DomServer == 'undefined') {
 			return p;
 		};
 
-		DomServer.prototype.get = function DomServer__get(request, match, session) {
+		DomServer.prototype.get = function DomServer__get(request, match) {
 			var agent = Env.getAgent(match.uri[1]);
 
-            /*if (session.getAgentId() != agent.getId()) {
-                return Http.response([403,'agents can not modify other agent doms']);
-            }*/
+            if (request.authorization.agent != agent.getId()) {
+                return Http.response([403,'can not access other agent doms']);
+            }
 			
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
@@ -63,12 +63,12 @@ if (typeof DomServer == 'undefined') {
 			return Http.response([200,'ok'], val, type);
 		};
 
-		DomServer.prototype.put = function DomServer__put(request, match, session) {
+		DomServer.prototype.put = function DomServer__put(request, match) {
 			var agent = Env.getAgent(match.uri[1]);
 
-            /*if (session.getAgentId() != agent.getId()) {
-                return Http.response([403,'agents can not modify other agent doms']);
-            }*/
+            if (request.authorization.agent != agent.getId()) {
+                return Http.response([403,'can not access other agent doms']);
+            }
 			
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
@@ -84,12 +84,12 @@ if (typeof DomServer == 'undefined') {
 			return Http.response([204,'ok']);
 		};
 
-		DomServer.prototype.ins = function DomServer__ins(request, match, session) {
+		DomServer.prototype.ins = function DomServer__ins(request, match) {
 			var agent = Env.getAgent(match.uri[1]);
 
-            /*if (session.getAgentId() != agent.getId()) {
-                return Http.response([403,'agents can not modify other agent doms']);
-            }*/
+            if (request.authorization.agent != agent.getId()) {
+                return Http.response([403,'can not access other agent doms']);
+            }
 			
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
@@ -135,12 +135,12 @@ if (typeof DomServer == 'undefined') {
 			return Http.response([204,'ok']);
 		};
 
-		DomServer.prototype.del = function DomServer__del(request, match, session) {
+		DomServer.prototype.del = function DomServer__del(request, match) {
 			var agent = Env.getAgent(match.uri[1]);
 
-            /*if (session.getAgentId() != agent.getId()) {
-                return Http.response([403,'agents can not modify other agent doms']);
-            }*/
+            if (request.authorization.agent != agent.getId()) {
+                return Http.response([403,'can not access other agent doms']);
+            }
 
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
@@ -154,12 +154,13 @@ if (typeof DomServer == 'undefined') {
 			return Http.response([204,'ok']);
 		};
 
-		DomServer.prototype.event = function DomServer__event(request, match, session) {
+		DomServer.prototype.event = function DomServer__event(request, match) {
 			var agent = Env.getAgent(match.uri[1]);
-			if (!agent) { agent = Env.makeAgent(); }
-            /*if (session.getAgentId() != agent.getId()) {
-                return Http.response([403,'agents can not modify other agent doms']);
-            }*/
+
+			// :TODO: maaaybe with permissions of some kind
+            if (request.authorization.agent != agent.getId()) {
+                return Http.response([403,'can not access other agent doms']);
+            }
 
             switch (request.method) {
 				case 'listen':
@@ -169,7 +170,6 @@ if (typeof DomServer == 'undefined') {
 					agent.removeDomEventHandler(match.uri[2], request.query.selector);
 					break;
 				case 'trigger':
-					// :TODO: permissions
 					agent.postWorkerEvent('dom:'+match.uri[2], request.body);
 					break;
 				default:
