@@ -33,6 +33,13 @@ var Agent = (function() {
 			this.getBody().dispatchEvent(re);
 		}, this);
 	};
+	Agent.prototype.dispatch = function Agent__dispatch(request, conn_perms) {
+		request.org = this.getId();
+		request.accept = request.accept || 'text/html';
+		request.authorization = this.getSessionAuth(request, conn_perms);
+		//request.target = this.id; :TODO: needed?
+		return Env.router.dispatch(request);
+	};
 
 	Agent.prototype.resetBody = function Agent__resetBody() {
 		var n = document.createElement('div');
@@ -54,8 +61,13 @@ var Agent = (function() {
 	Agent.prototype.getProgramSession = function Agent__getProgramSession() {
 		return this.getSession(this.getUri());
 	};
-	Agent.prototype.getSessionAuth = function Agent__getSessionAuth(request) {
-		return this.getSession(request.uri).getAuthHeader();
+	Agent.prototype.getSessionAuth = function Agent__getSessionAuth(request, conn_perms) {
+		var sess = this.getSession(request.uri).getAuthHeader();
+		if (conn_perms) {
+			if (!Array.isArray(conn_perms)) { conn_perms = [conn_perms]; }
+			sess.perms = sess.perms.concat(conn_perms);
+		}
+		return sess;
 	};
 
 	// Dom Events
@@ -73,7 +85,7 @@ var Agent = (function() {
 
 		// make the handler
 		var handler = {
-			handleEvent:Agent__genericDomEventHandler,
+			handleEvent:Agent.genericDomEventHandler,
 			agent:this,
 			selector:selector
 		};
@@ -101,7 +113,7 @@ var Agent = (function() {
 	Agent.prototype.getDomEventHandler = function Agent__getDomEventHandler(event, selector) {
 		return this.dom_event_handlers[event + ' ' + selector];
 	};
-	function Agent__genericDomEventHandler(e) {
+	Agent.genericDomEventHandler = function Agent__genericDomEventHandler(e) {
 		var workerEvent = 'dom:'+e.type;
 		if (this.selector) { workerEvent += ' '+this.selector; }
 
@@ -122,9 +134,16 @@ var Agent = (function() {
 			}
 		}
 
+		if (e.type == 'request') {
+			var request = workerEventData.detail.request;
+			if (!request.authorization) {
+				request.authorization = this.agent.getSessionAuth(request, 'connection');
+			}
+		}
+
 		this.agent.postWorkerEvent(workerEvent, workerEventData);
 		e.stopPropagation();
-	}
+	};
 
 	// Worker Program Management
 	// =========================
@@ -226,15 +245,8 @@ var Agent = (function() {
 	};
 	Agent.prototype.onWorkerHttp_request = function Agent__onWorkerHttp_request(e) {
 		// worker has made an http request
-
-		var request = e.request;
-		//request.target = this.id; :TODO: needed?
-		request.org = this.getId();
-		request.accept = request.accept || 'text/html';
-		request.authorization = this.getSessionAuth(request);
-
 		var org_program_counter = this.program_counter;
-		Env.router.dispatch(request).then(function(response) {
+		this.dispatch(e.request).then(function(response) {
 			if (org_program_counter != this.program_counter) {
 				return; // we must have changed programs since this was dispatched
 			}

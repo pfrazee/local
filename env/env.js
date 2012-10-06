@@ -48,14 +48,12 @@ var Env = (function() {
 
 		var agent = Env.getAgent(agent_id);
 		if (agent) {
-			// agent not listening -- dispatch, but ignore the result
-			Env.router.dispatch(e.detail.request);
+			// agent didnt catch the event -- dispatch, but ignore the result
+			agent.dispatch(e.detail.request, 'connection');
 		} else {
 			// create a new agent to handle the request
 			agent = Env.makeAgent(agent_id, { elem:e.target });
-			Promise.when(agent.program_load_promise, function() {
-				agent.postWorkerEvent('dom:request', { detail:e.detail });
-			});
+			Agent.genericDomEventHandler.call({ agent:agent }, e);
 		}
 	}
 

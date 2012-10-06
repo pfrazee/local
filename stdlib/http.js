@@ -133,7 +133,7 @@ if (typeof Http == 'undefined') {
 
 			__processQueryParams(request);
 
-			Util.log('traffic', request.org+'|>', request.__mid, request.method, request.uri, request);
+			Util.log('traffic', '|>', request.org+':', request.__mid, request.method, request.uri, request);
 
 			// URIs that dont target hash URIs should be fetched remotely
 			var protocol = request.uri.split('://');
@@ -177,7 +177,7 @@ if (typeof Http == 'undefined') {
 			if (!response) {
 				response = Http.response(404, 'Not Found', 'text/plain');
 			}
-			Util.log('traffic', request.org+' >|', request.__mid, response.code, response.reason, response);
+			Util.log('traffic', ' >|', request.org+':', request.__mid, response.code, response.reason, response);
 
 			response.body = ContentTypes.deserialize(response.body, response['content-type']);
 
@@ -271,7 +271,7 @@ if (typeof Http == 'undefined') {
 					response.reason = xhrRequest.statusText;
 					response.body = ContentTypes.deserialize(xhrRequest.responseText, response['content-type']);
 
-					Util.log('traffic', request.org+' >|', request.__mid, response.code, response.reason, response);
+					Util.log('traffic', ' >|', request.org+':', request.__mid, response.code, response.reason, response);
 					request.__dispatch_promise.fulfill(response);
 				}
 			};
@@ -296,7 +296,7 @@ if (typeof Http == 'undefined') {
 			return response;
 		}
 		Http__response.unauthorized = function(challenge) {
-			return Http.response(401, null, null, { 'www-authenticate':challenge });
+			return Http.response([401,'unauthorized'], null, null, { 'www-authenticate':challenge });
 		};
 		Http__response.badperms = function(perm_tag, prompt) {
 			var res = Http.response.unauthorized({
