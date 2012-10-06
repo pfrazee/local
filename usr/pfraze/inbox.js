@@ -46,6 +46,7 @@ Server.servMsgRange = function(request, match) {
 	return this.runMethod(ids, request);
 };
 Server.servAll = function(request, match) {
+	postEventMsg('log', {msg:'servAll'});
 	var ids = [];
 	for (var i=0; i < this.messages.length; i++) {
 		if (this.messages[i]) { ids.push(i); }

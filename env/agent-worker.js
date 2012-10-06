@@ -99,20 +99,6 @@ if (typeof Agent == 'undefined') {
 			Agent.dom = ReflectLinks(res.link, { agent:Agent.getId() });
 			domready.fulfill(true);
 		});
-
-		// standard server
-		var StdServer = {
-			routes:[
-				Http.route('session_validate', { uri:'.*' })
-			],
-			session_validate:function(request, match, session) {
-				// :TODO:
-				/*if (!session.hasPerm('session')) {
-					return Http.response.badperms('session', session.getSrcDomain()+':'+session.getSrcProgram()+' connect to '+session.getDestDomain());
-				}*/
-			}
-		};
-		Agent.addServer(StdServer);
 	})();
 }
 

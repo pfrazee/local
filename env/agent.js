@@ -47,9 +47,12 @@ var Agent = (function() {
 		var uri_desc = Http.parseUri(uri);
 		var session = this.sessions[uri_desc.host];
 		if (!session) {
-			session = this.sessions[uri_desc.host] = Session.make(uri_desc.protocol, this);
+			session = this.sessions[uri_desc.host] = Sessions.make(uri_desc.protocol, this);
 		}
 		return session;
+	};
+	Agent.prototype.getProgramSession = function Agent__getProgramSession() {
+		return this.getSession(this.getUri());
 	};
 	Agent.prototype.getSessionAuth = function Agent__getSessionAuth(request) {
 		return this.getSession(request.uri).getAuthHeader();
@@ -162,11 +165,6 @@ var Agent = (function() {
 			this.program_kill_promise = new Promise();
 		}
 
-		// dont let load listeners run, this program is foobared
-		if (this.program_load_promise) {
-			this.program_load_promise = null;
-		}
-
 		if (opt_force_terminate) {
 			clearTimeout(this.program_kill_timeout);
 			this.program_kill_timeout = null;
@@ -231,6 +229,7 @@ var Agent = (function() {
 
 		var request = e.request;
 		//request.target = this.id; :TODO: needed?
+		request.org = this.getId();
 		request.accept = request.accept || 'text/html';
 		request.authorization = this.getSessionAuth(request);
 
@@ -271,7 +270,7 @@ var Agent = (function() {
 	Agent.prototype.routes = [
 		Http.route('collapseHandler', { uri:'^/?$', method:/min|max/i }),
 		Http.route('closeHandler', { uri:'^/?$', method:'close' }),
-		Http.route('programRequestHandler', { uri:'^/app/(.*)' })
+		Http.route('programRequestHandler', { uri:'^/app(/.*)' })
 	];
 	Agent.prototype.collapseHandler = function Agent__collapseHandler(request) {
 		var should_collapse = (request.method == 'min');
@@ -295,6 +294,11 @@ var Agent = (function() {
 	};
 	Agent.prototype.programRequestHandler = function Agent__programRequestHandler(request, match) {
 		if (!this.worker) { return; }
+
+		var auth = request.authorization;
+		if (auth.perms.indexOf('connection') == -1) {
+			return Http.response.badperms('connection', auth.agent+' connect to '+this.getId());
+		}
 
 		var p = new Promise();
 		var mid = this.in_requests_to_process.length;
