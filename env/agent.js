@@ -37,8 +37,33 @@ var Agent = (function() {
 		request.org = this.getId();
 		request.accept = request.accept || 'text/html';
 		request.authorization = this.getSessionAuth(request, conn_perms);
-		//request.target = this.id; :TODO: needed?
-		return Env.router.dispatch(request);
+
+		var response_promise = new Promise();
+		var org_program_counter = this.program_counter;
+		Env.router.dispatch(request).then(function(response) {
+			if (org_program_counter != this.program_counter) {
+				return; // we must have changed programs since this was dispatched
+			}
+
+			if (response.code == 401) {
+				// 401 means we need auth info/permissions from the user
+				var challenges = response['www-authenticate'];
+				var handleEnvResult = function(success) {
+					if (success) {
+						// try again with the updated session
+						request.authorization = this.getSessionAuth(request, conn_perms);
+						Env.router.dispatch(request).then(response_promise.fulfill, response_promise);
+					} else {
+						response.code = 403; // upgrade to a 'never-gunna-happen'
+						response_promise.fulfill(response);
+					}
+				};
+				Env.handleAuthChallenge(this, request, challenges).then(handleEnvResult, this);
+			} else {
+				response_promise.fulfill(response);
+			}
+		}, this);
+		return response_promise;
 	};
 
 	Agent.prototype.resetBody = function Agent__resetBody() {
@@ -54,7 +79,7 @@ var Agent = (function() {
 		var uri_desc = Http.parseUri(uri);
 		var session = this.sessions[uri_desc.host];
 		if (!session) {
-			session = this.sessions[uri_desc.host] = Sessions.make(uri_desc.protocol, this);
+			session = this.sessions[uri_desc.host] = Sessions.make(this);
 		}
 		return session;
 	};
@@ -62,12 +87,12 @@ var Agent = (function() {
 		return this.getSession(this.getUri());
 	};
 	Agent.prototype.getSessionAuth = function Agent__getSessionAuth(request, conn_perms) {
-		var sess = this.getSession(request.uri).getAuthHeader();
-		if (conn_perms) {
+		var auth = this.getSession(request.uri).getAuth();
+		/* :TODO: if (conn_perms) {
 			if (!Array.isArray(conn_perms)) { conn_perms = [conn_perms]; }
 			sess.perms = sess.perms.concat(conn_perms);
-		}
-		return sess;
+		}*/
+		return auth;
 	};
 
 	// Dom Events
@@ -137,7 +162,7 @@ var Agent = (function() {
 		if (e.type == 'request') {
 			var request = workerEventData.detail.request;
 			if (!request.authorization) {
-				request.authorization = this.agent.getSessionAuth(request, 'connection');
+				request.authorization = this.agent.getSessionAuth(request, ['connection']);
 			}
 		}
 
@@ -245,28 +270,8 @@ var Agent = (function() {
 	};
 	Agent.prototype.onWorkerHttp_request = function Agent__onWorkerHttp_request(e) {
 		// worker has made an http request
-		var org_program_counter = this.program_counter;
 		this.dispatch(e.request).then(function(response) {
-			if (org_program_counter != this.program_counter) {
-				return; // we must have changed programs since this was dispatched
-			}
-
-			if (response.code == 401) {
-				// 401 means we need auth info/permissions from the user
-				var challenges = response['www-authenticate'];
-				var handleEnvResult = function(success) {
-					if (success) {
-						// try again with the updated session
-						this.onWorkerHttp_request(e);
-					} else {
-						response.code = 403; // upgrade to a 'never-gunna-happen'
-						this.postWorkerEvent('http:response', { mid:e.mid, response:response });
-					}
-				};
-				Env.handleAuthChallenge(this, challenges).then(handleEnvResult, this);
-			} else {
-				this.postWorkerEvent('http:response', { mid:e.mid, response:response });
-			}
+			this.postWorkerEvent('http:response', { mid:e.mid, response:response });
 		}, this);
 	};
 	Agent.prototype.onWorkerHttp_response = function Agent__onWorkerHttp_response(e) {
@@ -308,8 +313,8 @@ var Agent = (function() {
 		if (!this.worker) { return; }
 
 		var auth = request.authorization;
-		if (auth.perms.indexOf('connection') == -1) {
-			return Http.response.badperms('connection', auth.agent+' connect to '+this.getId());
+		if (!auth || auth.perms.indexOf('connection') == -1) {
+			return Http.response.badperms(['connection'], 'application access');
 		}
 
 		var p = new Promise();

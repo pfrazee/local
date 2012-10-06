@@ -25,6 +25,7 @@ var Env = (function() {
 		this.container_elem = document.getElementById(container_elem_id);
 		document.body.addEventListener('request', Env__onRequestEvent);
 
+		Sessions.init();
 		RequestEvents.init();
 		Dropzones.init(this.container_elem);
 
@@ -49,7 +50,7 @@ var Env = (function() {
 		var agent = Env.getAgent(agent_id);
 		if (agent) {
 			// agent didnt catch the event -- dispatch, but ignore the result
-			agent.dispatch(e.detail.request, 'connection');
+			agent.dispatch(e.detail.request, ['connection']);
 		} else {
 			// create a new agent to handle the request
 			agent = Env.makeAgent(agent_id, { elem:e.target });
@@ -151,9 +152,27 @@ var Env = (function() {
 		return p;
 	}
 
-	function Env__handleAuthChallenge(agent, challenges) {
+	function Env__handleAuthChallenge(agent, request, challenge) {
+		// :TODO: this should be defined in env code, not core
+
+		var session = agent.getSession(request.uri);
 		var p = new Promise();
-		p.fulfill(false); // :TODO;
+		switch (challenge.scheme) {
+			case 'LSHSession':
+				session.authscheme = 'LSHSession';
+				if (!session.perms) { session.perms = []; }
+				// :TODO: check for perms
+				session.perms = session.perms.concat(challenge.perms); // :DEBUG: just give them what they ask
+				p.fulfill(true);
+				break;
+			case 'Basic':
+				session.authscheme = 'Basic';
+				// :TODO: check for creds
+				p.fulfill(false);
+				break;
+			default:
+				throw "unsupported auth scheme '"+challenge.scheme+"'";
+		}
 		return p;
 	}
 

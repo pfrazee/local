@@ -6,6 +6,7 @@ if (typeof DomServer == 'undefined') {
 
 		DomServer.prototype.routes = [
 			Http.route('banner', { method:'get', uri:'^/?$', accept:'text/.*' }), // /
+			Http.route('agentperms', { uri:'^/agent/?.*' }), // /agent/...
 			Http.route('makeagent', { method:'post', uri:'^/agent/?$', accept:'application/json' }), // /agent
 			Http.route('get', { method:'get', uri:'^/agent/([^/]*)/node/?$', accept:'text/.*' }), // /agent/:agent/node
 			Http.route('put', { method:'put', uri:'^/agent/([^/]*)/node/?$', 'content-type':'text/.*' }), // /agent/:agent/node
@@ -21,6 +22,12 @@ if (typeof DomServer == 'undefined') {
 				{ methods:['listen', 'unlisten', 'trigger'], title:'Event', href:'lsh://dom.env/agent/{agent}/event/{event}?{selector}' }
 			];
 			return Http.response([200,'ok'], 'Dom Server 0.1', 'text/html', { link:linkHeader });
+		};
+
+		DomServer.prototype.agentperms = function DomServer__agentperms(request, match) {
+			if (!request.authorization) {
+				return Http.response.badperms(); // ask for a session (no perms needed)
+			}
 		};
 
 		DomServer.prototype.makeagent = function DomServer__makeagent(request, match) {
@@ -44,9 +51,9 @@ if (typeof DomServer == 'undefined') {
 		DomServer.prototype.get = function DomServer__get(request, match) {
 			var agent = Env.getAgent(match.uri[1]);
 
-            if (request.authorization.agent != agent.getId()) {
-                return Http.response([403,'can not access other agent doms']);
-            }
+			if (request.authorization.agent != agent.getId()) {
+				return Http.response([403,'can not access other agent doms']);
+			}
 			
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
@@ -66,9 +73,9 @@ if (typeof DomServer == 'undefined') {
 		DomServer.prototype.put = function DomServer__put(request, match) {
 			var agent = Env.getAgent(match.uri[1]);
 
-            if (request.authorization.agent != agent.getId()) {
-                return Http.response([403,'can not access other agent doms']);
-            }
+			if (request.authorization.agent != agent.getId()) {
+				return Http.response([403,'can not access other agent doms']);
+			}
 			
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
@@ -87,9 +94,9 @@ if (typeof DomServer == 'undefined') {
 		DomServer.prototype.ins = function DomServer__ins(request, match) {
 			var agent = Env.getAgent(match.uri[1]);
 
-            if (request.authorization.agent != agent.getId()) {
-                return Http.response([403,'can not access other agent doms']);
-            }
+			if (request.authorization.agent != agent.getId()) {
+				return Http.response([403,'can not access other agent doms']);
+			}
 			
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
@@ -138,9 +145,9 @@ if (typeof DomServer == 'undefined') {
 		DomServer.prototype.del = function DomServer__del(request, match) {
 			var agent = Env.getAgent(match.uri[1]);
 
-            if (request.authorization.agent != agent.getId()) {
-                return Http.response([403,'can not access other agent doms']);
-            }
+			if (request.authorization.agent != agent.getId()) {
+				return Http.response([403,'can not access other agent doms']);
+			}
 
 			var nodes = getNodes(agent, request.query);
 			if (nodes.length === 0) {
@@ -158,11 +165,11 @@ if (typeof DomServer == 'undefined') {
 			var agent = Env.getAgent(match.uri[1]);
 
 			// :TODO: maaaybe with permissions of some kind
-            if (request.authorization.agent != agent.getId()) {
-                return Http.response([403,'can not access other agent doms']);
-            }
+			if (request.authorization.agent != agent.getId()) {
+				return Http.response([403,'can not access other agent doms']);
+			}
 
-            switch (request.method) {
+			switch (request.method) {
 				case 'listen':
 					agent.addDomEventHandler(match.uri[2], request.query.selector);
 					break;

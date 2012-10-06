@@ -3,92 +3,91 @@ var Sessions = (function() {
 	// ========
 	// manages agent sessions
 	var Sessions = {
+		init:Sessions__init,
 		make:Sessions__make,
-		isa:Sessions__isa
+
+		addAuthScheme:Sessions__addAuthScheme,
+		removeAuthScheme:Sessions__removeAuthScheme,
+		getAuthScheme:Sessions__getAuthScheme
 	};
 	var __uidcounter = 1;
+	var __auth_schemes = {};
 
-	function Sessions__make(protocol, agent) {
+	function Sessions__init() {
+		Sessions.addAuthScheme('Basic', BasicAuth);
+		Sessions.addAuthScheme('LSHSession', LSHSessionAuth);
+	}
+
+	function Sessions__make(agent) {
 		var id = __uidcounter++;
+		return new Session(id, agent);
+	}
 
-		switch(protocol) {
-			case 'http':
-			case 'https':
-				return new Basic(id, agent);
-			case 'lsh':
-				return new LSHSession(id, agent);
+	function Sessions__addAuthScheme(name, scheme) {
+		__auth_schemes[name] = scheme;
+	}
+
+	function Sessions__removeAuthScheme(name) {
+		delete __auth_schemes[name];
+	}
+
+	function Sessions__getAuthScheme(name) {
+		if (!name) { return NoAuth; }
+		if (!(name in __auth_schemes)) {
+			throw "auth scheme not defined";
 		}
-
-		throw "undefined protocol given to session make";
+		return __auth_schemes[name];
 	}
 
-	function Sessions__isa(obj) {
-		return (
-			obj.getAuthHeader !== undefined &&
-			obj.hasPerm !== undefined &&
-			obj.addPerm !== undefined &&
-			obj.delPerm !== undefined
-		);
-	}
-
-	// Auth Schemes
-	// ============
-
-	// Basic
-	function Basic(id, agent) {
+	// Session Prototype
+	// =================
+	function Session(id, agent) {
 		this.id = id;
-		this.username = '';
-		this.password = '';
+		this.agent_id = agent.getId();
+		this.authscheme = null;
 	}
-	Basic.prototype.getAuthHeader = function Basic__getAuthHeaderfunction() {
+	Session.prototype.getAuth = function Session__getAuth(scheme_name) {
+		var scheme = Sessions.getAuthScheme(scheme_name || this.authscheme);
+		return scheme(this);
+	};
+
+	// No Auth Scheme
+	// ==============
+	function NoAuth(session) {
+		return null;
+	}
+
+	// Basic Auth Scheme
+	// =================
+	function BasicAuth(session) {
 		var header = {
 			scheme:'Basic',
-			username:this.username,
-			password:this.password
+			username:session.username,
+			password:session.password
 		};
 		Object.defineProperty(header, 'toString', { value:stringBasic });
 		return header;
-	};
+	}
 	function stringBasic() {
-		if (!this.username) { return null; }
+		if (!this.username) { return ''; }
 		return 'Basic '+/*toBase64 :TODO:*/(this.username+':'+this.password);
 	}
-	Basic.prototype.hasPerm = function Basic__hasPerm(perm) {
-		return true; // :TODO:
-	};
-	Basic.prototype.addPerm = function Basic__addPerm(perm) {};
-	Basic.prototype.delPerm = function Basic__delPerm(perm) {};
 
-	// LinkSHell Session
-	function LSHSession(id, agent) {
-		this.id = id;
-		this.agent = agent.getId();
-		this.perms = [];
-	}
-	LSHSession.prototype.getAuthHeader = function LSHSession__getAuthHeader() {
+	// LinkSHell Session Auth Scheme
+	// =============================
+	function LSHSessionAuth(session) {
 		var header = {
 			scheme:'LSHSession',
-			id:this.id,
-			agent:this.agent,
-			perms:this.perms
+			id:session.id,
+			agent:session.agent_id,
+			perms:session.perms || []
 		};
 		Object.defineProperty(header, 'toString', { value:stringLSHSession });
 		return header;
-	};
+	}
 	function stringLSHSession() {
 		return 'LSHSession id='+this.id+' agent='+this.agent+' perms='+this.perms.join(',');
 	}
-	LSHSession.prototype.hasPerm = function LSHSession__hasPerm(perm) {
-		return this.perms.indexOf(perm) != -1;
-	};
-	LSHSession.prototype.addPerm = function LSHSession__addPerm(perm) {
-		if (!this.hasPerm(perm)) {
-			this.perms.push(perm);
-		}
-	};
-	LSHSession.prototype.delPerm = function LSHSession__delPerm(perm) {
-		this.perms.splice(this.perms.indexOf(perm), 1);
-	};
 	
 	return Sessions;
 })();

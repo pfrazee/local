@@ -8,7 +8,7 @@ if (typeof Http == 'undefined') {
 			Router:Router,
 			route:Http__route,
 			response:Http__response,
-            reflectLinks:reflectLinks,
+			reflectLinks:reflectLinks,
 			parseUri:parseUri
 		};
 
@@ -196,18 +196,18 @@ if (typeof Http == 'undefined') {
 				for (var i=0; i < parts.length; i++) {
 					if (!parts[i]) { continue; }
 					var kv = parts[i].split('=');
-                    var k = kv[0], v = kv[1];
-                    if (v.charAt(0) == '"') { v = /"(.*)"/.exec(v)[1]; }
-                    else if (v.charAt(0) == "'") { v = /'(.*)'/.exec(v)[1]; }
-                    if (k in request.query) {
-                        if (Array.isArray(request.query[k])) {
-                            request.query[k].push(v);
-                        } else {
-                            request.query[k] = [v];
-                        }
-                    } else {
+					var k = kv[0], v = kv[1];
+					if (v.charAt(0) == '"') { v = /"(.*)"/.exec(v)[1]; }
+					else if (v.charAt(0) == "'") { v = /'(.*)'/.exec(v)[1]; }
+					if (k in request.query) {
+						if (Array.isArray(request.query[k])) {
+							request.query[k].push(v);
+						} else {
+							request.query[k] = [v];
+						}
+					} else {
 						request.query[k] = v;
-                    }
+					}
 				}
 			}
 		}
@@ -278,37 +278,38 @@ if (typeof Http == 'undefined') {
 			xhrRequest.send(request.body);
 		}
 
-        // Maker Functions
-        // ===============
+		// Maker Functions
+		// ===============
 		function Http__route(cb, match, capture_phase) {
 			return { cb:cb, match:match, capture:capture_phase };
 		}
 		function Http__response(code, body, contenttype, headers) {
 			var response = headers || {};
-            if (Array.isArray(code)) {
+			if (Array.isArray(code)) {
 				response.code = code[0];
-                response.reason = code[1];
-            } else {
-                response.code = code;
-            }
-            if (body) { response.body = body; }
+				response.reason = code[1];
+			} else {
+				response.code = code;
+			}
+			if (body) { response.body = body; }
 			if (contenttype) { response['content-type'] = contenttype; }
 			return response;
 		}
 		Http__response.unauthorized = function(challenge) {
 			return Http.response([401,'unauthorized'], null, null, { 'www-authenticate':challenge });
 		};
-		Http__response.badperms = function(perm_tag, prompt) {
+		Http__response.badperms = function(perms, prompt) {
+			perms = perms || [];
 			var res = Http.response.unauthorized({
 				scheme:'LSHSession',
-				perms:perm_tag,
+				perms:(Array.isArray(perms)) ? perms : [perms],
 				prompt:prompt
 			});
 			return res;
 		};
 
-        // Link Reflector
-        // ==============
+		// Link Reflector
+		// ==============
 		function reflectLinks(links, static_params) {
 			if (!Array.isArray(links)) { links = [links]; }
 			var fns = {};
@@ -368,7 +369,7 @@ if (typeof Http == 'undefined') {
 		}
 
 		// parseUri 1.2.2
-        // ==============
+		// ==============
 		// (c) Steven Levithan <stevenlevithan.com>
 		// MIT License
 
