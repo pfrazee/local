@@ -7,9 +7,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	Env.init('lshui-env');
 
-
-	var b = Env.makeAgent('otherguy');
-	b.loadProgram('/usr/pfraze/debug.js');
+	/*var b = Env.makeAgent('otherguy');
+	b.loadProgram('/usr/pfraze/debug.js');*/
 
 	var a = Env.makeAgent('inbox', { noclose:true });
 	a.loadProgram('/usr/pfraze/inbox.js', {

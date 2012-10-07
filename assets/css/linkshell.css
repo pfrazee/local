@@ -34,10 +34,3 @@ li, p { line-height:21px; }
 .dropzone { height:10px; }
 .dropzone.request-hover { height:100px; background:rgba(255,255,255,0.4) }
 .dropzone:last-child { height:100px !important; }
-
-.notification-center {
-    top:40px
-}
-.notification {
-    height:auto !important
-}
