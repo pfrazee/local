@@ -55,7 +55,7 @@ var Env = (function() {
 		} else {
 			// create a new agent to handle the request
 			agent = Env.makeAgent(agent_id, { elem:e.target });
-			Promise.when(agent.program_load_promise, function() {
+			agent.loadProgram(null).then(function() {
 				Agent.genericDomEventHandler.call({ agent:agent }, e);
 			});
 		}
@@ -124,7 +124,6 @@ var Env = (function() {
 		// create agent
 		var agent = new Agent(id, agent_elem);
 		this.router.addServer(agent.getUri(), agent);
-        agent.loadProgram(null);
 
 		return (this.agents[id] = agent);
 	}
