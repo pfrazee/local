@@ -34,12 +34,8 @@ if (typeof DomServer == 'undefined') {
 			var params = request.body || {};
 			var agent = Env.makeAgent();
 
-			if (params.program) {
-				agent.loadProgram(params.program, params.config);
-			}
-
 			var p = new Promise();
-			Promise.when(agent.program_load_promise, function() {
+			agent.loadProgram(params.program || null, params.config).then(function() {
 				if (params.request) {
 					agent.postWorkerEvent('dom:request', { detail:{ request:params.request }});
 				}
