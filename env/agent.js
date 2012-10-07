@@ -109,6 +109,7 @@ var Agent = (function() {
 	}
 	Agent.prototype.addDomEventHandler = function Agent__addDomEventHandler(event, selector) {
 		if (!this.getContainer()) { throw "Agent DOM required"; }
+		selector = selector || '';
 		
 		var nodes = getEventNodes.call(this, selector);
 

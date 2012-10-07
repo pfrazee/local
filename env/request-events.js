@@ -86,7 +86,7 @@ var RequestEvents = (function() {
     
     function RequestEvents__findDropTarget(node) {
 		while (node) {
-            if (node.classList && (node.classList.contains('agent') || node.classList.contains('droptarget'))) {
+            if (node.classList && (node.classList.contains('agent') || node.classList.contains('agent-body') ||  node.classList.contains('droptarget'))) {
                 return node;
             }
 			node = node.parentNode;
