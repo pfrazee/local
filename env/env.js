@@ -51,7 +51,7 @@ var Env = (function() {
 		var agent = Env.getAgent(agent_id);
 		if (agent) {
 			// agent didnt catch the event -- dispatch, but ignore the result
-			agent.dispatch(e.detail.request, ['connection']);
+			agent.dispatch(e.detail.request);
 		} else {
 			// create a new agent to handle the request
 			agent = Env.makeAgent(agent_id, { elem:e.target });
@@ -158,9 +158,10 @@ var Env = (function() {
 	function Env__requestSession(agent, uri) {
 		uri = (typeof uri == 'object') ? uri : Http.parseUri(uri);
 
-		var permit = false;
+		var permit = false, perms = [];
 		if (uri.host == agent.getDomain()) {
 			permit = true;
+			perms.push('control');
 		} else if (/\.env$/.test(uri.host)) {
 			permit = true;
 		} else {
@@ -175,6 +176,7 @@ var Env = (function() {
 		}
 		if (permit) {
 			var sess = Sessions.make(agent);
+			sess.addPerms(perms);
 			if (/.ui$|.env$/.test(uri.host)) {
 				sess.authscheme = 'LSHSession';
 			}

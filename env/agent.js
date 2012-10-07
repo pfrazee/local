@@ -287,6 +287,11 @@ var Agent = (function() {
 		Http.route('programRequestHandler', { uri:'^/app(/.*)' })
 	];
 	Agent.prototype.collapseHandler = function Agent__collapseHandler(request) {
+		var auth = request.authorization;
+		if (!auth || auth.perms.indexOf('control') == -1) {
+			return Http.badperms(['control']);
+		}
+
 		var should_collapse = (request.method == 'min');
 		var is_collapsed = this.getContainer().classList.contains('collapsed');
 
@@ -302,7 +307,11 @@ var Agent = (function() {
 
 		return Http.response(205);
 	};
-	Agent.prototype.closeHandler = function Agent__closeHandler() {
+	Agent.prototype.closeHandler = function Agent__closeHandler(request) {
+		var auth = request.authorization;
+		if (!auth || auth.perms.indexOf('control') == -1) {
+			return Http.badperms(['control']);
+		}
 		Env.killAgent(this.id);
 		return Http.response(205);
 	};
