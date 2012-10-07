@@ -8,7 +8,6 @@ importScripts('/stdlib/util.js');
 importScripts('/stdlib/promise.js');
 importScripts('/stdlib/contenttypes.js');
 importScripts('/stdlib/http.js');
-importScripts('/stdlib/linkreflector.js');
 
 if (typeof Agent == 'undefined') {
 	(function() {
@@ -96,7 +95,8 @@ if (typeof Agent == 'undefined') {
 
 		// standard link reflections
 		Agent.dispatch({ method:'get', uri:'lsh://dom.env', accept:'text/html' }).then(function(res) {
-			Agent.dom = ReflectLinks(res.link, { agent:Agent.getId() });
+			Agent.dom = Http.reflectLinks(res.link, { agent:Agent.getId() });
+			if (!Agent.dom) { throw "unable to retrieve the dom server API -- was the session allowed?"; }
 			domready.fulfill(true);
 		});
 	})();

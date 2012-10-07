@@ -24,47 +24,9 @@ var Agent = (function() {
 	Agent.prototype.getContainer = function Agent__getContainer() { return this.elem_agent; };
 	Agent.prototype.getBody = function Agent__getBody() { return this.elem_body; };
 	Agent.prototype.getId = function Agent__getId() { return this.id; };
-	Agent.prototype.getUri = function Agent__getUri() { return 'lsh://' + this.id + '.ui'; };
+	Agent.prototype.getDomain = function Agent__getDomain() { return this.id + '.ui'; };
+	Agent.prototype.getUri = function Agent__getUri() { return 'lsh://' + this.getDomain(); };
 	Agent.prototype.getProgramUri = function Agent__getProgramUri() { return (this.program_config) ? this.program_config.program_uri : null; };
-
-	Agent.prototype.emitDomRequestEvent = function Agent__emitDomRequestEvent(request) {
-		Promise.when(this.program_load_promise, function() {
-			var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:{ request:request }});
-			this.getBody().dispatchEvent(re);
-		}, this);
-	};
-	Agent.prototype.dispatch = function Agent__dispatch(request, conn_perms) {
-		request.org = this.getId();
-		request.accept = request.accept || 'text/html';
-		request.authorization = this.getSessionAuth(request, conn_perms);
-
-		var response_promise = new Promise();
-		var org_program_counter = this.program_counter;
-		Env.router.dispatch(request).then(function(response) {
-			if (org_program_counter != this.program_counter) {
-				return; // we must have changed programs since this was dispatched
-			}
-
-			if (response.code == 401) {
-				// 401 means we need auth info/permissions from the user
-				var challenges = response['www-authenticate'];
-				var handleEnvResult = function(success) {
-					if (success) {
-						// try again with the updated session
-						request.authorization = this.getSessionAuth(request, conn_perms);
-						Env.router.dispatch(request).then(response_promise.fulfill, response_promise);
-					} else {
-						response.code = 403; // upgrade to a 'never-gunna-happen'
-						response_promise.fulfill(response);
-					}
-				};
-				Env.handleAuthChallenge(this, request, challenges).then(handleEnvResult, this);
-			} else {
-				response_promise.fulfill(response);
-			}
-		}, this);
-		return response_promise;
-	};
 
 	Agent.prototype.resetBody = function Agent__resetBody() {
 		var n = document.createElement('div');
@@ -75,24 +37,66 @@ var Agent = (function() {
 		this.dom_event_handlers.length = 0;
 	};
 
+	Agent.prototype.emitDomRequestEvent = function Agent__emitDomRequestEvent(request) {
+		Promise.when(this.program_load_promise, function() {
+			var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:{ request:request }});
+			this.getBody().dispatchEvent(re);
+		}, this);
+	};
+
+	Agent.prototype.dispatch = function Agent__dispatch(request, conn_perms) {
+		var response_promise = new Promise();
+		Promise.when(this.getSession(request.uri), function(session) {
+			if (!session) {
+				// user/env did not grant a session
+				Util.log('sessions', '[SESS]', this.getId()+' denied session with '+request.uri, request);
+				response_promise.fulfill(Http.response([403,'forbidden (session not granted)']));
+				return;
+			}
+
+			// prep request headers
+			request.org = this.getId();
+			request.accept = request.accept || 'text/html';
+			request.authorization = session.getAuth();
+
+			var org_program_counter = this.program_counter;
+			Env.router.dispatch(request).then(function(response) {
+				if (org_program_counter != this.program_counter) {
+					return; // we must have changed programs since this was dispatched
+				}
+
+				if (response.code == 401) {
+					// 401 means we need auth info/permissions from the user
+					var challenges = response['www-authenticate'];
+					var resend = function(permission_granted) {
+						if (permission_granted) {
+							// try again with the updated session
+							request.authorization = session.getAuth(challenges.scheme);
+							Env.router.dispatch(request).then(response_promise.fulfill, response_promise);
+						} else {
+							response.code = 403; // upgrade to a 'never-gunna-happen'
+							response_promise.fulfill(response);
+						}
+					};
+					Env.handleAuthChallenge(this, request, challenges).then(resend, this);
+				} else {
+					// standard response
+					response_promise.fulfill(response);
+				}
+			}, this);
+		}, this);
+		return response_promise;
+	};
 	Agent.prototype.getSession = function Agent__getSession(uri) {
-		var uri_desc = Http.parseUri(uri);
-		var session = this.sessions[uri_desc.host];
+		uri = (typeof uri == 'object') ? uri : Http.parseUri(uri);
+		var session = this.sessions[uri.host];
 		if (!session) {
-			session = this.sessions[uri_desc.host] = Sessions.make(this);
+			return Env.requestSession(this, uri);
 		}
 		return session;
 	};
 	Agent.prototype.getProgramSession = function Agent__getProgramSession() {
 		return this.getSession(this.getUri());
-	};
-	Agent.prototype.getSessionAuth = function Agent__getSessionAuth(request, conn_perms) {
-		var auth = this.getSession(request.uri).getAuth();
-		/* :TODO: if (conn_perms) {
-			if (!Array.isArray(conn_perms)) { conn_perms = [conn_perms]; }
-			sess.perms = sess.perms.concat(conn_perms);
-		}*/
-		return auth;
 	};
 
 	// Dom Events
@@ -156,13 +160,6 @@ var Agent = (function() {
 			if (e.target == nodes[i]) {
 				workerEventData.target_index = i;
 				break;
-			}
-		}
-
-		if (e.type == 'request') {
-			var request = workerEventData.detail.request;
-			if (!request.authorization) {
-				request.authorization = this.agent.getSessionAuth(request, ['connection']);
 			}
 		}
 
@@ -311,11 +308,6 @@ var Agent = (function() {
 	};
 	Agent.prototype.programRequestHandler = function Agent__programRequestHandler(request, match) {
 		if (!this.worker) { return; }
-
-		var auth = request.authorization;
-		if (!auth || auth.perms.indexOf('connection') == -1) {
-			return Http.response.badperms(['connection'], 'application access');
-		}
 
 		var p = new Promise();
 		var mid = this.in_requests_to_process.length;

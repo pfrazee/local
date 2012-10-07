@@ -311,16 +311,17 @@ if (typeof Http == 'undefined') {
 		// Link Reflector
 		// ==============
 		function reflectLinks(links, static_params) {
+			if (!links) { return null; }
 			if (!Array.isArray(links)) { links = [links]; }
 			var fns = {};
 			links.forEach(function(link) {
 				var methods = Array.isArray(link.methods) ? link.methods : [link.method];
-				if (methods.length == 0) { methods = ['get']; }
+				if (methods.length === 0) { methods = ['get']; }
 				methods.forEach(function(method) {
 					var fn_name = method+link.title;
 					fn_name = fn_name.replace(/ /g, '_');
 					fns[fn_name] = reflectLinks__makeFunc(method, link, static_params);
-				})
+				});
 			});
 			return fns;
 		}
@@ -339,7 +340,7 @@ if (typeof Http == 'undefined') {
 				}
 
 				var href_parts = link.href.split('?');
-				var uri = href_parts[0]; 
+				var uri = href_parts[0];
 				var query = href_parts[1];
 				for (var k in params) {
 					uri = uri.replace('{'+k+'}', params[k]);

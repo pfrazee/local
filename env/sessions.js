@@ -45,11 +45,35 @@ var Sessions = (function() {
 		this.id = id;
 		this.agent_id = agent.getId();
 		this.authscheme = null;
+		this.perms = [];
 	}
 	Session.prototype.getAuth = function Session__getAuth(scheme_name) {
 		var scheme = Sessions.getAuthScheme(scheme_name || this.authscheme);
 		return scheme(this);
 	};
+	Session.prototype.addPerms = function Session__addPerms(perms) {
+		this.perms = this.perms.concat(perms).reduce(__unique, []);
+	};
+	Session.prototype.delPerms = function Session__delPerms(perms) {
+		perms = (Array.isArray(perms)) ? perms : [perms];
+		this.perms = this.perms.filter(function (v) {
+			return (perms.indexOf(v) == -1);
+		});
+	};
+	Session.prototype.hasPerms = function Session__hasPerms(perms) {
+		perms = (Array.isArray(perms)) ? perms : [perms];
+		var allfound = perms.every(function(v) {
+			return this.perms.indexOf(v) != -1;
+		}, this);
+		return allfound;
+	};
+
+	function __unique(acc, v) {
+		if (acc.indexOf(v) == -1) {
+			acc.push(v);
+		}
+		return acc;
+	}
 
 	// No Auth Scheme
 	// ==============

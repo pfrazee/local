@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
 	Util.logMode('errors', true);
 	Util.logMode('traffic', true);
+	Util.logMode('sessions', true);
 	//Util.logMode('routing', true);
 	//Util.logMode('err_types', true);
 

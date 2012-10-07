@@ -9,6 +9,7 @@ var Env = (function() {
 		makeAgent:Env__makeAgent,
 		killAgent:Env__killAgent,
 
+		requestSession:Env__requestSession,
 		handleAuthChallenge:Env__handleAuthChallenge,
 
 		router:null,
@@ -54,7 +55,9 @@ var Env = (function() {
 		} else {
 			// create a new agent to handle the request
 			agent = Env.makeAgent(agent_id, { elem:e.target });
-			Agent.genericDomEventHandler.call({ agent:agent }, e);
+			Promise.when(agent.program_load_promise, function() {
+				Agent.genericDomEventHandler.call({ agent:agent }, e);
+			});
 		}
 	}
 
@@ -152,6 +155,35 @@ var Env = (function() {
 		return p;
 	}
 
+	function Env__requestSession(agent, uri) {
+		uri = (typeof uri == 'object') ? uri : Http.parseUri(uri);
+
+		var permit = false;
+		if (uri.host == agent.getDomain()) {
+			permit = true;
+		} else if (/\.env$/.test(uri.host)) {
+			permit = true;
+		} else {
+			// :TODO: consult env
+			// :DEBUG:
+			if (uri.host == 'linkshui.com') {
+				permit = true;
+			}
+			if (agent.getId() == 'otherguy' && uri.host == 'inbox.ui') {
+				permit = true;
+			}
+		}
+		if (permit) {
+			var sess = Sessions.make(agent);
+			if (/.ui$|.env$/.test(uri.host)) {
+				sess.authscheme = 'LSHSession';
+			}
+			agent.sessions[uri.host] = sess;
+			return sess;
+		}
+		return false;
+	}
+
 	function Env__handleAuthChallenge(agent, request, challenge) {
 		// :TODO: this should be defined in env code, not core
 
@@ -160,9 +192,7 @@ var Env = (function() {
 		switch (challenge.scheme) {
 			case 'LSHSession':
 				session.authscheme = 'LSHSession';
-				if (!session.perms) { session.perms = []; }
-				// :TODO: check for perms
-				session.perms = session.perms.concat(challenge.perms); // :DEBUG: just give them what they ask
+				session.addPerms(challenge.perms); // :DEBUG: just give them what they ask
 				p.fulfill(true);
 				break;
 			case 'Basic':
