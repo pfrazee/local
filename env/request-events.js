@@ -15,6 +15,7 @@ var RequestEvents = (function() {
 	}
 
 	function RequestEvents__clickHandler(e) {
+		if (e.button !== 0) { return; } // handle left-click only
 		RequestEvents__trackFormSubmitter(e.target);
 		var request = RequestEvents__extractLinkFromAnchor(e.target);
 		if (request) {
