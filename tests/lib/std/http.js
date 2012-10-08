@@ -39,7 +39,7 @@ nores
 GET //s1/a/b text/html
 {body: "foobar", code: 200, "content-type": "text/plain", reason: "ok"}
 */
-r1.dispatch({ method:'get', uri:'http://linkshui.com:81/tests/fixtures/foobar.txt' }).then(print);
+r1.dispatch({ method:'get', uri:'http://linkshui.com:81/tests/foobar.txt' }).then(print);
 wait();
 /* =>
 {
