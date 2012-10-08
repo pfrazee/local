@@ -18,13 +18,12 @@ Env.init({
 			cb(true, ['control']);
 		} else if (/\.env$/.test(uri.host)) {
 			cb(true);
+		} else if (uri.host == 'linkshui.com') {
+			cb(true);
+		} else if (agent.getId() == 'otherguy' && uri.host == 'inbox.ui') {
+			cb(true);
 		} else {
-			if (uri.host == 'linkshui.com') {
-				cb(true);
-			}
-			if (agent.getId() == 'otherguy' && uri.host == 'inbox.ui') {
-				cb(true);
-			}
+			cb(false);
 		}
 	},
 	requestAuth:function(auth, cb) {
