@@ -4,7 +4,7 @@ Util.logMode('sessions', true);
 //Util.logMode('routing', true);
 //Util.logMode('err_types', true);
 Env.init({
-	getContainerElem:function() { return document.getElementById('linkshell'); },
+	getContainerElem:function() { return document.getElementById('env'); },
 	init:function() {
 		var b = Env.makeAgent('otherguy');
 		b.loadProgram('/usr/pfraze/debug.js');
@@ -28,15 +28,13 @@ Env.init({
 	},
 	requestAuth:function(auth, cb) {
 		switch (auth.challenge.scheme) {
-			case 'LSHSession':
+			case 'LAPSession':
 				auth.session.addPerms(auth.challenge.perms); // :DEBUG: just give them what they ask
 				cb(true);
 				break;
-			case 'Basic':
-				cb(false);
-				break;
 			default:
-				throw "unsupported auth scheme '"+auth.challenge.scheme+"'";
+				console.log("unsupported auth scheme '"+auth.challenge.scheme+"'");
+				cb(false);
 		}
 	}
 });

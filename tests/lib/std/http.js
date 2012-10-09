@@ -59,7 +59,7 @@ Agent.dispatch = Spy('Agent__dispatch');
 var funcs = Http.reflectLinks({
 	methods:['get','put','post','delete'],
 	rel:'node',
-	href:'lsh://dom.env/agent/{agent}/node?{selector}',
+	href:'lap://dom.env/agent/{agent}/node?{selector}',
 	type:'text/html'
 });
 print(funcs);
@@ -75,6 +75,6 @@ funcs.getNode({ agent:'foo', selector:'bar' });
 function Agent(id, elem) {...}.Agent__dispatch({
   accept: "text/html",
   method: "get",
-  uri: "lsh://dom.env/agent/foo/node?selector=\"bar\""
+  uri: "lap://dom.env/agent/foo/node?selector=\"bar\""
 })
 */

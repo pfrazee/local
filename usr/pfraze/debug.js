@@ -3,7 +3,7 @@ addEventMsgListener('dom:request', function(e) {
 });
 
 setTimeout(function() {
-	Agent.dispatch({ method:'get', uri:'lsh://inbox.ui/app/all', 'accept':'application/json' }).then(Agent.renderResponse);
+	Agent.dispatch({ method:'get', uri:'lap://inbox.ui/app/all', 'accept':'application/json' }).then(Agent.renderResponse);
 }, 1000);
 
 Promise.whenAll([

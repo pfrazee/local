@@ -11,5 +11,5 @@ print(Sessions.getAuthScheme(null)(sess));
 // => null
 print(Sessions.getAuthScheme('Basic')(sess));
 // => Basic john:doe
-print(Sessions.getAuthScheme('LSHSession')(sess));
-// => LSHSession id=100 agent=foobar perms=a,b,c
+print(Sessions.getAuthScheme('LAPSession')(sess));
+// => LAPSession id=100 agent=foobar perms=a,b,c
