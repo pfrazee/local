@@ -72,7 +72,7 @@ print(funcs);
 }*/
 funcs.getNode({ agent:'foo', selector:'bar' });
 /* =>
-function Agent(id, elem) {...}.Agent__dispatch({
+Agent__dispatch({
   accept: "text/html",
   method: "get",
   uri: "lap://dom.env/agent/foo/node?selector=\"bar\""
