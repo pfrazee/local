@@ -27,6 +27,7 @@
     height:22px;
     color:#bbb;
 }
+.link-ap-env .agent-titlebar strong { color: #333; }
 .link-ap-env .agent-titlebar-ctrls { float:right }
 .link-ap-env .agent-titlebar form { margin:0 }
 .link-ap-env .agent.collapsed { opacity:0.5; min-width:250px }
