@@ -1,6 +1,6 @@
 ## Link Application Platform
 
-LinkAP is a purely client-side application platform. It allows you to safely run programs together in the browser without involving a remote host.
+LinkAP is a purely client-side application platform. It allows you to safely run programs together in the browser without involving a remote host. Add user applications to your site, break your front-end into reusable pieces, and simplify response templating by handling the layout on the client.
 
 ### How does it work?
 
