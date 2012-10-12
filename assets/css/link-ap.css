@@ -2,7 +2,6 @@
 
 .link-ap-env { font-size:15px; }
 .link-ap-env a { color:#06c; }
-.link-ap-env li, .link-ap-env p { line-height:21px; }
 
 .link-ap-env { margin:0 auto; }
 .link-ap-env td { vertical-align:top }
@@ -12,20 +11,20 @@
 .link-ap-env td.drophover { min-width:100px; background:rgba(255,255,255,0.4) }
 
 .link-ap-env .agent {
-    padding:8px 13px;
-    background:#fff;
-    box-shadow:0 0 6px rgba(0,0,0, 0.5);
-    border:1px solid #fff;
+	padding:8px 13px;
+	background:#fff;
+	box-shadow:0 0 6px rgba(0,0,0, 0.5);
+	border:1px solid #fff;
 }
 .link-ap-env .agent.drophover {
-    border:1px solid #06c;
-    box-shadow:0 0 10px rgba(0,128,255, 0.75);
+	border:1px solid #06c;
+	box-shadow:0 0 10px rgba(0,128,255, 0.75);
 }
 .link-ap-env .agent-titlebar {
-    font-size:14px;
-    margin-bottom:2px;
-    height:22px;
-    color:#bbb;
+	font-size:14px;
+	margin-bottom:2px;
+	height:22px;
+	color:#bbb;
 }
 .link-ap-env .agent-titlebar strong { color: #333; }
 .link-ap-env .agent-titlebar-ctrls { float:right }
