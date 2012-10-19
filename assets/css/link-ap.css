@@ -25,6 +25,8 @@
 	margin-bottom:2px;
 	height:22px;
 	color:#bbb;
+	white-space:pre;
+	overflow:hidden;
 }
 .link-ap-env .agent-titlebar strong { color: #333; }
 .link-ap-env .agent-titlebar-ctrls { float:right }
