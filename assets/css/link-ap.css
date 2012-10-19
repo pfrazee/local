@@ -25,12 +25,11 @@
 	margin-bottom:2px;
 	height:22px;
 	color:#bbb;
-	white-space:pre;
 	overflow:hidden;
 }
 .link-ap-env .agent-titlebar strong { color: #333; }
 .link-ap-env .agent-titlebar-ctrls { float:right }
-.link-ap-env .agent-titlebar form { margin:0 }
+.link-ap-env .agent-titlebar form { margin:0; display:inline-block; float:right }
 .link-ap-env .agent.collapsed { opacity:0.5; min-width:250px }
 .link-ap-env .agent.collapsed .agent-body { display:none }
 
