@@ -4,3 +4,6 @@
 [submodule "lib/common-client"]
 	path = lib/common-client
 	url = git@github.com:pfraze/common-client.git
+[submodule "lib/myhouse"]
+	path = lib/myhouse
+	url = git@github.com:pfraze/myhouse.git
