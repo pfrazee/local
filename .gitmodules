@@ -1,3 +1,6 @@
 [submodule "lib/linkjs"]
 	path = lib/linkjs
 	url = git@github.com:pfraze/linkjs.git
+[submodule "lib/common-client"]
+	path = lib/common-client
+	url = git@github.com:pfraze/common-client.git
