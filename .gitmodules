@@ -1,0 +1,3 @@
+[submodule "lib/linkjs"]
+	path = lib/linkjs
+	url = git@github.com:pfraze/linkjs.git
