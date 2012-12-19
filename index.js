@@ -1,5 +1,5 @@
 // create environment
-var env = new AppEnvironment();
+var env = new App.Environment();
 
 // set policies
 env.onSessionRequest(function(process, urid, cb) {
