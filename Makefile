@@ -7,7 +7,7 @@ link-ap-files =\
  	${lib-link-ap}environment.js\
  	${lib-link-ap}_compiled_header.js
 
-setup: embeds build 
+setup: clean embeds build
 
 embeds: ${lib}link.js ${lib}common-client.js ${lib}myhouse.js ${lib}worker_bootstrap.js
 ${lib}link.js:
@@ -27,3 +27,7 @@ ${lib}link-ap.js: ${link-ap-files}
 	cat > $@ $^
 ${lib}worker_core.js:
 	cp ${lib}link-ap/worker_core.js ${lib}worker_core.js
+
+clean:
+	rm ${lib}link.js ${lib}common-client.js ${lib}myhouse.js ${lib}worker_bootstrap.js
+	rm ${lib}link-ap.js ${lib}worker_core.js
