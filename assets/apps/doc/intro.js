@@ -3,8 +3,8 @@ app.onHttpRequest(function(request, response) {
 	response.end('<h1>LinkAP v0.2.0 <small>unstable</small></h1>' +
 		'<p>Safely run user applications on the page using Web Workers.</p>' +
 		'<h4>Introduction</h4>' +
-		'<p>The Web Workers API runs scripts in threads which are only exposed to the document through messages. This creates a safe environment to run untrusted code, but also limits the possible interactions between the thread and the document. To overcome this limitation, LinkAP applications serve HTML over HTTP-Local (an in-document emulation of TCP HTTP) effectively embedding web-servers in the document. The environment then builds a standard set of client behaviors to issue requests to the user apps and render the results within sandboxed regions of the DOM.</p>' +
-		'<p>All of the content on this page is served by embedded application servers.</p>' +
+		'<p>The Web Workers API runs scripts in threads which can only reach the document via messaging. This provides enough safety to run user applications on the page, but also stops the apps from updating the document. To overcome this limitation, LinkAP emulates HTTP over the Workers\'s messaging system, allowing applications to serve HTML as if they were remote. The environment then issues requests to the user apps and renders the results within sandboxed regions of the DOM.</p>' +
+		'<p>By way of example, all of the content on this page is served by embedded application servers.</p>' +
 		'<br/>'
 	);
 });

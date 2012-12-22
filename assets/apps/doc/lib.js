@@ -11,9 +11,8 @@ app.onHttpRequest(function(request, response) {
 				makeNavLi(tab,'linkjs','LinkJS'),
 				makeNavLi(tab,'common-client','CommonClient'),
 				makeNavLi(tab,'myhouse','MyHouse (MyRules)'),
-				makeNavLi(tab,'server-utils','Server Utils'),
-				makeNavLi(tab,'rez-primitives','Resource Primitives'),
-				makeNavLi(tab,'link-ap','LinkAP'),
+				makeNavLi(tab,'apps','Applications'),
+				makeNavLi(tab,'env','Environment'),
 			'</ul>'
 		].join('');
 	};
@@ -29,17 +28,13 @@ app.onHttpRequest(function(request, response) {
 		response.writeHead(200, 'ok', { 'content-type':'text/html' });
 		response.end(makeNav('myhouse') + '<p>Create & control sandboxes in Web Workers from the parent document.</p>');
 	}
-	else if (request.path == '/server-utils') {
+	else if (request.path == '/apps') {
 		response.writeHead(200, 'ok', { 'content-type':'text/html' });
-		response.end(makeNav('server-utils') + '<p>Server utilities for user applications.</p>');
+		response.end(makeNav('apps') + '<p>Tools for building user applications.</p>');
 	}
-	else if (request.path == '/rez-primitives') {
+	else if (request.path == '/env') {
 		response.writeHead(200, 'ok', { 'content-type':'text/html' });
-		response.end(makeNav('rez-primitives') + '<p>RESTful resource utilities for user applications.</p>');
-	}
-	else if (request.path == '/link-ap') {
-		response.writeHead(200, 'ok', { 'content-type':'text/html' });
-		response.end(makeNav('link-ap') + '<p>Safely run user applications on the page using Web Workers.</p>');
+		response.end(makeNav('env') + '<p>Safely run user applications on the page using Web Workers.</p>');
 	}
 });
 app.postMessage('loaded');
