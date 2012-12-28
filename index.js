@@ -1,13 +1,11 @@
 // create environment
 var env = new App.Environment();
 
-// set policies
-env.onSessionRequest(function(process, urid, cb) {
-	// :TODO:
-});
-env.onAuthRequest(function(auth, cb) {
-	// :TODO:
-});
+// request override
+env.request = function(origin, request) {
+	// can make any connectivity / permissions decisions here
+	return Link.request(request); // allow request
+};
 
 // instantiate services
 //env.addServer('localstorage.env', new LocalStorageServer()); :TODO:
