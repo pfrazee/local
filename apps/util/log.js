@@ -1,3 +1,5 @@
+importScripts('/lib/linkjs-ext/responder.js');
+
 var log = [];
 var listeners = [];
 
@@ -5,27 +7,21 @@ function renderHtml() {
 	var html = [
 		'<h5>'+app.config.title+'</h5>',
 		'<form action="httpl://'+app.config.domain+'"><output>',
-		log.map(function(entry) {
-			return '<p>{method} {url} {type}</p>'
-				.replace(/\{method\}/g, entry.method.toUpperCase())
-				.replace(/\{url\}/g, entry.url || (entry.host + entry.path))
-				.replace(/\{type\}/g, entry.headers.accept || '');
-		}).reverse().join(''),
+		log.map(function(entry) { return '<p>'+entry+'</p>'; }).reverse().join(''),
 		'</output></form>'
 	].join('');
 	return html;
 }
 
 app.onHttpRequest(function(request, response) {
+	var respond = Link.responder(response);
 	if (request.method == 'get') {
 		if (request.headers.accept == 'text/html') {
-			// send back the html
-			response.writeHead(200, 'ok', { 'content-type':'text/html' });
-			response.end(renderHtml());
+			respond.ok('html').end(renderHtml());
 		}
 		else if (request.headers.accept == 'text/event-stream') {
 			// add the stream to our listeners
-			response.writeHead(200, 'ok', { 'content-type':'text/html' });
+			respond.ok('events');
 			listeners.push(response);
 		}
 	} else if (request.method === 'post') {
@@ -33,8 +29,7 @@ app.onHttpRequest(function(request, response) {
 		log.push(request.body);
 
 		// success
-		response.writeHead(200, 'ok');
-		response.end();
+		respond.ok().end();
 
 		// notify of the update
 		listeners.forEach(function(listener) {

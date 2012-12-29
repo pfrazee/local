@@ -1,20 +1,29 @@
-
+// helpers
+function $reqbody(body, type) {
+	type = (type || ((typeof type == 'string') ? 'text/plain' : 'application/json' ));
+	return { body:body, headers:{ 'content-type':type }};
+}
 function logError(err) {
-	console.log(err.message);
+	if (err.request) { console.log(err.message, err.request); }
+	else { console.log(err.message);}
+	return err;
 }
 
 // request override
+var reqLog = new Link.Navigator('httpl://request-log.util');
 Environment.request = function(origin, request) {
 	// make any connectivity / permissions decisions here
 
 	// pass on to the request log
 	if (request.url.indexOf('httpl://request-log.util') === -1) {
-		Link.request({ method:'post', url:'httpl://request-log.util', body:request })
-			.except(logError);
+		var entry = $reqbody([request.method.toUpperCase(), request.url, request.headers.accept].join(' '));
+		reqLog.post(entry, null, logError);
 	}
 
 	// allow request
-	return Link.request(request);
+	var response = Link.request(request);
+	response.except(logError);
+	return response;
 };
 
 // instantiate services
