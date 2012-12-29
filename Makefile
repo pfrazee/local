@@ -1,11 +1,11 @@
 lib = lib/
-lib-link-ap = ${lib}link-ap/
-link-ap-files =\
- 	${lib-link-ap}_compiled_header.js\
- 	${lib-link-ap}server.js\
- 	${lib-link-ap}client.js\
- 	${lib-link-ap}environment.js\
- 	${lib-link-ap}_compiled_header.js
+lib-environment = ${lib}environment/
+environment-files =\
+ 	${lib-environment}_compiled_header.js\
+ 	${lib-environment}server.js\
+ 	${lib-environment}client.js\
+ 	${lib-environment}environment.js\
+ 	${lib-environment}_compiled_header.js
 
 setup: clean embeds build
 
@@ -22,12 +22,12 @@ ${lib}myhouse.js:
 ${lib}worker_bootstrap.js:
 	cp ${lib}myhouse/worker_bootstrap.js ${lib}worker_bootstrap.js
 
-build: ${lib}link-ap.js ${lib}worker_core.js
-${lib}link-ap.js: ${link-ap-files}
+build: ${lib}environment.js ${lib}worker_core.js
+${lib}environment.js: ${environment-files}
 	cat > $@ $^
 ${lib}worker_core.js:
-	cp ${lib}link-ap/worker_core.js ${lib}worker_core.js
+	cp ${lib}environment/worker_core.js ${lib}worker_core.js
 
 clean:
 	rm ${lib}link.js ${lib}common-client.js ${lib}myhouse.js ${lib}worker_bootstrap.js
-	rm ${lib}link-ap.js ${lib}worker_core.js
+	rm ${lib}environment.js ${lib}worker_core.js
