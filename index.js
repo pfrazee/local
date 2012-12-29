@@ -7,9 +7,9 @@ function logError(err) {
 Environment.request = function(origin, request) {
 	// make any connectivity / permissions decisions here
 
-	// pass on to the request-stream
-	if (request.url.indexOf('httpl://request-stream.ui') === -1) {
-		Link.request({ method:'post', url:'httpl://request-stream.ui', body:request })
+	// pass on to the request log
+	if (request.url.indexOf('httpl://request-log.util') === -1) {
+		Link.request({ method:'post', url:'httpl://request-log.util', body:request })
 			.except(logError);
 	}
 
@@ -22,10 +22,10 @@ Environment.request = function(origin, request) {
 
 // instantiate apps
 Environment.addServer('intro.doc', new Environment.WorkerServer('/apps/doc/intro.js'));
-Environment.addServer('lib.doc', new Environment.WorkerServer('/apps/doc/lib.js'));
-Environment.addServer('request-stream.ui', new Environment.WorkerServer('/apps/widgets/request-stream.js'));
+Environment.addServer('libraries.doc', new Environment.WorkerServer('/apps/doc/lib.js'));
+Environment.addServer('request-log.util', new Environment.WorkerServer('/apps/util/log.js', { title:'request log' }));
 
 // load client regions
 Environment.addClient('#intro').request('httpl://intro.doc');
-Environment.addClient('#lib').request('httpl://lib.doc/linkjs');
-Environment.addClient('#request-stream').request('httpl://request-stream.ui');
+Environment.addClient('#lib').request('httpl://libraries.doc/linkjs');
+Environment.addClient('#request-log').request('httpl://request-log.util');

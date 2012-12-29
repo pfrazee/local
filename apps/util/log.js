@@ -3,7 +3,8 @@ var listeners = [];
 
 function renderHtml() {
 	var html = [
-		'<form action="httpl://request-stream.ui"><output>',
+		'<h5>'+app.config.title+'</h5>',
+		'<form action="httpl://'+app.config.domain+'"><output>',
 		log.map(function(entry) {
 			return '<p>{method} {url} {type}</p>'
 				.replace(/\{method\}/g, entry.method.toUpperCase())

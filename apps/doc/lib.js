@@ -2,7 +2,7 @@ app.onHttpRequest(function(request, response) {
 	var makeNavLi = function(a, b, label) {
 		return [
 			(a == b) ? '<li class="active">' : '<li>',
-			'<a href="httpl://lib.doc/', b, '">', label, '</a></li>'
+			'<a href="httpl://'+app.config.domain, b, '">', label, '</a></li>'
 		].join('');
 	};
 	var makeNav = function(tab) {
