@@ -1,8 +1,20 @@
 
+function logError(err) {
+	console.log(err.message);
+}
+
 // request override
 Environment.request = function(origin, request) {
-	// can make any connectivity / permissions decisions here
-	return Link.request(request); // allow request
+	// make any connectivity / permissions decisions here
+
+	// pass on to the request-stream
+	if (request.url.indexOf('httpl://request-stream.ui') === -1) {
+		Link.request({ method:'post', url:'httpl://request-stream.ui', body:request })
+			.except(logError);
+	}
+
+	// allow request
+	return Link.request(request);
 };
 
 // instantiate services
