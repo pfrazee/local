@@ -1,8 +1,9 @@
 importScripts('/lib/linkjs-ext/responder.js');
 importScripts('/lib/linkjs-ext/router.js');
+importScripts('/lib/linkjs-ext/broadcaster.js');
 
 var log = [];
-var listeners = [];
+var logBroadcast = Link.broadcaster();
 
 function renderHtml() {
 	var html = [
@@ -20,22 +21,13 @@ app.onHttpRequest(function(request, response) {
 
 	router.rm('', 'get', function() {
 		router.a('html', function() { respond.ok('html').end(renderHtml()); });
-		router.a('events', function() {
-			respond.ok('events');
-			// add the stream to our listeners
-			listeners.push(response);
-		});
+		router.a('events', function() { logBroadcast.addStream(respond.ok('events')); });
 		router.error(response);
 	});
 	router.rmt('', 'post', /text\/[html|plain]/ig, function() {
-		// store the data
-		log.push(request.body);
-		respond.ok().end();
-
-		// notify of the update
-		listeners.forEach(function(listener) {
-			listener.write({ event:'update', data:{ values:{ log:true }}});
-		});
+		log.push(request.body); // store the entry
+		logBroadcast.emit('update'); // tell our listeners
+		respond.ok().end(); // respond 200
 	});
 	router.error(response);
 });
