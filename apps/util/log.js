@@ -19,14 +19,14 @@ app.onHttpRequest(function(request, response) {
 	var router = Link.router(request);
 	var respond = Link.responder(response);
 
-	router.rm('', 'get', function() {
+	router.mr('get', '/', function() {
 		router.a('html', function() { respond.ok('html').end(renderHtml()); });
-		router.a('events', function() { logBroadcast.addStream(respond.ok('events')); });
+		router.a('events', function() { respond.ok('events'); logBroadcast.addStream(response); });
 		router.error(response);
 	});
-	router.rmt('', 'post', /text\/[html|plain]/ig, function() {
+	router.mrt('post', '/', /text\/[html|plain]/ig, function() {
 		log.push(request.body); // store the entry
-		logBroadcast.emit('update'); // tell our listeners
+		logBroadcast.emit('update'); // tell our listeners about the change
 		respond.ok().end(); // respond 200
 	});
 	router.error(response);
