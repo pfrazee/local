@@ -14,7 +14,7 @@ var LogEntry = Link.resource({
 		id:{ type:Number, value:genuid },
 		label:{ type:String, fallback:null },
 		content:{ type:String, required:true },
-		createdAt:{ type:Date, value:null }
+		createdAt:{ type:Date, value:function() { return new Date(); } }
 	},
 	from:{
 		json:function(request, obj) { return obj; },
@@ -41,11 +41,11 @@ var LogCollection = Link.resource({
 	filters:{
 		since:function(items, timestamp) {
 			var startTime = new Date(timestamp);
-			return items.filter(function(item) { return (item.createdAt > startTime); });
+			return items.filter(function(item) { return (item.values.createdAt > startTime); });
 		},
 		before:function(items, timestamp) {
 			var endTime = new Date(timestamp);
-			return items.filter(function(item) { return (item.createdAt < endTime); });
+			return items.filter(function(item) { return (item.values.createdAt < endTime); });
 		}
 	},
 	as:{
