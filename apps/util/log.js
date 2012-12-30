@@ -1,4 +1,5 @@
 importScripts('/lib/linkjs-ext/responder.js');
+importScripts('/lib/linkjs-ext/router.js');
 
 var log = [];
 var listeners = [];
@@ -14,27 +15,28 @@ function renderHtml() {
 }
 
 app.onHttpRequest(function(request, response) {
+	var router = Link.router(request);
 	var respond = Link.responder(response);
-	if (request.method == 'get') {
-		if (request.headers.accept == 'text/html') {
-			respond.ok('html').end(renderHtml());
-		}
-		else if (request.headers.accept == 'text/event-stream') {
-			// add the stream to our listeners
+
+	router.rm('', 'get', function() {
+		router.a('html', function() { respond.ok('html').end(renderHtml()); });
+		router.a('events', function() {
 			respond.ok('events');
+			// add the stream to our listeners
 			listeners.push(response);
-		}
-	} else if (request.method === 'post') {
+		});
+		router.error(response);
+	});
+	router.rmt('', 'post', /text\/[html|plain]/ig, function() {
 		// store the data
 		log.push(request.body);
-
-		// success
 		respond.ok().end();
 
 		// notify of the update
 		listeners.forEach(function(listener) {
 			listener.write({ event:'update', data:{ values:{ log:true }}});
 		});
-	}
+	});
+	router.error(response);
 });
 app.postMessage('loaded');

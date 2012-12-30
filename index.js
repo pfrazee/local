@@ -1,6 +1,6 @@
 // helpers
 function $reqbody(body, type) {
-	type = (type || ((typeof type == 'string') ? 'text/plain' : 'application/json' ));
+	type = (type || ((typeof body == 'string') ? 'text/plain' : 'application/json' ));
 	return { body:body, headers:{ 'content-type':type }};
 }
 function logError(err) {
@@ -16,7 +16,11 @@ Environment.request = function(origin, request) {
 
 	// pass on to the request log
 	if (request.url.indexOf('httpl://request-log.util') === -1) {
-		var entry = $reqbody([request.method.toUpperCase(), request.url, request.headers.accept].join(' '));
+		var entry = $reqbody([
+			request.method.toUpperCase()+':',
+			request.url,
+			'<span style="color:gray">',request.headers.accept,'</span>'
+		].join(' '));
 		reqLog.post(entry, null, logError);
 	}
 
