@@ -22,12 +22,15 @@ var LogEntry = Link.resource({
 		html:function(request, string) { return { content:string }; }
 	},
 	as:{
+		json:function(request, entry) {
+			return entry.values;
+		},
 		html:function(request, entry) {
 			var html = '<p>';
-			if (entry.label) {
-				html += '<strong>'+entry.label+'</strong> ';
+			if (entry.values.label) {
+				html += '<strong>'+entry.values.label+'</strong> ';
 			}
-			return html+entry.content+'</p>';
+			return html+entry.values.content+'</p>';
 		}
 	}
 });
@@ -49,11 +52,14 @@ var LogCollection = Link.resource({
 		}
 	},
 	as:{
+		json:function(request, entries) {
+			return entries.map(function(e) { return e.values; });
+		},
 		html:function(request, entries) {
 			var html = [
 				'<h5>'+app.config.title+'</h5>',
 				'<form action="httpl://'+app.config.domain+'"><output>',
-				entries.map(function(e) { return LogEntry.model.as.html(null, e.values); }).reverse().join(''),
+				entries.map(function(e) { return LogEntry.model.as.html(null, e); }).reverse().join(''),
 				'</output></form>'
 			].join('');
 			return html;
