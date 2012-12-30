@@ -12,10 +12,10 @@ var makeNav = function(tab) {
 	return [
 		'<ul class="nav nav-tabs">',
 			makeNavLi(tab,'linkjs','LinkJS'),
+			makeNavLi(tab,'apps','Applications'),
+			makeNavLi(tab,'platform','Platform'),
 			makeNavLi(tab,'common-client','CommonClient'),
 			makeNavLi(tab,'myhouse','MyHouse (MyRules)'),
-			makeNavLi(tab,'apps','Applications'),
-			makeNavLi(tab,'env','Environment'),
 		'</ul>'
 	].join('');
 };
@@ -26,7 +26,7 @@ var htmlResources = {
 	'/common-client' : makeNav('common-client') + '<p>A generic-yet-powerful set of client-side behaviors.</p>',
 	'/myhouse'       : makeNav('myhouse') + '<p>Create & control sandboxes in Web Workers from the parent document.</p>',
 	'/apps'          : makeNav('apps') + '<p>Tools for building user applications.</p>',
-	'/env'           : makeNav('env') + '<p>Safely run user applications on the page using Web Workers.</p>'
+	'/platform'      : makeNav('platform') + '<p>Safely run user applications on the page using Web Workers.</p>'
 };
 
 // server request handler
