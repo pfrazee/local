@@ -6,12 +6,21 @@ importScripts('/lib/linkjs-ext/headers.js');
 var log = [];
 var logBroadcast = Link.broadcaster();
 
-function renderHtml() {
+function renderHtml(output) {
+	var entriesHtml = log
+		.map(function(entry) { return '<p>'+entry+'</p>'; })
+		.reverse()
+		.join('');
+	if (output == 'entries') {
+		return entriesHtml;
+	}
 	var html = [
 		'<h5>'+app.config.title+'</h5>',
-		'<form action="httpl://'+app.config.domain+'"><output>',
-		log.map(function(entry) { return '<p>'+entry+'</p>'; }).reverse().join(''),
-		'</output></form>'
+		'<form action="httpl://'+app.config.domain+'">',
+			'<output name="entries">',
+				entriesHtml,
+			'</output>',
+		'</form>'
 	].join('');
 	return html;
 }
@@ -28,7 +37,7 @@ app.onHttpRequest(function(request, response) {
 
 		// list
 		router.ma('GET', /html/, function() {
-			respond.ok('html', headers).end(renderHtml()); // respond with log html
+			respond.ok('html', headers).end(renderHtml(request.query.output)); // respond with log html
 		});
 		// subscribe to events
 		router.ma('GET', /event-stream/, function() {
