@@ -14,24 +14,23 @@
 	</head>
 	
 	<body>
+		<!-- nav -->
+		<div class="navbar">
+			<div class="navbar-inner">
+				<a class="brand" href="#">LAP <small>v0.2.0</small></a>
+				<ul class="nav">
+					<li><a href="/index.html" title="Index">Index</a></li>
+					<li class="active"><a href="/profile.html" title="Profile Page">Profile</a></li>
+				</ul>
+			</div>
+		</div>
+
 		<!-- environment -->
-		<br /><!-- temporary!!! -->
 		<div class="container">
 			<div class="row">
 				<div class="span3">
-					<!-- picture -->
-					<img src="/assets/img/hacker.png" class="img-polaroid" />
-					<!-- hacker.png found at http://www.flickr.com/photos/27515562@N02/3112309337/ -->
-					<!-- credit to ZARk.be (http://www.flickr.com/photos/zark22/) -->
-					<br/>
-					<br/>
-
-					<!-- address links -->
-					<address class="well">
-						<img src="/assets/icons/16x16/email.png" /> <a href="mailto:lorem@gmail.com" title="Personal Email">lorem@gmail.com</a><br/>
-						<img src="/assets/icons/16x16/twitter_1.png" /> <a href="//twitter.com/lorem" title="Personal Twitter">@lorem</a><br/>
-						<img src="/assets/icons/16x16/arrow_divide.png" /> <a href="//github.com/lorem" title="Personal Github">github.com/lorem</a><br/>
-					</address>
+					<!-- profile picture and addresses -->
+					<div id="placard"></div>
 				</div>
 				<div class="span6">
 					<!-- title -->
@@ -42,46 +41,11 @@
 					<hr />
 
 					<!-- profile wall -->
-					<form>
-						<label for="wall">Submit something for my wall: <img src="/assets/icons/16x16/help.png" title="Note: I review all posts before publishing" /></label>
-						<textarea id="wall" name="wall" class="span6"></textarea><br/>
-						<p>Submitting as: <a href="#"><span class="label label-info">Sign in using BrowserID</span></a></p>
-						<button type="submit" class="btn btn-block disabled">Submit</button>
-					</form>
-
-					<blockquote>
-						<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-						<small>someguy@aol.com</small>
-					</blockquote>
-
-					<blockquote>
-						<p><a href="http://flickr.com/myphotos">http://flickr.com/myphotos</a> trip photos</p>
-						<small>lorem@gmail.com</small>
-					</blockquote>
-
-					<blockquote>
-						<p>This is a wall post.</p>
-						<small>another.guy@somewhere.com</small>
-					</blockquote>
+					<div id="wall"></div>
 				</div>
 				<div class="span3">
-					<!-- profile information -->
-					<dl>
-						<dt>Projects</dt>
-						<dd><a href="#" title="Real Hacker Shit">RHS</a>: LISP interpretter written in Python running on the JVM.</dd>
-						<dd><a href="#" title="Twitbookr">Twitbookr</a>: An open friendship marketplace (bid on your bud!)</dd>
-						
-						<dt>Friends</dt>
-						<dd><a href="https://twitter.com/NeckbeardHacker">Neckbeard Hacker</a></dd>
-						<dd><a href="https://twitter.com/hipsterhacker">Hipster Hacker</a></dd>
-						<dd><a href="https://twitter.com/StartupOpsGuy">Startup Ops Guy</a></dd>
-
-						<dt>Hobbies</dt>
-						<dd>Hacking software</dd>
-						<dd>Pwning newbs</dd>
-						<dd>Taking down the man</dd>
-						<dd>Being the man</dd>
-					</dl>
+					<!-- various profile information -->
+					<div id="prof-info"></div>
 				</div>
 			</div>
 
@@ -106,7 +70,7 @@
 		<script src="/lib/linkjs-ext/headers.js"></script>
 
 		<!-- environment -->
-		<script src="/env/localstorage.js"></script>
-		<script src="/index.js"></script>
+		<script src="/env/static.js"></script>
+		<script src="/profile.js"></script>
 	</body>
 </html>
