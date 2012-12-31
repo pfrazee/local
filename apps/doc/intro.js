@@ -1,7 +1,7 @@
 importScripts('/lib/linkjs-ext/responder.js');
 importScripts('/lib/linkjs-ext/router.js');
 app.onHttpRequest(function(request, response) {
-	Link.router(request).mra('get', '/', 'html', function() {
+	Link.router(request).mpa('get', '/', /html/, function() {
 		Link.responder(response).ok('html').end(
 			'<h1>LAP <small>0.2.0 unstable</small></h1>' +
 			'<p>Safely run user applications on the page using Web Workers.</p>' +

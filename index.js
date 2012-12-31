@@ -31,7 +31,7 @@ Environment.request = function(origin, request) {
 };
 
 // instantiate services
-//Environment.addServer('localstorage.env', new LocalStorageServer()); :TODO:
+Environment.addServer('localstorage.env', new LocalStorageServer());
 
 // instantiate apps
 Environment.addServer('intro.doc', new Environment.WorkerServer('/apps/doc/intro.js'));

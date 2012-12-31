@@ -32,9 +32,9 @@ var htmlResources = {
 // server request handler
 app.onHttpRequest(function(request, response) {
 	var router = Link.router(request);
-	router.m('get', function() {
+	router.m('GET', function() {
 		// add htmlResources responders
-		for (var path in htmlResources) { router.r(path, function() { Link.responder(response).ok('html').end(htmlResources[path]); }); }
+		for (var path in htmlResources) { router.p(path, function() { Link.responder(response).ok('html').end(htmlResources[path]); }); }
 		router.error(response);
 	});
 	router.error(response);
