@@ -1,3 +1,6 @@
+// Definitions
+// ===========
+
 // helpers
 function logError(err) {
 	if (err.request) { console.log(err.message, err.request); }
@@ -5,7 +8,7 @@ function logError(err) {
 	return err;
 }
 
-// request override
+// request wrapper
 Environment.request = function(origin, request) {
 	// make any connectivity / permissions decisions here
 
@@ -14,6 +17,14 @@ Environment.request = function(origin, request) {
 	response.except(logError);
 	return response;
 };
+
+// response html processor
+Environment.postProcessRegion = function(elem) {
+	addPersonaCtrls(elem);
+};
+
+// Init
+// ====
 
 // instantiate environment servers
 var fixtureServer = new StaticServer();

@@ -10,7 +10,7 @@ function renderFormHtml() {
 	'<form>',
 		'<label for="wall">Submit something for my wall: <img src="/assets/icons/16x16/help.png" title="Note: I review all posts before publishing" /></label>',
 		'<textarea id="wall" name="wall" class="span6"></textarea><br/>',
-		'<p>Submitting as: <a href="#"><span class="label label-info">Sign in using BrowserID</span></a></p>',
+		'<p>Submitting as: <span class="persona-ctrl"></span></p>',
 		'<button type="submit" class="btn btn-block disabled">Submit</button>',
 	'</form>'
 	].join('');
