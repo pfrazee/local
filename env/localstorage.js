@@ -22,7 +22,7 @@ function LocalStorageServer() {
 	this.collections = {};
 	// :TODO: load collections from a fixed name?
 }
-LocalStorageServer.prototype = Object.create(Environment.Server);
+LocalStorageServer.prototype = Object.create(Environment.Server.prototype);
 
 // request router
 LocalStorageServer.prototype.handleHttpRequest = function(request, response) {

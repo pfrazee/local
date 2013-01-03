@@ -54,7 +54,7 @@ function PersonaServer() {
 		onlogout:this.onLogout.bind(this)
 	});
 }
-PersonaServer.prototype = Object.create(Environment.Server);
+PersonaServer.prototype = Object.create(Environment.Server.prototype);
 
 // persona login handler
 PersonaServer.prototype.onLogin = function(assertion) {

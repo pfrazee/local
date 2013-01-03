@@ -16,7 +16,7 @@ function StaticServer() {
 	this.state = Environment.Server.ACTIVE;
 	this.collections = {};
 }
-StaticServer.prototype = Object.create(Environment.Server);
+StaticServer.prototype = Object.create(Environment.Server.prototype);
 
 // use this to populate the server
 StaticServer.prototype.addCollection = function(cid, Type) {

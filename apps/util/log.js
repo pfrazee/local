@@ -31,16 +31,16 @@ app.onHttpRequest(function(request, response) {
 	// collection
 	router.p('/', function() {
 		// build headers
-		var headers = Link.headers();
-		headers.addLink('/', 'self current');
+		var headerer = Link.headerer();
+		headerer.addLink('/', 'self current');
 
 		// list
 		router.ma('GET', /html/, function() {
-			respond.ok('html', headers).end(renderHtml(request.query.output)); // respond with log html
+			respond.ok('html', headerer).end(renderHtml(request.query.output)); // respond with log html
 		});
 		// subscribe to events
 		router.ma('GET', /event-stream/, function() {
-			respond.ok('event-stream', headers);
+			respond.ok('event-stream', headerer);
 			logBroadcast.addStream(response); // add the log updates listener
 		});
 		// add log entry
