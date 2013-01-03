@@ -1,7 +1,6 @@
 importScripts('/lib/linkjs-ext/responder.js');
 importScripts('/lib/linkjs-ext/router.js');
 importScripts('/lib/linkjs-ext/broadcaster.js');
-importScripts('/lib/linkjs-ext/headers.js');
 
 var dataProvider = Link.navigator(app.config.dataSource);
 
@@ -43,8 +42,8 @@ app.onHttpRequest(function(request, response) {
 	// collection
 	router.p('/', function() {
 		// build headers
-		var headers = Link.headers();
-		headers.addLink('/', 'self current');
+		var headerer = Link.headerer();
+		headerer.addLink('/', 'self current');
 
 		// render all
 		router.ma('GET', /html/, function() {
@@ -53,7 +52,7 @@ app.onHttpRequest(function(request, response) {
 				{ headers:{ accept:'application/json'} },
 				function(res) {
 					res.on('end', function() {
-						respond.ok('html', headers).end(renderHtml(res.body));
+						respond.ok('html', headerer).end(renderHtml(res.body));
 					});
 				},
 				function(err) {

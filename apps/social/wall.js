@@ -1,22 +1,30 @@
 importScripts('/lib/linkjs-ext/responder.js');
 importScripts('/lib/linkjs-ext/router.js');
 importScripts('/lib/linkjs-ext/broadcaster.js');
-importScripts('/lib/linkjs-ext/headers.js');
 
+var wallBroadcast = Link.broadcaster();
+
+var posts = [];
 var dataProvider = Link.navigator(app.config.dataSource);
 
-function renderFormHtml() {
+var user = null;
+var userUpdates = Link.subscribe(app.config.userSource);
+userUpdates.on(['subscribe','login','logout'], function(e) {
+	user = e.data;
+	wallBroadcast.emit('update'); // let's redraw
+});
+
+function renderFormHtml(query) {
 	return [
-	'<form>',
-		'<label for="wall">Submit something for my wall: <img src="/assets/icons/16x16/help.png" title="Note: I review all posts before publishing" /></label>',
-		'<textarea id="wall" name="wall" class="span6"></textarea><br/>',
+		'<label for="wall-content">Submit something for my wall:',
+		'<textarea id="wall-content" name="content" class="span6">',(query.content) ? query.content : '','</textarea><br/>',
 		'<p>Submitting as: <span class="persona-ctrl"></span></p>',
-		'<button type="submit" class="btn btn-block disabled">Submit</button>',
-	'</form>'
+		'<button type="submit" class="btn btn-block ', (user) ? '' : 'disabled', '">Submit</button>',
+		'<br/>'
 	].join('');
 }
 
-function renderPostsHtml(posts) {
+function renderPostsHtml() {
 	if (posts && Array.isArray(posts)) {
 		return posts.map(function(post) {
 			return [
@@ -32,11 +40,23 @@ function renderPostsHtml(posts) {
 	}
 }
 
-function renderHtml(posts) {
+function renderHtml(query) {
+	// render the content
 	var html = [
-		renderFormHtml(),
-		renderPostsHtml(posts)
+		renderFormHtml(query),
+		renderPostsHtml()
 	].join('');
+
+	if (!query.output) {
+		// add the wrapper
+		html = [
+		'<form action="httpl://', app.config.domain,'" method="post" enctype="application/json">',
+			'<output name="content">',
+				html,
+			'</output>',
+		'</form>'
+		].join('');
+	}
 	return html;
 }
 
@@ -48,23 +68,42 @@ app.onHttpRequest(function(request, response) {
 	// collection
 	router.p('/', function() {
 		// build headers
-		var headers = Link.headers();
-		headers.addLink('/', 'self current');
+		var headerer = Link.headerer();
+		headerer.addLink('/', 'self current');
 
-		// render all
+		// render
 		router.ma('GET', /html/, function() {
 			// fetch posts
 			dataProvider.get(
 				{ headers:{ accept:'application/json'} },
 				function(res) {
 					res.on('end', function() {
-						respond.ok('html', headers).end(renderHtml(res.body));
+						posts = res.body;
+						respond.ok('html', headerer).end(renderHtml(request.query));
 					});
 				},
 				function(err) {
 					console.log('failed to retrieve posts', err.message);
 					respond.badGateway().end();
-				});
+				}
+			);
+		});
+		// event subscribe
+		router.ma('GET', /event-stream/, function() {
+			respond.ok('text/event-stream', headerer);
+			wallBroadcast.addStream(response);
+		});
+		// post submit
+		router.mta('POST', /json/, /html/, function() {
+			if (user) {
+				// pass on to data-source
+				// :TODO:
+
+				posts.unshift({ author:user, content:request.body.content }); //:DEBUG:
+				respond.ok('text/html').end(renderHtml(request.query));
+			} else {
+				respond.unauthorized().end();
+			}
 		});
 		router.error(response, 'path');
 	});

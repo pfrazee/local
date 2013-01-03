@@ -1,9 +1,8 @@
 // persona.js
-// unsafe (client-side) user-session controls using mozilla's persona
+// user-session controls using mozilla's persona
 
-// Definitions
-// ===========
-var user = null; // :TODO: initialize with session
+// current user (likely an email)
+Environment.user = null;
 
 // Widgets
 // =======
@@ -12,11 +11,11 @@ function addPersonaCtrls(elem) {
 	var ctrls = elem.querySelectorAll('.persona-ctrl');
 	for (var i=0, ii=ctrls.length; i < ii; i++) {
 		var ctrl = ctrls[i];
-		if (user) {
+		if (Environment.user) {
 			// logged in
 			ctrl.innerHTML = [
 				'<span class="label">',
-					user,
+					Environment.user.name,
 				'</span>',
 				' <a href="javascript:void(0)">Sign Out</a>'
 			].join('');
@@ -41,43 +40,80 @@ function addPersonaCtrls(elem) {
 	}
 }
 
-// Init
-// ====
-navigator.id.watch({
-	loggedInUser: user,
-	onlogin: function(assertion) {
-		// verify the login assertion with the auth server
-		// :DEBUG: need to pull out the verify address
-		Link.request({
-			method:'post',
-			url:'http://'+window.location.host+'/persona-verify.php',
-			headers:{ accept:'application/json', 'content-type':'application/x-www-form-urlencoded' },
-			body:{ audience:'http://linkapjs.com:81', assertion:assertion }
-		}).then(function(res) {
-			if (res.body.status == 'okay') {
-				// logged in
-				user = res.body.email;
-			} else {
-				// login failure
-				user = null;
-				console.log('failed to verify identity assertion', res.body);
-			}
-			// recreate all controls
-			addPersonaCtrls(document.body);
-			return res;
-		}).except(function(err) {
+// Server
+// ======
+function PersonaServer() {
+	Environment.Server.call(this);
+	this.state = Environment.Server.ACTIVE;
+	this.userBroadcast = Link.broadcaster();
+
+	// start watching for persona events
+	navigator.id.watch({
+		loggedInUser:(Environment.user) ? Environment.user.name : null,
+		onlogin:this.onLogin.bind(this),
+		onlogout:this.onLogout.bind(this)
+	});
+}
+PersonaServer.prototype = Object.create(Environment.Server);
+
+// persona login handler
+PersonaServer.prototype.onLogin = function(assertion) {
+	// verify the login assertion with the auth server
+	// :DEBUG: need to pull out the verify address
+	var self = this;
+	Link.request({
+		method:'post',
+		url:'http://'+window.location.host+'/persona-verify.php',
+		headers:{ accept:'application/json', 'content-type':'application/x-www-form-urlencoded' },
+		body:{ audience:'http://linkapjs.com:81', assertion:assertion }
+	}).then(function(res) {
+		if (res.body.status == 'okay') {
+			// logged in
+			Environment.user = { scheme:'persona', name:res.body.email, assertion:assertion };
+			// tell the world
+			self.userBroadcast.emit('login', Environment.user.name);
+		} else {
 			// login failure
-			console.log('failed to verify identity assertion', err.message);
-			user = null;
-			// recreate all controls
-			addPersonaCtrls(document.body);
-			return err;
-		});
-	},
-	onlogout: function() {
-		// logged out
-		user = null;
+			Environment.user = null;
+			console.log('failed to verify identity assertion', res.body);
+		}
 		// recreate all controls
 		addPersonaCtrls(document.body);
+		return res;
+	}).except(function(err) {
+		// login failure
+		console.log('failed to verify identity assertion', err.message);
+		Environment.user = null;
+		// recreate all controls
+		addPersonaCtrls(document.body);
+		// tell the world
+		self.userBroadcast.emit('logout');
+		return err;
+	});
+};
+
+// persona logout handler
+PersonaServer.prototype.onLogout = function() {
+	// logged out
+	Environment.user = null;
+	// recreate all controls
+	addPersonaCtrls(document.body);
+	// tell the world
+	this.userBroadcast.emit('logout');
+};
+
+// request router
+PersonaServer.prototype.handleHttpRequest = function(request, response) {
+	var self = this;
+	var router = Link.router(request);
+	var respond = Link.responder(response);
+	router.a(/event-stream/, function() {
+		// add the broadcast subscriber
+		respond.ok('event-stream');
+		self.userBroadcast.addStream(response);
+		self.userBroadcast.emitTo(response, 'subscribe', Environment.user ? Environment.user.name : null);
+	});
+	if (!router.isRouted) {
+		respond.ok('text/plain').end(Environment.user ? Environment.user.name : null);
 	}
-});
+};

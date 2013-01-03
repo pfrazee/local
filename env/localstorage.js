@@ -89,37 +89,37 @@ LocalStorageServer.prototype._setItem = function(cid, iid, v) {
 
 // produce headers for service resource
 LocalStorageServer.prototype.buildServiceHeaders = function() {
-	var headers = Link.headers();
-	headers.addLink('/', 'self current');
-	headers.addLink('/{collection}', 'collection');
+	var headerer = Link.headerer();
+	headerer.addLink('/', 'self current');
+	headerer.addLink('/{collection}', 'collection');
 	Object.keys(this.collections).forEach(function(cid) {
-		headers.addLink('/'+cid, 'collection', { title:cid });
+		headerer.addLink('/'+cid, 'collection', { title:cid });
 	});
-	return headers;
+	return headerer;
 };
 
 // produce headers for collection resources
 LocalStorageServer.prototype.buildCollectionHeaders = function(cid) {
-	var headers = Link.headers();
-	headers.addLink('/', 'up via service');
+	var headerer = Link.headerer();
+	headerer.addLink('/', 'up via service');
 	if (cid) {
-		headers.addLink('/'+cid, 'self current');
-		headers.addLink('/'+cid+'/{item}', 'item');
+		headerer.addLink('/'+cid, 'self current');
+		headerer.addLink('/'+cid+'/{item}', 'item');
 	}
-	return headers;
+	return headerer;
 };
 
 // produce headers for item resources
 LocalStorageServer.prototype.buildItemHeaders = function(cid, iid) {
-	var headers = Link.headers();
-	headers.addLink('/', 'via service');
+	var headerer = Link.headerer();
+	headerer.addLink('/', 'via service');
 	if (cid) {
-		headers.addLink('/'+cid, 'up collection');
+		headerer.addLink('/'+cid, 'up collection');
 	}
 	if (iid) {
-		headers.addLink('/'+cid+'/'+iid, 'self current');
+		headerer.addLink('/'+cid+'/'+iid, 'self current');
 	}
-	return headers;
+	return headerer;
 };
 
 // GET /

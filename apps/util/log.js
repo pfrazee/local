@@ -1,7 +1,6 @@
 importScripts('/lib/linkjs-ext/responder.js');
 importScripts('/lib/linkjs-ext/router.js');
 importScripts('/lib/linkjs-ext/broadcaster.js');
-importScripts('/lib/linkjs-ext/headers.js');
 
 var log = [];
 var logBroadcast = Link.broadcaster();

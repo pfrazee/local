@@ -58,39 +58,39 @@ StaticServer.prototype.handleHttpRequest = function(request, response) {
 // GET|HEAD /
 StaticServer.prototype.handleListCollections = function(request, respond) {
 	// build headers
-	var headers = Link.headers();
-	headers.addLink('/', 'self current');
-	headers.addLink('/{collection}', 'collection');
+	var headerer = Link.headerer();
+	headerer.addLink('/', 'self current');
+	headerer.addLink('/{collection}', 'collection');
 	Object.keys(this.collections).forEach(function(cid) {
-		headers.addLink('/'+cid, 'collection', { title:cid });
+		headerer.addLink('/'+cid, 'collection', { title:cid });
 	});
 
 	if (/get/i.test(request.method)) {
 		// respond with data
-		respond.ok('json', headers).end(this.collections);
+		respond.ok('json', headerer).end(this.collections);
 	} else {
 		// respond with headers
-		respond.ok(null, headers).end();		
+		respond.ok(null, headerer).end();		
 	}
 };
 
 // GET|HEAD /:collection
 StaticServer.prototype.handleGetCollection = function(request, respond, cid) {
 	// headers
-	var headers = Link.headers();
-	headers.addLink('/', 'up via service');
+	var headerer = Link.headerer();
+	headerer.addLink('/', 'up via service');
 	// find
 	var collection = this.collections[cid];
 	if (collection) {
 		// add links
-		headers.addLink('/'+cid, 'self current');
-		headers.addLink('/'+cid+'/{item}', 'item');
+		headerer.addLink('/'+cid, 'self current');
+		headerer.addLink('/'+cid+'/{item}', 'item');
 		if (/get/i.test(request.method)) {
 			// respond with data
-			respond.ok('json', headers).end(collection);
+			respond.ok('json', headerer).end(collection);
 		} else {
 			// respond with headers
-			respond.ok(null, headers).end();
+			respond.ok(null, headerer).end();
 		}
 	} else {
 		respond.notFound().ok();
@@ -100,27 +100,27 @@ StaticServer.prototype.handleGetCollection = function(request, respond, cid) {
 // GET|HEAD /:collection/:id
 StaticServer.prototype.handleGetItem = function(request, respond, cid, iid) {
 	// headers
-	var headers = Link.headers();
-	headers.addLink('/', 'via service');
+	var headerer = Link.headerer();
+	headerer.addLink('/', 'via service');
 	// find
 	var collection = this.collections[cid];
 	if (collection) {
 		// add links
-		headers.addLink('/'+cid, 'up collection');
+		headerer.addLink('/'+cid, 'up collection');
 		// find
 		var item = collection[iid];
 		if (item) {
 			// add links
-			headers.addLink('/'+cid+'/'+iid, 'self current');
+			headerer.addLink('/'+cid+'/'+iid, 'self current');
 			if (/get/i.test(request.method)) {
 				// respond with data
-				respond.ok('json', headers).end(item);
+				respond.ok('json', headerer).end(item);
 			} else {
 				// respond with headers
-				respond.ok(null, headers).end();
+				respond.ok(null, headerer).end();
 			}
 			return;
 		}
 	}
-	respond.notFound(null, headers).end();
+	respond.notFound(null, headerer).end();
 };

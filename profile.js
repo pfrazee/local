@@ -2,19 +2,24 @@
 // ===========
 
 // helpers
-function logError(err) {
-	if (err.request) { console.log(err.message, err.request); }
-	else { console.log(err.message);}
+function logError(err, request) {
+	console.log(err.message, request);
 	return err;
 }
 
 // request wrapper
 Environment.request = function(origin, request) {
 	// make any connectivity / permissions decisions here
+	var urld = Link.parse.url(request.url || (request.host + request.path));
+
+	// add the credentials, if targetting our host and currently logged in
+	if (Environment.user && /https?/i.test(urld.protocol) && /linkapjs\.com$/i.test(urld.host)) {
+		Link.headerer(request.headers).addAuth(Environment.user);
+	}
 
 	// allow request
 	var response = Link.request(request);
-	response.except(logError);
+	response.except(logError, request);
 	return response;
 };
 
@@ -27,10 +32,14 @@ Environment.postProcessRegion = function(elem) {
 // ====
 
 // instantiate environment servers
+var personaServer = new PersonaServer();
+Environment.addServer('user.env', personaServer);
 var fixtureServer = new StaticServer();
 Environment.addServer('fixtures.env', fixtureServer);
 
 // load fixture data into a static service
+// :NOTE: an easy alternative to this is a remote php script with JSON and a `header('Content-Type: application/json');`
+//        or just a .json file, if your server supplies the content-type correctly
 fixtureServer.addCollection('profiles');
 fixtureServer.addCollectionItem('profiles', 'lorem.ipsum', {
 	fname:'Lorem',
@@ -69,14 +78,10 @@ fixtureServer.addCollectionItem('profiles', 'lorem.ipsum', {
 		}
 	]
 });
-fixtureServer.addCollection('posts', Array);
-fixtureServer.addCollectionItem('posts', { author:'someguy@aol.com', content:'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.' });
-fixtureServer.addCollectionItem('posts', { author:'lorem@gmail.com', content:'<a href="http://flickr.com/myphotos">http://flickr.com/myphotos</a> trip photos' });
-fixtureServer.addCollectionItem('posts', { author:'another.guy@somewhere.com', content:'This is a wall post.' });
 
 // instantiate apps
 Environment.addServer('placard.app', new Environment.WorkerServer('/apps/social/placard.js', { dataSource:'httpl://fixtures.env/profiles/lorem.ipsum' }));
-Environment.addServer('wall.app', new Environment.WorkerServer('/apps/social/wall.js', { dataSource:'httpl://fixtures.env/posts' }));
+Environment.addServer('wall.app', new Environment.WorkerServer('/apps/social/wall.js', { dataSource:'http://linkapjs.com:81/wall-posts.php', userSource:'httpl://user.env' }));
 Environment.addServer('prof-info.app', new Environment.WorkerServer('/apps/social/prof-info.js', { dataSource:'httpl://fixtures.env/profiles/lorem.ipsum' }));
 
 // load client regions
