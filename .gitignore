@@ -5,3 +5,5 @@ lib/link-ap.js
 lib/link.js
 lib/common-client.js
 lib/myhouse.js
+.htaccess
+db

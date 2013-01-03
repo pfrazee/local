@@ -14,7 +14,7 @@ Environment.request = function(origin, request) {
 
 	// add the credentials, if targetting our host and currently logged in
 	if (Environment.user && /https?/i.test(urld.protocol) && /linkapjs\.com$/i.test(urld.host)) {
-		Link.headerer(request.headers).addAuth(Environment.user);
+		request.headers = Link.headerer(request.headers).addAuth(Environment.user);
 	}
 
 	// allow request

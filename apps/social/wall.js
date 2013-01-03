@@ -97,10 +97,17 @@ app.onHttpRequest(function(request, response) {
 		router.mta('POST', /json/, /html/, function() {
 			if (user) {
 				// pass on to data-source
-				// :TODO:
-
-				posts.unshift({ author:user, content:request.body.content }); //:DEBUG:
-				respond.ok('text/html').end(renderHtml(request.query));
+				dataProvider.post(
+					{ body:request.body, headers:{ 'content-type':'application/json' }},
+					function(res) {
+						// success
+						posts.unshift({ author:user, content:request.body.content });
+						respond.ok('text/html').end(renderHtml(request.query));
+					},
+					function(err) {
+						responder.pipe(err.response);
+					}
+				);
 			} else {
 				respond.unauthorized().end();
 			}
