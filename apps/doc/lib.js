@@ -10,7 +10,7 @@ var makeNavLi = function(a, b, label) {
 };
 var makeNav = function(tab) {
 	return [
-		'<ul class="nav nav-tabs">',
+		'<ul class="nav nav-pills">',
 			makeNavLi(tab,'linkjs','LinkJS'),
 			makeNavLi(tab,'apps','Applications'),
 			makeNavLi(tab,'platform','Platform'),
@@ -35,6 +35,7 @@ app.onHttpRequest(function(request, response) {
 	router.m('GET', function() {
 		// add htmlResources responders
 		for (var path in htmlResources) { router.p(path, function() { Link.responder(response).ok('html').end(htmlResources[path]); }); }
+		router.p('/', function() { Link.responder(response).ok('html').end(htmlResources['/linkjs']); });
 		router.error(response);
 	});
 	router.error(response);

@@ -16,7 +16,7 @@ userUpdates.on(['subscribe','login','logout'], function(e) {
 
 function renderFormHtml(query) {
 	return [
-		'<label for="wall-content">Submit something for my wall:',
+		'<label for="wall-content">Write on my wall:',
 		'<textarea id="wall-content" name="content" class="span6">',(query.content) ? query.content : '','</textarea><br/>',
 		'<p>Submitting as: <span class="persona-ctrl"></span></p>',
 		'<button type="submit" class="btn btn-block ', (user) ? '' : 'disabled', '">Submit</button>',

@@ -29,8 +29,14 @@
 		<div class="container">
 			<div class="row">
 				<div class="span9">
-					<div id="intro"></div>
-					<div id="lib"></div>
+					<div class="client">
+						<div class="client-toolbar" data-client="intro"></div>
+						<div id="intro"></div>
+					</div>
+					<div class="client">
+						<div class="client-toolbar" data-client="lib"></div>
+						<div id="lib"></div>
+					</div>
 				</div>
 				<div class="span3" id="request-log"></div>
 			</div>
@@ -57,6 +63,7 @@
 
 		<!-- environment -->
 		<script src="/env/localstorage.js"></script>
+		<script src="/env/reflector.js"></script>
 		<script src="/index.js"></script>
 	</body>
 </html>
