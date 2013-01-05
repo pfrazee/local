@@ -145,11 +145,11 @@ ReflectorServer.prototype.$getServerEditor = function(request, response, match) 
 
 ReflectorServer.prototype.renderServerEditorHtml = function(domain, source) {
 	return [
-		'<p>',domain,'</p>',
+		'<p>Editing ',domain,'</p>',
 		'<form action="httpl://',this.config.domain,'/',domain,'/editor" method="post">',
 			'<textarea name="source" class="input-block-level" rows="20">',source,'</textarea>',
 			'<a class="btn" href="httpl://',domain,'">Cancel</a> ',
-			'<button type="submit" class="btn btn-primary">Exec</button>',
+			'<button type="submit" class="btn btn-primary">Reload</button>',
 		'</form>'
 	].join('');
 };
