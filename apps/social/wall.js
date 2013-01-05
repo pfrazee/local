@@ -6,6 +6,11 @@ var wallBroadcast = Link.broadcaster();
 
 var posts = [];
 var dataProvider = Link.navigator(app.config.dataSource);
+var dataUpdates = Link.subscribe(app.config.dataSource);
+dataUpdates.on('update', function(e) {
+	// if our provider ever updates, we should redraw
+	wallBroadcast.emit('update');
+});
 
 var user = null;
 var userUpdates = Link.subscribe(app.config.userSource);
@@ -101,8 +106,10 @@ app.onHttpRequest(function(request, response) {
 					{ body:request.body, headers:{ 'content-type':'application/json' }},
 					function(res) {
 						// success
-						posts.unshift({ author:user, content:request.body.content });
-						respond.ok('text/html').end(renderHtml(request.query));
+						res.on('end', function() {
+							posts = res.body;
+							respond.ok('text/html').end(renderHtml(request.query));
+						});
 					},
 					function(err) {
 						responder.pipe(err.response);

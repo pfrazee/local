@@ -3,6 +3,21 @@
 $protocol = (isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.0');
 $request_headers = apache_request_headers();
 
+function getPosts() {
+	// make sql request
+	$db = new PDO('sqlite:db/sqlite.db') or die ('cannot open database');
+	$result = $db->query('SELECT * FROM wall_posts ORDER BY id DESC LIMIT 10');
+	$db = NULL;
+	$rows = array();
+	foreach ($result as $row) {
+		// remove hosts from emails
+		$email_parts = explode('@', $row['author']);
+		$row['author'] = $email_parts[0];
+		$rows[] = $row;
+	}
+	return $rows;
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 	// validate auth
@@ -34,23 +49,46 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 	$stmt->execute();
 	$db = NULL;
 
-	header($protocol.' 200 ok');
-
-} else if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-
-	// get posts
-	$db = new PDO('sqlite:db/sqlite.db') or die ('cannot open database');
-	$result = $db->query('SELECT * FROM wall_posts ORDER BY id DESC LIMIT 15');
-	$db = NULL;
-	$rows = array();
-	foreach ($result as $row) {
-		$rows[] = $row;
-	}
-
 	// output json
 	header($protocol.' 200 ok');
 	header('Content-Type: application/json');
-	echo json_encode($rows);
+	echo json_encode(getPosts());
+
+} else if ($_SERVER['REQUEST_METHOD'] == 'GET') {
+
+	$accept = ($request_headers['accept']) ? $request_headers['accept'] : $request_headers['Accept'];
+	if (preg_match('/json/', $accept)) {
+
+		// output json
+		header($protocol.' 200 ok');
+		header('Content-Type: application/json');
+		echo json_encode(getPosts());
+	}
+	else if (preg_match('/event/', $accept)) {
+
+		// have there been any posts in the last 30 seconds?
+		$was_updated_recently = true; // :TODO:
+
+		// output event-stream
+		header('Content-Type: text/event-stream');
+		header('Cache-Control: no-cache'); // recommended to prevent caching of event data.
+		header('Connection: keep-alive');
+
+		for ($i=0; $i < 10; $i++) {
+			if ($was_updated_recently) {
+				echo "event: update\r\n";
+				echo "data: true\r\n";
+				echo "\r\n";
+				ob_flush();
+				flush();
+			}
+			sleep(6);
+		}
+
+	}
+	else {
+		header($protocol.' 406 not acceptable'); // honestly, go think about what you've done
+	}
 } else {
 	// oh noooo
 	header($protocol.' 405 method not allowed');
