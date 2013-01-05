@@ -21,7 +21,7 @@ function getPosts() {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 	// validate auth
-	$auth = $request_headers['authorization'];
+	$auth = ($request_headers['authorization']) ? $request_headers['authorization'] : $request_headers['Authorization'];
 	if (!$auth) {
 		header($protocol.' 401 unauthorized');
 		die;
@@ -71,19 +71,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 		// output event-stream
 		header('Content-Type: text/event-stream');
-		header('Cache-Control: no-cache'); // recommended to prevent caching of event data.
-		header('Connection: keep-alive');
+		header('Cache-Control: no-cache'); // recommended to prevent caching of event data
 
-		for ($i=0; $i < 10; $i++) {
-			if ($was_updated_recently) {
-				echo "event: update\r\n";
-				echo "data: true\r\n";
-				echo "\r\n";
-				ob_flush();
-				flush();
-			}
-			sleep(6);
-		}
+		echo "retry: 6000\r\n"; // give us, eh, 6 seconds
+		echo "event: update\r\n";
+		echo "data: true\r\n";
+		echo "\r\n";
+
+		// :NOTE: in a server with an event loop, you'd want to keep the connection open and stream events
+		//        but PHP aint good for that, so the browser's just going to have to reconnect repeatedly
 
 	}
 	else {
