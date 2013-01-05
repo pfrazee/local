@@ -1,5 +1,5 @@
 <?
-// CREATE TABLE wall_posts(id INTEGER PRIMARY KEY AUTOINCREMENT, author TEXT NOT NULL, content TEXT NOT NULL)
+// CREATE TABLE wall_posts(id INTEGER PRIMARY KEY AUTOINCREMENT, author TEXT NOT NULL, content TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
 $protocol = (isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.0');
 $request_headers = apache_request_headers();
 
@@ -66,16 +66,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 	}
 	else if (preg_match('/event/', $accept)) {
 
-		// have there been any posts in the last 30 seconds?
-		$was_updated_recently = true; // :TODO:
+		// have there been any posts in the last 6 seconds?
+		$db = new PDO('sqlite:db/sqlite.db') or die ('cannot open database');
+		$stmt = $db->query('SELECT COUNT(*) FROM wall_posts WHERE created_at > DATETIME("now","-6 seconds")');
+		$db = NULL;
+		$was_updated_recently = (intval($stmt->fetchColumn(0)) > 0);
 
 		// output event-stream
 		header('Content-Type: text/event-stream');
 		header('Cache-Control: no-cache'); // recommended to prevent caching of event data
 
 		echo "retry: 6000\r\n"; // give us, eh, 6 seconds
-		echo "event: update\r\n";
-		echo "data: true\r\n";
+		if ($was_updated_recently) {
+			echo "event: update\r\n";
+			echo "data: true\r\n";
+		}
 		echo "\r\n";
 
 		// :NOTE: in a server with an event loop, you'd want to keep the connection open and stream events
