@@ -1,30 +1,28 @@
-## Link Application Platform
+## Local
 
-LinkAP is a purely client-side application platform. It allows you to safely run programs together in the browser without involving a remote host. Add user applications to your site, break your front-end into reusable pieces, and simplify response templating by handling the layout on the client.
+Local is a client-side application platform. It allows you to safely run user programs together on the page with permissions-enforcement and thread-isolation, but without sacrificing the richness and performance of the Web.
+
 
 ### How does it work?
 
-LinkAP uses Web Workers to safely isolate applications in separate threads, and Content Security Policies to control which scripts are executed. Because Web Workers have to communicate through `postMessage`, LinkAP adds an HTTP-like API to structure the communication. Each worker program runs a server (under the "lap://" protocol) which can respond to Ajax requests, link clicks, form submits, and any other request-generating action. This allows clients to consume services without caring whether they are local or remote.
+Local uses Web Workers to safely isolate applications in separate threads, and Content Security Policies to control which scripts are executed. This provides enough safety to run user applications on the page, but makes it hard for those apps to interact with each other or render to the document. To overcome this limitation, Local emulates HTTP over the Workers's messaging system, allowing applications to address each other, communicate, and serve HTML as remote servers do.
+
+Local also provides a number of tools for developing the applications; more details may be found in the [technical documentation](/pfraze/local/blob/v0.2.0/docs/readme.md).
+
 
 ### How do I use it?
 
-To use LinkAP, you create an environment that sets the policies and loads the initial applications.
-
 ```bash
-git clone https://github.com/pfraze/link-ap.git mysite
+git clone https://github.com/pfraze/local.git mysite
 cd mysite
 make
 ```
 
-Have Apache (or any other Web server) host the `mysite` directory, and you should get a nice welcome page. Modify the files under `/host` to make your environment (`/host/main.js` is a good place to start).
+Have Apache (or any other Web server) host the `mysite` directory, and you should get the documentation and example pages. Then [work your way through the documentation](/pfraze/local/blob/v0.2.0/docs/readme.md) to learn how to construct the page and its applications.
 
-### Read the [Design Document](//github.com/pfraze/link-ap/wiki/Design-Document) to learn more about how LinkAP works.
-
----
-
-*LinkShell is in beta, so expect runtime, API, and design instability.*
 
 ---
+
 
 ## License
 
