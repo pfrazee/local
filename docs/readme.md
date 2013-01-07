@@ -9,7 +9,7 @@ This is the technical documentation for Local. If you're interested in an overvi
 
 ## Topics
 
- - [The Environment](./env/readme.md)
+ - <a href="env/readme.md">The Environment</a>
    - [Getting Started](./env/getting_started.md)
    - [Mediating Traffic for Security and Privacy](./env/mediating_traffic.md)
    - [Adding Widgets and Client Behaviors](./env/adding_widgets.md)
