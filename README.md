@@ -12,11 +12,7 @@ Local also provides a number of tools for developing the applications; more deta
 
 ### How do I use it?
 
-```bash
-git clone https://github.com/pfraze/local.git mysite
-cd mysite
-make
-```
+`git clone https://github.com/pfraze/local.git mysite`
 
 Have Apache (or any other Web server) host the `mysite` directory, and you should get the documentation and example pages. Then [work your way through the documentation](/pfraze/local/blob/v0.2.0/docs/readme.md) to learn how to construct the page and its applications.
 

@@ -1,5 +1,5 @@
-Environment Basics
-==================
+Getting Started
+===============
 
 pfraze 2013
 
