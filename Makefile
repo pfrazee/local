@@ -22,12 +22,12 @@ ${lib}myhouse.js:
 ${lib}worker_bootstrap.js:
 	cp ${lib}myhouse/worker_bootstrap.js ${lib}worker_bootstrap.js
 
-build: ${lib}environment.js ${lib}worker_core.js
+build: ${lib}environment.js ${lib}worker_httpl.js
 ${lib}environment.js: ${environment-files}
 	cat > $@ $^
-${lib}worker_core.js:
-	cp ${lib}environment/worker_core.js ${lib}worker_core.js
+${lib}worker_httpl.js:
+	cp ${lib}environment/worker_httpl.js ${lib}worker_httpl.js
 
 clean:
 	rm ${lib}link.js ${lib}common-client.js ${lib}myhouse.js ${lib}worker_bootstrap.js
-	rm ${lib}environment.js ${lib}worker_core.js
+	rm ${lib}environment.js ${lib}worker_httpl.js

@@ -17,6 +17,7 @@ This document provides an introduction to Local's design. Use it as a starting-p
  - "Common Client" is a UI library which provides HTML-driven behaviors to applications
  - "MyHouse" is a Worker management and sandboxing library
  - "Widgets" are reusable UI elements; this term is used informally
+ - "[Content Security Policies (CSP)](https://developer.mozilla.org/en-US/docs/Security/CSP)" are an HTML5 API for controlling whether content is permitted on the page
 
 
 ## About Local
@@ -40,7 +41,7 @@ To get started, direct a web server (apache, nginx, etc) to statically host a co
 
  - The Environment
    - [Getting Started](env/getting_started.md)
-   - [Building In-Document Servers](document_servers.md)
+   - [Building In-Document Servers](env/document_servers.md)
    - [Mediating Traffic for Security and Privacy](env/mediating_traffic.md)
    - [Adding Widgets and Client Behaviors](env/adding_widgets.md)
  - Worker Applications

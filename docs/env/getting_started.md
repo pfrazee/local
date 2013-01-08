@@ -34,6 +34,10 @@ Client regions are portions of the DOM which maintain their own browsing context
 
  > Read more: [Adding Widgets and Client Behaviors](adding_widgets.md)
 
+[Content Security Policies](https://developer.mozilla.org/en-US/docs/Security/CSP) are used to keep inline scripts from executing. They are currently set using 'meta' tags, but could also be established by response headers.
+
+ > Note, [CSP](http://caniuse.com/#search=CSP) is a major criteria for [Browser Support](../misc/browser_support.md)
+
 
 ## A Simple Example
 

