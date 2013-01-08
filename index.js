@@ -9,7 +9,7 @@ function logError(err) {
 	return err;
 }
 
-// request override
+// request wrapper
 var reqLog = new Link.Navigator('httpl://request-log.util');
 Environment.request = function(origin, request) {
 	// make any connectivity / permissions decisions here

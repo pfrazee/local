@@ -23,7 +23,7 @@ Environment.request = function(origin, request) {
 	return response;
 };
 
-// response html processor
+// dom update post-processor
 Environment.postProcessRegion = function(elem) {
 	addPersonaCtrls(elem);
 };
