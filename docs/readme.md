@@ -52,7 +52,7 @@ To get started, direct a web server (apache, nginx, etc) to statically host a co
    - [Using LinkJS, the HTTP wrapper](lib/linkjs.md)
    - [Using MyHouse, the Worker manager](lib/myhouse.md)
    - [Using CommonClient, the standard DOM behaviors](lib/commonclient.md)
-   - [Using the Envionment API](lib/environment.md)
+   - [Using the Environment API](lib/environment.md)
  - Examples
    - [env/localstorage.js](examples/localstorage.md)
    - [env/persona.js](examples/persona.md)
