@@ -69,7 +69,7 @@ Environment.request = function(origin, request) {
 	//...
 	// add credentials to sessions
 	if (MySessionManager.hasSession(origin, request)) {
-		Link.headers(request.headers).addAuth(MySessionManager.getSession(origin, request));
+		Link.headerer(request.headers).addAuth(MySessionManager.getSession(origin, request));
 	}
 	// ...
 };
