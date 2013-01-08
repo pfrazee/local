@@ -38,7 +38,7 @@ function makeActiveToolbar(elem) {
 		e.preventDefault();
 		e.stopPropagation();
 		// issue request
-		Environment.getClient(elem.dataset.client).request({
+		Environment.getClientRegion(elem.dataset.client).request({
 			method:'get',
 			url:'httpl://servers.env/'+elem.dataset.client+'.doc/editor',
 			headers:{ accept:'text/html' }
@@ -59,6 +59,6 @@ Environment.addServer('lib.doc', new Environment.WorkerServer({ scriptUrl:'/apps
 Environment.addServer('request-log.util', new Environment.WorkerServer({ scriptUrl:'/apps/util/log.js', title:'request log' }));
 
 // load client regions
-Environment.addClient('intro').request('httpl://intro.doc');
-Environment.addClient('lib').request('httpl://lib.doc/linkjs');
-Environment.addClient('request-log').request('httpl://request-log.util');
+Environment.addClientRegion('intro').request('httpl://intro.doc');
+Environment.addClientRegion('lib').request('httpl://lib.doc/linkjs');
+Environment.addClientRegion('request-log').request('httpl://request-log.util');

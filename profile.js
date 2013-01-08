@@ -85,6 +85,6 @@ Environment.addServer('wall.app', new Environment.WorkerServer({ scriptUrl:'/app
 Environment.addServer('prof-info.app', new Environment.WorkerServer({ scriptUrl:'/apps/social/prof-info.js', dataSource:'httpl://fixtures.env/profiles/lorem.ipsum' }));
 
 // load client regions
-Environment.addClient('placard').request('httpl://placard.app');
-Environment.addClient('wall').request('httpl://wall.app');
-Environment.addClient('prof-info').request('httpl://prof-info.app');
+Environment.addClientRegion('placard').request('httpl://placard.app');
+Environment.addClientRegion('wall').request('httpl://wall.app');
+Environment.addClientRegion('prof-info').request('httpl://prof-info.app');
