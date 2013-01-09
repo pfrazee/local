@@ -8,7 +8,8 @@ pfraze 2013
 
 This document discusses how Workers are managed, including the load-process and communication protocols.
 
- > [Web Workers](https://developer.mozilla.org/en-US/docs/DOM/Using_web_workers) interoperate through the `postMessage()` interface. [MyHouse](../lib/myhouse.md) provides a base set of tools for building a communication protocol.
+ > [Web Workers](https://developer.mozilla.org/en-US/docs/DOM/Using_web_workers) interoperate through the `postMessage()` interface.
+ > [MyHouse](../lib/myhouse.md) provides a base set of tools on top of that.
 
 
 ## Life-cycle

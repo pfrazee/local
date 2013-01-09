@@ -2,13 +2,11 @@
 
 Local is a client-side application platform. It allows you to safely run user programs together on the page with permissions-enforcement and thread-isolation, but without sacrificing the richness and performance of the Web.
 
-
 ### How does it work?
 
 Local uses Web Workers to safely isolate applications in separate threads, and Content Security Policies to control which scripts are executed. This provides enough safety to run user applications on the page, but makes it hard for those apps to interact with each other or render to the document. To overcome this limitation, Local emulates HTTP over the Workers's messaging system, allowing applications to address each other, communicate, and serve HTML as remote servers do.
 
 Local also provides a number of tools for developing the applications; more details may be found in the [technical documentation](/pfraze/local/blob/v0.2.0/docs/readme.md).
-
 
 ### How do I use it?
 
@@ -17,12 +15,13 @@ Local also provides a number of tools for developing the applications; more deta
 Have Apache (or any other Web server) host the `mysite` directory, and you should get the documentation and example pages. Then [work your way through the documentation](/pfraze/local/blob/v0.2.0/docs/readme.md) to learn how to construct the page and its applications.
 
 
-### Special Thanks
+## Third-Party Libraries
 
- - Stephen Levithan, [parseUri](http://stevenlevithan.com/demo/parseuri/js/)
- - more todo
+Thank you to the following third-party library authors:
 
----
+ - [**parseUri**](http://stevenlevithan.com/demo/parseuri/js/), Stephen Levithan
+ - [**UriTemplate**](https://github.com/fxa/uritemplate-js), Franz Antesberger
+ - :TODO:
 
 
 ## License
