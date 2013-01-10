@@ -27,6 +27,8 @@ More broadly, the creation of client-side data models (in order to create the UI
 </form>
 ```
 
+ > Assume the above uses Handlebars to render itself.
+
 This form behaves exactly as the [example from Knockout](http://knockoutjs.com/examples/helloWorld.html), but it does so with a very different process.
 
  - First, due to the form's `onchange` attribute, modifications to the inputs will result in a PATCH request to "httpl://helloworld.ui".
