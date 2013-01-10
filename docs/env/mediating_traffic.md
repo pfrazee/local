@@ -56,7 +56,7 @@ if (origin instanceof WorkerServer) {
 ```
 
 
-## Auth headers
+## Auth & Set-Cookie headers
 
 You never want to let credentials leak back into user applications, as they may be able to pass that data out to a remote host.
 
@@ -75,6 +75,23 @@ Environment.request = function(origin, request) {
 };
 ```
 
+It is also a good idea to scrub session headers such as 'Set-Cookie':
+
+```javascript
+Environment.request = function(origin, request) {
+	//...
+	// dispatch the request
+	return Link.request(request)
+		.then(function(response) { // on response codes 200-399
+			delete response.headers['set-cookie'];
+			return response;
+		})
+		.except(function(err) { // on response codes 400+
+			delete err.response.headers['set-cookie'];
+			return err;
+		})
+};
+```
 
 ## Further Topics
 

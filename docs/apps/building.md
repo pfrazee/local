@@ -3,6 +3,14 @@ Building an Application
 
 pfraze 2013
 
+## Overview
+
+Applications in Local behave like typical web servers. Their only obligation is to set a request handler, then post the 'loaded' message back to the environment. From then on, any requests will be handled by the request handler until the worker is destroyed.
+
+ > Note, no notice is given prior to worker destruction, so teardown is not possible.
+
+
+## Example
 
 A simple server might look like this:
 
@@ -16,6 +24,7 @@ app.onHttplRequest(function(request, response) {
 });
 app.postMessage('loaded');
 ```
+
 
 ## Server Tools
 

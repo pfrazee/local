@@ -50,7 +50,7 @@ To get started, direct a web server (apache, nginx, etc) to statically host a co
    - [Worker Protocol](apps/worker_protocol.md)
  - Libraries
    - [Using Promises, the flow-control tool](lib/promises.md)
-   - [**Using LinkJS, the HTTP wrapper**](lib/linkjs.md)
+   - [**Using LinkJS, the HTTP library**](lib/linkjs.md)
    - [Using MyHouse, the Worker manager](lib/myhouse.md)
    - [Using CommonClient, the standard DOM behaviors](lib/commonclient.md)
    - [**Using the Environment API**](lib/environment.md)
