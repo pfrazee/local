@@ -22,11 +22,11 @@ var makeNav = function(tab) {
 
 // documentation resources
 var htmlResources = {
-	'/linkjs'        : makeNav('linkjs') + '<p>An Ajax library that allows local functions to respond to HTTP requests.</p>',
-	'/apps'          : makeNav('apps') + '<p>Tools for building user applications.</p>',
-	'/platform'      : makeNav('platform') + '<p>How it all comes together.</p>',
-	'/common-client' : makeNav('common-client') + '<p>Standard client behaviors.</p>',
-	'/myhouse'       : makeNav('myhouse') + '<p>Create & control sandboxes in Web Workers from the parent document.</p>'
+	'/linkjs'        : makeNav('linkjs') + '<p>An Ajax library that allows local functions to respond to HTTP requests. TODO</p>',
+	'/apps'          : makeNav('apps') + '<p>Tools for building user applications. TODO</p>',
+	'/platform'      : makeNav('platform') + '<p>How it all comes together. TODO</p>',
+	'/common-client' : makeNav('common-client') + '<p>Standard client behaviors. TODO</p>',
+	'/myhouse'       : makeNav('myhouse') + '<p>Create & control sandboxes in Web Workers from the parent document. TODO</p>'
 };
 
 // server request handler

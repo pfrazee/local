@@ -1,8 +1,21 @@
 importScripts('/lib/linkjs-ext/responder.js');
-importScripts('/apps/util/lib/markdown.js');
-console.log(app.config);
+importScripts('/apps/util/lib/marked.js');
+
+marked.setOptions({
+    gfm: true,
+    tables: true,
+    breaks: false,
+    pedantic: false,
+    sanitize: false, //true,
+    highlight: function(code, lang) {
+        if (lang === 'js') {
+            return code;//highlighter.javascript(code);
+        }
+        return code;
+    }
+});
+
 app.onHttpRequest(function(request, response) {
-	console.log(app.config.baseUrl + request.path);
 	Link.responder(response).pipe(
 		Link.request({
 			method:'get',
@@ -14,7 +27,7 @@ app.onHttpRequest(function(request, response) {
 			return headers;
 		},
 		function(md) {
-			return (md) ? markdown.toHTML(md) : '';
+			return (md) ? marked(md) : '';
 		}
 	);
 });

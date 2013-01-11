@@ -21,6 +21,8 @@ Thank you to the following third-party library authors:
 
  - [**parseUri**](http://stevenlevithan.com/demo/parseuri/js/), Stephen Levithan
  - [**UriTemplate**](https://github.com/fxa/uritemplate-js), Franz Antesberger
+ - [**Prism**](https://github.com/LeaVerou/prism), Lea Verou
+ - [**Marked**](https://github.com/chjj/marked), Christopher Jeffrey
  - :TODO:
 
 
