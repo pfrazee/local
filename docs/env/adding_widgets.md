@@ -3,6 +3,9 @@ Adding Widgets and Client Behaviors
 
 pfraze 2013
 
+
+## Overview
+
 After any request updates the document, `Environment.postProcessRegion()` is called with the containing element as the first parameter. Use this opportunity to add any widgets or event handlers your environment requires.
 
 ```javascript
