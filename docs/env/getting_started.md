@@ -21,20 +21,23 @@ Environment APIs are made available through the `Environment` object. It additio
 
 ## Routing Requests
 
-In order to make Ajax requests which can target local servers, you use the `Link.request()` function. In the environment, however, all new traffic is dispatched by the `Environment.request()` wrapper, which takes an "origin" along with the request. This is so you can override the wrapper with your own logic:
+`Link.request()` dispatches Ajax requests which can target local servers. However, in the environment (aka the document), all programs use the `Environment.request()` wrapper, which takes an "origin" along with the request.
 
 ```javascript
-// helpers
-function logError(err) {
-	if (err instanceof Link.ResponseError) { console.log(err.message, err.request); }
-	else { console.log(err.message); }
-	return err;
-}
+// the http library call:
+Link.request({ method:'get', url:'https://github.com', headers:{ accept:'text/html' });
 
+// the environment call:
+Environment.request(this, { method:'get', url:'https://github.com', headers:{ accept:'text/html' });
+```
+
+This is so you can override the request-wrapper with your own logic:
+
+```javascript
 // request wrapper
 Environment.request = function(origin, request) {
 	// make any connectivity / permissions decisions here
-	if (Link.parse.url(request).protocol != 'httpl') {
+	if (Link.parseUri(request).protocol != 'httpl') {
 		console.log('Sorry, only local traffic is allowed in this environment');
 		return Environment.respond(403, 'forbidden');
 	}
@@ -44,6 +47,12 @@ Environment.request = function(origin, request) {
 	response.except(logError); // `Link.request` returns a promise which will fail if response status >= 400
 	return response;
 };
+
+function logError(err) {
+	if (err instanceof Link.ResponseError) { console.log(err.message, err.request); }
+	else { console.log(err.message); }
+	return err;
+}
 ```
 
 The request wrapper is the high-level security and debugging system for the environment. All application traffic is routed through this function so permissions and access policies can be enforced. You decide what's right for your application, but keep in mind:
@@ -73,7 +82,7 @@ Environment.postProcessRegion = function(clientRegionElem) {
 
 ## Instantiating Servers
 
-Local servers may run within the document or within workers. When in the document, they can be used to provide access to document APIs; for instance, you might wrap local storage, WebRTC, or even the DOM with them. Worker servers, meanwhile, are used to run untrusted applications. Use the worker servers to execute user-programs.
+Local servers may run within the document or within workers. When in the document, they can be used to provide access to document APIs; for instance, you might wrap local storage, WebRTC, or even the DOM with them. Worker servers, meanwhile, are used to run untrusted applications; use them to execute user-programs.
 
 ```javascript
 // instantiate services
@@ -84,7 +93,7 @@ Environment.addServer('editor.app', new Environment.WorkerServer({ scriptUrl:'/a
 Environment.addServer('files.app', new Environment.WorkerServer({ scriptUrl:'/apps/filetree.js', dataSource:'httpl://localstorage.env' }));
 ```
 
-The object passed into `WorkerServer` is mixed into the application's `app.config` object. 
+The object passed into the `WorkerServer` constructor is mixed into the worker's `app.config` object. 
 
  > Read more: [Building In-Document Servers](document_servers.md)
 
@@ -93,7 +102,7 @@ The object passed into `WorkerServer` is mixed into the application's `app.confi
 
 ## Creating Client Regions
 
-Client regions are portions of the DOM which maintain their own browsing context. Functionally, they are like IFrames: clicking a link within one will change its contents only.
+Client regions are portions of the DOM which maintain their own browsing context. Functionally, they are like IFrames: clicking a link within one will change its contents only. You create and manage them by referring to the ID of their target element; this example would create 2 regions (at '#editor' and '#files'):
 
 ```javascript
 // load client regions
@@ -109,7 +118,7 @@ Environment.addClientRegion('files').request('httpl://files.app');
 
 ## Document
 
-A document would then include the above script along with dependencies:
+The document should include its scripts at the bottom, along with dependencies:
 
 ```html
 <!-- base libraries -->
@@ -129,7 +138,11 @@ A document would then include the above script along with dependencies:
 
 The environment is free to set styles as well.
 
- > More complete examples are found in the respository: index.html/js, profile.html/js, and docs.html/js
+ > Read More: [Example: index.html](../examples/index.md)
+
+ > - [Example: profile.html](../examples/profile.md)
+
+ > - [Example: docs.html](../examples/docs.md)
 
 
 ## Further Topics

@@ -8,7 +8,7 @@ pfraze 2013
 
 ## Overview
 
-Local is a framework for HTML5 application platforms.
+Local is a framework for safely running user applications on the page using Web Workers.
 
 Some terminology:
 
@@ -19,15 +19,15 @@ Some terminology:
 
 ## About Local
 
-Local's primary purpose is to separate user interfaces from Web services. It can be used to create configurable site designs, modular single-page applications, and online environments for user-applications.
+Local lets you separate the user interface from the Web service. It can be used to create configurable site designs, modular single-page applications, and hosted environments for user-applications.
 
-Local builds on the [Service-Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture) by allowing browser-side javascript to respond to Ajax requests. This causes applications to behave as zero-latency Web servers, providing JSON resources to each other and responding with HTML to the document's requests. The document is then segmented into independent regions which browse the applications.
+Local builds on the [Service-Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture) by allowing browser-side javascript to respond to Ajax requests. This causes applications to behave as zero-latency Web servers, providing JSON resources to each other and responding with HTML to the document's requests. The document is then segmented into independent regions which browse the applications' resources.
 
 To maintain page security, user applications are isolated into Web Workers and communicated with via HTTPL messages. Using routing policies, the environment regulates the access and permission of its applications, enabling users to load programs without risking session- or data-comprimise. [Content Security Policies (CSP)](https://developer.mozilla.org/en-US/docs/Security/CSP) are additionally used to stop inline scripts from executing in the page.
 
  > Read more: [Worker Security](apps/security.md)
 
-Because applications can't touch the document, the environment has to handle it for them. Rather than binding to specific element events, links and forms are set to target "httpl://" addresses. The clicks and submits are translated into local requests, and their responses are used to update the originating client region. Additionally, servers can trigger requests in the client using Server-Sent Events (whether local or remote) which can be used to implement live updating.
+Because applications can't touch the document, the environment has to handle it for them. Rather than binding to events, the applications set their links and forms to target "httpl://" addresses. The click and submit events are translated into local requests, and their responses are used to update the originating client region. Additionally, servers (both local or remote) can trigger GET requests in the client using Server-Sent Events, which can be used to implement realtime updates.
 
  > Read more: [DOM Interactions via the Common Client](apps/dom_behaviors.md)
 
@@ -40,11 +40,11 @@ Local was built with a number of goals in mind:
  - No tight coupling between the interface and a web service
  - Safe execution of untrusted code
 
-It was first built to address the lack of user-extensibility for modern Web applications: with a strong framework for organizing and configuring the client, users can assemble private and public services into a safe and more-personal experience. 
+It was first built to address the lack of user-extensibility for modern Web applications: with a strong framework for organizing and configuring the client, users can assemble private and public services into safe and personal tools.
 
-Local also aims to improve interoperability between services by allowing them to deliver clients to each other's interfaces. That is, rather than build-in support for a third-party, an environment could embed a client app from them. This can be used to reduce barriers between networks, decreasing the "walled garden" effect.
+Local is also easy enough to use for simple apps. This 'docs.html' page, for example, is a reusable markdown-browser at ~50 lines of javascript (not including dependencies). It works by browsing the 'apps/util/markdown.js' server, which proxies to the .md files on the remote host and converts the response to HTML. \
 
-Most importantly, Local tries to simplify the development. The 'docs.html' page, for example, along with 'apps/util/markdown.js', is a reusable markdown-browser at around 60 lines of javascript (not including 3rd-party dependencies). It creates a client region in the document, then points it to the 'markdown.js' server which proxies to the .md files on the server. It converts the response to html, and the environment renders that response to the region.
+ > Read More: [Examples](examples/readme.md)
 
 
 ## Getting Started
@@ -81,6 +81,9 @@ You'll find a number of example pages (index.html, profile.html, docs.html) appl
    - [Using CommonClient, the standard DOM behaviors](lib/commonclient.md)
    - [**Using the Environment API**](lib/environment.md)
  - Examples
+   - [index.html](examples/index.md)
+   - [profile.html](examples/profile.md)
+   - [docs.html](examples/docs.md)
    - [env/localstorage.js](examples/localstorage.md)
    - [env/persona.js](examples/persona.md)
    - [env/reflector.js](examples/reflector.md)

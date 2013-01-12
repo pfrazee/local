@@ -25,9 +25,9 @@ All worker servers will use this function to issue requests; it's up to the in-d
 
 ## Common Patterns and Tools
 
-### Link.parse.url
+### Link.parseUri
 
-`Link.parse.url` wraps [Stephen Levithan's parseUri](http://stevenlevithan.com/demo/parseuri/js/), a function which breaks a URL into its component pieces. Some common uses for this:
+`Link.parseUri` wraps [Stephen Levithan's parseUri](http://stevenlevithan.com/demo/parseuri/js/), a function which breaks a URL into its component pieces. Some common uses for this:
 
 ```javascript
 var urld = Link.parse.url(request);

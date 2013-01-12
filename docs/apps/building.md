@@ -7,7 +7,7 @@ pfraze 2013
 
 Applications in Local behave like typical web servers. Their only obligation is to set a request handler, then post the 'loaded' message back to the environment. From then on, any requests will be handled by the request handler until the worker is destroyed.
 
- > Note, no notice is given prior to worker destruction, so teardown is not possible.
+ > Note: No notice is given prior to worker destruction, so teardown is not possible.
 
 
 ## Example
@@ -32,40 +32,62 @@ app.postMessage('loaded');
 
 Local revolves around HTTP, so a number of tools are provided to get the most out of it. This is a quick overview of the different APIs; more detail can be found in [Using LinkJS, the HTTP wrapper](../lib/linkjs.md).
 
-### Link.request
+### Link.request( <small>request</small> )
 
 Dispatches a request and returns a promise for the response. If the request URL's protocol is 'http' or 'https', it will issue an Ajax request. If it is 'httpl', it will issue a Web Worker or in-document request.
-
-The promise is fulfilled if the response status is >= 200 && < 400. It is rejected if it is >= 400.
 
 ```javascript
 var resPromise = Link.request({
 	method:'post',
-	url:'httpl://myapp.ui/some/resource', // or: `host:'httpl://myapp.ui'` and `path:'some/resource'`
+	url:'httpl://myapp.ui/some/resource',
+	// or `host:'httpl://myapp.ui'` and `path:'some/resource'`
 	query:{ foo:'bar' }, // adds '?foo=bar' to the url
 	headers:{
 		'content-type':'application/json',
 		'accept':'text/html'
 	},
 	body:requestPayload,
-	stream:false // do I want the response streamed? (used for server-sent events, default `false`)
-});
-resPromise.then(function(res) {
-	console.log(res.status, res.reason); // => 200 ok
-	console.log(res.headers); // => { 'content-type':'application/json', ...}
-	console.log(res.body); // => { foo:'bar', ...}
-}).except(function(err) {
-	console.log(err.message); // => 404: not found
-	console.log(err.response); // => { res.status:404, res.reason:'not found', ...}
-	return err;
+	stream:false // do I want the response streamed? default false
+	             // (used for server-sent events)
 });
 ```
 
- > Read more: [Using Promises, the flow-control tool](lib/promises.md)
+Like much of Local's code, `request` uses promises to handle async. If you're not familiar with promises, [have a look at the library's documentation](../lib/promises.md). `request` returns a promise which is fulfilled if the response status is >= 200 && < 400, or rejected if >= 400.
 
-### Link.subscribe
+```javascript
+resPromise
+	.then(function(res) {
+		console.log(res.status, res.reason);
+		// => 200 ok
+		console.log(res.headers);
+		// => { 'content-type':'application/json', ...}
+		console.log(res.body);
+		// => { foo:'bar', ...}
+	})
+	.except(function(err) {
+		console.log(err.message);
+		// => 404: not found
+		console.log(err.response);
+		// => { status:404, reason:'not found', ...}
+		return err;
+	});
+```
 
-Subscribe provides [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Server-sent_events/Using_server-sent_events) for local and remote Web servers. It takes a request in the same format as `Link.request()`, but it's also possible to just supply a URL, and it will default to a GET request.
+If you're writing in-document (environment) code, you might want to use `Environment.request()` instead. This gives the environment an opportunity to examine and route the request.
+
+ > Note: worker applications use `Link.request`, but the request payload is delivered to the environment and dispatched via `Environment.request`
+
+The usage is similar, except for an extra 'origin' parameter:
+
+```javascript
+Environment.request(this, myrequest)
+	.then(success)
+	.except(failure);
+```
+
+### Link.subscribe( <small>request/target url</small> )
+
+Programs can subscribe to [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Server-sent_events/Using_server-sent_events) from either local or remote Web servers. The protocol works by issuing a GET request for a 'text/event-stream' content-type, then leaves the streaming response open to receive event packets. As each event arrives, the listeners are notified:
 
 ```javascript
 var eventStream = Link.subscribe('https://myhost.com/news');
@@ -75,9 +97,28 @@ eventStream.on('foo', function(event) {
 eventStream.on(['one', 'two'], function(event) { ...});
 ```
 
+ > Read more: [Server-Sent Events in Local](../apps/events.md)
+
+### Link.Broadcaster
+
+To manage event-stream subscribers from the server, there's `Link.Broadcaster`.
+
+```javascript
+var userBroadcast = Link.broadcaster();
+
+// ...
+
+Link.responder(response).ok('event-stream'); // use responder() to write the header
+self.userBroadcast.addStream(response); // add the response stream to our listeners
+self.userBroadcast.emit('new user', username); // send event to all streams
+self.userBroadcast.emitTo(response, 'ready'); // send event to this stream
+```
+
+ > Read more: [Server-Sent Events in Local](../apps/events.md)
+
 ### Link.Router
 
-Router is a wrapper interface for requests. It executes callbacks by pattern-matching, and generates an error response after a sequence of misses.
+Router is a wrapper interface for handling requests. It executes callbacks by pattern-matching against the request, and it helps generate the error response after a request goes unmatched.
 
 Router provides four different match functions: 'path' (p), 'method' (m), 'accept' (a), and 'content-type' (t). It combines those functions into an incomplete set of likely combinations (p, pm, pma, pmat, pmta, pmt, pa, pt, m, ma, mat, mta, mt, mp, mpa, mpt, mpat, mpta, a, at, t) for matching against. You may pass a string (for exact matches) or a regex, and the matches will be passed to the callback:
 
@@ -203,113 +244,6 @@ var headers = Link.headerer();
 headers.setAuth({ scheme:'Basic', name:'pfraze', password:'foobar' });
 headers.addLink('http://pfraze.net', 'related', { title:'mysite' });
 headers.serialize(); // converts keys to string serializations
+// ...
+Link.responder(response).ok('html', headers).end(theHtml);
 ```
-
-### Link.Navigator
-
-Navigator is an HTTP agent for consuming services. It provides functions to navigate link headers and to send requests.
-
-Link headers are followed by the `relation()` function, which produces a new `Navigator` with the new context. It doesn't remotely verify the location yet, however. Instead, it stores relations as 'relative' to the previous contexts, then resolves them to 'absolute' (full URLs) when a request is made.
-
-The Link headers are expected to include, minimally, the 'href' and 'rel' attributes. The `href` may use [URI Templates](http://tools.ietf.org/html/rfc6570), which `relation(rel, param, extra)` uses as follows:
-
-```javascript
-var myhost = new Navigator('https://myhost.com');
-
-var users = myservice.relation('collection', 'users');
-// eg if: Link=[{ rel:'collection', href:'/{collection}' }]
-// then: users='https://myhost.com/users'
-
-var me = users.relation('item', 'pfraze');
-// eg if: Link=[{ rel:'item', href:'/users/{item}' }, { rel:'service', href:'/' }]
-// then: me='https://myhost.com/users'
-```
-
-Parameter 1 of `relation` specifies which link to use by matching the 'rel' value. Parameter 2 specifies what to use in the URI Template rendering, using the 'rel' value as the parameter name to replace. Parameter 3 can take an object of extra parameters to use when rendeirng the URI.
-
-If a 'title' attribute is included in a Link header, it will be used as a matching criteria to parameter 2. That is, if `rel="service", title="foobar"`, then `myNavigator.relation('service', 'foobar')` will match it. This can be used as an alternative to URI Templates.
-
-The `request()` function takes the request (optional) and two callbacks: success (status code >=200 & <400) and failure (status code >=400). Within the callbacks, the navigator is bound to 'this',
-
-# :TODO: finish this when it sucks less
-
-The `request()` and `relation()` functions have sugars for, respectively, the request methods and relation types. They can be used to reduce the number of parameters given:
-
-```javascript
-var myhost = new Navigator('https://myhost.com');
-var me = myhost.collection('users').item('pfraze');
-
-me.get(function(res) {
-	// -> HEAD https://myhost.com
-	// -> HEAD https://myhost.com/users
-	// -> GET  https://myhost.com/users/pfraze
-
-	this.patch({ body:{ email:'pfraze@foobar.com' }, headers:{ 'content-type':'application/json' }});
-	// -> PATCH https://myhost.com/users/pfraze { email:'pfraze@foobar.com' }
-
-	myhost.collection('users', { since:profile.id }).get(function(res2) {
-		// -> GET https://myhost.com/users?since=123
-		//...
-	});
-});
-```
-
-Notice that, within 
-
-### Link.Broadcaster
-
-Once an 'event-stream' is created ([Server Sent Events](https://developer.mozilla.org/en-US/docs/Server-sent_events/Using_server-sent_events)) events can be sent using `response.write`. Broadcaster provides tools to manage these streams and broadcast to them simultaneously.
-
-```javascript
-Link.responder(response).ok('event-stream');
-self.userBroadcast.addStream(response);
-self.userBroadcast.emit('new user', username);
-self.userBroadcast.emitTo(response, 'ready');;
-```
-
-### Link.parseUri
-
-[parseUri](http://stevenlevithan.com/demo/parseuri/js/) is written by Stephen Levithan. It breaks the input URL into its component parts:
-
-```javascript
-console.log(Link.parseUri('http://myserver.com/foobar?q=4').host); // => 'myserver.com'
-```
-
-### Link.UriTemplate
-
-[**UriTemplate**](https://github.com/fxa/uritemplate-js) was written by Franz Antesberger. It generates URLs using URI Templates and some inputs:
-
-```javascript
-Link.UriTemplate.parse('http://myserver.com/{collection}/{?foo,bar}').expand({ collection:'friends', foo:1, bar:'b' });
-// => "http://myserver.com/friends/?foo=1&bar=b"
-
-```
-
-### Link.contentTypes
-
-Remote requests must have their payloads serialized and their responses deserialzed. `Link.contentTypes` provides a registry of de/serializers for various mimetypes. Json and `application/x-www-form-urlencoded` are provided by default.
-
-```javascript
-Link.contentTypes.register('application/json',
-	function (obj) {
-		try {
-			return JSON.stringify(obj);
-		} catch (e) {
-			return '';
-		}
-	},
-	function (str) {
-		try {
-			return JSON.parse(str);
-		} catch (e) {
-			return null;
-		}
-	}
-);
-Link.contentTypes.serialize({ foo:'bar' }, 'application/json');
-// => '{ "foo":"bar" }'
-Link.contentTypes.deserialize('{ "foo":"bar" }', 'application/json');
-// => { foo:'bar' }
-```
-
-De/serializers are chosen by best match, according to the specificity of the provided mimetype. For instance, if 'application/foobar+json' is used, it will search for 'application/foobar+json', then 'application/json', then 'application'. If no match is found, the given parameter is returned as-is.
