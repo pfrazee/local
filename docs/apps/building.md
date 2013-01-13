@@ -28,7 +28,7 @@ app.postMessage('loaded');
 
 ## Server Tools
 
- > This section is duplicated in [Building In-Document Servers](../apps/document_servers.md)
+ > This section is duplicated in [Building In-Document Servers](../env/document_servers.md)
 
 Local revolves around HTTP, so a number of tools are provided to get the most out of it. This is a quick overview of the different APIs; more detail can be found in [Using LinkJS, the HTTP wrapper](../lib/linkjs.md).
 
@@ -87,7 +87,7 @@ Environment.request(this, myrequest)
 
 ### Link.subscribe( <small>request/target url</small> )
 
-Programs can subscribe to [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Server-sent_events/Using_server-sent_events) from either local or remote Web servers. The protocol works by issuing a GET request for a 'text/event-stream' content-type, then leaves the streaming response open to receive event packets. As each event arrives, the listeners are notified:
+Programs can subscribe to <a target="_top" href="https://developer.mozilla.org/en-US/docs/Server-sent_events/Using_server-sent_events">Server-Sent Events</a> from either local or remote Web servers. The protocol works by issuing a GET request for a 'text/event-stream' content-type, then leaves the streaming response open to receive event packets. As each event arrives, the listeners are notified:
 
 ```javascript
 var eventStream = Link.subscribe('https://myhost.com/news');
@@ -97,7 +97,7 @@ eventStream.on('foo', function(event) {
 eventStream.on(['one', 'two'], function(event) { ...});
 ```
 
- > Read more: [Server-Sent Events in Local](../apps/events.md)
+ > Read more: [Server-Sent Events in Local](events.md)
 
 ### Link.Broadcaster
 
@@ -114,7 +114,7 @@ self.userBroadcast.emit('new user', username); // send event to all streams
 self.userBroadcast.emitTo(response, 'ready'); // send event to this stream
 ```
 
- > Read more: [Server-Sent Events in Local](../apps/events.md)
+ > Read more: [Server-Sent Events in Local](events.md)
 
 ### Link.Router
 

@@ -6,7 +6,7 @@ pfraze 2013
 
 ## Overview
 
-[Server Sent Events](https://developer.mozilla.org/en-US/docs/Server-sent_events/Using_server-sent_events) are response streams which are held open after the initial response, then fed event data which the client can respond to. Local provides `Link.subscribe()` for consuming these event streams (locally or remotely). You provide it a URL or a request which will initiate the 'text/event-stream' response:
+<a target="_top" href="https://developer.mozilla.org/en-US/docs/Server-sent_events/Using_server-sent_events">Server Sent Events</a> are response streams which are held open after the initial response, then fed event data which the client can respond to. Local provides `Link.subscribe()` for consuming these event streams (locally or remotely). You provide it a URL or a request which will initiate the 'text/event-stream' response:
 
 ```javascript
 var user = null;
@@ -50,7 +50,7 @@ An event stream can be used to trigger updates to the document. This is done by 
 </form>
 ```
 
- > Read More: [DOM Interactions via the Common Client](apps/dom_behaviors.md)
+ > Read More: [DOM Interactions via the Common Client](dom_behaviors.md)
 
 
 ## Further Topics

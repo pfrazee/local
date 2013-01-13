@@ -12,11 +12,11 @@ Environment APIs are made available through the `Environment` object. It additio
 
  > Read More: [Using LinkJS, the HTTP library](../lib/linkjs.md)
 
- >  - [Using MyHouse, the Worker manager](lib/myhouse.md)
+ >  - [Using MyHouse, the Worker manager](../lib/myhouse.md)
 
- >  - [Using CommonClient, the standard DOM behaviors](lib/commonclient.md)
+ >  - [Using CommonClient, the standard DOM behaviors](../lib/commonclient.md)
 
- >  - [Using Promises, the flow-control tool](lib/promises.md)
+ >  - [Using Promises, the flow-control tool](../lib/promises.md)
 
 
 ## Routing Requests
@@ -60,9 +60,9 @@ The request wrapper is the high-level security and debugging system for the envi
  - Data which reaches an application could be leaked via importScripts or an image URL, so protect sensitive data
  - "Auth" credentials should be attached to requests by the environment, and session ids should be stripped from responses 
  - Remote traffic should never be unregulated for untrusted apps
- - Use [Content Security Policies](https://developer.mozilla.org/en-US/docs/Security/CSP)!
+ - Use <a target="_top" href="https://developer.mozilla.org/en-US/docs/Security/CSP">Content Security Policies</a>!
 
- > Read More: [Mediating Traffic for Security and Privacy](env/mediating_traffic.md)
+ > Read More: [Mediating Traffic for Security and Privacy](mediating_traffic.md)
 
 
 ## Adding Widgets
@@ -77,7 +77,7 @@ Environment.postProcessRegion = function(clientRegionElem) {
 };
 ```
 
- > Read More: [Adding Widgets and Client Behaviors](env/adding_widgets.md)
+ > Read More: [Adding Widgets and Client Behaviors](adding_widgets.md)
 
 
 ## Instantiating Servers
@@ -97,7 +97,7 @@ The object passed into the `WorkerServer` constructor is mixed into the worker's
 
  > Read more: [Building In-Document Servers](document_servers.md)
 
- > - [Building an Application](apps/building.md)
+ > - [Building an Application](../apps/building.md)
 
 
 ## Creating Client Regions
@@ -114,7 +114,7 @@ Environment.addClientRegion('files').request('httpl://files.app');
 
 [Content Security Policies](https://developer.mozilla.org/en-US/docs/Security/CSP) are used to keep inline scripts from executing. They are currently set using 'meta' tags, but could also be established by response headers.
 
- > Note, [CSP](http://caniuse.com/#search=CSP) is a major criteria for [Browser Support](../misc/browser_support.md)
+ > Note, <a target="_top" href="http://caniuse.com/#search=CSP">CSP</a> is a major criteria for [Browser Support](../misc/browser_support.md)
 
 ## Document
 

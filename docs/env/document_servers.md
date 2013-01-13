@@ -87,7 +87,7 @@ Environment.request(this, myrequest)
 
 ### Link.subscribe( <small>request/target url</small> )
 
-Programs can subscribe to [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Server-sent_events/Using_server-sent_events) from either local or remote Web servers. The protocol works by issuing a GET request for a 'text/event-stream' content-type, then leaves the streaming response open to receive event packets. As each event arrives, the listeners are notified:
+Programs can subscribe to <a target="_top" href="https://developer.mozilla.org/en-US/docs/Server-sent_events/Using_server-sent_events">Server-Sent Events</a> from either local or remote Web servers. The protocol works by issuing a GET request for a 'text/event-stream' content-type, then leaves the streaming response open to receive event packets. As each event arrives, the listeners are notified:
 
 ```javascript
 var eventStream = Link.subscribe('https://myhost.com/news');

@@ -18,6 +18,6 @@ Environment.postProcessRegion = function(elem) {
 
 ## Further Topics
 
- - [DOM Interactions via the Common Client](apps/dom_behaviors.md)
- - [Using CommonClient, the standard DOM behaviors](lib/commonclient.md)
- - [Using the Environment API](lib/environment.md)
+ - [DOM Interactions via the Common Client](../apps/dom_behaviors.md)
+ - [Using CommonClient, the standard DOM behaviors](../lib/commonclient.md)
+ - [Using the Environment API](../lib/environment.md)

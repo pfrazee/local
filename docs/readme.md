@@ -21,9 +21,9 @@ Some terminology:
 
 Local lets you separate the user interface from the Web service. It can be used to create configurable site designs, modular single-page applications, and hosted environments for user-applications.
 
-Local builds on the [Service-Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture) by allowing browser-side javascript to respond to Ajax requests. This causes applications to behave as zero-latency Web servers, providing JSON resources to each other and responding with HTML to the document's requests. The document is then segmented into independent regions which browse the applications' resources.
+Local builds on the <a target="_top" href="http://en.wikipedia.org/wiki/Service-oriented_architecture">Service-Oriented Architecture</a> by allowing browser-side javascript to respond to Ajax requests. This causes applications to behave as zero-latency Web servers, providing JSON resources to each other and responding with HTML to the document's requests. The document is then segmented into independent regions which browse the applications' resources.
 
-To maintain page security, user applications are isolated into Web Workers and communicated with via HTTPL messages. Using routing policies, the environment regulates the access and permission of its applications, enabling users to load programs without risking session- or data-comprimise. [Content Security Policies (CSP)](https://developer.mozilla.org/en-US/docs/Security/CSP) are additionally used to stop inline scripts from executing in the page.
+To maintain page security, user applications are isolated into Web Workers and communicated with via HTTPL messages. Using routing policies, the environment regulates the access and permission of its applications, enabling users to load programs without risking session- or data-comprimise. <a target="_top" href="https://developer.mozilla.org/en-US/docs/Security/CSP">Content Security Policies (CSP)</a> are additionally used to stop inline scripts from executing in the page.
 
  > Read more: [Worker Security](apps/security.md)
 
@@ -42,14 +42,14 @@ Local was built with a number of goals in mind:
 
 It was first built to address the lack of user-extensibility for modern Web applications: with a strong framework for organizing and configuring the client, users can assemble private and public services into safe and personal tools.
 
-Local is also easy enough to use for simple apps. This 'docs.html' page, for example, is a reusable markdown-browser at ~50 lines of javascript (not including dependencies). It works by browsing the 'apps/util/markdown.js' server, which proxies to the .md files on the remote host and converts the response to HTML. \
+Local is also easy enough to use for simple apps. This 'docs.html' page, for example, is a reusable markdown-browser at ~50 lines of javascript (not including dependencies). It works by browsing the 'apps/util/markdown.js' server, which proxies to the .md files on the remote host and converts the response to HTML.
 
  > Read More: [Examples](examples/readme.md)
 
 
 ## Getting Started
 
-Local can be statically hosted after a clean checkout using any Web server. In order to use some example features (such as the [Mozilla Persona](http://www.mozilla.org/en-US/persona/) library), PHP and SQLite3 support are required.
+Local can be statically hosted after a clean checkout using any Web server. In order to use some example features (such as the <a target="_top" href="http://www.mozilla.org/en-US/persona/">Mozilla Persona</a> library), PHP and SQLite3 support are required.
 
 ```bash
 git clone --recursive https://github.com/pfraze/local.git

@@ -12,7 +12,6 @@ Environment.request = function(origin, request) {
 	var urld = Link.parseUri(request);
 	var newHash = '#' + urld.path.slice(1);
 	if (urld.host == 'markdown.util' && currentHash != newHash) {
-		console.log(newHash);
 		currentHash = newHash;
 		window.location.hash = newHash;
 	}
@@ -33,6 +32,7 @@ window.onhashchange = function() {
 	var active = viewNav.querySelector('.active');
 	active && active.classList.remove('active');
 	viewNav.querySelector('a[href="'+window.location.hash+'"]').parentNode.classList.add('active');
+	window.scroll(0,0);
 	// only issue a request if the request hasnt already been issued
 	if (currentHash != window.location.hash) {
 		Environment.getClientRegion('viewer').request('httpl://markdown.util/'+window.location.hash.slice(1));

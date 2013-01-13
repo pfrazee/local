@@ -11,7 +11,7 @@ Navigator is an HTTP agent for consuming services. It provides functions to navi
 
 Link headers are followed by the `relation()` function, which produces a new `Navigator` with the new context. It doesn't remotely verify the location yet, however. Instead, it stores relations as 'relative' to the previous contexts, then resolves them to 'absolute' (full URLs) when a request is made.
 
-The Link headers are expected to include, minimally, the 'href' and 'rel' attributes. The `href` may use [URI Templates](http://tools.ietf.org/html/rfc6570), which `relation(rel, param, extra)` uses as follows:
+The Link headers are expected to include, minimally, the 'href' and 'rel' attributes. The `href` may use <a target="_top" href="http://tools.ietf.org/html/rfc6570">URI Templates</a>, which `relation(rel, param, extra)` uses as follows:
 
 ```javascript
 var myhost = new Navigator('https://myhost.com');
@@ -58,7 +58,7 @@ Notice that, within
 
 ### Link.parseUri
 
-[parseUri](http://stevenlevithan.com/demo/parseuri/js/) is written by Stephen Levithan. It breaks the input URL into its component parts:
+<a target="_top" href="http://stevenlevithan.com/demo/parseuri/js/">parseUri</a> is written by Stephen Levithan. It breaks the input URL into its component parts:
 
 ```javascript
 console.log(Link.parseUri('http://myserver.com/foobar?q=4').host); // => 'myserver.com'
@@ -66,7 +66,7 @@ console.log(Link.parseUri('http://myserver.com/foobar?q=4').host); // => 'myserv
 
 ### Link.UriTemplate
 
-[**UriTemplate**](https://github.com/fxa/uritemplate-js) was written by Franz Antesberger. It generates URLs using URI Templates and some inputs:
+<a target="_top" href="https://github.com/fxa/uritemplate-js">UriTemplate</a> was written by Franz Antesberger. It generates URLs using URI Templates and some inputs:
 
 ```javascript
 Link.UriTemplate.parse('http://myserver.com/{collection}/{?foo,bar}').expand({ collection:'friends', foo:1, bar:'b' });

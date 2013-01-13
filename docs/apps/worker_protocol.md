@@ -8,7 +8,7 @@ pfraze 2013
 
 This document discusses how Workers are managed, including the load-process and communication protocols.
 
- > [Web Workers](https://developer.mozilla.org/en-US/docs/DOM/Using_web_workers) interoperate through the `postMessage()` interface.
+ > <a target="_top" href="https://developer.mozilla.org/en-US/docs/DOM/Using_web_workers>[Web Workers</a> interoperate through the `postMessage()` interface.
  > [MyHouse](../lib/myhouse.md) provides a base set of tools on top of that.
 
 

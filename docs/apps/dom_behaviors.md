@@ -132,7 +132,7 @@ Local can produce an effect much like the data-binding in Knockout and Angular, 
 </form>
 ```
 
-This form behaves exactly as [this example from Knockout](http://knockoutjs.com/examples/helloWorld.html), but it does so with a very different process.
+This form behaves exactly as <a target="_top" href="http://knockoutjs.com/examples/helloWorld.html">this example from Knockout</a>, but it does so with a very different process.
 
  - First, due to the form's `onchange` attribute, modifications to the inputs will result in a PATCH request to "httpl://helloworld.ui".
  - The server living there (which may be local or remote) will update its data model and broadcast the 'update' event via a server-sent event. 
@@ -158,7 +158,7 @@ Of course, some interfaces don't need live updates, and use a more traditional r
 </form>
 ```
 
-Again, this behaves like [the Knockout example it emulates](http://knockoutjs.com/examples/clickCounter.html). It behaves like typical forms: when a button is clicked, a POST (or RESET, depending on the button) is sent to the server, and it responds with updated HTML which replaces the entire form.
+Again, this behaves like <a target="_top" href="http://knockoutjs.com/examples/clickCounter.html">the Knockout example it emulates</a>. It behaves like typical forms: when a button is clicked, a POST (or RESET, depending on the button) is sent to the server, and it responds with updated HTML which replaces the entire form.
 
 
 ## Further Topics

