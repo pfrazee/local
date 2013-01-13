@@ -3,11 +3,17 @@ Example: env/localstorage.js
 
 pfraze 2013
 
+
+## Overview
+
 The local storage server provides open CRUD to collections and their items which are stored in the browser's local storage. (Because it uses localStorage, it must be run in the document.) It provides a fairly complete example implementation of a CRUD server.
 
 Note that it responds to HEAD requests with 'Link' headers. This is so `Link.navigator()` can easily consume its api.
 
  > Read more: [Using LinkJS, the HTTP library](../lib/linkjs.md)
+
+
+## localstorage.js
 
 ```javascript
 // based on https://github.com/jeromegn/Backbone.localStorage

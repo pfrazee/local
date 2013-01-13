@@ -1,7 +1,12 @@
 Promises
 ========
 
-Monadic function chaining around asynchronously-fulfilled values. Built to be simple and small.
+pfraze 2013
+
+
+## Overview
+
+Monadic function chaining around asynchronously-fulfilled values.
 
 ## Usage
 

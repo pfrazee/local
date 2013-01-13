@@ -4,6 +4,13 @@ Example: index.html
 pfraze 2013
 
 
+## Overview
+
+Index.html is a small showcase of Local's primary features. It uses the environment reflector server (env/reflector.js) to give applications the tools to modify themselves, and the `Environment.request` wrapper to log traffic to the UI.
+
+
+## index.js
+
 ```javascript
 // helpers
 function $reqbody(body, type) {

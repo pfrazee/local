@@ -3,6 +3,14 @@ Example: docs.html
 
 pfraze 2013
 
+
+## Overview
+
+Docs.html is a complete markdown-viewer application. It uses a markdown-to-HTML proxy (apps/util/markdown.js) to browse the markdown files hosted on the remote server (under docs/).
+
+
+## docs.js
+
 ```javascript
 // helpers
 function logError(err) {
@@ -12,7 +20,15 @@ function logError(err) {
 }
 
 // request wrapper
+var currentHash = window.location.hash;
 Environment.request = function(origin, request) {
+
+	var urld = Link.parseUri(request);
+	var newHash = '#' + urld.path.slice(1);
+	if (urld.host == 'markdown.util' && currentHash != newHash) {
+		currentHash = newHash;
+		window.location.hash = newHash;
+	}
 
 	// allow request
 	var response = Link.request(request);
@@ -27,9 +43,15 @@ Environment.postProcessRegion = function(el) {
 // setup nav
 var viewNav = document.getElementById('viewer-nav');
 window.onhashchange = function() {
-	Environment.getClientRegion('viewer').request('httpl://markdown.util/'+window.location.hash.slice(1));
-	viewNav.querySelector('.active').classList.remove('active');
+	var active = viewNav.querySelector('.active');
+	active && active.classList.remove('active');
 	viewNav.querySelector('a[href="'+window.location.hash+'"]').parentNode.classList.add('active');
+	window.scroll(0,0);
+	// only issue a request if the request hasnt already been issued
+	if (currentHash != window.location.hash) {
+		Environment.getClientRegion('viewer').request('httpl://markdown.util/'+window.location.hash.slice(1));
+		currentHash = window.location.hash;
+	}
 };
 
 // instantiate apps

@@ -3,7 +3,13 @@ apps/social/wall.js
 
 pfraze 2013
 
+
+## Overview
+
 Wall illustrates a fairly simple but common kind of application: a UI proxy. It breaks its interface into multiple `<output>` regions, allowing it to trigger updates to portions of its interface, and live-updates from its data source (which can be remote).
+
+
+## wall.js
 
 ```javascript
 importScripts('/lib/linkjs-ext/responder.js');

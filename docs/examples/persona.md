@@ -3,7 +3,13 @@ Example: env/persona.js
 
 pfraze 2013
 
+
+## Overview
+
 Persona.js shows how a session can be managed. It provides widgets to simplify application usage, and broadcasts events so applications can respond to session changes.
+
+
+## persona.js
 
 ```javascript
 // persona.js

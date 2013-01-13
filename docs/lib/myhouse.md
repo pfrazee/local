@@ -3,7 +3,11 @@ Using MyHouse, the Worker manager
 
 pfraze 2013
 
+
+## Overview
+
 A library for sandboxing untrusted code in a web worker.
+
 
 ## Basic Usage
 

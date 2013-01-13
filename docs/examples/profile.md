@@ -4,6 +4,22 @@ Example: profile.html
 pfraze 2013
 
 
+## Overview
+
+Profile.html is an example application which illustrates how an environment might be organized, how widgets are used, and how event streams can syncronous separate components.
+
+Three different worker applications serve the HTML. They read data from a scaffold server in the environment.
+
+The wall server (apps/social/wall.js) gets its content from the remote host /wall-posts.php. It also subscribes to the event-stream at that url, and updates the UI when an 'update' event is emitted.
+
+ > PHP is not well-suited to keeping the connection open, so it closes the connection and lets the browser fall back to short-polling.
+
+The persona library and environment server (env/persona.js) uses <a target="_top" href="http://www.mozilla.org/en-US/persona/">Mozilla Persona</a> to authenticate users and manage sessions. Once a login is verified (through the host's /verify-persona.php script) the username and assertion are put in the Auth header of requests, so the remote host can verify again as-needed. The wall application listens to user login and logout events, and updates its UI to allow posts once the login has occurred.
+
+ > This is an incomplete example of an authentication scheme. A complete example (and library) will be released later.
+
+## profile.js
+
 ```javascript
 // Definitions
 // ===========

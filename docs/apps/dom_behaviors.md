@@ -8,7 +8,7 @@ pfraze 2013
 
 This document covers how HTML is rendered on the page and what UI behaviors are implemented.
 
-A challenge for running applications from Web Workers is providing control over the document without having access to the document API. Rather than try to provide an alternate API, Local adds HTML features which give the server tighter control over the document (without violating REST). Except for these key changes, Local applications behave almost exactly like the standard browsers by navigating between resources.
+A challenge for running applications from Web Workers is providing control over the document without having access to the document API. Rather than try to provide an alternate API, Local adds HTML features which give the server tighter control over the document. Except for these key changes, Local applications behave almost exactly like the standard browsers by navigating between resources.
 
 
 ## Request Events
