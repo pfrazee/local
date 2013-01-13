@@ -10,7 +10,7 @@ function logError(err, request) {
 // request wrapper
 Environment.request = function(origin, request) {
 	// make any connectivity / permissions decisions here
-	var urld = Link.parse.url(request.url || (request.host + request.path));
+	var urld = Link.parseUri(request);
 
 	// add the credentials, if targetting our host and currently logged in
 	if (Environment.user && /https?/i.test(urld.protocol) && /linkapjs\.com$/i.test(urld.host)) {
