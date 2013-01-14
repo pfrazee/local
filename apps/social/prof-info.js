@@ -35,15 +35,14 @@ app.onHttpRequest(function(request, response) {
 
 		// render all
 		router.ma('GET', /html/, function() {
-			// fetch posts
-			dataProvider.get(
-				{ headers:{ accept:'application/json'} },
-				function(res) {
+			// fetch data
+			dataProvider.getJson()
+				.then(function(res) {
 					res.on('end', function() {
 						respond.ok('html', headerer).end(renderHtml(res.body));
 					});
-				},
-				function(err) {
+				})
+				.except(function(err) {
 					console.log('failed to retrieve posts', err.message);
 					respond.badGateway().end();
 				});

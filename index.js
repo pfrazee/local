@@ -1,10 +1,6 @@
 // helpers
-function $reqbody(body, type) {
-	type = (type || ((typeof body == 'string') ? 'text/plain' : 'application/json' ));
-	return { body:body, headers:{ 'content-type':type }};
-}
 function logError(err) {
-	if (err.request) { console.log(err.message, err.request); }
+	if (err.response) { console.log(err.message, err.response); }
 	else { console.log(err.message);}
 	return err;
 }
@@ -16,12 +12,12 @@ Environment.request = function(origin, request) {
 
 	// pass on to the request log
 	if (request.url.indexOf('httpl://request-log.util') === -1) {
-		var entry = $reqbody([
+		var entry =[
 			request.method.toUpperCase()+':',
 			request.url,
 			'<span style="color:gray">',request.headers.accept,'</span>'
-		].join(' '));
-		reqLog.post(entry, null, logError);
+		].join(' ');
+		reqLog.post(entry, 'text/plain').except(logError);
 	}
 
 	// allow request

@@ -73,13 +73,15 @@ function renderHtml(query) {
 }
 
 function getPosts(cb) {
-	dataProvider.get(
-		{ headers:{ accept:'application/json'} },
-		function(res) {
-			res.on('end', function() { posts = res.body; cb(null, res); });
-		},
-		function(err) { console.log('failed to retrieve posts', err.message); cb(err); }
-	);
+	dataProvider.getJson()
+		.then(function(res) {
+			posts = res.body;
+			cb(null, res);
+		})
+		.except(function(err) {
+			console.log('failed to retrieve posts', err.message);
+			cb(err);
+		});
 }
 
 // request router
@@ -111,17 +113,13 @@ app.onHttpRequest(function(request, response) {
 		router.mta('POST', /json/, /html/, function() {
 			if (!user) { return respond.unauthorized().end(); }
 			// pass on to data-source
-			dataProvider.post(
-				{ body:request.body, headers:{ 'accept':'application/json', 'content-type':'application/json' }},
-				function(res) {
+			dataProvider.post(request.body, 'application/json', { accept:'application/json' })
+				.then(function(res) {
 					// success
-					res.on('end', function() {
-						posts = res.body;
-						respond.ok('text/html').end(renderHtml(request.query));
-					});
-				},
-				function(err) { respond.pipe(err.response); }
-			);
+					posts = res.body;
+					respond.ok('text/html').end(renderHtml(request.query));
+				})
+				.except(function(err) { respond.pipe(err.response); });
 		});
 		router.error(response, 'path');
 	});
