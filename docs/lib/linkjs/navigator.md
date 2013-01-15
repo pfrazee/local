@@ -8,49 +8,117 @@ pfraze 2013
 
 Navigator is an HTTP agent for consuming services. It provides functions to navigate link headers and to send requests.
 
-Link headers are followed by the `relation()` function, which produces a new `Navigator` with the new context. It doesn't remotely verify the location yet, however. Instead, it stores relations as 'relative' to the previous contexts, then resolves them to 'absolute' (full URLs) when a request is made.
+The navigator is built on two functions: `relation()` and `request()`. All other functions are sugars of these two.
 
-The Link headers are expected to include, minimally, the 'href' and 'rel' attributes. The `href` may use <a target="_top" href="http://tools.ietf.org/html/rfc6570">URI Templates</a>, which `relation(rel, param, extra)` uses as follows:
-
-```javascript
-var myhost = new Navigator('https://myhost.com');
-
-var users = myservice.relation('collection', 'users');
-// eg if: Link=[{ rel:'collection', href:'/{collection}' }]
-// then: users='https://myhost.com/users'
-
-var me = users.relation('item', 'pfraze');
-// eg if: Link=[{ rel:'item', href:'/users/{item}' }, { rel:'service', href:'/' }]
-// then: me='https://myhost.com/users'
-```
-
-Parameter 1 of `relation` specifies which link to use by matching the 'rel' value. Parameter 2 specifies what to use in the URI Template rendering, using the 'rel' value as the parameter name to replace. Parameter 3 can take an object of extra parameters to use when rendeirng the URI.
-
-If a 'title' attribute is included in a Link header, it will be used as a matching criteria to parameter 2. That is, if `rel="service", title="foobar"`, then `myNavigator.relation('service', 'foobar')` will match it. This can be used as an alternative to URI Templates.
-
-The `request()` function takes the request (optional) and two callbacks: success (status code >=200 & <400) and failure (status code >=400). Within the callbacks, the navigator is bound to 'this',
-
-# :TODO: finish this when it sucks less
-
-The `request()` and `relation()` functions have sugars for, respectively, the request methods and relation types. They can be used to reduce the number of parameters given:
+Link headers are followed by the `relation()` function, which produces a new `Navigator` with the new context. It doesn't remotely verify the location yet, however. Instead, it waits until a request is issued, then resolves the back-log of relations with HEAD requests.
 
 ```javascript
 var myhost = new Navigator('https://myhost.com');
 var me = myhost.collection('users').item('pfraze');
 
-me.get(function(res) {
+me.get()
 	// -> HEAD https://myhost.com
 	// -> HEAD https://myhost.com/users
 	// -> GET  https://myhost.com/users/pfraze
+	.then(function(res) {
 
-	this.patch({ body:{ email:'pfraze@foobar.com' }, headers:{ 'content-type':'application/json' }});
-	// -> PATCH https://myhost.com/users/pfraze { email:'pfraze@foobar.com' }
+		me.patch({ body:{ email:'pfraze@foobar.com' }, headers:{ 'content-type':'application/json' }});
+		// -> PATCH https://myhost.com/users/pfraze { email:'pfraze@foobar.com' }
 
-	myhost.collection('users', { since:profile.id }).get(function(res2) {
-		// -> GET https://myhost.com/users?since=123
-		//...
+		myhost.collection('users', { since:profile.id })
+			.get()
+	    	.then(function(res2) {
+				// -> GET https://myhost.com/users?since=123
+				//...
+			});
 	});
-});
 ```
 
-Notice that, within 
+The Link headers are expected to include, minimally, the 'href' and 'rel' attributes. The `href` may use <a target="_top" href="http://tools.ietf.org/html/rfc6570">URI Templates</a>.
+
+
+
+## API
+
+### Link.navigator( <small>url</small> ) <small>=> Navigator</small>
+
+### relation( <small>rel, param, [extra]</small> ) <small>=> Navigator(ClientResponse)</small>
+
+Creates a new Navigator object which is relative to the caller by following the Link header of the caller's context. For instance, if a navigator's links include a 'collection' relation with the title of 'friends', then it could be followed with `myNav.relation('collection', 'friends')`.
+
+Parameter 1 specifies which link to use by matching the `rel` attribute. Parameter 2 is matched against the `title` attribute, if one is present. If parameter 2 does not match, then `relation()` defaults to the last match.
+
+If the link's `href` value is a URI Template, `param` and `extra` will be used to build the URI. A token named with the value of `rel` is replaced with the value `param`. For example:
+
+```javascript
+var myhost = Link.navigator('https://myhost.com');
+
+var users = myservice.relation('collection', 'users');
+// if: Link=[{ rel:'collection', href:'/{collection}' }]
+// then: users='https://myhost.com/users'
+
+var me = users.relation('item', 'pfraze', { foo:'bar' });
+// if: Link=[{ rel:'item', href:'/users/{item}{?foo}' }, { rel:'service', href:'/' }]
+// then: me='https://myhost.com/users?foo=bar'
+```
+
+
+### request( <small>requestObj</small> ) <small>=> promise(ClientResponse)</small>
+
+The `request()` function issues a request from the current context.
+
+
+## Sugars
+
+The `request()` and `relation()` functions have sugars for, respectively, the request methods and relation types. They can be used to reduce the number of parameters given. They are:
+
+```javascript
+// request sugars
+head([body], [bodyContentType], [headers], [options])
+post([body], [bodyContentType], [headers], [options])
+put([body], [bodyContentType], [headers], [options])
+patch([body], [bodyContentType], [headers], [options])
+delete([body], [bodyContentType], [headers], [options])
+
+// GET request sugars
+get([acceptType], [headers], [options])
+getJson([headers], [options])
+getHtml([headers], [options])
+getXml([headers], [options])
+getEvents([headers], [options])
+getEventstream([headers], [options])
+getPlain([headers], [options])
+getText([headers], [options])
+
+// relation sugars
+// http://www.iana.org/assignments/link-relations/link-relations.xml
+alternate(param, [extra])
+author(param, [extra])
+collection(param, [extra])
+current(param, [extra])
+describedby(param, [extra])
+first(param, [extra])
+index(param, [extra])
+item(param, [extra])
+last(param, [extra])
+latest_version(param, [extra])
+monitor(param, [extra])
+monitor_group(param, [extra])
+next(param, [extra])
+next_archive(param, [extra])
+payment(param, [extra])
+predecessor_version(param, [extra])
+prev(param, [extra])
+prev_archive(param, [extra])
+related(param, [extra])
+replies(param, [extra])
+search(param, [extra])
+self(param, [extra])
+service(param, [extra])
+successor_version(param, [extra])
+up(param, [extra])
+version_history(param, [extra])
+via(param, [extra])
+working_copy(param, [extra])
+working_copy_of(param, [extra])
+```

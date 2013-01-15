@@ -6,13 +6,11 @@ function logError(err) {
 }
 
 // request wrapper
-var currentHash = window.location.hash;
 Environment.request = function(origin, request) {
 
 	var urld = Link.parseUri(request);
 	var newHash = '#' + urld.path.slice(1);
-	if (urld.host == 'markdown.util' && currentHash != newHash) {
-		currentHash = newHash;
+	if (urld.host == 'markdown.util' && window.location.hash != newHash) {
 		window.location.hash = newHash;
 	}
 
@@ -28,16 +26,17 @@ Environment.postProcessRegion = function(el) {
 
 // setup nav
 var viewNav = document.getElementById('viewer-nav');
+viewNav.addEventListener('click', function(e) {
+	if (e.target.tagName == 'A') {
+		window.location.hash = e.target.getAttribute('href');
+		Environment.getClientRegion('viewer').request('httpl://markdown.util/'+window.location.hash.slice(1));
+		currentHash = window.location.hash;
+	}
+});
 window.onhashchange = function() {
 	var active = viewNav.querySelector('.active');
 	active && active.classList.remove('active');
 	viewNav.querySelector('a[href="'+window.location.hash+'"]').parentNode.classList.add('active');
-	window.scroll(0,0);
-	// only issue a request if the request hasnt already been issued
-	if (currentHash != window.location.hash) {
-		Environment.getClientRegion('viewer').request('httpl://markdown.util/'+window.location.hash.slice(1));
-		currentHash = window.location.hash;
-	}
 };
 
 // instantiate apps

@@ -8,9 +8,6 @@ pfraze 2013
 
 A library for sandboxing untrusted code in a web worker.
 
-
-## Basic Usage
-
 ```javascript
 var sandbox = new MyHouse.Sandbox(function() {
 	// worker ready

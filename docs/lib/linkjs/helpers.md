@@ -3,14 +3,21 @@ LinkJS Helpers
 
 pfraze 2013
 
-todo
 
-### Link.parseUri
+## Overview
+
+Link uses a number of helpers, mainly for dealing with de/serialization.
+
+
+## API
+
+### Link.parseUri( <small>request / url</small> ) <small> =>url description object</small>
 
 <a target="_top" href="http://stevenlevithan.com/demo/parseuri/js/">parseUri</a> is written by Stephen Levithan. It breaks the input URL into its component parts:
 
 ```javascript
-console.log(Link.parseUri('http://myserver.com/foobar?q=4').host); // => 'myserver.com'
+console.log(Link.parseUri('http://myserver.com/foobar?q=4'));
+// => {anchor: "", query: "q=4", file: "", directory: "/foobar", path: "/foobar" ...}
 ```
 
 ### Link.UriTemplate
@@ -20,34 +27,4 @@ console.log(Link.parseUri('http://myserver.com/foobar?q=4').host); // => 'myserv
 ```javascript
 Link.UriTemplate.parse('http://myserver.com/{collection}/{?foo,bar}').expand({ collection:'friends', foo:1, bar:'b' });
 // => "http://myserver.com/friends/?foo=1&bar=b"
-
 ```
-
-### Link.contentTypes
-
-Remote requests must have their payloads serialized and their responses deserialzed. `Link.contentTypes` provides a registry of de/serializers for various mimetypes. Json and `application/x-www-form-urlencoded` are provided by default.
-
-```javascript
-Link.contentTypes.register('application/json',
-	function (obj) {
-		try {
-			return JSON.stringify(obj);
-		} catch (e) {
-			return '';
-		}
-	},
-	function (str) {
-		try {
-			return JSON.parse(str);
-		} catch (e) {
-			return null;
-		}
-	}
-);
-Link.contentTypes.serialize({ foo:'bar' }, 'application/json');
-// => '{ "foo":"bar" }'
-Link.contentTypes.deserialize('{ "foo":"bar" }', 'application/json');
-// => { foo:'bar' }
-```
-
-De/serializers are chosen by best match, according to the specificity of the provided mimetype. For instance, if 'application/foobar+json' is used, it will search for 'application/foobar+json', then 'application/json', then 'application'. If no match is found, the given parameter is returned as-is.

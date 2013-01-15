@@ -8,10 +8,6 @@ pfraze 2013
 
 Monadic function chaining around asynchronously-fulfilled values.
 
-## Usage
-
-This document assumes a basic familiarity with promises.
-
 A promise can be created with or without a value:
 
 ```javascript
