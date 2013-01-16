@@ -27,11 +27,11 @@ ReflectorServer.prototype.$listServers = function(request, response) {
 	// build headers
 	var headerer = Link.headerer();
 	headerer.addLink('/', 'self current collection');
-	var servers = Environment.listServersById();
+	var servers = Environment.getServers();
 	var configs = [];
-	for (var id in servers) {
-		headerer.addLink('/'+servers[id].config.domain, 'item', { title:servers[id].config.domain });
-		configs.push(servers[id].config);
+	for (var domain in servers) {
+		headerer.addLink('/'+domain, 'item', { title:domain });
+		configs.push(servers[domain].config);
 	}
 
 	if (/GET/i.test(request.method)) {
@@ -52,7 +52,7 @@ ReflectorServer.prototype.$getServer = function(request, response, match) {
 	var headerer = Link.headerer();
 	headerer.addLink('/', 'up via service collection');
 	// find
-	var server = Environment.getServerByDomain(domain);
+	var server = Environment.getServer(domain);
 	if (server) {
 		// add links
 		headerer.addLink('/'+domain, 'self current');
@@ -89,14 +89,14 @@ ReflectorServer.prototype.$putServer = function(request, response, match) {
 	var headerer = Link.headerer();
 	headerer.addLink('/', 'up via service collection');
 	// find
-	var server = Environment.getServerByDomain(domain);
+	var server = Environment.getServer(domain);
 	if (server) {
 		// add links
 		headerer.addLink('/'+domain, 'self current');
 		router.t(/javascript/i, function() {
 			if (server instanceof Environment.WorkerServer) {
 				// shutdown the server
-				Environment.killServer(server.config.id);
+				Environment.killServer(domain);
 				// load a new server in-place with the given source
 				Environment.addServer(domain, new Environment.WorkerServer({ script:request.body }));
 				// done
@@ -121,7 +121,7 @@ ReflectorServer.prototype.$getServerEditor = function(request, response, match) 
 	var headerer = Link.headerer();
 	headerer.addLink('/', 'via service collection');
 	// find
-	var server = Environment.getServerByDomain(domain);
+	var server = Environment.getServer(domain);
 	if (server) {
 		// add links
 		headerer.addLink('/'+domain, 'up item');
@@ -163,7 +163,7 @@ ReflectorServer.prototype.$postServerEditor = function(request, response, match)
 	var headerer = Link.headerer();
 	headerer.addLink('/', 'via service collection');
 	// find
-	var server = Environment.getServerByDomain(domain);
+	var server = Environment.getServer(domain);
 	if (server) {
 		// add links
 		headerer.addLink('/'+domain, 'up item');
@@ -171,7 +171,7 @@ ReflectorServer.prototype.$postServerEditor = function(request, response, match)
 	
 		if (server instanceof Environment.WorkerServer) {
 			// shutdown the server
-			Environment.killServer(server.config.id);
+			Environment.killServer(domain);
 			// load a new server in-place with the given source
 			Environment.addServer(domain, new Environment.WorkerServer({ script:request.body.source }));
 			// respond by piping a request to the new server
