@@ -12,7 +12,7 @@ $assert = filter_input(
 );
 // Use the $_POST superglobal array for PHP < 5.2 and write your own filter 
 $params = 'assertion=' . urlencode($assert) . '&audience=' .
-           urlencode('http://linkapjs.com:81');
+           urlencode($_SERVER['SERVER_NAME'] . ':' . $_SERVER['SERVER_PORT']);
 $ch = curl_init();
 $options = array(
     CURLOPT_URL => $url,
