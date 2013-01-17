@@ -33,7 +33,7 @@ A simple server might look like this:
 ```javascript
 importScripts('/lib/linkjs-ext/responder.js');
 importScripts('/lib/linkjs-ext/router.js');
-app.onHttplRequest(function(request, response) {
+app.onHttpRequest(function(request, response) {
 	Link.router(request).mpa('get', '/', /html/, function() {
 		Link.responder(response).ok('html').end('<h1>Hello, World!</h1>');
 	}).error(response);
@@ -50,10 +50,10 @@ HTTPL requests are always routed in the environment-- workers can not directly a
 
 The process of a request from a worker is as follows:
 
- - The 'httplRequest' message is dispatched to the document with the entire request contained (including the full request body-- no request streaming may occur at this time).
- - A promise is returned from the `request` function
+ - The 'httpRequest' message is dispatched to the document with the entire request contained (including the full request body-- no request streaming may occur at this time).
+ - A promise is returned from the `dispatch` function
  - The environment sends the request and retrieves a response.
- - The environment posts a reply to the original 'httplRequest' message with the response headers.
+ - The environment posts a reply to the original 'httpRequest' message with the response headers.
  - The worker generates a `ClientResponse` object and fulfills its promise with it.
  - The worker attaches to the reply's data stream (response streaming is supported currently, in order to enable Server-Sent Events over HTTPL).
  - As new messages arrive in the stream, their data is written to the `ClientResponse` object.
@@ -61,18 +61,18 @@ The process of a request from a worker is as follows:
 
 The process of a worker responding to a request is similar. It is as follows:
 
- - The 'httplRequest' message is received by the worker with the full request data.
+ - The 'httpRequest' message is received by the worker with the full request data.
  - It creates a `ServerResponse`, then passes it and the request to the application request handler.
  - The application fills the response object's headers with `writeHead`.
- - The worker replies to the original 'httplRequest' with the response headers.
+ - The worker replies to the original 'httpRequest' with the response headers.
  - A stream is created on the reply to pipe the 'write' stream to the environment.
  - When the response object is ended, the stream is closed.
 
 Workers aren't able to use `EventSource` in their namespace, so they also have to ask the environment to do it on their behalf. That works as follows:
 
  - An `EventStream` is created in the worker, and is ultimately returned by the function.
- - The worker sends an 'httplSubscribe' message to the environment with the full initializing request.
- - It creates a stream out of that 'httplMessage', then sends the names of events it wishes to subscribe to.
+ - The worker sends an 'httpSubscribe' message to the environment with the full initializing request.
+ - It creates a stream out of that 'httpSubscribe' message, then sends the names of events it wishes to subscribe to.
  - The environment replies to those subscription chunks with actual event occurances, which the Worker pipes to the `EventStream` it created.
 
 

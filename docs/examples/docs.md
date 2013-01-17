@@ -21,7 +21,7 @@ function logError(err) {
 
 // request wrapper
 var currentHash = window.location.hash;
-Environment.request = function(origin, request) {
+Environment.setDispatchHandler(function(origin, request) {
 
 	var urld = Link.parseUri(request);
 	var newHash = '#' + urld.path.slice(1);
@@ -31,14 +31,14 @@ Environment.request = function(origin, request) {
 	}
 
 	// allow request
-	var response = Link.request(request);
+	var response = Link.dispatch(request);
 	response.except(logError);
 	return response;
-};
+});
 
-Environment.postProcessRegion = function(el) {
+Environment.setRegionPostProcessor(function(el) {
 	Prism.highlightAll();
-};
+});
 
 // setup nav
 var viewNav = document.getElementById('viewer-nav');
@@ -49,7 +49,7 @@ window.onhashchange = function() {
 	window.scroll(0,0);
 	// only issue a request if the request hasnt already been issued
 	if (currentHash != window.location.hash) {
-		Environment.getClientRegion('viewer').request('httpl://markdown.util/'+window.location.hash.slice(1));
+		Environment.getClientRegion('viewer').dispatchRequest('httpl://markdown.util/'+window.location.hash.slice(1));
 		currentHash = window.location.hash;
 	}
 };
@@ -61,6 +61,6 @@ Environment.addServer('markdown.util', new Environment.WorkerServer({
 }));
 
 // load client regions
-Environment.addClientRegion('viewer').request('httpl://markdown.util/'+(window.location.hash.slice(1)||'readme.md'));
+Environment.addClientRegion('viewer').dispatchRequest('httpl://markdown.util/'+(window.location.hash.slice(1)||'readme.md'));
 viewNav.querySelector('a[href="'+(window.location.hash||'#readme.md')+'"]').parentNode.classList.add('active');
 ```

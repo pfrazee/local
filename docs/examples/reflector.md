@@ -188,7 +188,7 @@ ReflectorServer.prototype.$postServerEditor = function(request, response, match)
 			// load a new server in-place with the given source
 			Environment.addServer(domain, new Environment.WorkerServer({ script:request.body.source }));
 			// respond by piping a request to the new server
-			respond.pipe(Environment.request(this, { method:'get', url:'httpl://'+domain, headers:{ accept:'text/html' }}));
+			respond.pipe(Environment.dispatch(this, { method:'get', url:'httpl://'+domain, headers:{ accept:'text/html' }}));
 		} else {
 			// can't live-update environment servers (...yet?)
 			respond.respond([400, 'only worker servers can be live-updated']).end();

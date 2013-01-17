@@ -21,21 +21,21 @@ Environment APIs are made available through the `Environment` object. It additio
 
 ## Routing Requests
 
-`Link.request()` dispatches Ajax requests which can target local servers. However, in the environment (aka the document), all programs use the `Environment.request()` wrapper, which takes an "origin" along with the request.
+`Link.dispatch()` dispatches Ajax requests which can target local servers. However, in the environment (aka the document), all programs use the `Environment.dispatch()` wrapper, which takes an "origin" along with the request.
 
 ```javascript
 // the http library call:
-Link.request({ method:'get', url:'https://github.com', headers:{ accept:'text/html' });
+Link.dispatch({ method:'get', url:'https://github.com', headers:{ accept:'text/html' });
 
 // the environment call:
-Environment.request(this, { method:'get', url:'https://github.com', headers:{ accept:'text/html' });
+Environment.dispatch(this, { method:'get', url:'https://github.com', headers:{ accept:'text/html' });
 ```
 
 This is so you can override the request-wrapper with your own logic:
 
 ```javascript
 // request wrapper
-Environment.request = function(origin, request) {
+Environment.setDispatchHandler(function(origin, request) {
 	// make any connectivity / permissions decisions here
 	if (Link.parseUri(request).protocol != 'httpl') {
 		console.log('Sorry, only local traffic is allowed in this environment');
@@ -43,10 +43,10 @@ Environment.request = function(origin, request) {
 	}
 
 	// allow request
-	var response = Link.request(request);
-	response.except(logError); // `Link.request` returns a promise which will fail if response status >= 400
+	var response = Link.dispatch(request);
+	response.except(logError); // `Link.dispatch` returns a promise which will fail if response status >= 400
 	return response;
-};
+});
 
 function logError(err) {
 	if (err instanceof Link.ResponseError) { console.log(err.message, err.request); }
@@ -106,8 +106,8 @@ Client regions are portions of the DOM which maintain their own browsing context
 
 ```javascript
 // load client regions
-Environment.addClientRegion('editor').request('httpl://editor.app');
-Environment.addClientRegion('files').request('httpl://files.app');
+Environment.addClientRegion('editor').dispatchRequest('httpl://editor.app');
+Environment.addClientRegion('files').dispatchRequest('httpl://files.app');
 ```
 
  - Read More: [Using the Environment API](../lib/environment.md)

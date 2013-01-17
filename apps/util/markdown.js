@@ -9,7 +9,7 @@ function headerRewrite(headers) {
 function bodyRewrite(md) { return (md) ? marked(md) : ''; }
 
 app.onHttpRequest(function(request, response) {
-	var mdRequest = Link.request({
+	var mdRequest = Link.dispatch({
 		method  : 'get',
 		url     : app.config.baseUrl + request.path,
 		headers : { accept:'text/plain' }

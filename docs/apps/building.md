@@ -17,7 +17,7 @@ A simple server might look like this:
 ```javascript
 importScripts('/lib/linkjs-ext/responder.js');
 importScripts('/lib/linkjs-ext/router.js');
-app.onHttplRequest(function(request, response) {
+app.onHttpRequest(function(request, response) {
 	Link.router(request).mpa('get', '/', /html/, function() {
 		Link.responder(response).ok('html').end('<h1>Hello, World!</h1>');
 	}).error(response);
@@ -32,12 +32,12 @@ app.postMessage('loaded');
 
 Local revolves around HTTP, so a number of tools are provided to get the most out of it. This is a quick overview of the different APIs; more detail can be found in [Using LinkJS, the HTTP wrapper](../lib/linkjs.md).
 
-### Link.request( <small>request</small> )
+### Link.dispatch( <small>request</small> )
 
 Dispatches a request and returns a promise for the response. If the request URL's protocol is 'http' or 'https', it will issue an Ajax request. If it is 'httpl', it will issue a Web Worker or in-document request.
 
 ```javascript
-var resPromise = Link.request({
+var resPromise = Link.dispatch({
 	method:'post',
 	url:'httpl://myapp.ui/some/resource',
 	// or `host:'httpl://myapp.ui'` and `path:'some/resource'`
@@ -52,7 +52,7 @@ var resPromise = Link.request({
 });
 ```
 
-Like much of Local's code, `request` uses promises to handle async. If you're not familiar with promises, [have a look at the library's documentation](../lib/promises.md). `request` returns a promise which is fulfilled if the response status is >= 200 && < 400, or rejected if >= 400.
+Like much of Local's code, `dispatch` uses promises to handle async. If you're not familiar with promises, [have a look at the library's documentation](../lib/promises.md). `dispatch` returns a promise which is fulfilled if the response status is >= 200 && < 400, or rejected if >= 400.
 
 ```javascript
 resPromise
@@ -73,14 +73,14 @@ resPromise
 	});
 ```
 
-If you're writing in-document (environment) code, you might want to use `Environment.request()` instead. This gives the environment an opportunity to examine and route the request.
+If you're writing in-document (environment) code, you might want to use `Environment.dispatch()` instead. This gives the environment an opportunity to examine and route the request.
 
- > Note: worker applications use `Link.request`, but the request payload is delivered to the environment and dispatched via `Environment.request`
+ > Note: worker applications use `Link.dispatch`, but the request payload is delivered to the environment and dispatched via `Environment.dispatch`
 
 The usage is similar, except for an extra 'origin' parameter:
 
 ```javascript
-Environment.request(this, myrequest)
+Environment.dispatch(this, myrequest)
 	.then(success)
 	.except(failure);
 ```
@@ -232,7 +232,7 @@ notExtended          : [510, 'further extensions to the request are required']
 When proxying out to another server, use `pipe`:
 
 ```javascript
-Link.responder(response).pipe(Link.request(myRequest));
+Link.responder(response).pipe(Link.dispatch(myRequest));
 ```
 
 ### Link.Headerer

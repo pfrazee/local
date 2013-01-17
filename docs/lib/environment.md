@@ -31,9 +31,9 @@ Begins CommonClient behaviors on the target element, and listens for request eve
 
 ### removeClientRegion( <small>elementId</small> ) <small>=> undefined</small>
 
-### request( <small>origin, req</small> ) <small>=> promise(Link.ClientResponse)</small>
+### dispatch( <small>origin, req</small> ) <small>=> promise(Link.ClientResponse)</small>
 
-A hook for the deployment to override. Expected behavior is to wrap `Link.request()` while enforcing any security or session logic as needed.
+A hook for the deployment to override. Expected behavior is to wrap `Link.dispatch()` while enforcing any security or session logic as needed.
 
 ### postProcessRegion( <small>element</small> ) <small>=> undefined</small>
 
@@ -71,16 +71,16 @@ Message handlers:
 
  - 'ready': `MyHouse` has bootstrapped in the worker; does final preparation, then loads the application script
  - 'loaded': the application script has loaded; releases 'httpRequest' messages to the worker
- - 'httpRequest': the application has called `Link.request()`; dispatches the request, then streams the response back to the worker
+ - 'httpRequest': the application has called `Link.dispatch()`; dispatches the request, then streams the response back to the worker
  - 'httpSubscribe': the application has called `Link.subscribe()`; dispatches the request, then pipes the events back to the worker
  - 'log': the application has called `app.log()` or `console.log()`; prints the message data to the console
 
 ### ClientRegion
 
-Represents a region of the document which maintains its own browsing context. Provides a 'request' DOM event handler, as well as a `request()` helper for dispatching 'request' events. Its prototype can be extended by deployments.
+Represents a region of the document which maintains its own browsing context. Provides a 'request' DOM event handler, as well as a `dispatchRequest()` helper for dispatching 'request' events. Its prototype can be extended by deployments.
 
 Methods:
 
  - ClientRegion(elemId): ctor, binds event handlers to the element referenced by elemId
- - request(requestObj): dispatches a 'request' DOM event on the element
+ - dispatchRequest(requestObj): dispatches a 'request' DOM event on the element
  - terminate(): unbinds all event handlers; called by `Environment.removeClientRegion()`

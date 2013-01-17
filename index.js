@@ -1,6 +1,6 @@
 // request wrapper
 var reqLog = new Link.Navigator('httpl://request-log.util');
-Environment.request = function(origin, request) {
+Environment.setDispatchHandler(function(origin, request) {
 	// make any connectivity / permissions decisions here
 
 	// pass on to the request log
@@ -14,11 +14,11 @@ Environment.request = function(origin, request) {
 	}
 
 	// allow request
-	var response = Link.request(request);
+	var response = Link.dispatch(request);
 	response.then(console.log.bind(console), request);
 	response.except(console.log.bind(console), request);
 	return response;
-};
+});
 
 // client toolbars
 var toolbars = document.querySelectorAll('.client-toolbar');
@@ -28,7 +28,7 @@ function makeActiveToolbar(elem) {
 		e.preventDefault();
 		e.stopPropagation();
 		// issue request
-		Environment.getClientRegion(elem.dataset.client).request({
+		Environment.getClientRegion(elem.dataset.client).dispatchRequest({
 			method:'get',
 			url:'httpl://servers.env/'+elem.dataset.client+'.doc/editor',
 			headers:{ accept:'text/html' }
@@ -49,6 +49,6 @@ Environment.addServer('features.doc', new Environment.WorkerServer({ scriptUrl:'
 Environment.addServer('request-log.util', new Environment.WorkerServer({ scriptUrl:'/apps/util/log.js', title:'request log' }));
 
 // load client regions
-Environment.addClientRegion('intro').request('httpl://intro.doc');
-Environment.addClientRegion('features').request('httpl://features.doc');
-Environment.addClientRegion('request-log').request('httpl://request-log.util');
+Environment.addClientRegion('intro').dispatchRequest('httpl://intro.doc');
+Environment.addClientRegion('features').dispatchRequest('httpl://features.doc');
+Environment.addClientRegion('request-log').dispatchRequest('httpl://request-log.util');

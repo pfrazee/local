@@ -61,7 +61,7 @@ PersonaServer.prototype.onLogin = function(assertion) {
 	// verify the login assertion with the auth server
 	// :DEBUG: need to pull out the verify address
 	var self = this;
-	Link.request({
+	Link.dispatch({
 		method:'post',
 		url:'http://'+window.location.host+'/persona-verify.php',
 		headers:{ accept:'application/json', 'content-type':'application/x-www-form-urlencoded' },

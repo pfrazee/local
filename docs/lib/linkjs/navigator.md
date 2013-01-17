@@ -8,7 +8,7 @@ pfraze 2013
 
 Navigator is an HTTP agent for consuming services. It provides functions to navigate link headers and to send requests.
 
-The navigator is built on two functions: `relation()` and `request()`. All other functions are sugars of these two.
+The navigator is built on two functions: `relation()` and `dispatch()`. All other functions are sugars of these two.
 
 Link headers are followed by the `relation()` function, which produces a new `Navigator` with the new context. It doesn't remotely verify the location yet, however. Instead, it waits until a request is issued, then resolves the back-log of relations with HEAD requests.
 
@@ -63,24 +63,24 @@ var me = users.relation('item', 'pfraze', { foo:'bar' });
 ```
 
 
-### request( <small>requestObj</small> ) <small>=> promise(ClientResponse)</small>
+### dispatch( <small>requestObj</small> ) <small>=> promise(ClientResponse)</small>
 
-The `request()` function issues a request from the current context.
+The `dispatch()` function issues a request from the current context.
 
 
 ## Sugars
 
-The `request()` and `relation()` functions have sugars for, respectively, the request methods and relation types. They can be used to reduce the number of parameters given. They are:
+The `dispatch()` and `relation()` functions have sugars for, respectively, the dispatch methods and relation types. They can be used to reduce the number of parameters given. They are:
 
 ```javascript
-// request sugars
+// dispatch sugars
 head([body], [bodyContentType], [headers], [options])
 post([body], [bodyContentType], [headers], [options])
 put([body], [bodyContentType], [headers], [options])
 patch([body], [bodyContentType], [headers], [options])
 delete([body], [bodyContentType], [headers], [options])
 
-// GET request sugars
+// GET dispatch sugars
 get([acceptType], [headers], [options])
 getJson([headers], [options])
 getHtml([headers], [options])

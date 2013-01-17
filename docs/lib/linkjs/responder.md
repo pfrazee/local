@@ -24,7 +24,7 @@ Link.responder(response).notFound();
 When proxying out to another server, use `pipe`:
 
 ```javascript
-Link.responder(response).pipe(Link.request(myRequest));
+Link.responder(response).pipe(Link.dispatch(myRequest));
 ```
 
 

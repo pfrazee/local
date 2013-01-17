@@ -13,7 +13,7 @@ A challenge for running applications from Web Workers is providing control over 
 
 ## Request Events
 
-CommonClient intercepts click, submit, and drag/drop events and converts them into custom 'request' events. These events include a 'request' object in the `detail` attribute.
+CommonClient intercepts click, submit, and drag/drop events and converts them into custom 'request' events. These events include a request object in the `detail` attribute.
 
 The `Environment.Client` object catches those events and dispatches them:
 
@@ -36,7 +36,7 @@ this.element.addEventListener('request', function(e) {
   }
 
   // issue request
-  promise(Environment.request(self, request))
+  promise(Environment.dispatch(self, request))
     .then(function(res) {
       // success, send back to common client
       res.on('end', function() {

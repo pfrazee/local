@@ -8,7 +8,7 @@ function logError(err, request) {
 }
 
 // request wrapper
-Environment.request = function(origin, request) {
+Environment.setDispatchHandler(function(origin, request) {
 	// make any connectivity / permissions decisions here
 	var urld = Link.parseUri(request);
 
@@ -18,15 +18,15 @@ Environment.request = function(origin, request) {
 	}
 
 	// allow request
-	var response = Link.request(request);
+	var response = Link.dispatch(request);
 	response.except(logError, request);
 	return response;
-};
+});
 
 // dom update post-processor
-Environment.postProcessRegion = function(elem) {
+Environment.setRegionPostProcessor(function(elem) {
 	addPersonaCtrls(elem);
-};
+});
 
 // Init
 // ====
@@ -85,6 +85,6 @@ Environment.addServer('wall.app', new Environment.WorkerServer({ scriptUrl:'/app
 Environment.addServer('prof-info.app', new Environment.WorkerServer({ scriptUrl:'/apps/social/prof-info.js', dataSource:'httpl://fixtures.env/profiles/lorem.ipsum' }));
 
 // load client regions
-Environment.addClientRegion('placard').request('httpl://placard.app');
-Environment.addClientRegion('wall').request('httpl://wall.app');
-Environment.addClientRegion('prof-info').request('httpl://prof-info.app');
+Environment.addClientRegion('placard').dispatchRequest('httpl://placard.app');
+Environment.addClientRegion('wall').dispatchRequest('httpl://wall.app');
+Environment.addClientRegion('prof-info').dispatchRequest('httpl://prof-info.app');

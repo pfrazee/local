@@ -15,7 +15,7 @@ CommonClient provides tools to generate `Link` request events out of DOM events 
 
 ### CommonClient.listen( <small>element</small> )
 
-Begins capturing 'click', 'submit', and drag/drop events on `element` and converting them into 'request' events. The 'request' events are dispatched on `element`, and contain a well-formed object in `e.detail` for use in `Link.request()`.
+Begins capturing 'click', 'submit', and drag/drop events on `element` and converting them into 'request' events. The 'request' events are dispatched on `element`, and contain a well-formed object in `e.detail` for use in `Link.dispatch()`.
 
 ```javascript
 CommonClient.listen(element);

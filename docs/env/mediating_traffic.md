@@ -14,13 +14,13 @@ The safety of the user's information relies on smart traffic policies which are 
 Traffic mediation is accomplished by the 'request wrapper', which is minimally defined as follows:
 
 ```javascript
-Environment.request = function(origin, request) {
+Environment.setDispatchHandler(function(origin, request) {
 	// pass the request to Link for fulfillment
-	return Link.request(request);
-};
+	return Link.dispatch(request);
+});
 ```
 
-All worker servers will use this function to issue requests; it's up to the in-document servers whether to use `Environment.request` rather than `Link.request`.
+All worker servers will use this function to issue requests; it's up to the in-document servers whether to use `Environment.dispatch` rather than `Link.dispatch`.
 
 
 ## Common Patterns and Tools
@@ -34,12 +34,12 @@ var urld = Link.parseUri(request);
 
 // trusted remote hosts
 if (/https?/.test(urld.protocol) && urld.host == 'mysite.com') {
-	return Link.request(request);
+	return Link.dispatch(request);
 }
 
 // local traffic
 if (urld.protocol == 'httpl') {
-	return Link.request(request);
+	return Link.dispatch(request);
 }
 ```
 
@@ -65,23 +65,23 @@ You never want to let credentials leak back into user applications, as they may 
 For this reason, it is best to add Auth headers to requests in the environment. For instance:
 
 ```javascript
-Environment.request = function(origin, request) {
+Environment.setDispatchHandler(function(origin, request) {
 	//...
 	// add credentials to sessions
 	if (MySessionManager.hasSession(origin, request)) {
 		Link.headerer(request.headers).setAuth(MySessionManager.getSession(origin, request));
 	}
 	// ...
-};
+});
 ```
 
 It is also a good idea to scrub session headers such as 'Set-Cookie':
 
 ```javascript
-Environment.request = function(origin, request) {
+Environment.setDispatchHandler(function(origin, request) {
 	//...
 	// dispatch the request
-	return Link.request(request)
+	return Link.dispatch(request)
 		.then(function(response) { // on response codes 200-399
 			delete response.headers['set-cookie'];
 			return response;
@@ -90,7 +90,7 @@ Environment.request = function(origin, request) {
 			delete err.response.headers['set-cookie'];
 			return err;
 		})
-};
+});
 ```
 
 ## Further Topics

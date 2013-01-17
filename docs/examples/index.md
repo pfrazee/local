@@ -6,7 +6,7 @@ pfraze 2013
 
 ## Overview
 
-Index.html is a small showcase of Local's primary features. It uses the environment reflector server (env/reflector.js) to give applications the tools to modify themselves, and the `Environment.request` wrapper to log traffic to the UI.
+Index.html is a small showcase of Local's primary features. It uses the environment reflector server (env/reflector.js) to give applications the tools to modify themselves, and the `Environment.dispatch` wrapper to log traffic to the UI.
 
 
 ## index.js
@@ -25,7 +25,7 @@ function logError(err) {
 
 // request wrapper
 var reqLog = new Link.Navigator('httpl://request-log.util');
-Environment.request = function(origin, request) {
+Environment.setDispatchHandler(function(origin, request) {
 	// make any connectivity / permissions decisions here
 
 	// pass on to the request log
@@ -39,10 +39,10 @@ Environment.request = function(origin, request) {
 	}
 
 	// allow request
-	var response = Link.request(request);
+	var response = Link.dispatch(request);
 	response.except(logError);
 	return response;
-};
+});
 
 // client toolbars
 var toolbars = document.querySelectorAll('.client-toolbar');
@@ -52,7 +52,7 @@ function makeActiveToolbar(elem) {
 		e.preventDefault();
 		e.stopPropagation();
 		// issue request
-		Environment.getClientRegion(elem.dataset.client).request({
+		Environment.getClientRegion(elem.dataset.client).dispatchRequest({
 			method:'get',
 			url:'httpl://servers.env/'+elem.dataset.client+'.doc/editor',
 			headers:{ accept:'text/html' }
@@ -73,7 +73,7 @@ Environment.addServer('lib.doc', new Environment.WorkerServer({ scriptUrl:'/apps
 Environment.addServer('request-log.util', new Environment.WorkerServer({ scriptUrl:'/apps/util/log.js', title:'request log' }));
 
 // load client regions
-Environment.addClientRegion('intro').request('httpl://intro.doc');
-Environment.addClientRegion('lib').request('httpl://lib.doc/linkjs');
-Environment.addClientRegion('request-log').request('httpl://request-log.util');
+Environment.addClientRegion('intro').dispatchRequest('httpl://intro.doc');
+Environment.addClientRegion('lib').dispatchRequest('httpl://lib.doc/linkjs');
+Environment.addClientRegion('request-log').dispatchRequest('httpl://request-log.util');
 ```
