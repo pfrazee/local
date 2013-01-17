@@ -14,3 +14,14 @@ git clone --recursive https://github.com/pfraze/local.git
 ```
 
 If you make changes to them, you should then run 'make' from within local's directory to have their source concatenated and copied into /lib. Currently, it doesn't minify the output or combine them into a single file.
+
+
+## Tests
+
+Tests are located within each of the sub-repositories. Assuming the sub-repos have been cloned with local (see above), you can access them at the following URLs:
+
+ - /lib/linkjs/test.html
+ - /lib/myhouse/test.html
+ - /lib/common-client/test.html
+
+LinkJS uses a NodeJS server to run its remote-request tests against. It can be run by executing `node test-server.js` from the linkjs repository.
