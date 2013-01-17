@@ -36,9 +36,9 @@ Because applications can't touch the document, the environment has to handle it 
 
 Local was built with a number of goals in mind:
 
- - Better organization of JS in the browser
  - No tight coupling between the interface and a web service
  - Safe execution of untrusted code
+ - Better JS organization in Web Apps
 
 It was first built to address the lack of user-extensibility for modern Web applications: with a strong framework for organizing and configuring the client, users can assemble private and public services into safe and personal tools.
 

@@ -10,7 +10,8 @@
 .client-toolbar {
 	float:right;
 }
-#intro, #lib { padding:0 5px; }
+#intro, #features { padding:0 5px; }
 .client form {
 	margin:0;
 }
+.controls { padding-top:6px; }

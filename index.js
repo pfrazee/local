@@ -1,10 +1,3 @@
-// helpers
-function logError(err) {
-	if (err.response) { console.log(err.message, err.response); }
-	else { console.log(err.message);}
-	return err;
-}
-
 // request wrapper
 var reqLog = new Link.Navigator('httpl://request-log.util');
 Environment.request = function(origin, request) {
@@ -17,12 +10,13 @@ Environment.request = function(origin, request) {
 			request.url,
 			'<span style="color:gray">',request.headers.accept,'</span>'
 		].join(' ');
-		reqLog.post(entry, 'text/plain').except(logError);
+		reqLog.post(entry, 'text/plain').except(console.log.bind(console), request);
 	}
 
 	// allow request
 	var response = Link.request(request);
-	response.except(logError);
+	response.then(console.log.bind(console), request);
+	response.except(console.log.bind(console), request);
 	return response;
 };
 
@@ -51,10 +45,10 @@ Environment.addServer('servers.env', new ReflectorServer());
 
 // instantiate apps
 Environment.addServer('intro.doc', new Environment.WorkerServer({ scriptUrl:'/apps/doc/intro.js' }));
-Environment.addServer('lib.doc', new Environment.WorkerServer({ scriptUrl:'/apps/doc/lib.js' }));
+Environment.addServer('features.doc', new Environment.WorkerServer({ scriptUrl:'/apps/doc/features.js' }));
 Environment.addServer('request-log.util', new Environment.WorkerServer({ scriptUrl:'/apps/util/log.js', title:'request log' }));
 
 // load client regions
 Environment.addClientRegion('intro').request('httpl://intro.doc');
-Environment.addClientRegion('lib').request('httpl://lib.doc/linkjs');
+Environment.addClientRegion('features').request('httpl://features.doc');
 Environment.addClientRegion('request-log').request('httpl://request-log.util');

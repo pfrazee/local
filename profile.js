@@ -62,9 +62,9 @@ fixtureServer.addCollectionItem('profiles', 'lorem.ipsum', {
 		{
 			label:'Friends',
 			items:[
-				'<a href="https://twitter.com/NeckbeardHacker">Neckbeard Hacker</a>',
-				'<a href="https://twitter.com/hipsterhacker">Hipster Hacker</a>',
-				'<a href="https://twitter.com/StartupOpsGuy">Startup Ops Guy</a>'
+				'<a target=_top href="https://twitter.com/NeckbeardHacker">Neckbeard Hacker</a>',
+				'<a target=_top href="https://twitter.com/hipsterhacker">Hipster Hacker</a>',
+				'<a target=_top href="https://twitter.com/StartupOpsGuy">Startup Ops Guy</a>'
 			]
 		},
 		{

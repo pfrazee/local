@@ -6,10 +6,14 @@ function logError(err) {
 }
 
 // request wrapper
+var lastRequestedHash = window.location.hash; // used to track if a hash-change should produce a request
 Environment.request = function(origin, request) {
+
+    console.log(request);
 
 	var urld = Link.parseUri(request);
 	var newHash = '#' + urld.path.slice(1);
+    lastRequestedHash = newHash;
 	if (urld.host == 'markdown.util' && window.location.hash != newHash) {
 		window.location.hash = newHash;
 	}
@@ -28,15 +32,18 @@ Environment.postProcessRegion = function(el) {
 var viewNav = document.getElementById('viewer-nav');
 viewNav.addEventListener('click', function(e) {
 	if (e.target.tagName == 'A') {
-		window.location.hash = e.target.getAttribute('href');
-		Environment.getClientRegion('viewer').request('httpl://markdown.util/'+window.location.hash.slice(1));
-		currentHash = window.location.hash;
+        var path = e.target.getAttribute('href').slice(1);
+		Environment.getClientRegion('viewer').request('httpl://markdown.util/'+path);
 	}
 });
 window.onhashchange = function() {
 	var active = viewNav.querySelector('.active');
 	active && active.classList.remove('active');
 	viewNav.querySelector('a[href="'+window.location.hash+'"]').parentNode.classList.add('active');
+    if (lastRequestedHash != window.location.hash) {
+        // we need to issue the request - a link didnt already do it for us
+        Environment.getClientRegion('viewer').request('httpl://markdown.util/'+window.location.hash.slice(1));
+    }
 };
 
 // instantiate apps

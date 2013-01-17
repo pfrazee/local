@@ -14,8 +14,8 @@ function guid() {
 // LocalStorageServer
 // ==================
 // wraps the document's localstorage api
-var reCollectionUrl = new RegExp('^/([A-z0-9_]+)/?$'); // /:collection
-var reItemUrl = new RegExp('^/([A-z0-9_]+)/([^/]+)/?$'); // /:collection/:item
+var reCollectionUrl = new RegExp('^/([A-z0-9_\\-]+)/?$'); // /:collection
+var reItemUrl = new RegExp('^/([A-z0-9_\\-]+)/([^/]+)/?$'); // /:collection/:item
 function LocalStorageServer() {
 	Environment.Server.call(this);
 	this.state = Environment.Server.ACTIVE;
@@ -45,7 +45,6 @@ LocalStorageServer.prototype.handleHttpRequest = function(request, response) {
 		router.m('HEAD', self.getItem.bind(self, request, respond, cid, iid));
 		router.ma('GET', 'application/json', self.getItem.bind(self, request, respond, cid, iid));
 		router.mt('PUT', 'application/json', self.setItem.bind(self, request, respond, cid, iid));
-		router.mt('PATCH', 'application/json', self.updateItem.bind(self, request, respond, cid, iid));
 		router.m('DELETE', self.deleteItem.bind(self, request, respond, cid, iid));
 		router.error(response, 'path');
 	});
@@ -232,9 +231,9 @@ LocalStorageServer.prototype.deleteItem = function(request, respond, cid, iid) {
 	localStorage.removeItem(cid+'-'+iid);
 
 	// remove from collection
-	var collection = this.getCollection(cid);
-	this.collection[cid] = collection.filter(function(iid2) { return iid != iid2; });
-	this.saveCollection(cid);
+	var collection = this._getCollection(cid);
+	this.collections[cid] = collection.filter(function(iid2) { return iid != iid2; });
+	this._saveCollection(cid);
 
 	respond.ok(null, this.buildItemHeaders(cid)).end();
 };
