@@ -44,6 +44,21 @@ Pipes the first parameter response data and headers into the responder's wrapped
 
 `headersCb` and `bodyCb` are optional functions for processing the headers and response body, respectively. Their first paramter is the data they are modifying, and they must return the updated copy.
 
+### cb( <small>fnName, [type], [headers], [body]</small> ) <small>=> function(v)</small>
+
+Produces a callback to one of the `respond` sugars for use in a promise `then()` or `except()` chain. `fnName` should be a string naming the function (eg 'ok', 'badGateway', 'notFound', etc). More response parameters can be passed optionally.
+
+An example usage from apps/doc/features.js:
+
+```javascript
+lsCollection.getJson()
+	.then(function(res) {
+		respond.ok('html').end(makeDoc('env', request, res.body));
+		return res;
+	})
+	.except(respond.cb('badGateway'));
+```
+
 
 ## Respond Functions
 
