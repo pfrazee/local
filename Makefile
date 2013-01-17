@@ -29,5 +29,5 @@ ${lib}worker_httpl.js:
 	cp ${lib}environment/worker_httpl.js ${lib}worker_httpl.js
 
 clean:
-	rm ${lib}link.js ${lib}common-client.js ${lib}myhouse.js ${lib}worker_bootstrap.js
-	rm ${lib}environment.js ${lib}worker_httpl.js
+	-rm ${lib}link.js ${lib}common-client.js ${lib}myhouse.js ${lib}worker_bootstrap.js
+	-rm ${lib}environment.js ${lib}worker_httpl.js
