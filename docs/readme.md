@@ -52,11 +52,12 @@ Local is also easy enough to use for simple apps. This 'docs.html' page, for exa
 Local can be statically hosted after a clean checkout using any Web server. In order to use some example features (such as the <a target="_top" href="http://www.mozilla.org/en-US/persona/">Mozilla Persona</a> library), PHP and SQLite3 support are required.
 
 ```bash
-git clone --recursive https://github.com/pfraze/local.git
-make
+git clone https://github.com/pfraze/local.git
 python -m SimpleHTTPServer
 # navigate browser to localhost:8000
 ```
+
+ > `profile.html` uses a couple PHP scripts for the wall posts and Persona, and must have a SQLite database built to work. There are no instructions for bringing it up to speed, since those scripts will be replaced soon, but they can be used as a reference.
 
 You'll find a number of example pages (index.html, profile.html, docs.html) applications (apps/social/wall.js) and environment libraries (env/localstorage.js, env/persona.js, env/reflector.js) to learn from in addition to this documentation.
 
