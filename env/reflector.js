@@ -144,6 +144,7 @@ ReflectorServer.prototype.$getServerEditor = function(request, response, match) 
 };
 
 ReflectorServer.prototype.renderServerEditorHtml = function(domain, source) {
+	source = source.replace(/</g,'&lt;').replace(/>/g,'&gt;');
 	return [
 		'<p>Editing ',domain,'</p>',
 		'<form action="httpl://',this.config.domain,'/',domain,'/editor" method="post">',
