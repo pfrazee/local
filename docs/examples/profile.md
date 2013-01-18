@@ -104,7 +104,7 @@ fixtureServer.addCollectionItem('profiles', 'lorem.ipsum', {
 
 // instantiate apps
 Environment.addServer('placard.app', new Environment.WorkerServer({ scriptUrl:'/apps/social/placard.js', dataSource:'httpl://fixtures.env/profiles/lorem.ipsum' }));
-Environment.addServer('wall.app', new Environment.WorkerServer({ scriptUrl:'/apps/social/wall.js', dataSource:window.location.origin+'/wall-posts.php', userSource:'httpl://user.env' }));
+Environment.addServer('wall.app', new Environment.WorkerServer({ scriptUrl:'/apps/social/wall.js', dataSource:'http://'+window.location.host+'/wall-posts.php', userSource:'httpl://user.env' }));
 Environment.addServer('prof-info.app', new Environment.WorkerServer({ scriptUrl:'/apps/social/prof-info.js', dataSource:'httpl://fixtures.env/profiles/lorem.ipsum' }));
 
 // load client regions

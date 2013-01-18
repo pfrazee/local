@@ -79,7 +79,7 @@ PersonaServer.prototype.onLogin = function(assertion) {
 		method:'post',
 		url:'http://'+window.location.host+'/persona-verify.php',
 		headers:{ accept:'application/json', 'content-type':'application/x-www-form-urlencoded' },
-		body:{ audience:window.location.origin, assertion:assertion }
+		body:{ audience:'http://'+window.location.host, assertion:assertion }
 	}).then(function(res) {
 		if (res.body.status == 'okay') {
 			// logged in
