@@ -1,7 +1,5 @@
 *~
 #*#
 node_modules
-host
-index.html
-lib/link-ap.js
-lib/link-ap-agent.js
+.htaccess
+db

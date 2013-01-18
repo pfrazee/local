@@ -1,0 +1,5 @@
+FAQ
+
+Why not use iframes?
+
+Support for iframes is planned (as one of the available "sandbox" types). However, iframes do not isolate the thread of the embedded application, creating the opportunity for malicious or broken software to steal computing time from the rest of the environment. Until this is solved (perhaps with the <a href="http://developer.chrome.com/apps/app_external.html">Chrome Webview</a> API) LinkAP will continue to use Workers and generic client behaviors.
