@@ -23,7 +23,7 @@ Environment.setDispatchHandler(function(origin, request) {
 // client toolbars
 var toolbars = document.querySelectorAll('.client-toolbar');
 function makeActiveToolbar(elem) {
-	elem.innerHTML = '<a href="javascript:void(0)" title="Edit Source"><img src="/assets/icons/16x16/script_code.png"/></a>';
+	elem.innerHTML = '<a href="javascript:void(0)" title="Edit Source"><img src="assets/icons/16x16/script_code.png"/></a>';
 	elem.querySelector('a').addEventListener('click', function(e) {
 		e.preventDefault();
 		e.stopPropagation();
@@ -44,9 +44,9 @@ Environment.addServer('localstorage.env', new LocalStorageServer());
 Environment.addServer('servers.env', new ReflectorServer());
 
 // instantiate apps
-Environment.addServer('intro.doc', new Environment.WorkerServer({ scriptUrl:'/apps/doc/intro.js' }));
-Environment.addServer('features.doc', new Environment.WorkerServer({ scriptUrl:'/apps/doc/features.js' }));
-Environment.addServer('request-log.util', new Environment.WorkerServer({ scriptUrl:'/apps/util/log.js', title:'request log' }));
+Environment.addServer('intro.doc', new Environment.WorkerServer({ scriptUrl:'../apps/doc/intro.js' }));
+Environment.addServer('features.doc', new Environment.WorkerServer({ scriptUrl:'../apps/doc/features.js' }));
+Environment.addServer('request-log.util', new Environment.WorkerServer({ scriptUrl:'../apps/util/log.js', title:'request log' }));
 
 // load client regions
 Environment.addClientRegion('intro').dispatchRequest('httpl://intro.doc');

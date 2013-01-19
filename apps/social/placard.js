@@ -1,6 +1,6 @@
-importScripts('/lib/linkjs-ext/responder.js');
-importScripts('/lib/linkjs-ext/router.js');
-importScripts('/lib/linkjs-ext/broadcaster.js');
+importScripts('linkjs-ext/responder.js');
+importScripts('linkjs-ext/router.js');
+importScripts('linkjs-ext/broadcaster.js');
 
 var dataProvider = Link.navigator(app.config.dataSource);
 
@@ -15,7 +15,7 @@ function renderAddressesHtml(profile) {
 		return [
 		'<address class="well">',
 			profile.addresses.map(function(address) { return [
-				'<img src="/assets/icons/16x16/',address.icon,'.png" /> ',
+				'<img src="assets/icons/16x16/',address.icon,'.png" /> ',
 				'<a href="',address.protocol,':',address.href,'" title="',address.label,'">',address.href,'</a><br/>'
 			].join(''); }).join(''),
 		'</address>'

@@ -1,5 +1,5 @@
-importScripts('/lib/linkjs-ext/responder.js');
-importScripts('/lib/linkjs-ext/router.js');
+importScripts('linkjs-ext/responder.js');
+importScripts('linkjs-ext/router.js');
 app.onHttpRequest(function(request, response) {
 	Link.router(request).mpa('get', '/', /html/, function() {
 		Link.responder(response).ok('html').end([

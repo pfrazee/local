@@ -45,7 +45,7 @@ fixtureServer.addCollectionItem('profiles', 'lorem.ipsum', {
 	fname:'Lorem',
 	lname:'Ipsum',
 	description:'hacker',
-	picture:'/assets/img/hacker.png', // credit to ZARk.be, found at http://www.flickr.com/photos/27515562@N02/3112309337/
+	picture:'assets/img/hacker.png', // credit to ZARk.be, found at http://www.flickr.com/photos/27515562@N02/3112309337/
 	addresses:[
 		{ icon:'email', protocol:'mailto', href:'lorem@gmail.com', label:'Personal Email' },
 		{ icon:'twitter_1', protocol:'https', href:'//twitter.com/lorem', label:'Personal Twitter' },
@@ -80,9 +80,9 @@ fixtureServer.addCollectionItem('profiles', 'lorem.ipsum', {
 });
 
 // instantiate apps
-Environment.addServer('placard.app', new Environment.WorkerServer({ scriptUrl:'/apps/social/placard.js', dataSource:'httpl://fixtures.env/profiles/lorem.ipsum' }));
-Environment.addServer('wall.app', new Environment.WorkerServer({ scriptUrl:'/apps/social/wall.js', dataSource:'http://'+window.location.host+'/wall-posts.php', userSource:'httpl://user.env' }));
-Environment.addServer('prof-info.app', new Environment.WorkerServer({ scriptUrl:'/apps/social/prof-info.js', dataSource:'httpl://fixtures.env/profiles/lorem.ipsum' }));
+Environment.addServer('placard.app', new Environment.WorkerServer({ scriptUrl:'../apps/social/placard.js', dataSource:'httpl://fixtures.env/profiles/lorem.ipsum' }));
+Environment.addServer('wall.app', new Environment.WorkerServer({ scriptUrl:'../apps/social/wall.js', dataSource:'http://'+window.location.host+'/wall-posts.php', userSource:'httpl://user.env' }));
+Environment.addServer('prof-info.app', new Environment.WorkerServer({ scriptUrl:'../apps/social/prof-info.js', dataSource:'httpl://fixtures.env/profiles/lorem.ipsum' }));
 
 // load client regions
 Environment.addClientRegion('placard').dispatchRequest('httpl://placard.app');

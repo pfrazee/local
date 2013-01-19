@@ -46,7 +46,7 @@ window.onhashchange = function() {
 
 // instantiate apps
 Environment.addServer('markdown.util', new Environment.WorkerServer({
-	scriptUrl:'/apps/util/markdown.js',
+	scriptUrl:'../apps/util/markdown.js',
 	baseUrl:location.href.substring(0,location.href.split('#')[0].lastIndexOf("/")+1) + 'docs' // http://pfraze.net/local/docs.html -> http://pfraze.net/local/docs
 }));
 

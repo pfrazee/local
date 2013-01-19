@@ -1,5 +1,5 @@
-importScripts('/lib/linkjs-ext/responder.js');
-importScripts('/apps/util/lib/marked.js');
+importScripts('linkjs-ext/responder.js');
+importScripts('../apps/util/lib/marked.js');
 
 marked.setOptions({ gfm: true, tables: true });
 function headerRewrite(headers) {

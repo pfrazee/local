@@ -1,6 +1,6 @@
-importScripts('/lib/linkjs-ext/responder.js');
-importScripts('/lib/linkjs-ext/router.js');
-importScripts('/lib/linkjs-ext/broadcaster.js');
+importScripts('linkjs-ext/responder.js');
+importScripts('linkjs-ext/router.js');
+importScripts('linkjs-ext/broadcaster.js');
 
 var wallBroadcast = Link.broadcaster();
 var wallPostsBroadcast = Link.broadcaster();

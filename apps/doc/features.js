@@ -1,6 +1,6 @@
-importScripts('/lib/linkjs-ext/responder.js');
-importScripts('/lib/linkjs-ext/router.js');
-importScripts('/lib/linkjs-ext/broadcaster.js');
+importScripts('linkjs-ext/responder.js');
+importScripts('linkjs-ext/router.js');
+importScripts('linkjs-ext/broadcaster.js');
 
 // live update list
 var theList = [
@@ -109,8 +109,8 @@ function makeDoc(tab, request, content) {
 				'<p>Learn more through the documentation, examples, and by following <a target=_top href=//twitter.com/pfrazee title="@pfrazee">@pfrazee</a>.</p>',
 				'<legend>Links</legend>',
 				'<ul>',
-					'<li><a target=_top href=/docs.html title="Documentation">Documentation</a></li>',
-					'<li><a target=_top href=/profile.html title="Example Page">Example Page</a></li>',
+					'<li><a target=_top href=docs.html title="Documentation">Documentation</a></li>',
+					'<li><a target=_top href=profile.html title="Example Page">Example Page</a></li>',
 					'<li><a target=_top href=//github.com/pfraze/local title="Github Repository">Github Repository</a></li>',
 					'<li><a target=_top href=//github.com/pfraze/local/issues title="Issue Tracker">Issue Tracker</a></li>',
 				'</ul>'

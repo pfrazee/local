@@ -1,6 +1,6 @@
-importScripts('/lib/linkjs-ext/responder.js');
-importScripts('/lib/linkjs-ext/router.js');
-importScripts('/lib/linkjs-ext/broadcaster.js');
+importScripts('linkjs-ext/responder.js');
+importScripts('linkjs-ext/router.js');
+importScripts('linkjs-ext/broadcaster.js');
 
 var wallBroadcast = Link.broadcaster();
 var wallPostsBroadcast = Link.broadcaster();
@@ -23,12 +23,12 @@ userUpdates.on(['subscribe','login','logout'], function(e) {
 function renderFormHtml(query) {
 	return [
 		'<label for="wall-content">Write on my wall: ',
-			'<img src=/assets/icons/16x16/help.png title="Posts are stored on the remote host and use Server-Sent Events to live-update. Try opening this page in two tabs and posting." />',
+			'<img src=assets/icons/16x16/help.png title="Posts are stored on the remote host and use Server-Sent Events to live-update. Try opening this page in two tabs and posting." />',
 			'<textarea id="wall-content" name="content" class="span6">',(query.content) ? query.content : '','</textarea><br/>',
 		'</label>',
 		'<p>',
 			'Submitting as: <span class="persona-ctrl"></span> ',
-			'<img src=/assets/icons/16x16/help.png title="This signin/out control is a page widget. Logging in emits an event which causes the wall program to enable the submit button." />',
+			'<img src=assets/icons/16x16/help.png title="This signin/out control is a page widget. Logging in emits an event which causes the wall program to enable the submit button." />',
 		'</p>',
 		'<button type="submit" class="btn btn-block ', (user) ? '' : 'disabled', '">Submit</button>',
 		'<br/>'
