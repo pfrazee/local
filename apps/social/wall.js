@@ -7,11 +7,30 @@ var wallPostsBroadcast = Link.broadcaster();
 
 var posts = [];
 var dataProvider = Link.navigator(app.config.dataSource);
-var dataUpdates = Link.subscribe(app.config.dataSource);
-dataUpdates.on('update', function(e) {
-	// if our provider ever updates, we should redraw the posts
-	wallPostsBroadcast.emit('update');
-});
+
+// :DEBUG: couchDb's event-stream support is slated for v1.3 -- use the _changes stream for now
+// var dataUpdates = Link.subscribe(app.config.dataSource);
+// dataUpdates.on('update', function(e) {
+// 	// if our provider ever updates, we should redraw the posts
+// 	wallPostsBroadcast.emit('update');
+// });
+Link.dispatch({ stream:true, method:'get', url:app.config.updatesSource, query:{ feed:'continuous', heartbeat:'30000' }})
+	.then(function(res) {
+		res.on('data', function(data) {
+			// parse the changes data
+			var updates = data.split("\n")
+				.map(function(update) { try { return JSON.parse(update); } catch(e) { return null; }})
+				.filter(function(update) { return !!update; });
+			console.log('chunk', updates);
+			// issue an update if we got something
+			if (updates.length !== 0) {
+				wallPostsBroadcast.emit('update');
+			}
+		});
+	})
+	.except(function(err) {
+		console.log('unable to reach update source: '+err.message);
+	});
 
 var user = null;
 var userUpdates = Link.subscribe(app.config.userSource);
@@ -121,8 +140,6 @@ app.onHttpRequest(function(request, response) {
 			dataProvider.post(request.body, 'application/x-www-form-urlencoded', { accept:'application/json' })
 				.then(function(res) {
 					// success
-					posts.unshift(res.body);
-					console.log(posts);
 					respond.ok('text/html').end(renderHtml(request.query));
 				})
 				.except(function(err) { respond.pipe(err.response); });
