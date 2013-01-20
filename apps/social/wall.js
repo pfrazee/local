@@ -80,7 +80,7 @@ function renderHtml(query) {
 function getPosts(cb) {
 	dataProvider.getJson()
 		.then(function(res) {
-			posts = res.body;
+			posts = (res.body) ? res.body.rows : null;
 			cb(null, res);
 		})
 		.except(function(err) {
