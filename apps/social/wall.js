@@ -78,7 +78,7 @@ function renderHtml(query) {
 }
 
 function getPosts(cb) {
-	dataProvider.getJson()
+	dataProvider.getJson(null, { query:{ descending:'true', limit:15 }})
 		.then(function(res) {
 			posts = (res.body) ? res.body.rows : null;
 			cb(null, res);
@@ -118,10 +118,11 @@ app.onHttpRequest(function(request, response) {
 		router.mta('POST', /json/, /html/, function() {
 			if (!user) { return respond.unauthorized().end(); }
 			// pass on to data-source
-			dataProvider.post(request.body, 'application/json', { accept:'application/json' })
+			dataProvider.post(request.body, 'application/x-www-form-urlencoded', { accept:'application/json' })
 				.then(function(res) {
 					// success
-					posts = res.body;
+					posts.unshift(res.body);
+					console.log(posts);
 					respond.ok('text/html').end(renderHtml(request.query));
 				})
 				.except(function(err) { respond.pipe(err.response); });

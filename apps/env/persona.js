@@ -63,7 +63,7 @@ PersonaServer.prototype.onLogin = function(assertion) {
 	var self = this;
 	Link.dispatch({
 		method:'post',
-		url:'http://'+window.location.host+'/persona-verify.php',
+		url:'http://'+window.location.host+'/_browserid',
 		headers:{ accept:'application/json', 'content-type':'application/x-www-form-urlencoded' },
 		body:{ audience:'http://'+window.location.host, assertion:assertion }
 	}).then(function(res) {
