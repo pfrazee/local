@@ -106,7 +106,7 @@ function makeDoc(tab, request, content) {
 			break;
 		case 'more':
 			html = [
-				'<p>Learn more through the documentation, examples, and by following <a target=_top href=//twitter.com/pfrazee title="@pfrazee">@pfrazee</a>.</p>',
+				'<p>Learn more through the documentation and examples.</p>',
 				'<legend>Links</legend>',
 				'<ul>',
 					'<li><a target=_top href=docs.html title="Documentation">Documentation</a></li>',
