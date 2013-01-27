@@ -44,9 +44,9 @@ Environment.addServer('localstorage.env', new LocalStorageServer());
 Environment.addServer('servers.env', new ReflectorServer());
 
 // instantiate apps
-Environment.addServer('intro.doc', new Environment.WorkerServer({ scriptUrl:'../apps/doc/intro.js' }));
-Environment.addServer('features.doc', new Environment.WorkerServer({ scriptUrl:'../apps/doc/features.js' }));
-Environment.addServer('request-log.util', new Environment.WorkerServer({ scriptUrl:'../apps/util/log.js', title:'request log' }));
+Environment.addServer('intro.doc', new Environment.WorkerServer({ scriptUrl:'http://grimwire.com/local/apps/doc/intro.js' }));
+Environment.addServer('features.doc', new Environment.WorkerServer({ scriptUrl:'http://grimwire.com/local/apps/doc/features.js' }));
+Environment.addServer('request-log.util', new Environment.WorkerServer({ scriptUrl:'http://grimwire.com/local/apps/util/log.js', title:'request log' }));
 
 // load client regions
 Environment.addClientRegion('intro').dispatchRequest('httpl://intro.doc');
