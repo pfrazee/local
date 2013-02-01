@@ -27,7 +27,7 @@ ReflectorServer.prototype.$listServers = function(request, response) {
 	// build headers
 	var headerer = Link.headerer();
 	headerer.addLink('/', 'self current collection');
-	var servers = Environment.getServers();
+	var servers = Environment.servers;
 	var configs = [];
 	for (var domain in servers) {
 		headerer.addLink('/'+domain, 'item', { title:domain });
