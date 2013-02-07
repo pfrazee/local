@@ -90,7 +90,7 @@ LocalStorageServer.prototype._setItem = function(cid, iid, v) {
 LocalStorageServer.prototype.buildServiceHeaders = function() {
 	var headerer = Link.headerer();
 	headerer.addLink('/', 'self current');
-	headerer.addLink('/{collection}', 'collection');
+	headerer.addLink('/{title}', 'collection');
 	Object.keys(this.collections).forEach(function(cid) {
 		headerer.addLink('/'+cid, 'collection', { title:cid });
 	});
@@ -103,7 +103,7 @@ LocalStorageServer.prototype.buildCollectionHeaders = function(cid) {
 	headerer.addLink('/', 'up via service');
 	if (cid) {
 		headerer.addLink('/'+cid, 'self current');
-		headerer.addLink('/'+cid+'/{item}', 'item');
+		headerer.addLink('/'+cid+'/{title}', 'item');
 	}
 	return headerer;
 };
