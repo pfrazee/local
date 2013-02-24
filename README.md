@@ -2,8 +2,6 @@
 
 Local is a client-side application platform. It allows you to safely run user programs together on the page with permissions-enforcement and thread-isolation, but without sacrificing the richness and performance of the Web.
 
- > **Local is not ready for use; 0.2.0 will be tagged in the coming months.**
-
 ### How does it work?
 
 Local uses Web Workers to safely isolate applications in separate threads, and Content Security Policies to control which scripts are executed. This provides enough safety to run user applications on the page, but makes it hard for those apps to interact with each other or render to the document. To overcome this limitation, Local emulates HTTP over the Workers's messaging system, allowing applications to address each other, communicate, and serve HTML as remote servers do.
