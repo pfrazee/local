@@ -16,7 +16,7 @@ Environment.setRegionPostProcessor(function(el) {
 		var urld = Environment.getClientRegion('viewer').context.urld;
 		window.location.hash = lastRequestedHash = '#' + urld.path.slice(1);
 	}
-	Prism.highlightElement(el);
+	Prism.highlightAll();
 });
 
 // setup hash navigation
