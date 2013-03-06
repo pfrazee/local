@@ -32,7 +32,7 @@ You may also wish to override `terminate()` if you wish to add deconstruction be
 
 Local revolves around HTTP, so a number of tools are provided to get the most out of it. This is a quick overview of the different APIs; more detail can be found in [Using LinkJS, the HTTP wrapper](../lib/linkjs.md).
 
-### Link.dispatch( <small>request</small> )
+### Link.dispatch( <small>request, [origin]</small> )
 
 Dispatches a request and returns a promise for the response. If the request URL's protocol is 'http' or 'https', it will issue an Ajax request. If it is 'httpl', it will issue a Web Worker or in-document request.
 
@@ -49,7 +49,7 @@ var resPromise = Link.dispatch({
 	body:requestPayload,
 	stream:false // do I want the response streamed? default false
 	             // (used for server-sent events)
-});
+}, this);
 ```
 
 Like much of Local's code, `dispatch` uses promises to handle async. If you're not familiar with promises, [have a look at the library's documentation](../lib/promises.md). `dispatch` returns a promise which is fulfilled if the response status is >= 200 && < 400, or rejected if >= 400.
@@ -71,18 +71,6 @@ resPromise
 		// => { status:404, reason:'not found', ...}
 		return err;
 	});
-```
-
-If you're writing in-document (environment) code, you might want to use `Environment.dispatch()` instead. This gives the environment an opportunity to examine and route the request.
-
- > Note: worker applications use `Link.dispatch`, but the request payload is delivered to the environment and dispatched via `Environment.dispatch`
-
-The usage is similar, except for an extra 'origin' parameter:
-
-```javascript
-Environment.dispatch(this, myrequest)
-	.then(success)
-	.except(failure);
 ```
 
 ### Link.subscribe( <small>request/target url</small> )

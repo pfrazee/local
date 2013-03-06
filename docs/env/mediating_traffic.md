@@ -14,13 +14,13 @@ The safety of the user's information relies on smart traffic policies which are 
 Traffic mediation is accomplished by the 'request wrapper', which is minimally defined as follows:
 
 ```javascript
-Environment.setDispatchHandler(function(origin, request) {
+Environment.setDispatchWrapper(function(request, origin, dispatch) {
 	// pass the request to Link for fulfillment
-	return Link.dispatch(request);
+	return dispatch(request);
 });
 ```
 
-All worker servers will use this function to issue requests; it's up to the in-document servers whether to use `Environment.dispatch` rather than `Link.dispatch`.
+All traffic will pass through this function before being dispatched to its target.
 
 
 ## Common Patterns and Tools
@@ -65,11 +65,11 @@ You never want to let credentials leak back into user applications, as they may 
 For this reason, it is best to add Auth headers to requests in the environment. For instance:
 
 ```javascript
-Environment.setDispatchHandler(function(origin, request) {
+Environment.setDispatchWrapper(function(request, origin, dispatch) {
 	//...
 	// add credentials to sessions
-	if (MySessionManager.hasSession(origin, request)) {
-		Link.headerer(request.headers).setAuth(MySessionManager.getSession(origin, request));
+	if (MySessionManager.hasSession(request, origin)) {
+		Link.headerer(request.headers).setAuth(MySessionManager.getSession(request, origin));
 	}
 	// ...
 });
@@ -78,10 +78,10 @@ Environment.setDispatchHandler(function(origin, request) {
 It is also a good idea to scrub session headers such as 'Set-Cookie':
 
 ```javascript
-Environment.setDispatchHandler(function(origin, request) {
+Environment.setDispatchWrapper(function(request, origin, dispatch) {
 	//...
 	// dispatch the request
-	return Link.dispatch(request)
+	return dispatch(request)
 		.then(function(response) { // on response codes 200-399
 			delete response.headers['set-cookie'];
 			return response;
