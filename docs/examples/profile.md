@@ -31,7 +31,7 @@ function logError(err, request) {
 }
 
 // request wrapper
-Environment.setDispatchHandler(function(origin, request) {
+Environment.setDispatchWrapper(function(request, origin, dispatch) {
 	// make any connectivity / permissions decisions here
 	var urld = Link.parseUri(request);
 
@@ -41,7 +41,7 @@ Environment.setDispatchHandler(function(origin, request) {
 	}
 
 	// allow request
-	var response = Link.dispatch(request);
+	var response = dispatch(request);
 	response.except(logError, request);
 	return response;
 });

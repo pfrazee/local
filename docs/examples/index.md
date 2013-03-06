@@ -6,7 +6,7 @@ pfraze 2013
 
 ## Overview
 
-Index.html is a small showcase of Local's primary features. It uses the environment reflector server (env/reflector.js) to give applications the tools to modify themselves, and the `Environment.dispatch` wrapper to log traffic to the UI.
+Index.html is a small showcase of Local's primary features. It uses the environment reflector server (env/reflector.js) to give applications the tools to modify themselves, and the `Link.dispatch` wrapper to log traffic to the UI.
 
 
 ## index.js
@@ -25,7 +25,7 @@ function logError(err) {
 
 // request wrapper
 var reqLog = new Link.Navigator('httpl://request-log.util');
-Environment.setDispatchHandler(function(origin, request) {
+Environment.setDispatchWrapper(function(request, origin, dispatch) {
 	// make any connectivity / permissions decisions here
 
 	// pass on to the request log
@@ -39,7 +39,7 @@ Environment.setDispatchHandler(function(origin, request) {
 	}
 
 	// allow request
-	var response = Link.dispatch(request);
+	var response = dispatch(request);
 	response.except(logError);
 	return response;
 });
