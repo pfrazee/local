@@ -21,7 +21,7 @@ function logError(err) {
 
 // request wrapper
 var currentHash = window.location.hash;
-Environment.setDispatchHandler(function(origin, request) {
+Environment.setDispatchWrapper(function(request, origin, dispatch) {
 
 	var urld = Link.parseUri(request);
 	var newHash = '#' + urld.path.slice(1);
@@ -31,7 +31,7 @@ Environment.setDispatchHandler(function(origin, request) {
 	}
 
 	// allow request
-	var response = Link.dispatch(request);
+	var response = dispatch(request);
 	response.except(logError);
 	return response;
 });

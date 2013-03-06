@@ -21,21 +21,18 @@ Environment APIs are made available through the `Environment` object. It additio
 
 ## Routing Requests
 
-`Link.dispatch()` dispatches Ajax requests which can target local servers. However, in the environment (aka the document), all programs use the `Environment.dispatch()` wrapper, which takes an "origin" along with the request.
+`Link.dispatch()` dispatches Ajax requests which can target local servers. It takes a `request` object and an optional `origin`. The origin is used by the Environment to make routing policies, so it's good to include when possible. Applications in Workers have their origin overwritten automatically.
 
 ```javascript
-// the http library call:
-Link.dispatch({ method:'get', url:'https://github.com', headers:{ accept:'text/html' });
-
-// the environment call:
-Environment.dispatch(this, { method:'get', url:'https://github.com', headers:{ accept:'text/html' });
+var reqOrigin = this;
+Link.dispatch({ method:'get', url:'https://github.com', headers:{ accept:'text/html' }, reqOrigin);
 ```
 
-This is so you can override the request-wrapper with your own logic:
+The Environment enforces its policies by setting a wrapper around `dispatch`:
 
 ```javascript
 // request wrapper
-Environment.setDispatchHandler(function(origin, request) {
+Environment.setDispatchWrapper(function(request, origin, dispatch) {
 	// make any connectivity / permissions decisions here
 	if (Link.parseUri(request).protocol != 'httpl') {
 		console.log('Sorry, only local traffic is allowed in this environment');
@@ -43,8 +40,8 @@ Environment.setDispatchHandler(function(origin, request) {
 	}
 
 	// allow request
-	var response = Link.dispatch(request);
-	response.except(logError); // `Link.dispatch` returns a promise which will fail if response status >= 400
+	var response = dispatch(request);
+	response.except(logError); // `dispatch` returns a promise which will fail if response status >= 400
 	return response;
 });
 

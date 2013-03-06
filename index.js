@@ -1,6 +1,6 @@
 // request wrapper
 var reqLog = new Link.Navigator('httpl://request-log.util');
-Environment.setDispatchHandler(function(origin, request) {
+Environment.setDispatchWrapper(function(request, origin, dispatch) {
 	// make any connectivity / permissions decisions here
 
 	// pass on to the request log
@@ -14,7 +14,7 @@ Environment.setDispatchHandler(function(origin, request) {
 	}
 
 	// allow request
-	var response = Link.dispatch(request);
+	var response = dispatch(request);
 	response.then(console.log.bind(console), request);
 	response.except(console.log.bind(console), request);
 	return response;

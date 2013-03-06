@@ -36,7 +36,7 @@ this.element.addEventListener('request', function(e) {
   }
 
   // issue request
-  promise(Environment.dispatch(self, request))
+  promise(Link.dispatch(request, self))
     .then(function(res) {
       // success, send back to common client
       res.on('end', function() {
