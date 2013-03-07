@@ -35,6 +35,9 @@ app.onHttpRequest(function(request, response) {
 		headerer.addLink('/', 'self current');
 
 		// list
+		router.m('HEAD', function() {
+			respond.ok(null, headerer).end();
+		});
 		router.ma('GET', /html/, function() {
 			respond.ok('html', headerer).end(renderHtml(request.query.output)); // respond with log html
 		});
