@@ -8,13 +8,18 @@ pfraze 2013
 
 ## Overview
 
-Local is a framework for safely running user applications on the page using Web Workers.
+Local is a framework for running user applications on the page using Web Workers.
 
 Some terminology:
 
  - The "environment" is the document
  - "Applications" are javascript programs run in Web Workers
  - "HTTPL" (HTTP Local) is the protocol for servers hosted in the document or in Web Workers
+
+
+## Notice
+
+Local is not out of beta, and needs to undergo extensive security auditing before use in production. As the project develops, please report any vulnerabilities or weaknesses which you find. This project is currently unfunded, and relies on everybody's good will to make something worth-while. Your help is hugely appreciated!
 
 
 ## About Local
@@ -38,7 +43,7 @@ Local was built with a number of goals in mind:
 
  - No tight coupling between the interface and a web service
  - Safe execution of untrusted code
- - Better JS organization in Web Apps
+ - Better JS composition in Web Apps
 
 It was first built to address the lack of user-extensibility for modern Web applications: with a strong framework for organizing and configuring the client, users can assemble private and public services into safe and personal tools.
 
