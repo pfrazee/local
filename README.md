@@ -2,7 +2,7 @@
 
 Local is a client-side application platform. It allows you to run user programs together on the page with permissions-enforcement and thread-isolation, but without sacrificing the richness and performance of the Web.
 
-**NOTE! Local is not out of beta, and needs to undergo extensive security auditing before use in production. As the project develops, please report any vulnerabilities or weaknesses which you find. This project is currently unfunded, and relies on everybody's good will to make something worth-while. Your help is hugely appreciated!**
+**NOTE! Local is not out of beta, and needs to undergo extensive security auditing before use in production. As the project develops, please let us know about any vulnerabilities or concerns you find in the software. Your feedback is hugely appreciated!**
 
 ### How does it work?
 

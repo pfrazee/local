@@ -8,13 +8,13 @@ pfraze 2013
 
 Link is a communication library built on HTTP. It abstracts over Ajax APIs to provide remote and local message delivery.
 
-Local is messaging-heavy, but its software shouldn't get bogged down in protocol concerns. Link tries to abstract away as much as possible, while still giving full control. This manifests in various ways-- for instance, in the interpretation of a response code in 4xx or 5xx ranges as a rejected promise (see `Link.dispatch()` below). A number of tools have also been provided for ease; they are described in this document's subsections.
+Local is messaging-heavy, but its software shouldn't get bogged down in protocol concerns. LinkJS provides abstractions to simplify common cases while leaving the underlying tools available for advanced work.
 
-The two primary message-types for Link are "requests" and "events." Requests follow the Hyper-Text Transfer Protocol, and can target services on the Web (HTTP/S) or on the document (HTTPL). Events are constructed on top of HTTP using the Server-Sent Events protocol: subscription is accomplished by requesting a 'text/event-stream' from a service, then listening for writes to the response stream (which is left open indefinitely).
+The two primary message-types for Link are "requests" and "events." Requests follow HTTP semantics, and can target services on the Web (HTTP/S) or on the document (HTTPL). Events are constructed on top of HTTP using the Server-Sent Events protocol: subscription is accomplished by requesting a 'text/event-stream' from a service, then listening for writes to the response stream (which is left open indefinitely).
 
 ### Note
 
- - All headers are lowercase in Link
+ - All headers are lowercase in Link, and it is not uncommon to use lowercase methods as well. Case should be ignored during request routing.
 
 
 ## Subsections
