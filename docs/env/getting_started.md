@@ -54,7 +54,7 @@ function logError(err) {
 
 The request wrapper is the high-level security and debugging system for the environment. All application traffic is routed through this function so permissions and access policies can be enforced. You decide what's right for your application, but keep in mind:
 
- - Data which reaches an application could be leaked via importScripts or an image URL, so protect sensitive data
+ - Data which reaches an application could be leaked via importScripts or an image URL, so protect sensitive data if those APIs are unrestricted
  - "Auth" credentials should be attached to requests by the environment, and session ids should be stripped from responses 
  - Remote traffic should never be unregulated for untrusted apps
  - Use <a target="_top" href="https://developer.mozilla.org/en-US/docs/Security/CSP">Content Security Policies</a>!
@@ -99,7 +99,7 @@ The object passed into the `WorkerServer` constructor is mixed into the worker's
 
 ## Creating Client Regions
 
-Client regions are portions of the DOM which maintain their own browsing context. Functionally, they are like IFrames: clicking a link within one will change its contents only. You create and manage them by referring to the ID of their target element; this example would create 2 regions (at '#editor' and '#files'):
+Client regions are portions of the DOM which maintain their own browsing context. As a UI component, they behave like IFrames: clicking a link within one will change its contents only. You create and manage them by referring to the ID of their target element; this example would create 2 regions (at '#editor' and '#files'):
 
 ```javascript
 // load client regions
@@ -117,7 +117,7 @@ Environment.addClientRegion('files').dispatchRequest('httpl://files.app');
 
 The document should include its scripts at the bottom, along with dependencies:
 
-```html
+```markup
 <!-- base libraries -->
 <script src="/lib/link.js"></script>
 <script src="/lib/common-client.js"></script>

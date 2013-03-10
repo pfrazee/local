@@ -11,11 +11,11 @@ function logError(err, request) {
 Environment.setDispatchWrapper(function(request, origin, dispatch) {
 	// make any connectivity / permissions decisions here
 	var urld = Link.parseUri(request);
+	request.headers = Link.headerer(request.headers);
 
 	// add the credentials, if targetting our host and currently logged in
-	if (Environment.user && /https?/i.test(urld.protocol) && /linkapjs\.com$/i.test(urld.host)) {
-		request.headers = Link.headerer(request.headers).setAuth(Environment.user);
-	}
+	if (Environment.user && /https?/i.test(urld.protocol) && urld.host == window.location.host)
+		request.headers.setAuth(Environment.user);
 
 	// allow request
 	var response = dispatch(request);
@@ -33,8 +33,8 @@ Environment.setRegionPostProcessor(function(elem) {
 
 // instantiate environment servers
 var personaServer = new PersonaServer();
-Environment.addServer('user.env', personaServer);
 var fixtureServer = new StaticServer();
+Environment.addServer('user.env', personaServer);
 Environment.addServer('fixtures.env', fixtureServer);
 
 // load fixture data into a static service
