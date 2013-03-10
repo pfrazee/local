@@ -42,7 +42,7 @@ app.onHttpRequest(function(request, response) {
 
 An event stream can be used to trigger updates to the document. This is done by targetting a form to the event-stream, then embedding an `<output>` element in the form. Any 'update' events that are emitted by the stream will result in an html GET request to the stream's URL. The response html then replaces the output element.
 
-```html
+```markup
 <form action="httpl://myserver.app">
 	<output>
 		The current user is {#if user}{{user}}{#else}not logged in{/if}.

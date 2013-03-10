@@ -1,6 +1,6 @@
 // request wrapper
 var reqLog = new Link.Navigator('httpl://request-log.util');
-Environment.setDispatchHandler(function(origin, request) {
+Environment.setDispatchWrapper(function(request, origin, dispatch) {
 	// make any connectivity / permissions decisions here
 
 	// pass on to the request log
@@ -14,7 +14,7 @@ Environment.setDispatchHandler(function(origin, request) {
 	}
 
 	// allow request
-	var response = Link.dispatch(request);
+	var response = dispatch(request);
 	response.then(console.log.bind(console), request);
 	response.except(console.log.bind(console), request);
 	return response;
@@ -44,9 +44,9 @@ Environment.addServer('localstorage.env', new LocalStorageServer());
 Environment.addServer('servers.env', new ReflectorServer());
 
 // instantiate apps
-Environment.addServer('intro.doc', new Environment.WorkerServer({ scriptUrl:'http://grimwire.com/local/apps/doc/intro.js' }));
-Environment.addServer('features.doc', new Environment.WorkerServer({ scriptUrl:'http://grimwire.com/local/apps/doc/features.js' }));
-Environment.addServer('request-log.util', new Environment.WorkerServer({ scriptUrl:'http://grimwire.com/local/apps/util/log.js', title:'request log' }));
+Environment.addServer('intro.doc', new Environment.WorkerServer({ scriptUrl:'/local/apps/doc/intro.js' }));
+Environment.addServer('features.doc', new Environment.WorkerServer({ scriptUrl:'/local/apps/doc/features.js' }));
+Environment.addServer('request-log.util', new Environment.WorkerServer({ scriptUrl:'/local/apps/util/log.js', title:'request log' }));
 
 // load client regions
 Environment.addClientRegion('intro').dispatchRequest('httpl://intro.doc');

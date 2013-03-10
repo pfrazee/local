@@ -21,21 +21,18 @@ Environment APIs are made available through the `Environment` object. It additio
 
 ## Routing Requests
 
-`Link.dispatch()` dispatches Ajax requests which can target local servers. However, in the environment (aka the document), all programs use the `Environment.dispatch()` wrapper, which takes an "origin" along with the request.
+`Link.dispatch()` dispatches Ajax requests which can target local servers. It takes a `request` object and an optional `origin`. The origin is used by the Environment to make routing policies, so it's good to include when possible. Applications in Workers have their origin overwritten automatically.
 
 ```javascript
-// the http library call:
-Link.dispatch({ method:'get', url:'https://github.com', headers:{ accept:'text/html' });
-
-// the environment call:
-Environment.dispatch(this, { method:'get', url:'https://github.com', headers:{ accept:'text/html' });
+var reqOrigin = this;
+Link.dispatch({ method:'get', url:'https://github.com', headers:{ accept:'text/html' }, reqOrigin);
 ```
 
-This is so you can override the request-wrapper with your own logic:
+The Environment enforces its policies by setting a wrapper around `dispatch`:
 
 ```javascript
 // request wrapper
-Environment.setDispatchHandler(function(origin, request) {
+Environment.setDispatchWrapper(function(request, origin, dispatch) {
 	// make any connectivity / permissions decisions here
 	if (Link.parseUri(request).protocol != 'httpl') {
 		console.log('Sorry, only local traffic is allowed in this environment');
@@ -43,8 +40,8 @@ Environment.setDispatchHandler(function(origin, request) {
 	}
 
 	// allow request
-	var response = Link.dispatch(request);
-	response.except(logError); // `Link.dispatch` returns a promise which will fail if response status >= 400
+	var response = dispatch(request);
+	response.except(logError); // `dispatch` returns a promise which will fail if response status >= 400
 	return response;
 });
 
@@ -57,7 +54,7 @@ function logError(err) {
 
 The request wrapper is the high-level security and debugging system for the environment. All application traffic is routed through this function so permissions and access policies can be enforced. You decide what's right for your application, but keep in mind:
 
- - Data which reaches an application could be leaked via importScripts or an image URL, so protect sensitive data
+ - Data which reaches an application could be leaked via importScripts or an image URL, so protect sensitive data if those APIs are unrestricted
  - "Auth" credentials should be attached to requests by the environment, and session ids should be stripped from responses 
  - Remote traffic should never be unregulated for untrusted apps
  - Use <a target="_top" href="https://developer.mozilla.org/en-US/docs/Security/CSP">Content Security Policies</a>!
@@ -102,7 +99,7 @@ The object passed into the `WorkerServer` constructor is mixed into the worker's
 
 ## Creating Client Regions
 
-Client regions are portions of the DOM which maintain their own browsing context. Functionally, they are like IFrames: clicking a link within one will change its contents only. You create and manage them by referring to the ID of their target element; this example would create 2 regions (at '#editor' and '#files'):
+Client regions are portions of the DOM which maintain their own browsing context. As a UI component, they behave like IFrames: clicking a link within one will change its contents only. You create and manage them by referring to the ID of their target element; this example would create 2 regions (at '#editor' and '#files'):
 
 ```javascript
 // load client regions
@@ -120,7 +117,7 @@ Environment.addClientRegion('files').dispatchRequest('httpl://files.app');
 
 The document should include its scripts at the bottom, along with dependencies:
 
-```html
+```markup
 <!-- base libraries -->
 <script src="/lib/link.js"></script>
 <script src="/lib/common-client.js"></script>

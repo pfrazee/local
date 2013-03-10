@@ -35,6 +35,9 @@ app.onHttpRequest(function(request, response) {
 		headerer.addLink('/', 'self current');
 
 		// list
+		router.m('HEAD', function() {
+			respond.ok(null, headerer).end();
+		});
 		router.ma('GET', /html/, function() {
 			respond.ok('html', headerer).end(renderHtml(request.query.output)); // respond with log html
 		});
@@ -42,6 +45,7 @@ app.onHttpRequest(function(request, response) {
 		router.ma('GET', /event-stream/, function() {
 			respond.ok('event-stream', headerer);
 			logBroadcast.addStream(response); // add the log updates listener
+			logBroadcast.emitTo(response, 'update'); // resync for any changes that might've occured
 		});
 		// add log entry
 		router.mt('POST', /html|plain/, function() {

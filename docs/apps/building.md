@@ -32,7 +32,7 @@ app.postMessage('loaded');
 
 Local revolves around HTTP, so a number of tools are provided to get the most out of it. This is a quick overview of the different APIs; more detail can be found in [Using LinkJS, the HTTP wrapper](../lib/linkjs.md).
 
-### Link.dispatch( <small>request</small> )
+### Link.dispatch( <small>request, [origin]</small> )
 
 Dispatches a request and returns a promise for the response. If the request URL's protocol is 'http' or 'https', it will issue an Ajax request. If it is 'httpl', it will issue a Web Worker or in-document request.
 
@@ -73,17 +73,9 @@ resPromise
 	});
 ```
 
-If you're writing in-document (environment) code, you might want to use `Environment.dispatch()` instead. This gives the environment an opportunity to examine and route the request.
+If you're writing in-document (environment) code, make sure to include the `origin` parameter (the second parameter). This is not necessary in the Worker, because `origin` is overwritten for safety.
 
- > Note: worker applications use `Link.dispatch`, but the request payload is delivered to the environment and dispatched via `Environment.dispatch`
-
-The usage is similar, except for an extra 'origin' parameter:
-
-```javascript
-Environment.dispatch(this, myrequest)
-	.then(success)
-	.except(failure);
-```
+ > Note: worker applications use `Link.dispatch`, but the request payload is delivered to the environment and dispatched after examination by the Environment's dispatch wrapper.
 
 ### Link.subscribe( <small>request/target url</small> )
 

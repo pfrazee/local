@@ -1,4 +1,4 @@
-Local 0.2.1
+Local 0.2.2
 ===========
 
 pfraze 2013
@@ -8,7 +8,7 @@ pfraze 2013
 
 ## Overview
 
-Local is a framework for safely running user applications on the page using Web Workers.
+Local is a framework for running user applications on the page using Web Workers.
 
 Some terminology:
 
@@ -17,11 +17,23 @@ Some terminology:
  - "HTTPL" (HTTP Local) is the protocol for servers hosted in the document or in Web Workers
 
 
-## About Local
+## **Notice**
 
-Local lets you separate the user interface from the Web service. It can be used to create configurable site designs, modular single-page applications, and hosted environments for user-applications.
+Local is not out of beta, and needs to undergo extensive security auditing before use in production. As the project develops, please let us know about any vulnerabilities or concerns you find in the software. Your feedback is hugely appreciated!
 
-Local builds on the <a target="_top" href="http://en.wikipedia.org/wiki/Service-oriented_architecture">Service-Oriented Architecture</a> by allowing browser-side javascript to respond to Ajax requests. This causes applications to behave as zero-latency Web servers, providing JSON resources to each other and responding with HTML to the document's requests. The document is then segmented into independent regions which browse the applications' resources.
+
+## Background
+
+The browser is a relatively secure but rigid environment. <a href="http://www.cs.utexas.edu/~mwalfish/papers/zoog-hotnets11.pdf" target="_top">A paper by Microsoft, UT, and Penn researchers</a> lists its traits as Isolated, Rich, On-demand, and Networked (IRON). Broadly speaking, they argue that without the IRON properties, the Web would be too dangerous or too unsophisticated to get any use of.
+
+The browser is bad at injecting its own software. Greasemonkey is limited to UI decoration, and browser apps (which Chrome offers) live in isolation of each other. For sandboxing, the iframe isn't available as it's kept in the same thread as the parent document.
+
+Web Workers, however, <a href="http://stackoverflow.com/questions/12209657/how-can-i-sandbox-untrusted-user-submitted-javascript-content" target="_top">can safely sandbox a script</a> and do not have access to the document or window. To use them, you need a robust messaging protocol in order to create rich applications. Local provides this with a RESTful emulation of HTTP called "HTTPLocal."
+
+
+## HTTP over Workers
+
+Local builds on the <a target="_top" href="http://en.wikipedia.org/wiki/Service-oriented_architecture">Service-Oriented Architecture</a> by allowing browser-side javascript to respond to Ajax requests. This causes applications to behave as low-latency Web servers, providing JSON resources to each other and responding with HTML to the document's requests. The document is then segmented into independent regions which browse the applications' resources.
 
 To maintain page security, user applications are isolated into Web Workers and communicated with via HTTPL messages. Using routing policies, the environment regulates the access and permission of its applications, enabling users to load programs without risking session- or data-comprimise. <a target="_top" href="https://developer.mozilla.org/en-US/docs/Security/CSP">Content Security Policies (CSP)</a> are additionally used to stop inline scripts from executing in the page.
 
@@ -38,7 +50,7 @@ Local was built with a number of goals in mind:
 
  - No tight coupling between the interface and a web service
  - Safe execution of untrusted code
- - Better JS organization in Web Apps
+ - Better JS composition in Web Apps
 
 It was first built to address the lack of user-extensibility for modern Web applications: with a strong framework for organizing and configuring the client, users can assemble private and public services into safe and personal tools.
 
@@ -49,7 +61,7 @@ Local is also easy enough to use for simple apps. This 'docs.html' page, for exa
 
 ## Getting Started
 
-Local can be statically hosted after a clean checkout using any Web server. In order to use some example features (such as the <a target="_top" href="http://www.mozilla.org/en-US/persona/">Mozilla Persona</a> library), PHP and SQLite3 support are required.
+Local can be statically hosted after a clean checkout using any Web server. It's recommended to embed it as a subrepository to your frontend assets, allowing you to pull updates and change versions without losing changes.
 
 ```bash
 git clone https://github.com/pfraze/local.git
@@ -57,9 +69,9 @@ python -m SimpleHTTPServer
 # navigate browser to localhost:8000
 ```
 
- > `profile.html` uses a couple PHP scripts for the wall posts and Persona, and must have a SQLite database built to work. There are no instructions for bringing it up to speed, since those scripts will be replaced soon, but they can be used as a reference.
+ You'll find a number of example pages (index.html, profile.html, docs.html) applications (apps/social/wall.js) and environment libraries (env/localstorage.js, env/persona.js, env/reflector.js) to learn from in addition to this documentation.
 
-You'll find a number of example pages (index.html, profile.html, docs.html) applications (apps/social/wall.js) and environment libraries (env/localstorage.js, env/persona.js, env/reflector.js) to learn from in addition to this documentation.
+ *Currently, profile.html is not kept active while server software is in development.*
 
 
 ## Further Topics

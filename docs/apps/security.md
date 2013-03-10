@@ -7,7 +7,7 @@ pfraze 2013
 
 This document discusses the security model used in Local for executing untrusted code.
 
-Local uses Web Workers for sandboxing, as they allocate isolated namespaces and (unlike iframes) run in separate threads. Before loading the user program, dangerous APIs (XMLHttpRequest, importScripts) are nulled, and a standard library & program-scaffold are loaded. The 'postMessage' API is extended with an named-message protocol which is then used for program control. HTTP requests are built on top of this, using unique message IDs to map response messages to their original requests.
+Local uses Web Workers for sandboxing, as they allocate isolated namespaces and (unlike iframes) run in separate threads. Before loading the user program, dangerous APIs (XHR, sub-Workers) are nulled, and a standard library & program-scaffold are loaded. The 'postMessage' API is extended with an named-message protocol which is then used for program control. HTTP requests are built on top of this, using unique message IDs to map response messages to their original requests.
 
 For messaging and addressing, Local uses an SOA: its in-document programs host HTTP-style services to expose public interfaces. Requests targeting the "HTTP Local" protocol (httpl://) are routed to these in-document services. Interactions are then driven through links, forms, and Ajax calls.
 

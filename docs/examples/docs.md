@@ -12,55 +12,52 @@ Docs.html is a complete markdown-viewer application. It uses a markdown-to-HTML 
 ## docs.js
 
 ```javascript
-// helpers
-function logError(err) {
-	if (err.request) { console.log(err.message, err.request); }
-	else { console.log(err.message);}
-	return err;
-}
+var lastRequestedHash = window.location.hash; // used to track if a hash-change
+                                              // should produce a request
+var viewNav = document.getElementById('viewer-nav');
+viewNav.querySelector('a[href="'+(window.location.hash||'#readme.md')+'"]')
+	.parentNode.classList.add('active');
 
 // request wrapper
-var currentHash = window.location.hash;
-Environment.setDispatchHandler(function(origin, request) {
-
-	var urld = Link.parseUri(request);
-	var newHash = '#' + urld.path.slice(1);
-	if (urld.host == 'markdown.util' && currentHash != newHash) {
-		currentHash = newHash;
-		window.location.hash = newHash;
-	}
-
+Environment.setDispatchWrapper(function(request, origin, dispatch) {
 	// allow request
-	var response = Link.dispatch(request);
-	response.except(logError);
+	var response = dispatch(request);
+	response.except(console.log.bind(console));
 	return response;
 });
 
+// response post-processor
 Environment.setRegionPostProcessor(function(el) {
+	if (el.id == 'viewer') {
+		var urld = Environment.getClientRegion('viewer').context.urld;
+		window.location.hash = lastRequestedHash = '#' + urld.path.slice(1);
+	}
 	Prism.highlightAll();
 });
 
-// setup nav
-var viewNav = document.getElementById('viewer-nav');
+// setup hash navigation
 window.onhashchange = function() {
+	// update nav higlight
 	var active = viewNav.querySelector('.active');
-	active && active.classList.remove('active');
-	viewNav.querySelector('a[href="'+window.location.hash+'"]').parentNode.classList.add('active');
-	window.scroll(0,0);
-	// only issue a request if the request hasnt already been issued
-	if (currentHash != window.location.hash) {
-		Environment.getClientRegion('viewer').dispatchRequest('httpl://markdown.util/'+window.location.hash.slice(1));
-		currentHash = window.location.hash;
+	if (active) active.classList.remove('active');
+	viewNav.querySelector('a[href="'+window.location.hash+'"]')
+		.parentNode.classList.add('active');
+
+	if (lastRequestedHash != window.location.hash) {
+		// we need to issue the request - a link didnt already do it for us
+		Environment.getClientRegion('viewer')
+			.dispatchRequest('httpl://markdown.util/'+window.location.hash.slice(1));
 	}
 };
 
 // instantiate apps
 Environment.addServer('markdown.util', new Environment.WorkerServer({
-	scriptUrl:'/apps/util/markdown.js',
-	baseUrl:location.href.substring(0,location.href.split('#')[0].lastIndexOf("/")+1) + 'docs' // http://pfraze.net/local/docs.html -> http://pfraze.net/local/docs
+	scriptUrl: '../apps/util/markdown.js',
+	baseUrl: location.href.substring(0,location.href.split('#')[0].lastIndexOf("/")+1) + 'docs'
+	// ^^^ http://pfraze.net/local/docs.html -> http://pfraze.net/local/docs
 }));
 
 // load client regions
-Environment.addClientRegion('viewer').dispatchRequest('httpl://markdown.util/'+(window.location.hash.slice(1)||'readme.md'));
-viewNav.querySelector('a[href="'+(window.location.hash||'#readme.md')+'"]').parentNode.classList.add('active');
+Environment.addClientRegion('viewer')
+	.dispatchRequest('httpl://markdown.util/'+(window.location.hash.slice(1)||'readme.md'));
 ```
