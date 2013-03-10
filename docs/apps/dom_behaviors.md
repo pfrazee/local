@@ -49,18 +49,17 @@ this.element.addEventListener('request', function(e) {
 });
 ```
 
-`CommonClient.listen()` adds the request event dispatches, and `CommonClient.handleResponse()` renders responses and binds any additional event-listeners. Rendering depends on the response status:
+`CommonClient.listen()` adds the request event dispatches, and `CommonClient.handleResponse()` renders responses and binds any additional event-listeners. There are some exceptions to this, depending on the response status:
 
- - 200, the request body will render to the target element
- - 205, if the target element is a form, its content will be reset
+ - 204, no changes are made to the document
  - 303, a new request is dispatched with the URL given in the Location header
 
 
 ## Custom Request Events
 
-While it's not possible for an application to bind directly to events, they can provide instructions for events to dispatch HTTP requests. Doing so requires a form to define the request, and an `on*` attribute to specify the request method. 
+While it's not possible for an application to bind directly to events, they can provide instructions for events to dispatch HTTP requests. Doing so requires a form and an `on*` attribute to specify the request method. 
 
-```html
+```markup
 <form action="http://myhost.com" onchange="patch">
   <!-- ... -->
 </form>
@@ -85,7 +84,7 @@ onblur, onchange, onclick, ondblclick, onfocus, onkeydown, onkeypress, onkeyup, 
 
 It's not uncommon for a server to want to update a client's interface. In Local, `<output>` elements automatically subscribe to the 'text/event-stream' of their containing forms' target, where they listen for an 'update' event. If the event is received, a GET request will be issued to the same target with the form's values serialized into the query parameters of the URL.
 
-```html
+```markup
 <form action="http://somewhere.com" method="post">
   <output>This will be updated!</output>
   This part will not be updated.
@@ -97,7 +96,7 @@ An 'update' event from 'http://somewhere.com' would trigger an html GET request 
 
 In order to give the right HTML, the `<output>` name attribute is added to the query parameters under 'output'. For instance:
 
-```html
+```markup
 <form action="http://somewhere.com" method="post">
   <output name="myout">This will be updated!</output>
   <!-- ... -->
@@ -108,7 +107,7 @@ This would result in a GET 'http://somewhere.com?output=myout'.
 
 Like the `on*` event attributes, the output can refer to a form that isn't the `<output>` parent. This is important to keep in mind, as forms can not be embedded within forms, so it may be neccessary to put additional forms somewhere adjacent to the output element.
 
-```html
+```markup
 <form id="myform" action="http://somewhere.com">
   <!-- ... -->
 </form>
@@ -117,12 +116,19 @@ Like the `on*` event attributes, the output can refer to a form that isn't the `
 </form>
 ```
 
+If the entire form should update, you can specify `data-output="true"` on the form element and avoid having to use the output element:
+
+```markup
+<form  action="http://somewhere.com" data-output="true">
+  <!-- ... -->
+</form>
+```
 
 ## Data-Binding
 
 Local can produce an effect much like the data-binding in Knockout and Angular, but by using a fairly different process. In Local, the client does not develop a concept of the underlying data model; instead, the markup defines events which generate requests, and then designates where the responses should be placed. Here is a simple example:
 
-```html
+```markup
 <form action="httpl://helloworld.ui" onchange="patch">
   <div>
     <p>First name: <input name="firstName" /></p>
@@ -143,7 +149,7 @@ All live bindings follow this same pattern of 1) issue request to change the dat
 
 Of course, some interfaces don't need live updates, and use a more traditional request/response process:
 
-```html
+```markup
 <form action="httpl://clicks.ui" method="post">
   <div>You've clicked {{numberOfClicks}} times</div>
  
