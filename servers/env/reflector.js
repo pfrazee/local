@@ -6,7 +6,6 @@ var _domain_ = /^\/([A-z0-9_\-\.]+)\/?$/i; // /:domain
 var _editor_ = /^\/([A-z0-9_\-\.]+)\/editor\/?$/i; // /:domain/editor
 function ReflectorServer() {
 	Environment.Server.call(this);
-	this.state = Environment.Server.ACTIVE;
 }
 ReflectorServer.prototype = Object.create(Environment.Server.prototype);
 

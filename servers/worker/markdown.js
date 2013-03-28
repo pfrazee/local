@@ -16,4 +16,3 @@ local.onHttpRequest(function(request, response) {
 	});
 	Link.responder(response).pipe(mdRequest, headerRewrite, bodyRewrite);
 });
-local.postMessage('loaded');

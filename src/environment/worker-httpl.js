@@ -78,6 +78,15 @@ local.onHttpRequest = function(func, context) {
 	else { local.httpRequestHandler = func; }
 };
 
+// server-obj setter interface
+// (used by Server objects)
+local.setServer = function(obj) {
+	if (typeof obj == 'function')
+		obj = new obj(arguments[1] || {});
+	obj.config = local.config;
+	local.onHttpRequest(obj.handleHttpRequest, obj);
+};
+
 // handler for when the server asks the app to fulfill an HTTP request
 // - mirrors Server.prototype.onWorkerHttpRequest in server.js
 local.onMessage('httpRequest', function(message) {
@@ -110,3 +119,16 @@ local.onMessage('httpRequest', function(message) {
 		local.endMessage(stream);
 	}
 });
+
+// Server
+// ======
+// EXPORTED
+// core type for all servers, should be used as a prototype
+local.Server = function() {
+};
+
+// request handler, should be overwritten by subclasses
+local.Server.prototype.handleHttpRequest = function(request, response) {
+	response.writeHead(0, 'server not implemented');
+	response.end();
+};

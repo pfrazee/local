@@ -57,4 +57,3 @@ local.onHttpRequest(function(request, response) {
 	});
 	router.error(response);
 });
-local.postMessage('loaded');

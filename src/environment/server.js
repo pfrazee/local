@@ -60,7 +60,6 @@
 		this.worker = new MyHouse.Sandbox(null, { bootstrapUrl:Environment.config.workerBootstrapUrl });
 		this.worker.bufferMessages('httpRequest'); // queue http requests until the app script is loaded
 		this.worker.onMessage('ready', this.onWorkerReady, this);
-		this.worker.onMessage('loaded', this.onWorkerLoaded, this);
 		this.worker.onMessage('terminate', this.terminate, this);
 		this.worker.onMessage('httpRequest', this.onWorkerHttpRequest, this);
 		this.worker.onMessage('httpSubscribe', this.onWorkerHttpSubscribe, this);
@@ -88,17 +87,13 @@
 			if (importRes.data.error) {
 				if (self.loaderrorCb) self.loaderrorCb(importRes.data);
 				self.terminate();
+				return;
+			}
+			if (self.state != Server.DEAD) {
+				self.state = Server.ACTIVE;
+				self.worker.releaseMessages('httpRequest'); // stop buffering
 			}
 		});
-	};
-
-	// starts activity with the server
-	// - called when the link-ap worker_core has finished loading
-	WorkerServer.prototype.onWorkerLoaded = function(message) {
-		if (this.state != Server.DEAD) {
-			this.state = Server.ACTIVE;
-			this.worker.releaseMessages('httpRequest'); // stop buffering
-		}
 	};
 
 	// destroys the server

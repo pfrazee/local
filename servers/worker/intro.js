@@ -1,6 +1,9 @@
 importScripts('linkjs-ext/responder.js');
 importScripts('linkjs-ext/router.js');
-local.onHttpRequest(function(request, response) {
+
+function IntroServer() {}
+IntroServer.prototype = Object.create(local.Server.prototype);
+IntroServer.prototype.handleHttpRequest = function(request, response) {
 	Link.router(request).mpa('get', '/', /html/, function() {
 		Link.responder(response).ok('html').end([
 			'<h1>Local <small>0.2.2</small></h1>',
@@ -10,5 +13,5 @@ local.onHttpRequest(function(request, response) {
 			'<blockquote><small>Click the script icons on the top right of this page\'s local. to view and modify their source.</small></blockquote>'
 		].join(''));
 	}).error(response);
-});
-local.postMessage('loaded');
+};
+local.setServer(IntroServer);
