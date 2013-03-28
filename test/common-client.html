@@ -1,0 +1,62 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>CommonClient tests</title>
+
+		<script src="doctest/doctest.js"></script>
+		<link rel="stylesheet" type="text/css" href="doctest/.resources/doc.css" />
+		<!--script src="/doctest/esprima/esprima.js"></script-->
+		<link rel="stylesheet" href="doctest/doctest.css" type="text/css">
+	</head>
+	<body class="autodoctest">
+
+		<h1 style="margin-bottom:0">CommonClient Test Suite</h1>
+		<p style="margin-top:0">brought to you by <a href="http://doctestjs.org" title="doctest.js">doctest.js</a></p>
+
+		<div id="testarea">
+			<a id="atag1" href="http://www.atag1.com">anchor tag 1</a>
+			<a id="atag2" href="http://www.atag2.com" target="target1" type="text/plain">anchor tag 2</a>
+			<a id="atag3" href="#donothing" target="_top">anchor tag 3</a>
+			<form id="form1" action="http://www.form1.com">
+				<input type="text" name="text1" value="text1 value" />
+				<input type="text" name="text2" value="text2 value" />
+				<input type="checkbox" name="check1" value="a" />
+				<input type="checkbox" name="check1" checked value="b" />
+				<input type="radio" name="radio1" value="radio1 value1" checked />
+				<input type="radio" name="radio1" value="radio1 value2" />
+				<input type="radio" name="radio2" value="radio2 value1" />
+				<input type="radio" name="radio2" value="radio2 value2" checked />
+				<textarea name="textarea1">textarea 1 value</textarea>
+				<select name="select1">
+					<option value="select1 value1" selected>foobar</option>
+					<option value="select1 value2">foobar</option>
+					<option value="select1 value3">foobar</option>
+				</select>
+				<select name="select2">
+					<option value="select2 value1">foobar</option>
+					<option value="select2 value2" selected>foobar</option>
+					<option value="select2 value3">foobar</option>
+				</select>
+				<select name="select3">
+					<option value="select3 value1">foobar</option>
+					<option value="select3 value2">foobar</option>
+					<option value="select3 value3" selected>foobar</option>
+				</select>
+				<input id="form1submit1" type="submit" />
+				<input id="form1submit2" name="form1submit2" type="submit" value="form1submit2 value" formaction="http://www.form1.com/foobar" formmethod="patch" formenctype="application/json" formtarget="target1" />
+			</form>
+			<form id="form2" action="http://www.form2.com" method="post" enctype="application/json" target="target1">
+				<input id="form2submit1" type="submit" />
+			</form>
+			<div id="target1"></div>
+			<div id="target2"></div>
+			<div id="target3"></div>
+		</div>
+
+		<script src="../lib/local.dev.js"></script>
+		<pre class="commenttest" href="common-client/browser.js"></pre>
+
+  </body>
+</html>

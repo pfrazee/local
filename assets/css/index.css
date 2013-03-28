@@ -1,0 +1,17 @@
+#request-log p { font-size:10px; line-height:9px; margin:0; }
+
+.client {
+	border: 1px solid #ddd;
+	border-radius: 5px;
+	padding: 10px;
+	margin-bottom: 20px;
+	box-shadow: 1px 2px 5px rgba(0,0,0,0.1);
+}
+.client-toolbar {
+	float:right;
+}
+#intro, #features { padding:0 5px; }
+.client form {
+	margin:0;
+}
+.controls { padding-top:6px; }

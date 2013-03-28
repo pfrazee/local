@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Local 0.2.2 - Documentation</title>
+
+		<!-- security policies -->
+		<meta http-equiv="X-WebKit-CSP" content="frame-src 'none'; object-src 'none'; script-src 'self'"></meta>
+
+		<!-- styling -->
+		<link rel="stylesheet" href="assets/bootstrap/css/bootstrap.css" />
+		<link rel="stylesheet" href="assets/css/link-ap.css" />
+		<link rel="stylesheet" href="assets/css/docs.css" />
+		<link rel="stylesheet" href="lib/vendor/prism/prism.css" />
+		<link rel="icon" type="image/vnd.microsoft.icon" href="assets/favicon.png" />
+	</head>
+	
+	<body>
+		<!-- github banner -->
+		<a href="https://github.com/pfraze/local" title="Local Repo on GitHub"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub"></a>
+
+		<!-- nav -->
+		<div class="navbar">
+			<div class="navbar-inner">
+				<a class="brand" href="#">Local 0.2.2</a>
+				<ul class="nav">
+					<li><a href="index.html" title="Home">Home</a></li>
+					<!-- <li><a href="profile.html" title="Profile Example Page">Example Page</a></li> -->
+					<li class="active"><a href="docs.html" title="Documentation">Documentation</a></li>
+				</ul>
+			</div>
+		</div>
+
+		<!-- environment -->
+		<div class="container">
+			<div class="row">
+				<div class="span3">
+					<ul id="viewer-nav" class="nav nav-list">
+						<li class="divider"></li>
+						<li class="nav-header"><a href="#readme.md">Readme</a></li>
+						<li class="divider"></li>
+						<li class="nav-header">The Environment</li>
+						<li><a href="#env/getting_started.md">Getting Started</a></li>
+						<li><a href="#env/document_servers.md">Building In-Document Servers</a></li>
+						<li><a href="#env/mediating_traffic.md">Mediating Traffic for Security and Privacy</a></li>
+						<li><a href="#env/adding_widgets.md">Adding Widgets and Client Behaviors</a></li>
+						<li class="divider"></li>
+						<li class="nav-header">Worker Applications</li>
+						<li><a href="#apps/security.md">Worker Security</a></li>
+						<li><a href="#apps/building.md">Building an Application</a></li>
+						<li><a href="#apps/events.md">Server-Sent Events</a></li>
+						<li><a href="#apps/dom_behaviors.md">DOM Interactions</a></li>
+						<li><a href="#apps/worker_protocol.md">Worker Protocol</a></li>
+						<li class="divider"></li>
+						<li class="nav-header">Libraries</li>
+						<li><a href="#lib/promises.md" title="Using Promises, the flow-control tool">Promises</a></li>
+						<li><a href="#lib/linkjs.md" title="Using LinkJS, the HTTP library">LinkJS</a>
+							<ul>
+								<li><a href="#lib/linkjs/navigator.md" title="Link.Navigator">Navigator</a></li>
+								<li><a href="#lib/linkjs/router.md" title="Link.Router">Router</a></li>
+								<li><a href="#lib/linkjs/responder.md" title="Link.Responder">Responder</a></li>
+								<li><a href="#lib/linkjs/headerer.md" title="Link.Headerer">Headerer</a></li>
+								<li><a href="#lib/linkjs/broadcaster.md" title="Link.Broadcaster">Broadcaster</a></li>
+								<li><a href="#lib/linkjs/eventemitter.md" title="Link.EventEmitter">EventEmitter</a></li>
+								<li><a href="#lib/linkjs/contenttypes.md" title="Link.contentTypes">contentTypes</a></li>
+								<li><a href="#lib/linkjs/helpers.md" title="Linkjs Helpers">Helpers</a></li>
+							</ul>
+						</li>
+						<li><a href="#lib/myhouse.md" title="Using MyHouse, the Worker manager">MyHouse</a></li>
+						<li><a href="#lib/commonclient.md" title="Using CommonClient, the standard DOM behaviors">CommonClient</a></li>
+						<li><a href="#lib/environment.md" title="Using the Environment API">Environment API</a></li>
+						<li class="divider"></li>
+						<li class="nav-header">Examples</li>
+						<li><a href="#examples/index.md">index.html</a></li>
+						<li><a href="#examples/profile.md">profile.html</a></li>
+						<li><a href="#examples/docs.md">docs.html</a></li>
+						<li><a href="#examples/localstorage.md">env/localstorage.js</a></li>
+						<li><a href="#examples/persona.md">env/persona.js</a></li>
+						<li><a href="#examples/reflector.md">env/reflector.js</a></li>
+						<li><a href="#examples/wall.md">apps/social/wall.js</a></li>
+						<li class="divider"></li>
+						<li class="nav-header">Misc</li>
+						<li><a href="#misc/building.md">Building</a></li>
+						<li><a href="#misc/contributing.md">Contributing</a></li>
+						<li><a href="#misc/browser_support.md">Browser Support</a></li>
+					</ul>
+				</div>
+				<div class="span9 loading" id="viewer"></div>
+			</div>
+
+			<br/><br/>
+			<p style="text-align:center">
+				Local is distributed under the <a href="//opensource.org/licenses/mit-license.php" title="MIT License">MIT License</a>.<br/>
+				Special thanks to <a href="http://www.fatcow.com/free-icons" title="FatCow, generous giver of icons">FatCow</a> and <a href="http://twitter.github.com/bootstrap/" title="Twitter Bootstrap, generous giver of css">Twitter Bootstrap</a>.<br/>
+				Supports latest <img src="assets/icons/16x16/firefox.png" title="Firefox 16+" /> <img src="assets/icons/16x16/google_chrome.png" title="Chrome 23+" /> <img src="assets/icons/16x16/opera.png" title="Opera 12+" /> Currently doesn't support <img src="assets/icons/16x16/internet_explorer.png" title="Internet Explorer" /> <img src="assets/icons/16x16/safari_browser.png" title="Safari" /> 
+			</p>
+
+		</div>
+
+		<!-- third-party -->
+		<script src="lib/vendor/prism/prism.js"></script>
+
+		<!-- environment -->
+		<script src="lib/local.min.js"></script>
+		<script src="docs.js"></script>
+	</body>
+</html>

@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Local 0.2.2</title>
+
+		<!-- security policies -->
+		<meta http-equiv="X-WebKit-CSP" content="frame-src 'none'; object-src 'none'; script-src 'self'"></meta>
+
+		<!-- styling -->
+		<link rel="stylesheet" href="assets/bootstrap/css/bootstrap.css" />
+		<link rel="stylesheet" href="assets/css/link-ap.css" />
+		<link rel="stylesheet" href="assets/css/index.css" />
+		<link rel="icon" type="image/vnd.microsoft.icon" href="assets/favicon.png" />
+	</head>
+	
+	<body>
+		<!-- github banner -->
+		<a href="https://github.com/pfraze/local" title="Local Repo on GitHub"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub"></a>
+
+		<!-- nav -->
+		<div class="navbar">
+			<div class="navbar-inner">
+				<a class="brand" href="#">Local 0.2.2</a>
+				<ul class="nav">
+					<li class="active"><a href="index.html" title="Home">Home</a></li>
+					<!-- <li><a href="profile.html" title="Profile Example Page">Example Page</a></li> -->
+					<li><a href="docs.html" title="Documentation">Documentation</a></li>
+				</ul>
+			</div>
+		</div>
+
+		<!-- environment -->
+		<div class="container">
+			<div class="row">
+				<div class="span9">
+					<div class="client">
+						<div class="client-toolbar" data-client="intro"></div>
+						<div id="intro"></div>
+					</div>
+					<div class="client">
+						<div class="client-toolbar" data-client="features"></div>
+						<div id="features"></div>
+					</div>
+				</div>
+				<div class="span3" id="request-log"></div>
+			</div>
+
+			<br/><br/>
+			<p style="text-align:center">
+				Local is distributed under the <a href="//opensource.org/licenses/mit-license.php" title="MIT License">MIT License</a>.<br/>
+				Special thanks to <a href="http://www.fatcow.com/free-icons" title="FatCow, generous giver of icons">FatCow</a> and <a href="http://twitter.github.com/bootstrap/" title="Twitter Bootstrap, generous giver of css">Twitter Bootstrap</a>.<br/>
+				Supports latest <img src="assets/icons/16x16/firefox.png" title="Firefox 16+" /> <img src="assets/icons/16x16/google_chrome.png" title="Chrome 23+" /> <img src="assets/icons/16x16/opera.png" title="Opera 12+" /> Currently doesn't support <img src="assets/icons/16x16/internet_explorer.png" title="Internet Explorer" /> <img src="assets/icons/16x16/safari_browser.png" title="Safari" /> 
+			</p>
+
+		</div>
+
+		<!-- environment -->
+		<script src="lib/local.min.js"></script>
+		<script src="servers/env/localstorage.js"></script>
+		<script src="servers/env/reflector.js"></script>
+		<script src="index.js"></script>
+	</body>
+</html>
