@@ -25,6 +25,8 @@ promises-files =\
 	${src}promises/promises.js
 worker-server-files =\
 	${src}myhouse/worker-bootstrap.js\
+	${promises-files}\
+	${linkjs-files}\
 	${src}environment/worker-httpl.js
 
 lib = lib/

@@ -2,13 +2,6 @@
 // =================
 // sets up various libraries
 
-importScripts('local/promises.js');
-importScripts('local/link.js');
-
-
-// LinkJS
-// ======
-
 // override link's dispatch() behavior to post it to the host document
 // - mirrors Server.prototype.postHttpRequestMessage in server.js
 Link.setRequestDispatcher(function(request) {
