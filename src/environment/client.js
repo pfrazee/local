@@ -73,7 +73,14 @@
 		var urld = Link.parseUri(request);
 		if (!urld.protocol) {
 			// build a new url from the current context
-			var newUrl = (this.context.url + request.url);
+			var newUrl;
+			if (request.url.length > 0 && request.url.charAt(0) != '/') {
+				// relative to context dirname
+				newUrl = this.context.urld.protocol + "://" + this.context.urld.host + this.context.urld.directory + request.url;
+			} else {
+				// relative to context hostLink
+				newUrl = this.context.urld.protocol + "://" + this.context.urld.host + request.url;
+			}
 			// reduce the string's '..' relatives
 			// :TODO: I'm sure there's a better algorithm for this
 			var lastRequestHost = this.context.urld.host;
