@@ -16,6 +16,10 @@
 		Environment.servers[domain] = server;
 		Environment.numServers++;
 
+		// allow the user script to load
+		if (server.loadUserScript)
+			server.loadUserScript();
+
 		// register the server
 		Link.registerLocal(domain, server.handleHttpRequest, server);
 
