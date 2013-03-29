@@ -7,6 +7,10 @@
 	// request dispatcher func
 	// - used in workers to transport requests to the parent for routing
 	var customRequestDispatcher = null;
+	// the directory of the environment context
+	var windowLocationDirname = (typeof window != 'undefined') ? window.location.pathname.split('/') : [''];
+	windowLocationDirname[windowLocationDirname.length - 1] = '';
+	windowLocationDirname = windowLocationDirname.join('/');
 
 	// custom error type, for use in promises
 	// EXPORTED
@@ -60,7 +64,13 @@
 
 		// prepend host on relative path
 		if (!req.urld.protocol) {
-			req.url = window.location.protocol + "//" + window.location.host + req.url;
+			if (req.url.length > 0 && req.url.charAt(0) != '/') {
+				// relative to current dirname
+				req.url = window.location.protocol + "//" + window.location.host + windowLocationDirname + req.url;
+			} else {
+				// relative to current hose
+				req.url = window.location.protocol + "//" + window.location.host + req.url;
+			}
 			req.urld = Link.parseUri(req.url);
 		}
 
