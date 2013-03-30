@@ -43,46 +43,56 @@ lib-linkjs-ext-files =\
 lib-worker-server-files =\
 	${lib}local/worker-server.js
 
-setup: clean concat minify dev
+setup: clean concat buildmin dev
+	@echo "Done!"
 
 clean:
-	-rm ${lib-local-files} ${lib-worker-server-files}
-	-rm ${lib}local.js ${lib}local.min.js ${lib}local.dev.js
-	-rm ${lib}worker-server.js ${lib}worker-server.min.js ${lib}worker-server.dev.js
+	@-rm ${lib-local-files} ${lib-worker-server-files}
+	@-rm ${lib}local.js ${lib}local.min.js ${lib}local.dev.js
+	@-rm ${lib}worker-server.js ${lib}worker-server.min.js ${lib}worker-server.dev.js
+	@echo Cleaned Out Libraries
 
 # ${lib}local/common-client.js ${lib}local/environment.js ${lib}local/link.js ${lib}local/myhouse.js ${lib}local/promises.js ${lib}local/worker-server.js ${lib}linkjs-ext
 concat: ${lib-local-files} ${lib-linkjs-ext-files} ${lib-worker-server-files}
+	@echo Concatted Libraries
 ${lib}local/common-client.js: ${common-client-files}
-	cat > $@ $^
+	@cat > $@ $^
 ${lib}local/environment.js: ${environment-files}
-	cat > $@ $^
+	@cat > $@ $^
 ${lib}local/link.js: ${linkjs-files} ${linkjs-ext-files}
-	cat > $@ $^
+	@cat > $@ $^
 ${lib}local/myhouse.js: ${myhouse-files}
-	cat > $@ $^
+	@cat > $@ $^
 ${lib}local/promises.js: ${promises-files}
-	cat > $@ $^
+	@cat > $@ $^
 ${lib}local/worker-server.js: ${worker-server-files}
-	cat > $@ $^
+	@cat > $@ $^
 ${lib}linkjs-ext/broadcaster.js: ${src}linkjs-ext/broadcaster.js
-	cp $< $@
+	@cp $< $@
 ${lib}linkjs-ext/responder.js: ${src}linkjs-ext/responder.js
-	cp $< $@
+	@cp $< $@
 ${lib}linkjs-ext/router.js: ${src}linkjs-ext/router.js
-	cp $< $@
+	@cp $< $@
 
-minify: ${lib}local.js ${lib}local.min.js ${lib}worker-server.js ${lib}worker-server.min.js
+buildmin: ${lib}local.js ${lib}local.min.js ${lib}worker-server.js ${lib}worker-server.min.js
+	@echo Built Minified Versions
 ${lib}local.js: ${lib-local-files}
-	cat > $@ $^
+	@cat > $@ $^
 ${lib}local.min.js: ${lib-local-files}
-	cat > $@ $^ # :TODO: actual minification
+	@./minify.sh $@ $^
 ${lib}worker-server.js: ${lib-worker-server-files}
-	cp $< $@
+	@cp $< $@
 ${lib}worker-server.min.js: ${lib-worker-server-files}
-	cp $< $@ # :TODO: actual minification
+	@./minify.sh $@ $^
 
 dev: ${lib}local.dev.js ${lib}worker-server.dev.js
+	@echo Built Dev Versions
 ${lib}local.dev.js: ${promises-files} ${linkjs-files} ${linkjs-ext-files} ${myhouse-files} ${common-client-files} ${environment-files}
-	echo $(foreach f, $^, "document.write('<script src=\"/$f\"></script>');\n") >> ${lib}local.dev.js
+	@echo $(foreach f, $^, "document.write('<script src=\"/$f\"></script>');\n") >> ${lib}local.dev.js
 ${lib}worker-server.dev.js: ${worker-server-files}
-	echo $(foreach f, $^, "importScripts(\"/$f\");\n") >> ${lib}worker-server.dev.js
+	@echo $(foreach f, $^, "importScripts(\"/$f\");\n") >> ${lib}worker-server.dev.js
+
+deps: uglifyjs
+uglifyjs:
+	-git clone git://github.com/mishoo/UglifyJS2.git
+	(cd UglifyJS2 && npm link .)

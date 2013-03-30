@@ -4,3 +4,5 @@ node_modules
 .htaccess
 db
 .DS_Store
+UglifyJS2
+*.log
