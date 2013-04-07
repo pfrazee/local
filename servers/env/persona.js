@@ -88,7 +88,7 @@ PersonaServer.prototype.onLogin = function(assertion) {
 		addPersonaCtrls(document.body);
 		// tell the world
 		self.userBroadcast.emit('logout');
-		return err;
+		throw err;
 	});
 };
 

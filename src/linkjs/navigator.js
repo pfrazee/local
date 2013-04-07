@@ -146,7 +146,7 @@
 							self.context.error = err;
 							self.context.resolveState = NavigatorContext.FAILED;
 						}
-						return err;
+						throw err;
 					})
 					.chain(response);
 			})
