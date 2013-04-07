@@ -80,7 +80,7 @@ PersonaServer.prototype.onLogin = function(assertion) {
 		// recreate all controls
 		addPersonaCtrls(document.body);
 		return res;
-	}).except(function(err) {
+	}).fail(function(err) {
 		// login failure
 		console.log('failed to verify identity assertion', err.message);
 		Environment.user = null;

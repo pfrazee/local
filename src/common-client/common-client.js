@@ -145,9 +145,7 @@ var CommonClient = {};
 			break;
 		default:
 			// replace target innards
-			promise(response).then(function(response) {
-				renderResponse(targetElem, containerElem, response);
-			});
+			renderResponse(targetElem, containerElem, response);
 		}
 	}
 

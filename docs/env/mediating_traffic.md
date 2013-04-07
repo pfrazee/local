@@ -81,15 +81,16 @@ It is also a good idea to scrub session headers such as 'Set-Cookie':
 Environment.setDispatchWrapper(function(request, origin, dispatch) {
 	//...
 	// dispatch the request
-	return dispatch(request)
-		.then(function(response) { // on response codes 200-399
+	return dispatch(request).then(
+		function(response) { // on response codes 200-399
 			delete response.headers['set-cookie'];
 			return response;
-		})
-		.except(function(err) { // on response codes 400+
+		},
+		function(err) { // on response codes 400+
 			delete err.response.headers['set-cookie'];
 			return err;
-		})
+		}
+	);
 });
 ```
 

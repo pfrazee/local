@@ -46,17 +46,17 @@ Pipes the first parameter response data and headers into the responder's wrapped
 
 ### cb( <small>fnName, [type], [headers], [body]</small> ) <small>=> function(v)</small>
 
-Produces a callback to one of the `respond` sugars for use in a promise `then()` or `except()` chain. `fnName` should be a string naming the function (eg 'ok', 'badGateway', 'notFound', etc). More response parameters can be passed optionally.
+Produces a callback to one of the `respond` sugars for use in a promise `then()` chain. `fnName` should be a string naming the function (eg 'ok', 'badGateway', 'notFound', etc). More response parameters can be passed optionally.
 
 An example usage from apps/doc/features.js:
 
 ```javascript
 lsCollection.getJson()
-	.then(function(res) {
+	.succeed(function(res) {
 		respond.ok('html').end(makeDoc('env', request, res.body));
 		return res;
 	})
-	.except(respond.cb('badGateway'));
+	.fail(respond.cb('badGateway'));
 ```
 
 

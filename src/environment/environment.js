@@ -75,7 +75,7 @@
 	var orgLinkDispatchFn = Link.dispatch;
 	Link.dispatch = function(req, origin) {
 		var res = envDispatchWrapper.call(this, req, origin, orgLinkDispatchFn);
-		if (res instanceof Promise) { return res; }
+		if (res instanceof Local.Promise) { return res; }
 
 		// make sure we respond with a valid client response
 		if (!res) {
@@ -92,7 +92,7 @@
 		}
 
 		// and make sure it's wrapped in a promise
-		var p = promise();
+		var p = Local.promise();
 		if (res.status >= 400) {
 			p.reject(res);
 		} else {

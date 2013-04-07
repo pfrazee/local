@@ -41,14 +41,14 @@ Environment.setDispatchWrapper(function(request, origin, dispatch) {
 
 	// allow request
 	var response = dispatch(request);
-	response.except(logError); // `dispatch` returns a promise which will fail if response status >= 400
+	response.fail(logError); // `dispatch` returns a promise which will fail if response status >= 400
 	return response;
 });
 
 function logError(err) {
 	if (err instanceof Link.ResponseError) { console.log(err.message, err.request); }
 	else { console.log(err.message); }
-	return err;
+	throw err;
 }
 ```
 

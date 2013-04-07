@@ -127,21 +127,20 @@
 
 		// wait for the promise
 		var self = this;
-		resPromise
-			.then(function(response) {
-				// begin emitting
+		resPromise.then(
+			function(response) {
 				response.on('data', function(payload) {
 					self.__emitEvent(payload);
 				});
 				response.on('end', function() {
 					self.close();
 				});
-			})
-			.except(function(err) {
-				// fail town
+			},
+			function(err) {
 				self.__emitError({ event:'error', data:err });
 				self.close();
-			});
+			}
+		);
 	}
 	LocalEventStream.prototype = Object.create(EventStream.prototype);
 	LocalEventStream.prototype.close = function() {

@@ -24,13 +24,13 @@ Environment.setDispatchWrapper(function(request, origin, dispatch) {
 			request.url,
 			'<span style="color:gray">',request.headers.accept,'</span>'
 		].join(' ');
-		reqLog.post(entry, 'text/plain').except(console.log.bind(console), request);
+		reqLog.post(entry, 'text/plain').fail(console.log.bind(console), request);
 	}
 
 	// allow request
 	var response = dispatch(request);
-	response.then(console.log.bind(console), request);
-	response.except(console.log.bind(console), request);
+	response.succeed(console.log.bind(console), request);
+	response.fail(console.log.bind(console), request);
 	return response;
 });
 

@@ -22,7 +22,7 @@ viewNav.querySelector('a[href="'+(window.location.hash||'#readme.md')+'"]')
 Environment.setDispatchWrapper(function(request, origin, dispatch) {
 	// allow request
 	var response = dispatch(request);
-	response.except(console.log.bind(console));
+	response.fail(console.log.bind(console));
 	return response;
 });
 

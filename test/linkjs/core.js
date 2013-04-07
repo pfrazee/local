@@ -5,7 +5,7 @@
 done = false;
 startTime = Date.now();
 var res = Link.dispatch({ method:'get', url:'http://linkapjs.com:8080' });
-res.then(printSuccess).except(printError).then(finishTest);
+res.then(printSuccess, printError).then(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -33,7 +33,7 @@ success
 done = false;
 startTime = Date.now();
 var res = Link.dispatch({ method:'get', url:'http://linkapjs.com:8080/bad/url' });
-res.then(printSuccess).except(printError).except(finishTest);
+res.then(printSuccess, printError).fail(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -48,7 +48,7 @@ error
 done = false;
 startTime = Date.now();
 var res = Link.dispatch({ method:'get', url:'httpl://test.com' });
-res.then(printSuccess).except(printError).then(finishTest);
+res.then(printSuccess, printError).then(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -75,7 +75,7 @@ success
 done = false;
 startTime = Date.now();
 var res = Link.dispatch({ method:'get', url:'httpl://test.com/bad/url' });
-res.then(printSuccess).except(printError).except(finishTest);
+res.then(printSuccess, printError).fail(finishTest);
 wait(function () { return done; });
 
 /* =>

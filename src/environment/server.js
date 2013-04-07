@@ -124,7 +124,7 @@
 	WorkerServer.prototype.getSource = function(requester) {
 		var scriptUrl = this.config.scriptUrl;
 		if (scriptUrl) {
-			var scriptPromise = promise();
+			var scriptPromise = Local.promise();
 			if (/\/\//.test(scriptUrl) === false) { // no protocol?
 				// assume it's a relative path referring to our host
 				scriptUrl = 'http://'+window.location.host + scriptUrl;
@@ -132,16 +132,17 @@
 
 			// request from host
 			var jsRequest = { method:'get', url:scriptUrl, headers:{ accept:'application/javascript' }};
-			Link.dispatch(jsRequest, requester)
-				.then(function(res) {
+			Link.dispatch(jsRequest, requester).then(
+				function(res) {
 					res.on('end', function() {
 						scriptPromise.fulfill(res.body);
 					});
-				})
-				.except(function(err) {
+				},
+				function(err) {
 					console.log('failed to retrieve worker source:', err.message, err.response);
 					scriptPromise.reject(err);
-				});
+				}
+			);
 			return scriptPromise;
 		} else {
 			return this.config.script;
@@ -175,9 +176,7 @@
 		};
 
 		// execute the request
-		promise(Link.dispatch(message.data, this))
-			.then(handleResponse)
-			.except(handleErrors);
+		Local.promise(Link.dispatch(message.data, this)).then(handleResponse, handleErrors);
 	};
 
 	// routes the subscribe to Link and sends the events back to the worker

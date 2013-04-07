@@ -80,7 +80,7 @@ PersonaServer.prototype.onLogin = function(assertion) {
 		url:'http://'+window.location.host+'/persona-verify.php',
 		headers:{ accept:'application/json', 'content-type':'application/x-www-form-urlencoded' },
 		body:{ audience:'http://'+window.location.host, assertion:assertion }
-	}).then(function(res) {
+	}).succeed(function(res) {
 		if (res.body.status == 'okay') {
 			// logged in
 			Environment.user = { scheme:'persona', name:res.body.email, assertion:assertion };
@@ -94,7 +94,7 @@ PersonaServer.prototype.onLogin = function(assertion) {
 		// recreate all controls
 		addPersonaCtrls(document.body);
 		return res;
-	}).except(function(err) {
+	}).fail(function(err) {
 		// login failure
 		console.log('failed to verify identity assertion', err.message);
 		Environment.user = null;

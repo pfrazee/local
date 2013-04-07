@@ -42,7 +42,7 @@ Environment.setDispatchWrapper(function(request, origin, dispatch) {
 
 	// allow request
 	var response = dispatch(request);
-	response.except(logError, request);
+	response.fail(logError, request);
 	return response;
 });
 

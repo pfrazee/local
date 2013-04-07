@@ -62,12 +62,10 @@ ReflectorServer.prototype.$getServer = function(request, response, match) {
 			});
 			router.a(/javascript/i, function() {
 				// retrieve source
-				promise(server.getSource())
+				Local.promise(server.getSource())
 					.then(function(source) {
-						// send back html
 						respond.ok('application/javascript', headerer).end(source);
-					})
-					.except(function(err) { respond.badGateway(headerer).end(); });
+					}, function(err) { respond.badGateway(headerer).end(); });
 			});
 			router.error(response);
 		} else {
@@ -127,12 +125,10 @@ ReflectorServer.prototype.$getServerEditor = function(request, response, match) 
 		headerer.addLink('/'+domain+'/editor', 'self current');
 		if (/GET/i.test(request.method)) {
 			// retrieve source
-			promise(server.getSource())
+			Local.promise(server.getSource())
 				.then(function(source) {
-					// send back html
 					respond.ok('html').end(self.renderServerEditorHtml(domain, source));
-				})
-				.except(function(err) { respond.badGateway(headerer).end(); });
+				}, function(err) { respond.badGateway(headerer).end(); });
 		} else {
 			// respond with headers
 			respond.ok(null, headerer).end();

@@ -55,22 +55,23 @@ var resPromise = Link.dispatch({
 Like much of Local's code, `dispatch` uses promises to handle async. If you're not familiar with promises, [have a look at the library's documentation](../lib/promises.md). `dispatch` returns a promise which is fulfilled if the response status is >= 200 && < 400, or rejected if >= 400.
 
 ```javascript
-resPromise
-	.then(function(res) {
+resPromise.then(
+	function(res) {
 		console.log(res.status, res.reason);
 		// => 200 ok
 		console.log(res.headers);
 		// => { 'content-type':'application/json', ...}
 		console.log(res.body);
 		// => { foo:'bar', ...}
-	})
-	.except(function(err) {
+	},
+	function(err) {
 		console.log(err.message);
 		// => 404: not found
 		console.log(err.response);
 		// => { status:404, reason:'not found', ...}
 		return err;
-	});
+	}
+);
 ```
 
 If you're writing in-document (environment) code, make sure to include the `origin` parameter (the second parameter). This is not necessary in the Worker, because `origin` is overwritten for safety.

@@ -9,7 +9,7 @@ Link.setRequestDispatcher(function(request) {
 		return local.logStack();
 	}
 
-	var resPromise = promise();
+	var resPromise = Local.promise();
 	local.postMessage('httpRequest', request, function(reply) {
 		if (!reply.data) { throw "Invalid httpRequest reply to worker from document"; }
 
@@ -96,10 +96,8 @@ local.onMessage('httpRequest', function(message) {
 		var handleErrors = function(err) { handleResponse(err.response); };
 
 		// setup the response promise
-		var resPromise = promise();
-		resPromise
-			.then(handleResponse)
-			.except(handleErrors);
+		var resPromise = Local.promise();
+		resPromise.then(handleResponse, handleErrors);
 
 		// create a server response for the request handler to work with
 		var response = new Link.ServerResponse(resPromise, request.stream);

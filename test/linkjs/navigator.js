@@ -8,12 +8,9 @@ done = false;
 startTime = Date.now();
 var fooCollection = testServer.collection('foo');
 fooCollection.getJson()
-  .then(printSuccess)
-  .except(printErrorAndFinish)
-  .then(function(res) {
-    fooCollection.item('baz').get()
-      .then(printSuccessAndFinish)
-      .except(printErrorAndFinish);
+  .then(printSuccess, printErrorAndFinish)
+  .succeed(function(res) {
+    fooCollection.item('baz').get().then(printSuccessAndFinish, printErrorAndFinish);
   });
 wait(function () { return done; });
 
@@ -68,9 +65,7 @@ testServer
   .up()
   .via()
   .self()
-  .collection('foo').get()
-    .then(printSuccessAndFinish)
-    .except(printErrorAndFinish);
+  .collection('foo').get().then(printSuccessAndFinish, printErrorAndFinish);
 wait(function () { return done; });
 
 /* =>
@@ -99,12 +94,9 @@ done = false;
 startTime = Date.now();
 var testLocal = new Link.Navigator('httpl://test.com');
 testLocal.collection('foo').getJson()
-  .then(printSuccess)
-  .except(printErrorAndFinish)
+  .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
-    fooCollection.item('baz').get()
-      .then(printSuccessAndFinish)
-      .except(printErrorAndFinish);
+    fooCollection.item('baz').get().then(printSuccessAndFinish, printErrorAndFinish);
   });
 wait(function () { return done; });
 
@@ -154,8 +146,8 @@ done = false;
 startTime = Date.now();
 var testLocal = new Link.Navigator('httpl://test.com');
 testLocal.collection('foo').getJson(null, { stream:true })
-  .then(printSuccess)
-  .then(function(res) {
+  .succeed(printSuccess)
+  .succeed(function(res) {
 		print('---');
 		res.on('data', function(payload) {
 			print(payload);
@@ -167,7 +159,7 @@ testLocal.collection('foo').getJson(null, { stream:true })
 			finishTest();
 		});
 	})
-  .except(printErrorAndFinish);
+  .fail(printErrorAndFinish);
 wait(function () { return done; });
 
 /* =>

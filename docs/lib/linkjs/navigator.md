@@ -63,7 +63,7 @@ var me = users.relation('item', 'pfraze', { foo:'bar' });
 ```
 
 
-### dispatch( <small>requestObj</small> ) <small>=> promise(ClientResponse)</small>
+### dispatch( <small>requestObj</small> ) <small>=> Local.Promise(ClientResponse)</small>
 
 The `dispatch()` function issues a request from the current context.
 

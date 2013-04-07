@@ -43,7 +43,7 @@ FeaturesServer.prototype.handleHttpRequest = function(request, response) {
 	});
 
 	router.mp(/GET|POST/i, '/env', function() {
-		var p = promise(true);
+		var p = Local.promise(true);
 		// pass post on to local storage
 		if (/POST/i.test(request.method)) {
 			if (request.body['delete']) { // delete button?
@@ -54,16 +54,16 @@ FeaturesServer.prototype.handleHttpRequest = function(request, response) {
 				// add a new entry
 				p = self.lsCollection.post({});
 			}
-			p.except(respond.cb('badGateway'));
+			p.fail(respond.cb('badGateway'));
 		}
 		// get data and send back interface html
-		p.then(function(res) {
+		p.succeed(function(res) {
 			self.lsCollection.getJson()
-				.then(function(res) {
+				.succeed(function(res) {
 					respond.ok('html').end(self.makeDoc('env', request, res.body));
 					return res;
 				})
-				.except(respond.cb('badGateway'));
+				.fail(respond.cb('badGateway'));
 			return res;
 		});
 	});

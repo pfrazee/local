@@ -4,73 +4,83 @@ Promises
 pfraze 2013
 
 
-## Overview
+Monadic function chaining around asynchronously-fulfilled values. Now with 100% more Promises/A+ conformance.
 
-Monadic function chaining around asynchronously-fulfilled values.
+## Usage
 
 A promise can be created with or without a value:
 
 ```javascript
-var p1 = promise(); // unfulfilled
-var p2 = promise('foobar'); // fulfilled
-var p3 = promise(p2); // passes through (p3 === p2)
+var p1 = new Local.Promise(); // unfulfilled
+var p2 = Local.promise(); // unfulfilled
+var p3 = Local.promise('foobar'); // fulfilled
+var p4 = Local.promise(p2); // passes through (p3 === p2)
+var p5 = Local.promise(promiseFromOtherLibrary); // wraps ((p4 instanceof Local.Promise) === true)
 ```
 
-Functions may be chained using `then` (for non-erroneous values) or `except` (for erroneous values). Each function will receive the current value as the first parameter, and must return a value in order to continue the chain.
+Functions may be chained using `then`. Each function will receive the current value as the first parameter, and updates the current value with whatever is returned (including `undefined` if no return statement is made).
 
 ```javascript
-var myPromise = promise();
-myPromise.then(function(v) {
-	return v + 1;
-}).then(log);
+var myPromise = Local.promise();
+myPromise.then(
+  function(v) {
+    return v + 1;
+  },
+  function(err) {
+    // rejection handler, wont get hit this time
+  })
+  .then(log);
 promise.fulfill(5);
 // => logs "6"
+
+var myPromise = Local.promise();
+myPromise.then(
+  function(v) {
+    // success handler, wont get hit this time
+  },
+  function(err) {
+    console.log(err);
+  });
+promise.reject("Oh nooo");
+// => logs "Oh nooo"
 ```
 
-The current promise is bound to `this` within the `then` and `except` functions. If a function does not return a value, it may later continue the chain by calling `this.fulfill` or `this.reject`.
+Functions which throw an error will cause the next promise to be rejected. Subsequent rejection handlers can choose to rethrow to continue rejection, or return a value to indicate normal operation has resumed.
 
 ```javascript
-var myPromise = promise();
-myPromise.then(function(v) {
-	var self = this;
-	setTimeout(function() { self.fulfill(v + 1); }, 1000);
-}).then(log);
-promise.fulfill(5);
-// => logs "6" after a 1-second delay
+var myPromise = Local.promise();
+myPromise
+  .then(function(v) { throw "oh nooo"; })
+  .then(null, function(err) { console.log(err); throw "oh nooo!!!"; })
+  .then(null, function(err) { console.log(err); return "jk we're fine"; })
+  .then(log);
+promise.fulfill(true);
+// => logs "oh nooo"
+// => logs "oh nooo!!!"
+// => logs "jk we're fine"
 ```
 
-If an `Error` type or subtype is returned, the promise will use that to reject.
+In addition to `then`, you can use `succeed` (for non-erroneous values) or `fail` (for erroneous values). The first parameter defines the handler function, and subsequent parameters may be provided to be passed into the handler:
 
 ```javascript
-var myPromise = promise();
-myPromise.then(function(v) {
-	return new Error("Oh noooo");
-}).except(log);
-promise.fulfill(5);
-// => logs "Error: Oh noooo"
-```
-
-Extra parameters may be passed to a `then` or `except` call:
-
-```javascript
-function add(a, b) { return a + b; }
-function subtract(a, b) { return a - b; }
+function add(v, x) { return v + x; }
+function subtract(v, x) { return v - x; }
 function wait(v, t) { var self = this; setTimeout(function() { self.fulfill(v); }, t); }
 function log(v) { console.log(v); }
 
-promise(10)
-	.then(add, 5)
-	.then(wait, 1000)
-	.then(subtract, 10)
-	.then(log);
+Local.promise(10)
+  .succeed(add, 5)
+  .succeed(wait, 1000)
+  .succeed(subtract, 10)
+  .succeed(log);
 // => waits 1 second, then logs "5"
 ```
 
 Promises may be chained, to allow the fulfillment or rejection of one to be passed on to the other:
 
 ```javascript
-var p1 = promise(), p2 = promise();
-p2.then(log).except(log);
+var p1 = Local.promise(), p2 = Local.promise();
+p2.then(log, log);
 p1.chain(p2);
 p1.fulfill('foobar');
 // => logs "foobar"
@@ -94,4 +104,10 @@ mypromise
   });
 mypromise.fulfill(true);
 // => logs "stopping"
+```
+
+For cases where you need to support the `(err, result)` pattern, use `nodeStyleCB()`:
+
+```javascript
+require('http').request(options, Local.nodeStyleCB(mypromise));
 ```

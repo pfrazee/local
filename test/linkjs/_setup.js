@@ -11,7 +11,7 @@ function printSuccess(res) {
 function printError(err) {
 	print('error');
 	print(err.message);
-	return err;
+	throw err;
 }
 function finishTest() {
 	console.log(Date.now() - startTime, 'ms');

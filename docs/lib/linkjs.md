@@ -31,7 +31,7 @@ The two primary message-types for Link are "requests" and "events." Requests fol
 
 ## HTTP Request/Response
 
-### Link.dispatch( <small>request</small> ) <small>=> Promise(ClientResponse)</small>
+### Link.dispatch( <small>request</small> ) <small>=> Local.Promise(ClientResponse)</small>
 
 Dispatches a request and returns a promise for the response. If the request URL's protocol is 'http' or 'https', it will issue an Ajax request. If it is 'httpl', it will issue the request to a Web Worker or in-document server.
 
@@ -54,22 +54,23 @@ var resPromise = Link.dispatch({
 Like much of Local's code, `dispatch` uses promises to handle async. If you're not familiar with promises, [have a look at the library's documentation](promises.md). `dispatch` returns a promise which is fulfilled if the response status is in the 2xx or 3xx ranges, or rejected if 4xx/5xx.
 
 ```javascript
-resPromise
-    .then(function(res) {
+resPromise.then(
+    function(res) {
         console.log(res.status, res.reason);
         // => 200 ok
         console.log(res.headers);
         // => { 'content-type':'application/json', ...}
         console.log(res.body);
         // => { foo:'bar', ...}
-    })
-    .except(function(err) {
+    },
+    function(err) {
         console.log(err.message);
         // => 404: not found
         console.log(err.response);
         // => { status:404, reason:'not found', ...}
         return err;
-    });
+    }
+);
 ```
 
 On success, the promise is fulfilled with a `ClientResponse` object, which is described below. Failures are rejected with the `ResponseError`, also described below (rejected promises always contain an Error subtype).

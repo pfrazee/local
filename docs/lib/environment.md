@@ -31,7 +31,7 @@ Begins CommonClient behaviors on the target element, and listens for request eve
 
 ### removeClientRegion( <small>elementId</small> ) <small>=> undefined</small>
 
-### dispatch( <small>origin, req</small> ) <small>=> promise(Link.ClientResponse)</small>
+### dispatch( <small>origin, req</small> ) <small>=> Local.promise(Link.ClientResponse)</small>
 
 A hook for the deployment to override. Expected behavior is to wrap `Link.dispatch()` while enforcing any security or session logic as needed.
 

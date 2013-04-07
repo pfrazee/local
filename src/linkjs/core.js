@@ -75,7 +75,7 @@
 		}
 
 		// execute according to protocol (asyncronously)
-		var resPromise = promise();
+		var resPromise = Local.promise();
 		if (req.urld.protocol == 'httpl') {
 			setTimeout(function() { __dispatchLocal(req, resPromise); }, 0);
 		} else if (req.urld.protocol == 'http' || req.urld.protocol == 'https') {

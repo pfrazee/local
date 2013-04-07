@@ -127,12 +127,12 @@
 		if (!req || !req.method) { throw "request options not provided"; }
 		var self = this;
 
-		var response = promise();
-		((req.noresolve) ? promise(this.context.getUrl()) : this.resolve({ retry:req.retry }))
-			.then(function(url) {
+		var response = Local.promise();
+		((req.noresolve) ? Local.promise(this.context.getUrl()) : this.resolve({ retry:req.retry }))
+			.succeed(function(url) {
 				req.url = url;
 				Link.dispatch(req)
-					.then(function(res) {
+					.succeed(function(res) {
 						self.context.error = null;
 						self.context.resolveState = NavigatorContext.RESOLVED;
 						if (res.headers.link)
@@ -141,7 +141,7 @@
 							self.links = self.links || []; // cache an empty link list so we dont keep trying during resolution
 						return res;
 					})
-					.except(function(err) {
+					.fail(function(err) {
 						if (err.response.status === 404) {
 							self.context.error = err;
 							self.context.resolveState = NavigatorContext.FAILED;
@@ -150,7 +150,7 @@
 					})
 					.chain(response);
 			})
-			.except(function(err) {
+			.fail(function(err) {
 				response.reject(err);
 			});
 		return response;
@@ -179,7 +179,7 @@
 	//  - returns a promise
 	Navigator.prototype.resolve = function Navigator__resolve(options) {
 		var self = this;
-		var p = promise();
+		var p = Local.promise();
 		if (this.links !== null && (this.context.isResolved() || (this.context.isAbsolute() && this.context.isBad() === false)))
 			p.fulfill(this.context.getUrl());
 		else if (this.context.isBad() === false || (this.context.isBad() && options.retry)) {
@@ -187,11 +187,13 @@
 			if (this.parentNavigator) {
 				this.parentNavigator.__resolveChild(this, options)
 					.then(function(url) {
-						var p2 = this;
-						self.head(null, null, null, { noresolve:true })
-							.then(function(res) { p2.fulfill(url); })
-							.except(function(err) { p2.reject(err); });
-						// remember: by returning nothing we hold the chain until p2 fulfill
+						var p2 = Local.promise();
+						// confirm that our url is correct with a head request
+						self.head(null, null, null, { noresolve:true }).then(
+							function(res) { p2.fulfill(url); }, // is correct, pass it on
+							function(err) { p2.reject(err); }
+						);
+						return p2;
 					})
 					.chain(p);
 			} else
@@ -210,11 +212,11 @@
 	//  - returns a promise
 	Navigator.prototype.__resolveChild = function Navigator__resolveChild(childNav, options) {
 		var self = this;
-		var resolvedPromise = promise();
+		var resolvedPromise = Local.promise();
 
 		// resolve self before resolving child
-		this.resolve(options)
-			.then(function() {
+		this.resolve(options).then(
+			function() {
 				var childUrl = self.__lookupLink(childNav.context);
 				if (childUrl) {
 					childNav.context.resolve(childUrl);
@@ -222,15 +224,16 @@
 				} else {
 					resolvedPromise.reject(new Link.ResponseError({ status:404, reason:'link relation not found' }));
 				}
-			})
-			.except(function(error) {
+			},
+			function(error) {
 				// we're bad, and all children are bad as well
 				childNav.context.error = error;
 				childNav.context.resolveState = NavigatorContext.FAILED;
 				resolvedPromise.reject(error);
 				return error;
-			});
-		
+			}
+		);
+
 		return resolvedPromise;
 	};
 

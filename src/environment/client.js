@@ -54,13 +54,14 @@
 
 		var self = this;
 		this.__prepareRequest(request);
-		promise(Link.dispatch(request, this))
-			.then(function(response) {
+		Local.promise(Link.dispatch(request, this)).then(
+			function(response) {
 				self.__handleResponse(e, request, response);
-			})
-			.except(function(err) {
+			},
+			function(err) {
 				self.__handleResponse(e, request, err.response);
-			});
+			}
+		);
 	}
 
 	ClientRegion.prototype.__prepareRequest = function(request) {

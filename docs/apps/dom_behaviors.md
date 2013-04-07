@@ -36,8 +36,8 @@ this.element.addEventListener('request', function(e) {
   }
 
   // issue request
-  promise(Link.dispatch(request, self))
-    .then(function(res) {
+  Local.promise(Link.dispatch(request, self))
+    .succeed(function(res) {
       // success, send back to common client
       res.on('end', function() {
         CommonClient.handleResponse(requestTarget, self.element, res);
