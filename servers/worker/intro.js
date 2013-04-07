@@ -2,7 +2,7 @@ importScripts('linkjs-ext/responder.js');
 importScripts('linkjs-ext/router.js');
 
 function IntroServer() {}
-IntroServer.prototype = Object.create(local.Server.prototype);
+IntroServer.prototype = Object.create(localApp.Server.prototype);
 IntroServer.prototype.handleHttpRequest = function(request, response) {
 	Link.router(request).mpa('get', '/', /html/, function() {
 		Link.responder(response).ok('html').end([
@@ -14,4 +14,4 @@ IntroServer.prototype.handleHttpRequest = function(request, response) {
 		].join(''));
 	}).error(response);
 };
-local.setServer(IntroServer);
+localApp.setServer(IntroServer);

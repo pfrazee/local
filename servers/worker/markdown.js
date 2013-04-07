@@ -8,10 +8,10 @@ function headerRewrite(headers) {
 }
 function bodyRewrite(md) { return (md) ? marked(md) : ''; }
 
-local.onHttpRequest(function(request, response) {
+localApp.onHttpRequest(function(request, response) {
 	var mdRequest = Link.dispatch({
 		method  : 'get',
-		url     : local.config.baseUrl + request.path,
+		url     : localApp.config.baseUrl + request.path,
 		headers : { accept:'text/plain' }
 	});
 	Link.responder(response).pipe(mdRequest, headerRewrite, bodyRewrite);

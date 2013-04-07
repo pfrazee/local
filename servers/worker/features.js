@@ -15,7 +15,7 @@ function FeaturesServer() {
 
 	this.lsCollection = Link.navigator('httpl://localstorage.env').collection('features-test');
 }
-FeaturesServer.prototype = Object.create(local.Server.prototype);
+FeaturesServer.prototype = Object.create(localApp.Server.prototype);
 
 FeaturesServer.prototype.handleHttpRequest = function(request, response) {
 	var router = Link.router(request);
@@ -203,4 +203,4 @@ FeaturesServer.prototype.makeList = function(request) {
 	].join('');
 };
 
-local.setServer(FeaturesServer);
+localApp.setServer(FeaturesServer);

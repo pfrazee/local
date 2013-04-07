@@ -6,15 +6,15 @@ var wallBroadcast = Link.broadcaster();
 var wallPostsBroadcast = Link.broadcaster();
 
 var posts = [];
-var dataProvider = Link.navigator(local.config.dataSource);
-var dataUpdates = Link.subscribe(local.config.dataSource);
+var dataProvider = Link.navigator(localApp.config.dataSource);
+var dataUpdates = Link.subscribe(localApp.config.dataSource);
 dataUpdates.on('update', function(e) {
 	// if our provider ever updates, we should redraw the posts
 	wallPostsBroadcast.emit('update');
 });
 
 var user = null;
-var userUpdates = Link.subscribe(local.config.userSource);
+var userUpdates = Link.subscribe(localApp.config.userSource);
 userUpdates.on(['subscribe','login','logout'], function(e) {
 	user = e.data;
 	wallBroadcast.emit('update'); // let's redraw everything
@@ -59,7 +59,7 @@ function renderHtml(query) {
 			].join('');
 		default:
 			return [
-				'<form action="httpl://', local.config.domain,'" method="post" enctype="local.ication/json">',
+				'<form action="httpl://', localApp.config.domain,'" method="post">',
 					'<output name="all">',
 						renderFormHtml(query),
 						'<output name="posts" form="wall-posts">',
@@ -67,14 +67,14 @@ function renderHtml(query) {
 						'</output>',
 					'</output>',
 				'</form>',
-				'<form id="wall-posts" action="httpl://', local.config.domain,'/posts"></form>'
+				'<form id="wall-posts" action="httpl://', localApp.config.domain,'/posts"></form>'
 			].join('');
 	}
 }
 
 function getPosts(cb) {
 	dataProvider.get(
-		{ headers:{ accept:'local.ication/json'} },
+		{ headers:{ accept:'application/json'} },
 		function(res) {
 			res.on('end', function() { posts = res.body; cb(null, res); });
 		},
@@ -83,7 +83,7 @@ function getPosts(cb) {
 }
 
 // request router
-local.onHttpRequest(function(request, response) {
+localApp.onHttpRequest(function(request, response) {
 	var router = Link.router(request);
 	var respond = Link.responder(response);
 
@@ -112,7 +112,7 @@ local.onHttpRequest(function(request, response) {
 			if (!user) { return respond.unauthorized().end(); }
 			// pass on to data-source
 			dataProvider.post(
-				{ body:request.body, headers:{ 'accept':'local.ication/json', 'content-type':'local.ication/json' }},
+				{ body:request.body, headers:{ 'accept':'appication/json', 'content-type':'appication/json' }},
 				function(res) {
 					// success
 					res.on('end', function() {

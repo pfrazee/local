@@ -14,8 +14,8 @@ function renderHtml(output) {
 		return entriesHtml;
 	}
 	var html = [
-		'<h5>'+local.config.title+'</h5>',
-		'<form action="httpl://'+local.config.domain+'">',
+		'<h5>'+localApp.config.title+'</h5>',
+		'<form action="httpl://'+localApp.config.domain+'">',
 			'<output name="entries">',
 				entriesHtml,
 			'</output>',
@@ -24,7 +24,7 @@ function renderHtml(output) {
 	return html;
 }
 
-local.onHttpRequest(function(request, response) {
+localApp.onHttpRequest(function(request, response) {
 	var router = Link.router(request);
 	var respond = Link.responder(response);
 

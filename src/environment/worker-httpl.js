@@ -6,11 +6,11 @@
 // - mirrors Server.prototype.postHttpRequestMessage in server.js
 Link.setRequestDispatcher(function(request) {
 	if (typeof request == 'function') {
-		return local.logStack();
+		return localApp.logStack();
 	}
 
 	var resPromise = Local.promise();
-	local.postMessage('httpRequest', request, function(reply) {
+	localApp.postMessage('httpRequest', request, function(reply) {
 		if (!reply.data) { throw "Invalid httpRequest reply to worker from document"; }
 
 		// instantiate client response interface and pass onto the promise
@@ -37,7 +37,7 @@ Link.setRequestDispatcher(function(request) {
 		}
 
 		// setup streaming
-		local.onMessage(reply.id, function(streamMessage) {
+		localApp.onMessage(reply.id, function(streamMessage) {
 			if (streamMessage.name === 'endMessage') { response.end(); }
 			else { response.write(streamMessage.data); }
 		});
@@ -50,13 +50,13 @@ Link.setEventSubscriber(function(request) {
 	var eventStream = new Link.EventStream();
 
 	// have the environment create the subscription
-	var msgStream = local.postMessage('httpSubscribe', request);
+	var msgStream = localApp.postMessage('httpSubscribe', request);
 
 	// change event listening to pass the request to the environment
 	eventStream.addListener = eventStream.on = function(e, listener) {
-		local.postMessage(msgStream, e, function(reply) {
+		localApp.postMessage(msgStream, e, function(reply) {
 			// setup the stream as an event-pipe
-			local.onMessage(reply.id, function(eventMessage) {
+			localApp.onMessage(reply.id, function(eventMessage) {
 				listener(eventMessage.data);
 			});
 		});
@@ -66,30 +66,30 @@ Link.setEventSubscriber(function(request) {
 });
 
 // server-func setter interface
-local.onHttpRequest = function(func, context) {
-	if (context) { local.httpRequestHandler = function() { return func.apply(context, arguments); }; }
-	else { local.httpRequestHandler = func; }
+localApp.onHttpRequest = function(func, context) {
+	if (context) { localApp.httpRequestHandler = function() { return func.apply(context, arguments); }; }
+	else { localApp.httpRequestHandler = func; }
 };
 
 // server-obj setter interface
 // (used by Server objects)
-local.setServer = function(obj) {
+localApp.setServer = function(obj) {
 	if (typeof obj == 'function')
 		obj = new obj(arguments[1] || {});
-	obj.config = local.config;
-	local.onHttpRequest(obj.handleHttpRequest, obj);
+	obj.config = localApp.config;
+	localApp.onHttpRequest(obj.handleHttpRequest, obj);
 };
 
 // handler for when the server asks the app to fulfill an HTTP request
 // - mirrors Server.prototype.onWorkerHttpRequest in server.js
-local.onMessage('httpRequest', function(message) {
+localApp.onMessage('httpRequest', function(message) {
 	var request = message.data;
-	if (local.httpRequestHandler) {
+	if (localApp.httpRequestHandler) {
 		// pipe the response back to the document
 		var handleResponse = function(res) {
-			var stream = local.postReply(message, res);
-			res.on('data', function(data) { local.postMessage(stream, data); });
-			res.on('end', function() { local.endMessage(stream); });
+			var stream = localApp.postReply(message, res);
+			res.on('data', function(data) { localApp.postMessage(stream, data); });
+			res.on('end', function() { localApp.endMessage(stream); });
 		};
 
 		// all errors, just send back to the document
@@ -103,11 +103,11 @@ local.onMessage('httpRequest', function(message) {
 		var response = new Link.ServerResponse(resPromise, request.stream);
 
 		// pass on to the request handler
-		local.httpRequestHandler(request, response);
+		localApp.httpRequestHandler(request, response);
 	} else {
 		// no request handler
-		var stream = local.postReply(message, { status:404, reason:'Server not loaded' });
-		local.endMessage(stream);
+		var stream = localApp.postReply(message, { status:404, reason:'Server not loaded' });
+		localApp.endMessage(stream);
 	}
 });
 
@@ -115,11 +115,11 @@ local.onMessage('httpRequest', function(message) {
 // ======
 // EXPORTED
 // core type for all servers, should be used as a prototype
-local.Server = function() {
+localApp.Server = function() {
 };
 
 // request handler, should be overwritten by subclasses
-local.Server.prototype.handleHttpRequest = function(request, response) {
+localApp.Server.prototype.handleHttpRequest = function(request, response) {
 	response.writeHead(0, 'server not implemented');
 	response.end();
 };
