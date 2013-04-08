@@ -8,7 +8,7 @@ Local is a JS toolkit for running multiple applications on the page with Web Wor
 ## Getting Started
 
 ```
-git clone https://github.com/pfraze/local.git local
+git clone https://github.com/grimwire/local.git local
 python -m SimpleHTTPServer
 # navigate browser to localhost:8000/local
 ```

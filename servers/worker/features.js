@@ -175,8 +175,8 @@ FeaturesServer.prototype.makeDoc = function(tab, request, content) {
 				'<ul>',
 					'<li><a target=_top href=docs.html title="Documentation">Documentation</a></li>',
 					'<li><a target=_top href=//blog.grimwire.com title="Development Blog">Development Blog</a></li>',
-					'<li><a target=_top href=//github.com/pfraze/local title="Github Repository">Github Repository</a></li>',
-					'<li><a target=_top href=//github.com/pfraze/local/issues title="Issue Tracker">Issue Tracker</a></li>',
+					'<li><a target=_top href=//github.com/grimwire/local title="Github Repository">Github Repository</a></li>',
+					'<li><a target=_top href=//github.com/grimwire/local/issues title="Issue Tracker">Issue Tracker</a></li>',
 				'</ul>'
 			].join('');
 			break;

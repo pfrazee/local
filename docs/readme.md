@@ -64,7 +64,7 @@ Local is also easy enough to use for simple apps. This 'docs.html' page, for exa
 Local can be statically hosted after a clean checkout using any Web server. It's recommended to embed it as a subrepository to your frontend assets, allowing you to pull updates and change versions without losing changes.
 
 ```bash
-git clone https://github.com/pfraze/local.git
+git clone https://github.com/grimwire/local.git
 python -m SimpleHTTPServer
 # navigate browser to localhost:8000
 ```
