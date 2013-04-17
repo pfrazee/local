@@ -15,11 +15,9 @@ function renderHtml(output) {
 	}
 	var html = [
 		'<h5>'+localApp.config.title+'</h5>',
-		'<form action="httpl://'+localApp.config.domain+'">',
-			'<output name="entries">',
-				entriesHtml,
-			'</output>',
-		'</form>'
+		'<div data-subscribe="httpl://'+localApp.config.domain+'?output=entries">',
+			entriesHtml,
+		'</div>'
 	].join('');
 	return html;
 }

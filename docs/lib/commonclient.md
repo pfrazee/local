@@ -33,4 +33,4 @@ Depending on the status of the response, `handleResponse` will render the body a
  - 205, if the target element is a form, its content will be reset
  - 303, a new request is dispatched with the URL given in the Location header
 
-This function call is responsible for all `<output>` and `on*` behaviors.
+This function call is responsible for all `data-subscribe` and `on*` behaviors.

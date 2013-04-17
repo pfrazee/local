@@ -47,6 +47,7 @@ function renderPostsHtml() {
 }
 
 function renderHtml(query) {
+	// :TODO: update! The <output> element was replaced with data-subscribe
 	switch (query.output) {
 		case 'posts':
 			return renderPostsHtml();
