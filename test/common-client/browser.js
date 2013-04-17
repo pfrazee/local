@@ -150,7 +150,7 @@ wait(function () { return done; });
 }
 */
 
-// test: response interpretation
+// test: html response interpretation
 done = false;
 startTime = Date.now();
 
@@ -199,16 +199,79 @@ wait(function () { return done; });
 <h1>Response 1</h1>
 */
 
-// test: attr event binding
+// test: html-deltas response interpretation
 done = false;
 startTime = Date.now();
 
 function request2Handler(e) {
+  // fixture response
+  var response = { status:200, reason:'Ok', headers:{ 'content-type':'application/html-deltas+json' }, body: {
+    replace: { '.replace-me1':'replaced', '.replace-me2':'replaced' },
+    append: { '.append-me':'appended' },
+    prepend: { '.prepend-me':'prepended' },
+    addClass: { '.addclass-me':'added' },
+    removeClass: { '.removeclass-me':'removed' },
+    toggleClass: { '.toggleclass-me':'toggle1 toggle2' }
+  }};
+
+  // pass on to common client
+  CommonClient.handleResponse(
+    document.getElementById('target2'),
+    document.getElementById('testarea'),
+    response
+  );
+}
+
+mainDiv.addEventListener('request', request2Handler);
+
+var clickEvent = document.createEvent('MouseEvents');
+clickEvent.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+document.getElementById('form1submit2').dispatchEvent(clickEvent);
+print(document.getElementById('target2').innerHTML);
+
+mainDiv.removeEventListener('request', request2Handler);
+
+wait(function () { return done; });
+
+/* =>
+{
+  body: {
+    check1: ["b"],
+    form1submit2: "form1submit2 value",
+    radio1: "radio1 value1",
+    radio2: "radio2 value2",
+    select1: "select1 value1",
+    select2: "select2 value2",
+    select3: "select3 value3",
+    text1: "text1 value",
+    text2: "text2 value",
+    textarea1: "textarea 1 value"
+  },
+  headers: {"content-type": "application/json"},
+  method: "patch",
+  target: "target1",
+  url: "http://www.form1.com/foobar"
+}
+
+<div class="replace-me1">replaced</div>
+<div class="replace-me2">replaced</div>
+<div class="append-me">originalappended</div>
+<div class="prepend-me">prependedoriginal</div>
+<div class="addclass-me added">original</div>
+<div class="removeclass-me">original</div>
+<div class="toggleclass-me toggle2">original</div>
+*/
+
+// test: attr event binding
+done = false;
+startTime = Date.now();
+
+function request3Handler(e) {
 	// fixture response
 	var response = {
 		status:200, reason:'Ok', headers:{ 'content-type':'text/html' },
 		body:[
-			'<form method="get" action="http://www.form3.com" target="target2" onchange="delete">',
+			'<form method="get" action="http://www.form3.com" target="target3" onchange="delete">',
 			'<input type="text" name="text1" onchange="patch" />',
 			'<input type="text" name="text2" onkeyup="put" formaction="http://www.form3.com/foobar" />',
 			'<fieldset formaction="http://www.form3.com/foobaz" onchange="patch">',
@@ -222,25 +285,25 @@ function request2Handler(e) {
 
 	// pass on to common client
 	CommonClient.handleResponse(
-		document.getElementById('target2'),
+		document.getElementById('target3'),
 		document.getElementById('testarea'),
 		response
 	);
 }
 
-mainDiv.addEventListener('request', request2Handler);
+mainDiv.addEventListener('request', request3Handler);
 
 var clickEvent = document.createEvent('MouseEvents');
 clickEvent.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
 document.getElementById('form1submit2').dispatchEvent(clickEvent);
-print(document.getElementById('target2').innerHTML);
+print(document.getElementById('target3').innerHTML);
 
-mainDiv.removeEventListener('request', request2Handler);
+mainDiv.removeEventListener('request', request3Handler);
 
 wait(function () { return done; });
 done = false;
 
-var region = document.getElementById('target2');
+var region = document.getElementById('target3');
 
 var changeEvent = document.createEvent('UIEvents');
 changeEvent.initUIEvent('change', true, true, window, {});
@@ -300,33 +363,33 @@ wait(function () { return done; });
   target: "target1",
   url: "http://www.form1.com/foobar"
 }
-<form method="get" action="http://www.form3.com" target="target2"><input type="text" name="text1"><input type="text" name="text2" formaction="http://www.form3.com/foobar"><fieldset formaction="http://www.form3.com/foobaz"><input type="text" name="text3"><input type="text" name="text4" formenctype="application/json"></fieldset><input type="text" name="text5"></form>
+<form method="get" action="http://www.form3.com" target="target3"><input type="text" name="text1"><input type="text" name="text2" formaction="http://www.form3.com/foobar"><fieldset formaction="http://www.form3.com/foobaz"><input type="text" name="text3"><input type="text" name="text4" formenctype="application/json"></fieldset><input type="text" name="text5"></form>
 {
   body: {text1: "foobar"},
   headers: {"content-type": "application/x-www-form-urlencoded"},
   method: "patch",
-  target: "target2",
+  target: "target3",
   url: "http://www.form3.com"
 }
 {
   body: {text2: "foobaz"},
   headers: {"content-type": "application/x-www-form-urlencoded"},
   method: "put",
-  target: "target2",
+  target: "target3",
   url: "http://www.form3.com/foobar"
 }
 {
   body: {text3: "foobleh", text4: "foobot"},
   headers: {"content-type": "application/x-www-form-urlencoded"},
   method: "patch",
-  target: "target2",
+  target: "target3",
   url: "http://www.form3.com/foobaz"
 }
 {
   body: {text4: "foobot"},
   headers: {"content-type": "application/json"},
   method: "patch",
-  target: "target2",
+  target: "target3",
   url: "http://www.form3.com/foobaz"
 }
 {
@@ -339,7 +402,7 @@ wait(function () { return done; });
   },
   headers: {"content-type": "application/x-www-form-urlencoded"},
   method: "delete",
-  target: "target2",
+  target: "target3",
   url: "http://www.form3.com"
 }
 */
@@ -361,7 +424,7 @@ Link.registerLocal('event-emitter.com', function(request, response) {
 });
 
 CommonClient.handleResponse(
-	document.getElementById('target3'),
+	document.getElementById('target4'),
 	document.getElementById('testarea'),
 	{ status:200, reason:'Ok', headers: { 'content-type':'text/html' },
 		body:[
@@ -385,11 +448,13 @@ streams[1].write({ event:'update', data:['irrelevant']});
 {
   headers: {accept: "text/html"},
   method: "get",
+  target: "_elem",
   url: "httpl://event-emitter.com"
 }
 {
   headers: {accept: "text/html"},
   method: "get",
+  target: "_elem",
   url: "httpl://event-emitter.com"
 }
 */
