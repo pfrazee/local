@@ -365,9 +365,8 @@ CommonClient.handleResponse(
 	document.getElementById('testarea'),
 	{ status:200, reason:'Ok', headers: { 'content-type':'text/html' },
 		body:[
-			'<form action="httpl://event-emitter.com">',
-			'<output id="form1output1" name="out1"></output>',
-			'<output id="form1output2" for="text1 check1" name="out2"></output>',
+			'<div data-subscribe="httpl://event-emitter.com" id="form1output1"></div>',
+			'<span data-subscribe="httpl://event-emitter.com" id="form1output2"></span>',
 			'</form>'
 		].join('')
 	}
@@ -377,23 +376,21 @@ wait(function () { return ready; });
 
 // => 2 streams loaded
 
-streams[0].write({ event:'update', data:['bar']});
+streams[0].write({ event:'update' });
 streams[0].write({ event:'other' });
+streams[1].write({ event:'other' });
 streams[1].write({ event:'update', data:['irrelevant']});
-streams[1].write({ event:'update', data:['check1']});
 
 /* =>
 {
   headers: {accept: "text/html"},
   method: "get",
-  query: {},
-  url: "httpl://event-emitter.com?output=out1"
+  url: "httpl://event-emitter.com"
 }
 {
   headers: {accept: "text/html"},
   method: "get",
-  query: {},
-  url: "httpl://event-emitter.com?output=out2"
+  url: "httpl://event-emitter.com"
 }
 */
 

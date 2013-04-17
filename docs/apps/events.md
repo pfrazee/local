@@ -40,14 +40,12 @@ app.onHttpRequest(function(request, response) {
 });
 ```
 
-An event stream can be used to trigger updates to the document. This is done by targetting a form to the event-stream, then embedding an `<output>` element in the form. Any 'update' events that are emitted by the stream will result in an html GET request to the stream's URL. The response html then replaces the output element.
+An event stream can be used to trigger updates to the document. This is done adding `data-subscribe` to any element with the URL of a "text/event-stream" resource. Any 'update' events that are emitted by the stream will result in an html GET request to the stream's URL. The response html then replaces the innerHTML of the element.
 
 ```markup
-<form action="httpl://myserver.app">
-	<output>
-		The current user is {#if user}{{user}}{#else}not logged in{/if}.
-	</output>
-</form>
+<div data-subscribe="httpl://myserver.app">
+	The current user is {#if user}{{user}}{#else}not logged in{/if}.
+</div>
 ```
 
  > Read More: [DOM Interactions via the Common Client](dom_behaviors.md)

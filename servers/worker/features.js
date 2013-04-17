@@ -150,7 +150,7 @@ FeaturesServer.prototype.makeDoc = function(tab, request, content) {
 				'<legend>Realtime Updates</legend>',
 				'<form action="httpl://', this.config.domain, '/list" onkeyup="patch">',
 					'<input type="text" name="filter" placeholder="Filter..." value="', request.query.filter ,'" /><br/>',
-					'<output name="list">', this.makeList() ,'</output>',
+					'<div data-subscribe="httpl://', this.config.domain, '/list">', this.makeList() ,'</div>',
 				'</form>'
 			].join('');
 			break;

@@ -113,14 +113,12 @@
 	};
 
 	ClientRegion.prototype.__chooseRequestTarget = function(e, request) {
-		if (e.target.tagName == 'OUTPUT' || (e.target.tagName == 'FORM' && e.target.dataset.output === 'true')) {
+		if (request.target == '_elem')
 			return e.target;
-		} else {
-			if (this.hasRights('element targeting'))
-				return document.getElementById(request.target) || this.element;
-			else
-				return this.element;
-		}
+		if (this.hasRights('element targeting'))
+			return document.getElementById(request.target) || this.element;
+		else
+			return this.element;
 	};
 
 	exports.ClientRegion = ClientRegion;

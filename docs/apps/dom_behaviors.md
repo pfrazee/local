@@ -28,12 +28,7 @@ this.element.addEventListener('request', function(e) {
   request.headers.accept = request.headers.accept || 'text/html';
 
   // choose the request target
-  var requestTarget;
-  if (e.target.tagName == 'OUTPUT') {
-    requestTarget = e.target;
-  } else {
-    requestTarget = document.getElementById(request.target) || self.element;
-  }
+  var requestTarget = document.getElementById(request.target) || self.element;
 
   // issue request
   Local.promise(Link.dispatch(request, self))
@@ -82,47 +77,12 @@ onblur, onchange, onclick, ondblclick, onfocus, onkeydown, onkeypress, onkeyup, 
 
 ## Triggering Requests from the Server
 
-It's not uncommon for a server to want to update a client's interface. In Local, `<output>` elements automatically subscribe to the 'text/event-stream' of their containing forms' target, where they listen for an 'update' event. If the event is received, a GET request will be issued to the same target with the form's values serialized into the query parameters of the URL.
+It's not uncommon for a server to want to update a client's interface. In Local, elements with `data-subscribe` attributes will subscribe to the 'text/event-stream' at the specified url, where they listen for an 'update' event. If the event is received, a GET request will be issued to the same URL for 'text/html' and replace its innerHTML with that result.
 
 ```markup
-<form action="http://somewhere.com" method="post">
-  <output>This will be updated!</output>
-  This part will not be updated.
-  <input type="text" name="foo" value="bar" />
-</form>
+<div data-subscribe="http://somewhere.com">This will be changed on 'update' events!</div>
 ```
 
-An 'update' event from 'http://somewhere.com' would trigger an html GET request to 'http://somewhere.com?foo=bar'. The response body would then replace the contents of the `<output>` element.
-
-In order to give the right HTML, the `<output>` name attribute is added to the query parameters under 'output'. For instance:
-
-```markup
-<form action="http://somewhere.com" method="post">
-  <output name="myout">This will be updated!</output>
-  <!-- ... -->
-</form>
-```
-
-This would result in a GET 'http://somewhere.com?output=myout'.
-
-Like the `on*` event attributes, the output can refer to a form that isn't the `<output>` parent. This is important to keep in mind, as forms can not be embedded within forms, so it may be neccessary to put additional forms somewhere adjacent to the output element.
-
-```markup
-<form id="myform" action="http://somewhere.com">
-  <!-- ... -->
-</form>
-<form action="http://elsewhere.com">
-  <output form="myform"></output>
-</form>
-```
-
-If the entire form should update, you can specify `data-output="true"` on the form element and avoid having to use the output element:
-
-```markup
-<form  action="http://somewhere.com" data-output="true">
-  <!-- ... -->
-</form>
-```
 
 ## Data-Binding
 
@@ -134,7 +94,7 @@ Local can produce an effect much like the data-binding in Knockout and Angular, 
     <p>First name: <input name="firstName" /></p>
     <p>Last name: <input name="lastName" /></p>
   </div>
-  <output name="out"><h2>Hello, {{firstName}} {{lastName}}!</h2></output>
+  <h2 data-subscribe="httpl://helloworld.ui?output=greeting">Hello, {{firstName}} {{lastName}}!</h2>
 </form>
 ```
 
@@ -142,8 +102,8 @@ This form behaves exactly as <a target="_top" href="http://knockoutjs.com/exampl
 
  - First, due to the form's `onchange` attribute, modifications to the inputs will result in a PATCH request to "httpl://helloworld.ui".
  - The server living there (which may be local or remote) will update its data model and broadcast the 'update' event via a server-sent event. 
- - As the `output` element listens to those events (output elements subscribe to the action URL of their forms) it will then issue a GET request (again, to the form's action URL) with a query parameter noting it's name ("?output=out").
- - The server will then respond with up-to-date HTML for the "out" output element.
+ - As the `h2` element listens to those events (due to its `data-subscribe` attribute) it will then issue a GET request.
+ - The server will then respond with up-to-date HTML for the `h2`.
 
 All live bindings follow this same pattern of 1) issue request to change the data, 2) receive the 'update' event, 3) issue request for updated html.
 
