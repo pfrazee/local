@@ -185,11 +185,11 @@ var CommonClient = {};
 		if (typeof deltas != 'object')
 			return;
 		for (var selector in deltas) {
-			var elems = containerElem.querySelectorAll(selector);
-			var htmlDeltaAddClass = function(cls) { elems[i].classList.add(cls); };
-			var htmlDeltaRemoveClass = function(cls) { elems[i].classList.remove(cls); };
-			var htmlDeltaToggleClass = function(cls) { elems[i].classList.toggle(cls); };
-			for (var i = 0, ii=elems.length; i < ii; i++) {
+			var i, ii, elems = containerElem.querySelectorAll(selector);
+			var addClass = function(cls) { elems[i].classList.add(cls); };
+			var removeClass = function(cls) { elems[i].classList.remove(cls); };
+			var toggleClass = function(cls) { elems[i].classList.toggle(cls); };
+			for (i=0, ii=elems.length; i < ii; i++) {
 				if (!elems[i]) continue;
 				switch (op) {
 					case 'replace':
@@ -203,15 +203,15 @@ var CommonClient = {};
 						break;
 					case 'addClass':
 						if (elems[i].classList)
-							deltas[selector].split(' ').forEach(htmlDeltaAddClass);
+							deltas[selector].split(' ').forEach(addClass);
 						break;
 					case 'removeClass':
 						if (elems[i].classList)
-							deltas[selector].split(' ').forEach(htmlDeltaRemoveClass);
+							deltas[selector].split(' ').forEach(removeClass);
 						break;
 					case 'toggleClass':
 						if (elems[i].classList)
-							deltas[selector].split(' ').forEach(htmlDeltaToggleClass);
+							deltas[selector].split(' ').forEach(toggleClass);
 						break;
 				}
 			}
@@ -292,7 +292,7 @@ var CommonClient = {};
 
 	function makeUpdateEventHandler(url, targetElem) {
 		return function(m) {
-			var request = { method:'get', url:url, target:"_elem", headers:{ accept:'text/html' }};
+			var request = { method:'get', url:url, target:"_element", headers:{ accept:'text/html' }};
 			dispatchRequestEvent(targetElem, request);
 		};
 	}

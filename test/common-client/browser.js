@@ -448,13 +448,13 @@ streams[1].write({ event:'update', data:['irrelevant']});
 {
   headers: {accept: "text/html"},
   method: "get",
-  target: "_elem",
+  target: "_element",
   url: "httpl://event-emitter.com"
 }
 {
   headers: {accept: "text/html"},
   method: "get",
-  target: "_elem",
+  target: "_element",
   url: "httpl://event-emitter.com"
 }
 */
