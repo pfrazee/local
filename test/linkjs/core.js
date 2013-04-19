@@ -60,6 +60,7 @@ success
     "content-type": "text/plain",
     link: [
       {href: "/", rel: "self current"},
+      {href: "/events", rel: "collection", title: "events"},
       {href: "/foo", rel: "collection", title: "foo"},
       {href: "/{title}", rel: "collection"}
     ]

@@ -197,3 +197,36 @@ string
 connection open
 connection closed
 */
+
+// event stream subscribe
+
+done = false;
+startTime = Date.now();
+var testLocal = new Link.Navigator('httpl://test.com');
+testLocal.collection('events').subscribe().then(
+  function(stream) {
+    stream.on('message', function(m) { print(m); });
+    stream.on('foo', function(m) { print('foo', m.data); });
+    stream.on('bar', function(m) { print('bar', m.data); });
+    stream.on('error', function(e) {
+      print('close', e);
+      console.log(Date.now() - startTime, 'ms');
+      done = true;
+    });
+  }, printErrorAndFinish);
+wait(function () { return done; });
+
+/* =>
+{data: {c: 1}, event: "foo"}
+foo {c: 1}
+{data: {c: 2}, event: "foo"}
+foo {c: 2}
+{data: {c: 3}, event: "bar"}
+bar {c: 3}
+{data: {c: 4}, event: "foo"}
+foo {c: 4}
+{data: {c: 5}, event: "foo"}
+foo {c: 5}
+{data: undefined, event: "error"}
+close {data: undefined, event: "error"}
+*/

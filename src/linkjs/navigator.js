@@ -121,8 +121,8 @@
 
 	// executes an HTTP request to our context
 	//  - uses additional parameters on the request options:
-	//    - retry: bool, should the resolve be tried if it previously failed?
-	//    - noresolve: bool, should we skip resolution?
+	//    - retry: bool, should the url resolve be tried if it previously failed?
+	//    - noresolve: bool, should we use the url we have and not try to resolve one from our parent's links?
 	Navigator.prototype.dispatch = function Navigator__dispatch(req) {
 		if (!req || !req.method) { throw "request options not provided"; }
 		var self = this;
@@ -154,6 +154,14 @@
 				response.reject(err);
 			});
 		return response;
+	};
+
+	// executes a GET text/event-stream request to our context
+	Navigator.prototype.subscribe = function Navigator__dispatch() {
+		return this.resolve()
+			.succeed(function(url) {
+				return Link.subscribe(url);
+			});
 	};
 
 	// follows a link relation from our context, generating a new navigator
@@ -245,7 +253,7 @@
 	Navigator.prototype.__lookupLink = function Navigator__lookupLink(context) {
 		// try to find the link with a title equal to the param we were given
 		var href = Link.lookupLink(this.links, context.rel, context.relparams.title);
-		
+
 		if (href) {
 			var url = Link.UriTemplate.parse(href).expand(context.relparams);
 			var urld = Link.parseUri(url);
