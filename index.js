@@ -40,7 +40,7 @@ for (var i=0; i < toolbars.length; i++) {
 }
 
 // instantiate services
-Environment.addServer('localstorage.env', new StorageServer({ storage:localStorage }));
+Environment.addServer('localstorage.env', new StorageServer(localStorage));
 Environment.addServer('servers.env', new ReflectorServer());
 
 // instantiate apps

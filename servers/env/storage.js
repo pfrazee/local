@@ -7,12 +7,10 @@
 	// =============
 	// EXPORTED
 	// generic collection storage, wraps the localStorage and sessionStorage APIs
-	// - options values:
-	//   - 'storage' - an object which exports the localStorage/sessionStorage API
-	function StorageServer(options) {
-		options = options || {};
+	// - 'storageAPI' - an object which exports the localStorage/sessionStorage API
+	function StorageServer(storageAPI) {
 		Environment.Server.call(this);
-		this.storage = options.storage || localStorage;
+		this.storage = storageAPI || localStorage;
 		this.collections = {};
 	}
 	StorageServer.prototype = Object.create(Environment.Server.prototype);
