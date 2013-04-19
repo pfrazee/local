@@ -31,6 +31,7 @@ Link.registerLocal('test.com', function(request, response) {
 		}
 		linkHeader = [
 			{ rel:'self current', href:'/' },
+			{ rel:'collection', href:'/events', title:'events' },
 			{ rel:'collection', href:'/foo', title:'foo' },
 			{ rel:'collection', href:'/{title}' }
 		];
