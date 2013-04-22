@@ -1,6 +1,19 @@
 Changes
 =======
 
+2013/04/22 pfraze
+
+ - Restructured namespaces to all live under `local`
+   - Promises are now `local.promise.*`
+   - Workers' `localApp` is now `local.worker.*`
+   - Link is now `local.http.*`
+   - Environment and MyHouse are now `local.env.*`
+   - CommonClient and Environment.ClientRegion are now `local.client.*` and `local.client.Region`
+   - Link.EventEmitter is now in `local.util.*`
+ - Removed `local.http.ResponseError`
+   - Rejected responses are now rejected with the response objects directly (not wrapped in the error)
+ - Renamed Local's custom worker `postMessage` and `onMessage` functions to `postNamedMessage` and `onNamedMessage`
+
 
 2013/04/07 pfraze
 

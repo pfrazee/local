@@ -9,16 +9,16 @@
 	// generic collection storage, wraps the localStorage and sessionStorage APIs
 	// - 'storageAPI' - an object which exports the localStorage/sessionStorage API
 	function StorageServer(storageAPI) {
-		Environment.Server.call(this);
+		local.env.Server.call(this);
 		this.storage = storageAPI || localStorage;
 		this.collections = {};
 	}
-	StorageServer.prototype = Object.create(Environment.Server.prototype);
+	StorageServer.prototype = Object.create(local.env.Server.prototype);
 
 	StorageServer.prototype.handleHttpRequest = function(request, response) {
 		var self = this;
-		var router = Link.router(request);
-		var respond = Link.responder(response);
+		var router = local.http.ext.router(request);
+		var respond = local.http.ext.responder(response);
 		router.mp ('HEAD', '/',         __httpListCollections.bind(self, request, respond));
 		router.mpa('GET',  '/', /json/, __httpListCollections.bind(self, request, respond));
 		router.mpt('POST', '/', /json/, __httpGenUniqueCollection.bind(self, request, respond));
@@ -118,7 +118,7 @@
 	}
 
 	function __buildServiceHeaders() {
-		var headerer = Link.headerer();
+		var headerer = local.http.ext.headerer();
 		headerer.addLink('/', 'self current');
 		headerer.addLink('/{title}', 'collection');
 		Object.keys(this.collections).forEach(function(cid) {
@@ -128,7 +128,7 @@
 	}
 
 	function __buildCollectionHeaders(cid) {
-		var headerer = Link.headerer();
+		var headerer = local.http.ext.headerer();
 		headerer.addLink('/', 'up via service');
 		if (cid) {
 			headerer.addLink('/'+cid, 'self current');
@@ -138,7 +138,7 @@
 	}
 
 	function __buildItemHeaders(cid, iid) {
-		var headerer = Link.headerer();
+		var headerer = local.http.ext.headerer();
 		headerer.addLink('/', 'via service');
 		if (cid)
 			headerer.addLink('/'+cid, 'up collection');

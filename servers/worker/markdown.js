@@ -1,4 +1,3 @@
-importScripts('linkjs-ext/responder.js');
 importScripts('vendor/marked.js');
 
 marked.setOptions({ gfm: true, tables: true });
@@ -8,11 +7,11 @@ function headerRewrite(headers) {
 }
 function bodyRewrite(md) { return (md) ? marked(md) : ''; }
 
-localApp.onHttpRequest(function(request, response) {
-	var mdRequest = Link.dispatch({
+function main(request, response) {
+	var mdRequest = local.http.dispatch({
 		method  : 'get',
-		url     : localApp.config.baseUrl + request.path,
+		url     : local.worker.config.baseUrl + request.path,
 		headers : { accept:'text/plain' }
 	});
-	Link.responder(response).pipe(mdRequest, headerRewrite, bodyRewrite);
-});
+	local.http.ext.responder(response).pipe(mdRequest, headerRewrite, bodyRewrite);
+}

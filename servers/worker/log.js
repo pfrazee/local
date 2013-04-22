@@ -1,9 +1,5 @@
-importScripts('linkjs-ext/responder.js');
-importScripts('linkjs-ext/router.js');
-importScripts('linkjs-ext/broadcaster.js');
-
 var log = [];
-var logBroadcast = Link.broadcaster();
+var logBroadcast = local.http.ext.broadcaster();
 
 function renderHtml(output) {
 	var entriesHtml = log
@@ -14,22 +10,22 @@ function renderHtml(output) {
 		return entriesHtml;
 	}
 	var html = [
-		'<h5>'+localApp.config.title+'</h5>',
-		'<div data-subscribe="httpl://'+localApp.config.domain+'?output=entries">',
+		'<h5>'+local.worker.config.title+'</h5>',
+		'<div data-subscribe="httpl://'+local.worker.config.domain+'?output=entries">',
 			entriesHtml,
 		'</div>'
 	].join('');
 	return html;
 }
 
-localApp.onHttpRequest(function(request, response) {
-	var router = Link.router(request);
-	var respond = Link.responder(response);
+function main(request, response) {
+	var router = local.http.ext.router(request);
+	var respond = local.http.ext.responder(response);
 
 	// collection
 	router.p('/', function() {
 		// build headers
-		var headerer = Link.headerer();
+		var headerer = local.http.ext.headerer();
 		headerer.addLink('/', 'self current');
 
 		// list
@@ -54,4 +50,4 @@ localApp.onHttpRequest(function(request, response) {
 		router.error(response, 'path');
 	});
 	router.error(response);
-});
+}
