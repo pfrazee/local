@@ -4,7 +4,8 @@ local.env.setDispatchWrapper(function(request, origin, dispatch) {
 	// make any connectivity / permissions decisions here
 
 	// pass on to the request log
-	if (request.url.indexOf('httpl://request-log.util') === -1) {
+	var isLoggerMsg = request.url.indexOf('httpl://request-log.util') !== -1;
+	if (!isLoggerMsg) {
 		var entry =[
 			request.method.toUpperCase()+':',
 			request.url,
@@ -15,8 +16,10 @@ local.env.setDispatchWrapper(function(request, origin, dispatch) {
 
 	// allow request
 	var response = dispatch(request);
-	response.succeed(console.log.bind(console, request));
-	response.fail(console.log.bind(console, request));
+	if (!isLoggerMsg) {
+		response.succeed(console.log.bind(console, request));
+		response.fail(console.log.bind(console, request));
+	}
 	return response;
 });
 
