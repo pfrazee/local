@@ -1,0 +1,26 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Local HTTP Tests</title>
+
+		<script src="doctest/doctest.js"></script>
+		<link rel="stylesheet" type="text/css" href="doctest/.resources/doc.css" />
+		<!--script src="/doctest/esprima/esprima.js"></script-->
+		<link rel="stylesheet" href="doctest/doctest.css" type="text/css">
+	</head>
+	<body class="autodoctest">
+
+		<h1 style="margin-bottom:0">Local HTTP Test Suite</h1>
+		<p style="margin-top:0">brought to you by <a href="http://doctestjs.org" title="doctest.js">doctest.js</a></p>
+		<p style="border:#ccc 1px solid; padding:5px 10px; background:#eee; color:gray"><em>Note: test-server.js must be running on port 8080. `node test-server.js`</em></p>
+
+		<script src="../lib/local.js"></script>
+		<script src="http/_setup.js"></script>
+		<pre class="commenttest" href="http/core.js"></pre>
+		<pre class="commenttest" href="http/events.js"></pre>
+		<pre class="commenttest" href="http/navigator.js"></pre>
+
+  </body>
+</html>

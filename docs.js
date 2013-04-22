@@ -3,17 +3,15 @@ var viewNav = document.getElementById('viewer-nav');
 viewNav.querySelector('a[href="'+(window.location.hash||'#readme.md')+'"]').parentNode.classList.add('active');
 
 // request wrapper
-Environment.setDispatchWrapper(function(request, origin, dispatch) {
+local.env.setDispatchWrapper(function(request, origin, dispatch) {
 	// allow request
-	var response = dispatch(request);
-	response.fail(console.log.bind(console));
-	return response;
+	return dispatch(request);
 });
 
 // response post-processor
-Environment.setRegionPostProcessor(function(el) {
+local.env.setRegionPostProcessor(function(el) {
 	if (el.id == 'viewer') {
-		var urld = Environment.getClientRegion('viewer').context.urld;
+		var urld = local.env.getClientRegion('viewer').context.urld;
 		window.location.hash = lastRequestedHash = '#' + urld.path.slice(1);
 	}
 	Prism.highlightAll();
@@ -28,15 +26,15 @@ window.onhashchange = function() {
 
 	if (lastRequestedHash != window.location.hash) {
 		// we need to issue the request - a link didnt already do it for us
-		Environment.getClientRegion('viewer').dispatchRequest('httpl://markdown.util/'+window.location.hash.slice(1));
+		local.env.getClientRegion('viewer').dispatchRequest('httpl://markdown.util/'+window.location.hash.slice(1));
 	}
 };
 
 // instantiate apps
-Environment.addServer('markdown.util', new Environment.WorkerServer({
+local.env.addServer('markdown.util', new local.env.WorkerServer({
 	scriptUrl:'../servers/worker/markdown.js',
-	baseUrl:location.href.substring(0,location.href.split('#')[0].lastIndexOf("/")+1) + 'docs' // http://pfraze.net/local/docs.html -> http://pfraze.net/local/docs
+	baseUrl:location.href.substring(0,location.href.split('#')[0].lastIndexOf("/")+1) + 'docs' // http://foobar.net/local/foo.html -> http://foobar.net/local/docs
 }));
 
 // load client regions
-Environment.addClientRegion('viewer').dispatchRequest('httpl://markdown.util/'+(window.location.hash.slice(1)||'readme.md'));
+local.env.addClientRegion('viewer').dispatchRequest('httpl://markdown.util/'+(window.location.hash.slice(1)||'readme.md'));

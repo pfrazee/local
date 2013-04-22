@@ -1,96 +1,86 @@
 src = src/
-common-client-files =\
-	${src}common-client/common-client.js
-environment-files =\
- 	${src}environment/_compiled_header.js\
- 	${src}environment/server.js\
- 	${src}environment/client.js\
- 	${src}environment/environment.js\
- 	${src}environment/_compiled_footer.js
-linkjs-files =\
-	${src}linkjs/_compiled_header.js\
-	${src}linkjs/helpers.js\
-	${src}linkjs/core.js\
-	${src}linkjs/events.js\
-	${src}linkjs/navigator.js\
-	${src}linkjs/uri-template.js\
-	${src}linkjs/_compiled_footer.js
-linkjs-ext-files =\
-	${src}linkjs-ext/broadcaster.js\
-	${src}linkjs-ext/responder.js\
-	${src}linkjs-ext/router.js
-myhouse-files =\
-	${src}myhouse/myhouse.js
-promises-files =\
+src-promises-files =\
 	${src}promises/promises.js
-worker-server-files =\
-	${src}myhouse/worker-bootstrap.js\
-	${promises-files}\
-	${linkjs-files}\
-	${src}environment/worker-httpl.js
+src-util-files =\
+ 	${src}util/_compiled_header.js\
+	${src}util/event-emitter.js\
+ 	${src}util/_compiled_footer.js
+src-http-files =\
+	${src}http/_compiled_header.js\
+	${src}http/helpers.js\
+	${src}http/content-types.js\
+	${src}http/core.js\
+	${src}http/events.js\
+	${src}http/uri-template.js\
+	${src}http/ext/navigator.js\
+	${src}http/ext/broadcaster.js\
+	${src}http/ext/headerer.js\
+	${src}http/ext/responder.js\
+	${src}http/ext/router.js\
+	${src}http/_compiled_footer.js
+src-client-files =\
+ 	${src}client/_compiled_header.js\
+	${src}client/helpers.js\
+	${src}client/domevents.js\
+	${src}client/responses.js\
+	${src}client/regions.js\
+ 	${src}client/_compiled_footer.js
+src-env-files =\
+ 	${src}env/_compiled_header.js\
+ 	${src}env/worker.js\
+ 	${src}env/server.js\
+ 	${src}env/core.js\
+ 	${src}env/_compiled_footer.js
+src-worker-files =\
+	${src-promises-files}\
+	${src-util-files}\
+	${src-http-files}\
+ 	${src}worker/_compiled_header.js\
+	${src}worker/messaging.js\
+	${src}worker/http.js\
+	${src}worker/setup.js\
+ 	${src}worker/_compiled_footer.js
 
 lib = lib/
 lib-local-files =\
 	${lib}local/promises.js\
-	${lib}local/link.js\
-	${lib}local/myhouse.js\
-	${lib}local/common-client.js\
-	${lib}local/environment.js	
-lib-linkjs-ext-files =\
-	${lib}linkjs-ext/broadcaster.js\
-	${lib}linkjs-ext/responder.js\
-	${lib}linkjs-ext/router.js
-lib-worker-server-files =\
-	${lib}local/worker-server.js
+	${lib}local/util.js\
+	${lib}local/http.js\
+	${lib}local/client.js\
+	${lib}local/env.js
 
-setup: clean concat buildmin dev
+setup: clean concat buildmin
 	@echo "Done!"
 
 clean:
-	@-rm ${lib-local-files} ${lib-worker-server-files}
-	@-rm ${lib}local.js ${lib}local.min.js ${lib}local.dev.js
-	@-rm ${lib}worker-server.js ${lib}worker-server.min.js ${lib}worker-server.dev.js
+	@-rm ${lib-local-files}
+	@-rm ${lib}local.js ${lib}local.min.js
+	@-rm ${lib}worker.js ${lib}worker.min.js
 	@echo Cleaned Out Libraries
 
-# ${lib}local/common-client.js ${lib}local/environment.js ${lib}local/link.js ${lib}local/myhouse.js ${lib}local/promises.js ${lib}local/worker-server.js ${lib}linkjs-ext
-concat: ${lib-local-files} ${lib-linkjs-ext-files} ${lib-worker-server-files}
+concat: ${lib-local-files} ${lib}local.js ${lib}worker.js
 	@echo Concatted Libraries
-${lib}local/common-client.js: ${common-client-files}
+${lib}local/promises.js: ${src-promises-files}
 	@cat > $@ $^
-${lib}local/environment.js: ${environment-files}
+${lib}local/util.js: ${src-util-files}
 	@cat > $@ $^
-${lib}local/link.js: ${linkjs-files} ${linkjs-ext-files}
+${lib}local/http.js: ${src-http-files}
 	@cat > $@ $^
-${lib}local/myhouse.js: ${myhouse-files}
+${lib}local/client.js: ${src-client-files}
 	@cat > $@ $^
-${lib}local/promises.js: ${promises-files}
+${lib}local/env.js: ${src-env-files}
 	@cat > $@ $^
-${lib}local/worker-server.js: ${worker-server-files}
-	@cat > $@ $^
-${lib}linkjs-ext/broadcaster.js: ${src}linkjs-ext/broadcaster.js
-	@cp $< $@
-${lib}linkjs-ext/responder.js: ${src}linkjs-ext/responder.js
-	@cp $< $@
-${lib}linkjs-ext/router.js: ${src}linkjs-ext/router.js
-	@cp $< $@
-
-buildmin: ${lib}local.js ${lib}local.min.js ${lib}worker-server.js ${lib}worker-server.min.js
-	@echo Built Minified Versions
 ${lib}local.js: ${lib-local-files}
 	@cat > $@ $^
-${lib}local.min.js: ${lib-local-files}
-	@./minify.sh $@ $^
-${lib}worker-server.js: ${lib-worker-server-files}
-	@cp $< $@
-${lib}worker-server.min.js: ${lib-worker-server-files}
-	@./minify.sh $@ $^
+${lib}worker.js: ${src-worker-files}
+	@cat > $@ $^
 
-dev: ${lib}local.dev.js ${lib}worker-server.dev.js
-	@echo Built Dev Versions
-${lib}local.dev.js: ${promises-files} ${linkjs-files} ${linkjs-ext-files} ${myhouse-files} ${common-client-files} ${environment-files}
-	@echo $(foreach f, $^, "document.write('<script src=\"/$f\"></script>');\n") >> ${lib}local.dev.js
-${lib}worker-server.dev.js: ${worker-server-files}
-	@echo $(foreach f, $^, "importScripts(\"/$f\");\n") >> ${lib}worker-server.dev.js
+buildmin: ${lib}local.min.js ${lib}worker.min.js
+	@echo Built Minified Versions
+${lib}local.min.js: ${lib}local.js
+	@./minify.sh $@ $^
+${lib}worker.min.js: ${lib}worker.js
+	@./minify.sh $@ $^
 
 deps: uglifyjs
 uglifyjs:
