@@ -13,6 +13,7 @@ Changes
  - Removed `local.http.ResponseError`
    - Rejected responses are now rejected with the response objects directly (not wrapped in the error)
  - Renamed Local's custom worker `postMessage` and `onMessage` functions to `postNamedMessage` and `onNamedMessage`
+ - Changed workers to define `main()` to set the entry-point
 
 
 2013/04/07 pfraze
