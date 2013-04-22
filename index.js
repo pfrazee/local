@@ -1,6 +1,6 @@
 // request wrapper
-var reqLog = new Link.Navigator('httpl://request-log.util');
-Environment.setDispatchWrapper(function(request, origin, dispatch) {
+var reqLog = local.http.ext.navigator('httpl://request-log.util');
+local.env.setDispatchWrapper(function(request, origin, dispatch) {
 	// make any connectivity / permissions decisions here
 
 	// pass on to the request log
@@ -15,8 +15,8 @@ Environment.setDispatchWrapper(function(request, origin, dispatch) {
 
 	// allow request
 	var response = dispatch(request);
-	response.succeed(console.log.bind(console), request);
-	response.fail(console.log.bind(console), request);
+	response.succeed(console.log.bind(console, request));
+	response.fail(console.log.bind(console, request));
 	return response;
 });
 
@@ -28,7 +28,7 @@ function makeActiveToolbar(elem) {
 		e.preventDefault();
 		e.stopPropagation();
 		// issue request
-		Environment.getClientRegion(elem.dataset.client).dispatchRequest({
+		local.env.getClientRegion(elem.dataset.client).dispatchRequest({
 			method:'get',
 			url:'httpl://servers.env/'+elem.dataset.client+'.doc/editor',
 			headers:{ accept:'text/html' }
@@ -40,15 +40,15 @@ for (var i=0; i < toolbars.length; i++) {
 }
 
 // instantiate services
-Environment.addServer('localstorage.env', new StorageServer(localStorage));
-Environment.addServer('servers.env', new ReflectorServer());
+local.env.addServer('localstorage.env', new StorageServer(localStorage));
+local.env.addServer('servers.env', new ReflectorServer());
 
 // instantiate apps
-Environment.addServer('intro.doc', new Environment.WorkerServer({ scriptUrl:'../servers/worker/intro.js' }));
-Environment.addServer('features.doc', new Environment.WorkerServer({ scriptUrl:'../servers/worker/features.js' }));
-Environment.addServer('request-log.util', new Environment.WorkerServer({ scriptUrl:'../servers/worker/log.js', title:'request log' }));
+local.env.addServer('intro.doc', new local.env.WorkerServer({ scriptUrl:'../servers/worker/intro.js' }));
+local.env.addServer('features.doc', new local.env.WorkerServer({ scriptUrl:'../servers/worker/features.js' }));
+local.env.addServer('request-log.util', new local.env.WorkerServer({ scriptUrl:'../servers/worker/log.js', title:'request log' }));
 
 // load client regions
-Environment.addClientRegion('intro').dispatchRequest('httpl://intro.doc');
-Environment.addClientRegion('features').dispatchRequest('httpl://features.doc');
-Environment.addClientRegion('request-log').dispatchRequest('httpl://request-log.util');
+local.env.addClientRegion('intro').dispatchRequest('httpl://intro.doc');
+local.env.addClientRegion('features').dispatchRequest('httpl://features.doc');
+local.env.addClientRegion('request-log').dispatchRequest('httpl://request-log.util');
