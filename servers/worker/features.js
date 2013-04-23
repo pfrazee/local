@@ -1,4 +1,11 @@
 var config = local.worker.config;
+var templates = {
+	httpl:  require('templates/features-httpl.html'),
+	httpl2: require('templates/features-httpl-posted.html'),
+	app:    require('templates/features-app.html'),
+	env:    require('templates/features-env.html'),
+	more:   require('templates/features-more.html')
+};
 
 // live update list
 var theList = [
@@ -6,73 +13,63 @@ var theList = [
 	'limited', 'narrow', 'neighborhood', 'parish', 'parochial', 'provincial', 'regional', 'sectarian',
 	'sectional', 'small-town', 'territorial', 'town', 'vernacular'
 ];
-var theListFilter = '';
-var listBroadcaster = local.http.ext.broadcaster();
 
 // local storage nav
 var localStorageCollection = local.http.ext.navigator('httpl://localstorage.env').collection('features-test');
 
 // route handler
 function main(request, response) {
-	if (request.path == '/list') listResource(request, response);
-	else if (request.path == '/env') envResource(request, response);
-	else {
-		// send back interface html
-		response.writeHead(200, 'ok', {'content-type':'text/html'});
-		response.end(makeDoc(request.path.slice(1), request));
-	}
-}
-
-// routes
-function listResource(request, response) {
-	if (/get/i.test(request.method)) {
-		if (/event-stream/.test(request.headers.accept)) {
-			response.writeHead(200, 'ok', {'content-type':'text/event-stream'});
-			listBroadcaster.addStream(response); // add stream to our broadcast
-		} else {
+	switch (request.path) {
+		case '/httpl':
+		default:
+			var tmpl = (/post/i.test(request.method)) ? 'httpl2' : 'httpl';
+			if (request.body && request.body.checks)
+				request.body.checks = request.body.checks.join(', ');
 			response.writeHead(200, 'ok', {'content-type':'text/html'});
-			response.end(makeList(request));
-		}
-	} else if (/patch/i.test(request.method)) {
-		// update the filter and trigger a GET
-		theListFilter = request.body.filter;
-		listBroadcaster.emit('update');
-		response.writeHead(204, 'no content');
-		response.end();
-	} else {
-		response.writeHead(405, 'request method not supported by that resource');
-		response.end();
-	}
-}
-
-function envResource(request, response) {
-	local.promise(true)
-		.succeed(function() {
-			// pass post on to local storage
-			if (/post/i.test(request.method)) {
-				if (request.body['delete']) { // delete button?
-					// delete the entry
-					var targetId = request.body['delete'];
-					return localStorageCollection.item(targetId).delete();
-				} else {
-					// add a new entry
-					return localStorageCollection.post({});
-				}
+			response.end(renderTemplate(tmpl, request.body, 'httpl'));
+			break;
+		case '/app':
+			if (/html-deltas/.test(request.headers.accept)) {
+				response.writeHead(200, 'ok', {'content-type':'application/html-deltas+json'});
+				response.end({ replace: {'.list-container':makeList(request.query.filter||'') }});
+			} else {
+				response.writeHead(200, 'ok', {'content-type':'text/html'});
+				response.end(renderTemplate('app', {domain:config.domain, list:makeList(), filter:(request.query.filter||'')}));
 			}
-			// get request, do nothing
-			return true;
-		})
-		.succeed(function(res) {
-			return localStorageCollection.getJson();
-		})
-		.succeed(function(res) {
+			break;
+		case '/env':
+			local.promise((function() {
+				// POST request?
+				if (/post/i.test(request.method)) {
+					if (request.body['delete']) { // delete button?
+						// delete the entry
+						var targetId = request.body['delete'];
+						return localStorageCollection.item(targetId).delete();
+					} else {
+						// add a new entry
+						return localStorageCollection.post({});
+					}
+				}
+				// GET request, do nothing this step
+				return true;
+			})())
+			.succeed(function(res) {
+				return localStorageCollection.getJson();
+			})
+			.succeed(function(res) {
+				response.writeHead(200, 'ok', {'content-type':'text/html'});
+				response.end(renderTemplate('env', {domain:config.domain, entry:res.body}));
+			})
+			.fail(function() {
+				response.writeHead(502, 'bad gateway');
+				response.end();
+			});
+			break;
+		case '/more':
 			response.writeHead(200, 'ok', {'content-type':'text/html'});
-			response.end(makeDoc('env', request, res.body));
-		})
-		.fail(function() {
-			response.writeHead(502, 'bad gateway');
-			response.end();
-		});
+			response.end(renderTemplate('more', {domain:config.domain}));
+			break;
+	}
 }
 
 // html builders
@@ -93,107 +90,41 @@ function makeNav(tab) {
 		.replace('{{4}}', makeNavLi(tab,'more','Learn More'));
 }
 
-function makeFormItem(label, controls) {
-	return (
-		'<div class="control-group">' +
-			'<label class="control-label">{{label}}</label>' +
-			'<div class="controls">{{controls}}</div>' +
-		'</div>'
-		).replace('{{label}}', label)
-		.replace('{{controls}}', controls);
-}
-
-function makeDoc(tab, request, content) {
-	var html;
-	var body = request.body || {};
-	var isPost = /post/i.test(request.method);
-	switch (tab) {
-		case 'httpl':
-		default:
-			html = (
-			'<p>Applications running in Web Workers respond to HTTPL requests from the page:</p>' +
-			'<form action="httpl://'+config.domain+'/httpl" method="post" class="form-horizontal">' +
-				'<legend>' +
-					'Local ' +
-					(isPost ? 'Response <small>from ' : 'Form <small>targets ') +
-					'httpl://'+config.domain+'</small>'+
-				'</legend>'+
-				makeFormItem('Text input', isPost ? body.input : '<input type="text" name="input" class="input-xlarge">') +
-				makeFormItem('Select', isPost ? body.select : (
-					'<select name="select" class="input-xlarge">' +
-						'<option value="A">A</option>' +
-						'<option value="A">B</option>' +
-					'</select>'
-				)) +
-				makeFormItem('Checkboxes', (isPost) ? (body.checks || []).join(', ') : (
-					'<label class="checkbox inline"><input type="checkbox" name="checks" value="1"> 1</label>' +
-					'<label class="checkbox inline"><input type="checkbox" name="checks" value="2"> 2</label>' +
-					'<label class="checkbox inline"><input type="checkbox" name="checks" value="3"> 3</label>'
-				)) +
-				makeFormItem('Radios', isPost ? body.radios : (
-					'<label class="radio inline"><input type="radio" value="1" checked="checked" name="radios"> 1</label>' +
-					'<label class="radio inline"><input type="radio" value="2" name="radios"> 2</label>' +
-					'<label class="radio inline"><input type="radio" value="3" name="radios"> 3</label>'
-				)) +
-				makeFormItem('Textarea', isPost ? body.textarea : '<div class="textarea"><textarea name="textarea"></textarea></div>') +
-				makeFormItem('', isPost ?
-					'<a class="btn" href="httpl://'+config.domain+'/httpl">Reset</a>' :
-					'<input type="submit" class="btn" />'
-				) +
-			'</form>'
-			);
-			break;
-		case 'app':
-			html = (
-				'<p>Server-Sent Events and added HTML behaviors allow applications to update the page in real-time:</p>' +
-				'<legend>Realtime Updates</legend>' +
-				'<form action="httpl://' + config.domain + '/list" onkeyup="patch">' +
-					'<input type="text" name="filter" placeholder="Filter..." value="' + (request.query.filter||'') + '" /><br/>' +
-					'<div data-subscribe="httpl://' + config.domain + '/list">' + makeList() + '</div>' +
-				'</form>'
-			);
-			break;
-		case 'env':
-			html = (
-				'<p>The Environment API controls applications and mediates traffic for security. '+
-				'The page can also host servers in its namespace, so applications can access tools like localStorage:</p>'+
-				'<form action="httpl://'+config.domain+'/env" method="post" class="form-horizontal">'+
-					'<legend>LocalStorage Collections</legend>'+
-					content.map(function(item) {
-						return makeFormItem('Entry:', item.id + ' <button class="btn btn-mini btn-danger" name="delete" value="'+item.id+'"/>delete</button>');
-					}).join('')+
-					makeFormItem('', '<input type="submit" class="btn" value="Add Entry" />')+
-				'</form>'+
-				'<blockquote><small>Refresh the page to see the persistence in the browser\'s localStorage</small></blockquote>'
-			);
-			break;
-		case 'more':
-			html = (
-				'<p>Learn more through the documentation and examples.</p>'+
-				'<legend>Links</legend>'+
-				'<ul>'+
-					'<li><a target=_top href=docs.html title="Documentation">Documentation</a></li>'+
-					'<li><a target=_top href=//blog.grimwire.com title="Development Blog">Development Blog</a></li>'+
-					'<li><a target=_top href=//github.com/grimwire/local title="Github Repository">Github Repository</a></li>'+
-					'<li><a target=_top href=//github.com/grimwire/local/issues title="Issue Tracker">Issue Tracker</a></li>'+
-				'</ul>'
-			);
-			break;
-	}
-	return [
-		makeNav(tab),
-		html
-	].join('');
-}
-
-function makeList(request) {
+function makeList(filter) {
 	return (
 	'<ul class="unstyled">'+
 		theList.filter(function(item) {
-			return !theListFilter || item.indexOf(theListFilter) != -1;
+			return !filter || item.indexOf(filter) != -1;
 		}).map(function(item) {
 			return '<li>'+item+'</li>';
 		}).join('')+
 	'</ul>'
 	);
+}
+
+function renderTemplate(tmpl, context, tab) {
+	if (!tab) tab = tmpl;
+	if (!context) context = {};
+	context.domain = config.domain;
+	var html = templates[tmpl];
+	for (var k in context) {
+		if (Array.isArray(context[k]) === false) {
+			var substituteRE = new RegExp('{{'+k+'}}', 'gi');
+			html = html.replace(substituteRE, context[k]);
+		} else {
+			var subtemplateRE = new RegExp('{{'+k+':((.|[\r\n])*):'+k+'}}', 'gi');
+			html = html.replace(subtemplateRE, function(_,subtemplate) {
+				return context[k].map(function(subcontext) {
+					var subhtml = ''+subtemplate;
+					for (var k2 in subcontext) {
+						var substituteRE = new RegExp('{{'+k2+'}}', 'gi');
+						subhtml = subhtml.replace(substituteRE, subcontext[k2]);
+					}
+					return subhtml;
+				}).join('');
+			});
+		}
+	}
+	html = html.replace(/\{\{.*\}\}/g, '');
+	return makeNav(tab) + html;
 }

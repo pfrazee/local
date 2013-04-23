@@ -1,0 +1,17 @@
+<p>The Environment API controls applications and mediates traffic for security. The page can also host servers in its namespace, so applications can access tools like localStorage:</p>
+<form action="httpl://{{domain}}/env" method="post" class="form-horizontal">
+	<legend>LocalStorage Collections</legend>
+	{{entry:
+		<div class="control-group">
+			<label class="control-label">Entry:</label>
+			<div class="controls">
+				{{id}}
+				<button class="btn btn-mini btn-danger" name="delete" value="{{id}}"/>delete</button>
+			</div>			
+		</div>
+	:entry}}
+	<div class="control-group">
+		<div class="controls"><input type="submit" class="btn" value="Add Entry" /></div>			
+	</div>
+</form>
+<blockquote><small>Refresh the page to see the persistence in the browser's localStorage</small></blockquote>

@@ -1,6 +1,11 @@
 Changes
 =======
 
+2013/04/23 pfraze
+
+ - Added require() method to workers
+ 
+
 2013/04/22 pfraze
 
  - Restructured namespaces to all live under `local`

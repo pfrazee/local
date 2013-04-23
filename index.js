@@ -1,3 +1,5 @@
+// local.env.config.workerBootstrapUrl = '/lib/worker.js';
+
 // request wrapper
 var reqLog = local.http.ext.navigator('httpl://request-log.util');
 local.env.setDispatchWrapper(function(request, origin, dispatch) {
