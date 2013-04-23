@@ -3,7 +3,7 @@ var done = false;
 var startTime = Date.now();
 
 var s1 = new local.env.Worker(function() {
-  s1.importScripts('../../test/worker/worker.js', function(message) {
+  s1.importScripts('../../test/worker/worker1.js', function(message) {
     print(message);
   });
   s1.nullify('XMLHttpRequest');

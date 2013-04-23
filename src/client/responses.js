@@ -127,14 +127,20 @@ function bindAttrEvents(targetElem, containerElem) {
 function makeAttrEventHandler(method, containerElem) {
 	return function(e) {
 		// build request
-		request = extractRequest(e.currentTarget, containerElem);
+		var request = extractRequest(e.currentTarget, containerElem);
 		request.method = method;
 
-		// move the params into the body if not a GET
+		// move the query into the body if not a GET
 		// (extractRequest would have used the wrong method to judge this)
-		if (/GET/i.test(method) === false && !request.body) {
+		var isGET = /GET/i.test(method);
+		if (!isGET && !request.body) {
 			request.body = request.query;
-			delete request.query;
+			request.query = {};
+		}
+		// visa-versa
+		else if (isGET && request.body) {
+			request.query = reduceObjects(request.body, request.query);
+			request.body = {};
 		}
 
 		// dispatch request event

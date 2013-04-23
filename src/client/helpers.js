@@ -150,7 +150,6 @@ extractRequest.fromAnchor = function(node) {
 // INTERNAL
 // extracts request parameters from a form element (inputs, textareas, etc)
 extractRequest.fromFormElement = function(node) {
-	
 	// :TODO: search parent for the form-related element?
 	//        might obviate the need for submitter-tracking
 
@@ -159,7 +158,10 @@ extractRequest.fromFormElement = function(node) {
 		method  : node.getAttribute('formmethod'),
 		url     : node.getAttribute('formaction'),
 		target  : node.getAttribute('formtarget'),
-		headers : { 'content-type':node.getAttribute('formenctype') }
+		headers : {
+			'content-type' : node.getAttribute('formenctype'),
+			accept         : node.getAttribute('formaccept')
+		}
 	};
 	return request;
 };
@@ -187,7 +189,10 @@ extractRequest.fromForm = function(form, submittingElem) {
 			method  : submittingElem.getAttribute('formmethod'),
 			url     : submittingElem.getAttribute('formaction'),
 			target  : submittingElem.getAttribute('formtarget'),
-			headers : { 'content-type':submittingElem.getAttribute('formenctype') }
+			headers : {
+				'content-type' : submittingElem.getAttribute('formenctype'),
+				accept         : submittingElem.getAttribute('formaccept')
+			}
 		};
 	}
 	// extract form headers
@@ -195,7 +200,10 @@ extractRequest.fromForm = function(form, submittingElem) {
 		method  : form.getAttribute('method'),
 		url     : form.getAttribute('action'),
 		target  : form.getAttribute('target'),
-		headers : { 'content-type':form.getAttribute('enctype') || form.enctype }
+		headers : {
+			'content-type' : form.getAttribute('enctype') || form.enctype,
+			'accept'       : form.getAttribute('accept')
+		}
 	};
 	if (form.acceptCharset) { requests.form.headers.accept = form.acceptCharset; }
 
