@@ -1,6 +1,6 @@
-importScripts('vendor/marked.js');
-
+var marked = require('vendor/marked.js');
 marked.setOptions({ gfm: true, tables: true });
+
 function headerRewrite(headers) {
 	headers['content-type'] = 'text/html';
 	return headers;

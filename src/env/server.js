@@ -51,6 +51,7 @@
 				'{'+this.config.script.slice(0,20)+'}';
 		}
 		this.config.environmentHost = window.location.host;
+		this.config.scriptBaseUrl = this.config.scriptUrl.replace(/\/[^/]+$/,'/');
 
 		this.loaderrorCb = loaderrorCb;
 		this.readyMessage = null;
@@ -81,6 +82,7 @@
 		// disable dangerous APIs
 		this.worker.nullify('XMLHttpRequest');
 		this.worker.nullify('Worker');
+		this.worker.nullify('importScripts');
 		// hold onto the ready message and update state, so the environment can finish preparing us
 		// (the config must be locked before we continue from here)
 		this.state = WorkerServer.READY;
