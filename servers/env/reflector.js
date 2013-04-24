@@ -94,10 +94,12 @@
 			headerer.addLink('/'+domain, 'self current');
 			router.t(/javascript/i, function() {
 				if (server instanceof local.env.WorkerServer) {
+					var config = server.config;
 					// shutdown the server
 					local.env.killServer(domain);
 					// load a new server in-place with the given source
-					local.env.addServer(domain, new local.env.WorkerServer({ script:request.body }));
+					config.script = request.body;
+					local.env.addServer(domain, new local.env.WorkerServer(config));
 					// done
 					respond.ok().end();
 				} else {
@@ -168,10 +170,12 @@
 			headerer.addLink('/'+domain+'/editor', 'self current');
 
 			if (server instanceof local.env.WorkerServer) {
+				var config = server.config;
 				// shutdown the server
 				local.env.killServer(domain);
 				// load a new server in-place with the given source
-				local.env.addServer(domain, new local.env.WorkerServer({ script:request.body.source }));
+				config.script = request.body.source;
+				local.env.addServer(domain, new local.env.WorkerServer(config));
 				// respond by piping a request to the new server
 				respond.pipe(local.http.dispatch({ method:'get', url:'httpl://'+domain, headers:{ accept:'text/html' }}, this));
 			} else {
