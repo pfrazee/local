@@ -21,7 +21,7 @@
 		function route(method, path, fn) {
 			if (handled) return;
 			if (method && path) {
-				path = __path(path);
+				path = makepathregex(path);
 				if (path.test(request.path) && RegExp('^'+method+'$','i').test(request.method)) {
 					handled = true;
 					var match = path.exec(request.path);
@@ -33,18 +33,18 @@
 				response.writeHead(404,'not found').end();
 		}
 
-		route('HEAD',   '^/?$', __httpListCollections);
-		route('GET',    '^/?$', __httpListCollections);
-		route('POST',   '^/?$', __httpGenUniqueCollection);
-		route('HEAD',   '^/:collection/?$', __httpGetCollection);
-		route('GET',    '^/:collection/?$', __httpGetCollection);
-		route('POST',   '^/:collection/?$', __httpAddItem);
-		route('DELETE', '^/:collection/?$', __httpDeleteCollection);
-		route('HEAD',   '^/:collection/:item/?$', __httpGetItem);
-		route('GET',    '^/:collection/:item/?$', __httpGetItem);
-		route('PUT',    '^/:collection/:item/?$', __httpSetItem);
-		route('PATCH',  '^/:collection/:item/?$', __httpUpdateItem);
-		route('DELETE', '^/:collection/:item/?$', __httpDeleteItem);
+		route('HEAD',   '^/?$', httpListCollections);
+		route('GET',    '^/?$', httpListCollections);
+		route('POST',   '^/?$', httpGenUniqueCollection);
+		route('HEAD',   '^/:collection/?$', httpGetCollection);
+		route('GET',    '^/:collection/?$', httpGetCollection);
+		route('POST',   '^/:collection/?$', httpAddItem);
+		route('DELETE', '^/:collection/?$', httpDeleteCollection);
+		route('HEAD',   '^/:collection/:item/?$', httpGetItem);
+		route('GET',    '^/:collection/:item/?$', httpGetItem);
+		route('PUT',    '^/:collection/:item/?$', httpSetItem);
+		route('PATCH',  '^/:collection/:item/?$', httpUpdateItem);
+		route('DELETE', '^/:collection/:item/?$', httpDeleteItem);
 		route();
 	};
 
@@ -118,11 +118,11 @@
 	}
 
 	// helps produce nice-looking routes
-	function __path(str) {
+	function makepathregex(str) {
 		return new RegExp(str.replace(/\:collection/g, '([A-z0-9_\\-]+)').replace(/\:item/g, '([^/]+)'));
 	}
 
-	function __buildServiceHeaders() {
+	function buildServiceHeaders() {
 		var headers = {
 			link:[
 				{ href:'/', rel:'self current' },
@@ -135,7 +135,7 @@
 		return headers;
 	}
 
-	function __buildCollectionHeaders(cid) {
+	function buildCollectionHeaders(cid) {
 		var headers = {
 			link:[{ href:'/', rel:'up via service' }]
 		};
@@ -146,7 +146,7 @@
 		return headers;
 	}
 
-	function __buildItemHeaders(cid, iid) {
+	function buildItemHeaders(cid, iid) {
 		var headers = {
 			link:[{ href:'/', rel:'via service' }]
 		};
@@ -158,8 +158,8 @@
 	}
 
 	// GET /
-	function __httpListCollections(request, response) {
-		var headers = __buildServiceHeaders.call(this);
+	function httpListCollections(request, response) {
+		var headers = buildServiceHeaders.call(this);
 		if (/get/i.test(request.method)) {
 			headers['content-type'] = 'application/json';
 			response.writeHead(200, 'ok', headers).end(this.collections);
@@ -168,20 +168,20 @@
 	}
 
 	// POST /
-	function __httpGenUniqueCollection(request, response) {
+	function httpGenUniqueCollection(request, response) {
 		var cid;
 		do { cid = guid(); } while (typeof this.collections[cid] != 'undefined');
 		this.collections[cid] = []; // now defined, not available
 
-		var headers = __buildServiceHeaders.call(this);
+		var headers = buildServiceHeaders.call(this);
 		headers.location = '/'+cid;
 		headers['content-type'] = 'application/json';
 		response.writeHead(201, 'created', headers).end({ id:cid });
 	}
 
 	// GET /:collection
-	function __httpGetCollection(request, response, cid) {
-		var headers = __buildCollectionHeaders.call(this, cid);
+	function httpGetCollection(request, response, cid) {
+		var headers = buildCollectionHeaders.call(this, cid);
 		if (/get/i.test(request.method)) {
 			headers['content-type'] = 'application/json';
 			response.writeHead(200, 'ok', headers).end(this.listCollectionItems(cid));
@@ -190,26 +190,26 @@
 	}
 
 	// POST /:collection
-	function __httpAddItem(request, response, cid) {
+	function httpAddItem(request, response, cid) {
 		if (!request.body || typeof request.body != 'object')
 			return response.writeHead(422, 'unprocessable entity').end('request body required as a JSON object');
 
 		this.setItem(cid, request.body);
-		var headers = __buildCollectionHeaders.call(this, cid);
+		var headers = buildCollectionHeaders.call(this, cid);
 		headers.location = '/'+cid+'/'+request.body.id;
 		headers['content-type'] = 'application/json';
 		response.writeHead(201, 'created', headers).end({ id:request.body.id });
 	}
 
 	// DELETE /:collection
-	function __httpDeleteCollection(request, response, cid) {
+	function httpDeleteCollection(request, response, cid) {
 		this.removeCollection(cid);
-		response.writeHead(204, 'no content', __buildCollectionHeaders.call(this, cid)).end();
+		response.writeHead(204, 'no content', buildCollectionHeaders.call(this, cid)).end();
 	}
 
 	// GET /:collection/:id
-	function __httpGetItem(request, response, cid, iid) {
-		var headers = __buildItemHeaders.call(this, cid, iid);
+	function httpGetItem(request, response, cid, iid) {
+		var headers = buildItemHeaders.call(this, cid, iid);
 		var item = this.getItem(cid, iid);
 		if (item) {
 			if (/get/i.test(request.method)) {
@@ -222,17 +222,17 @@
 	}
 
 	// PUT /:collection/:id
-	function __httpSetItem(request, response, cid, iid) {
+	function httpSetItem(request, response, cid, iid) {
 		if (!request.body || typeof request.body != 'object')
 			return response.writeHead(422, 'unprocessable entity').end('request body required as a JSON object');
 
 		request.body.id = iid;
 		this.setItem(cid, request.body);
-		response.writeHead(204, 'no content', __buildItemHeaders.call(this, cid, iid)).end();
+		response.writeHead(204, 'no content', buildItemHeaders.call(this, cid, iid)).end();
 	}
 
 	// PATCH /:collection/:id
-	function __httpUpdateItem(request, response, cid, iid) {
+	function httpUpdateItem(request, response, cid, iid) {
 		if (!request.body || typeof request.body != 'object')
 			return response.writeHead(422, 'unprocessable entity').end('request body required as a JSON object');
 
@@ -240,15 +240,15 @@
 		if (item) {
 			item = patch(item, request.body);
 			this.setItem(cid, item);
-			response.writeHead(204, 'no content', __buildItemHeaders.call(this, cid, iid)).end();
+			response.writeHead(204, 'no content', buildItemHeaders.call(this, cid, iid)).end();
 		} else
-			response.writeHead(404, 'not found', __buildItemHeaders.call(this, cid, iid)).end();
+			response.writeHead(404, 'not found', buildItemHeaders.call(this, cid, iid)).end();
 	}
 
 	// DELETE /:collection/:id
-	function __httpDeleteItem(request, response, cid, iid) {
+	function httpDeleteItem(request, response, cid, iid) {
 		this.removeItem(cid, iid);
-		response.writeHead(204, 'no content', __buildItemHeaders.call(this, cid, iid)).end();
+		response.writeHead(204, 'no content', buildItemHeaders.call(this, cid, iid)).end();
 	}
 
 	// brings updates into org value
