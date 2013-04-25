@@ -13,5 +13,5 @@ function main(request, response) {
 		url     : local.worker.config.baseUrl + request.path,
 		headers : { accept:'text/plain' }
 	});
-	local.http.ext.responder(response).pipe(mdRequest, headerRewrite, bodyRewrite);
+	local.http.pipe(response, mdRequest, headerRewrite, bodyRewrite);
 }

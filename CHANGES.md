@@ -1,6 +1,16 @@
 Changes
 =======
 
+2013/04/24 pfraze
+
+ - Deprecated local.http.ext.*
+   - Moved navigator into local.http.*
+   - Moved Broadcaster into local.http.* in events.js
+   - Moved Responder.pipe() and Headerer.serialize into local.http.* in helpers.js
+   - Deprecrated Responder, Headerer and Router
+ - Deprecated servers/env/static.js (no longer in us)
+
+
 2013/04/23 pfraze
 
  - Added require() method to workers

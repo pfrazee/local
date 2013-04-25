@@ -12,11 +12,8 @@ src-http-files =\
 	${src}http/core.js\
 	${src}http/events.js\
 	${src}http/uri-template.js\
-	${src}http/ext/navigator.js\
-	${src}http/ext/broadcaster.js\
-	${src}http/ext/headerer.js\
-	${src}http/ext/responder.js\
-	${src}http/ext/router.js\
+	${src}http/navigator.js\
+	${src}http/headers.js\
 	${src}http/_compiled_footer.js
 src-client-files =\
  	${src}client/_compiled_header.js\

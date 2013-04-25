@@ -15,7 +15,7 @@ var theList = [
 ];
 
 // local storage nav
-var localStorageCollection = local.http.ext.navigator('httpl://localstorage.env').collection('features-test');
+var localStorageCollection = local.http.navigator('httpl://localstorage.env').collection('features-test');
 
 // route handler
 function main(request, response) {

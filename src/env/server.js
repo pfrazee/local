@@ -51,7 +51,8 @@
 				'{'+this.config.script.slice(0,20)+'}';
 		}
 		this.config.environmentHost = window.location.host;
-		this.config.scriptBaseUrl = this.config.scriptUrl.replace(/\/[^/]+$/,'/');
+		if (this.config.scriptUrl)
+			this.config.scriptBaseUrl = this.config.scriptUrl.replace(/\/[^/]+$/,'/');
 
 		this.loaderrorCb = loaderrorCb;
 		this.readyMessage = null;
