@@ -1,5 +1,5 @@
 var log = [];
-var logBroadcast = local.http.ext.broadcaster();
+var logBroadcast = local.http.broadcaster();
 
 function renderHtml(output) {
 	var entriesHtml = log
@@ -19,35 +19,23 @@ function renderHtml(output) {
 }
 
 function main(request, response) {
-	var router = local.http.ext.router(request);
-	var respond = local.http.ext.responder(response);
-
-	// collection
-	router.p('/', function() {
-		// build headers
-		var headerer = local.http.ext.headerer();
-		headerer.addLink('/', 'self current');
-
-		// list
-		router.m('HEAD', function() {
-			respond.ok(null, headerer).end();
-		});
-		router.ma('GET', /html/, function() {
-			respond.ok('html', headerer).end(renderHtml(request.query.output)); // respond with log html
-		});
-		// subscribe to events
-		router.ma('GET', /event-stream/, function() {
-			respond.ok('event-stream', headerer);
-			logBroadcast.addStream(response); // add the log updates listener
-			logBroadcast.emitTo(response, 'update'); // resync for any changes that might've occured
-		});
-		// add log entry
-		router.mt('POST', /html|plain/, function() {
-			log.push(request.body); // store the entry
-			logBroadcast.emit('update'); // tell our listeners about the change
-			respond.ok().end();
-		});
-		router.error(response, 'path');
-	});
-	router.error(response);
+	if (/head/i.test(request.method))
+		response.writeHead(200, 'ok').end();
+	// get interface
+	else if (/get/i.test(request.method) && /html/.test(request.headers.accept)) {
+		response // respond with log html
+			.writeHead(200, 'ok', {'content-type':'text/html'})
+			.end(renderHtml(request.query.output));
+	// subscribe to events
+	} else if (/get/i.test(request.method) && /event-stream/.test(request.headers.accept)) {
+		response.writeHead(200, 'ok', {'content-type':'text/event-stream'});
+		logBroadcast.addStream(response); // add the log updates listener
+		logBroadcast.emitTo(response, 'update'); // resync for any changes that might've occured
+	// add entry
+	} else if (/post/i.test(request.method) && /text/.test(request.headers['content-type'])) {
+		log.push(request.body); // store the entry
+		logBroadcast.emit('update'); // tell our listeners about the change
+		response.writeHead(204, 'no content').end();
+	} else
+		response.writeHead(405, 'bad method').end();
 }

@@ -92,6 +92,16 @@ local.http.registerLocal('test.com', function(request, response) {
 		response.write({ event:'foo', data:{ c:4 }});
 		response.end({ event:'foo', data:{ c:5 }});
 	}
+	else if (request.path == '/pipe') {
+		var headerUpdate = function(headers) {
+			headers['content-type'] = 'text/piped+plain';
+			return headers;
+		};
+		var bodyUpdate = function(body) {
+			return body.toUpperCase();
+		};
+		local.http.pipe(response, local.http.dispatch({ method:'get', url:'httpl://test.com/' }), headerUpdate, bodyUpdate);
+	}
 	else {
 		response.writeHead(404, 'not found');
 		response.end();

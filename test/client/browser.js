@@ -368,6 +368,7 @@ wait(function () { return done; });
   body: {text1: "foobar"},
   headers: {"content-type": "application/x-www-form-urlencoded"},
   method: "patch",
+  query: {},
   target: "target3",
   url: "http://www.form3.com"
 }
@@ -375,6 +376,7 @@ wait(function () { return done; });
   body: {text2: "foobaz"},
   headers: {"content-type": "application/x-www-form-urlencoded"},
   method: "put",
+  query: {},
   target: "target3",
   url: "http://www.form3.com/foobar"
 }
@@ -382,6 +384,7 @@ wait(function () { return done; });
   body: {text3: "foobleh", text4: "foobot"},
   headers: {"content-type": "application/x-www-form-urlencoded"},
   method: "patch",
+  query: {},
   target: "target3",
   url: "http://www.form3.com/foobaz"
 }
@@ -389,6 +392,7 @@ wait(function () { return done; });
   body: {text4: "foobot"},
   headers: {"content-type": "application/json"},
   method: "patch",
+  query: {},
   target: "target3",
   url: "http://www.form3.com/foobaz"
 }
@@ -402,6 +406,7 @@ wait(function () { return done; });
   },
   headers: {"content-type": "application/x-www-form-urlencoded"},
   method: "delete",
+  query: {},
   target: "target3",
   url: "http://www.form3.com"
 }

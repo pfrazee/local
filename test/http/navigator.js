@@ -1,6 +1,6 @@
 // == SECTION navigator
 
-var testServer = new local.http.ext.Navigator('http://linkapjs.com:8080');
+var testServer = new local.http.Navigator('http://linkapjs.com:8080');
 
 // remote server navigation
 
@@ -92,7 +92,7 @@ success
 
 done = false;
 startTime = Date.now();
-var testLocal = new local.http.ext.Navigator('httpl://test.com');
+var testLocal = new local.http.Navigator('httpl://test.com');
 testLocal.collection('foo').getJson()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
@@ -144,7 +144,7 @@ success
 
 done = false;
 startTime = Date.now();
-var testLocal = new local.http.ext.Navigator('httpl://test.com');
+var testLocal = new local.http.Navigator('httpl://test.com');
 testLocal.collection('foo').getJson(null, { stream:true })
   .succeed(printSuccess)
   .succeed(function(res) {
@@ -202,7 +202,7 @@ connection closed
 
 done = false;
 startTime = Date.now();
-var testLocal = new local.http.ext.Navigator('httpl://test.com');
+var testLocal = new local.http.Navigator('httpl://test.com');
 testLocal.collection('events').subscribe().then(
   function(stream) {
     stream.on('message', function(m) { print(m); });
