@@ -1,7 +1,6 @@
 // Helpers
 // =======
 
-// parseLinkHeader()
 // EXPORTED
 // breaks a link header into a javascript object
 local.http.parseLinkHeader = function parseLinkHeader(headerStr) {
@@ -79,6 +78,26 @@ local.http.joinUrl = function joinUrl() {
 };
 
 // EXPORTED
+// converts any known header objects into their string versions
+local.http.serializeRequestHeaders = function(headers) {
+	if (headers.authorization && typeof headers.authorization == 'object') {
+		if (!headers.authorization.scheme) { throw "`scheme` required for auth headers"; }
+		var auth;
+		switch (headers.authorization.scheme.toLowerCase()) {
+			case 'basic':
+				auth = 'Basic '+btoa(headers.authorization.name+':'+headers.authorization.password);
+				break;
+			case 'persona':
+				auth = 'Persona name='+headers.authorization.name+' assertion='+headers.authorization.assertion;
+				break;
+			default:
+				throw "unknown auth sceme: "+headers.authorization.scheme;
+		}
+		headers.authorization = auth;
+	}
+};
+
+// EXPORTED
 // parseUri 1.2.2, (c) Steven Levithan <stevenlevithan.com>, MIT License
 local.http.parseUri = function parseUri(str) {
 	if (typeof str === 'object') {
@@ -111,4 +130,46 @@ local.http.parseUri.options = {
 		strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
 		loose:  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
 	}
+};
+
+
+// sends the given response back verbatim
+// - if `writeHead` has been previously called, it will not change
+// - params:
+//   - `target`: the response to populate
+//   - `source`: the response to pull data from
+//   - `headersCb`: (optional) takes `(headers)` from source and responds updated headers for target
+//   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for target
+local.http.pipe = function(target, source, headersCB, bodyCb) {
+	headersCB = headersCB || function(v) { return v; };
+	bodyCb = bodyCb || function(v) { return v; };
+	return local.promise(source)
+		.succeed(function(source) {
+			if (!target.status) {
+				// copy the header if we don't have one yet
+				target.writeHead(source.status, source.reason, headersCB(source.headers));
+			}
+			if (source.body !== null && typeof source.body != 'undefined') { // already have the body?
+				target.write(bodyCb(source.body));
+			}
+			if (source.on && source.isConnOpen) {
+				// wire up the stream
+				source.on('data', function(data) {
+					target.write(bodyCb(data));
+				});
+				source.on('end', function() {
+					target.end();
+				});
+			} else {
+				target.end();
+			}
+			return target;
+		})
+		.fail(function(source) {
+			var ctype = source.headers['content-type'] || 'text/plain';
+			var body = (ctype && source.body) ? source.body : '';
+			target.writeHead(502, 'bad gateway', {'content-type':ctype});
+			target.end(body);
+			throw source;
+		});
 };

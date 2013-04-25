@@ -13,86 +13,93 @@
 
 	// request router
 	ReflectorServer.prototype.handleHttpRequest = function(request, response) {
-		var router = local.http.ext.router(request);
-		router.pm (_root_,   /HEAD|GET/i, httpListServers.bind(this, request, response));
-		router.pm (_domain_, /HEAD|GET/i, httpGetServer.bind(this, request, response));
-		router.pm (_domain_, /PUT/i,      httpPutServer.bind(this, request, response));
-		router.pma(_editor_, /HEAD|GET/i, /html/i, httpGetServerEditor.bind(this, request, response));
-		router.pmt(_editor_, /POST/i,     /urlencoded/i, httpPostServerEditor.bind(this, request, response));
-		router.error(response);
+		// :DEBUG: temporary helper fn
+		var handled = false, self = this;
+		function route(method, path, fn) {
+			if (handled) return;
+			if (method && path) {
+				if (RegExp('^'+path+'$','i').test(request.path) && RegExp('^'+method+'$','i').test(request.method)) {
+					handled = true;
+					fn.call(self, request, response);
+				}
+			} else
+				response.writeHead(404,'not found').end();
+		}
+
+		route('HEAD|GET', '/', httpListServers);
+		route('HEAD|GET', '/([A-z0-9_\\-\\.]+)/?', httpGetServer);
+		route('PUT',      '/([A-z0-9_\\-\\.]+)/?', httpPutServer);
+		route('HEAD|GET', '/([A-z0-9_\\-\\.]+)/editor/?', httpGetServerEditor);
+		route('POST',     '/([A-z0-9_\\-\\.]+)/editor/?', httpPostServerEditor);
+		route();
 	};
 
 	// GET|HEAD /
 	function httpListServers(request, response) {
-		var respond = local.http.ext.responder(response);
+		if (!/json/.test(request.headers.accept))
+			return response.writeHead(406, 'not acceptable').end();
+
 		// build headers
-		var headerer = local.http.ext.headerer();
-		headerer.addLink('/', 'self current collection');
-		var servers = local.env.servers;
 		var configs = [];
+		var headers = {
+			link: [{ href:'/', rel:'self current collection' }]
+		};
+		var servers = local.env.servers;
 		for (var domain in servers) {
-			headerer.addLink('/'+domain, 'item', { title:domain });
+			headers.link.push({ href:'/'+domain, rel:'item', title:domain });
 			configs.push(servers[domain].config);
 		}
 
 		if (/GET/i.test(request.method)) {
-			// respond with data
-			respond.ok('json', headerer).end(configs);
-		} else {
-			// respond with headers
-			respond.ok(null, headerer).end();
-		}
+			headers['content-type'] = 'application/json';
+			response.writeHead(200, 'ok', headers).end(configs);
+		} else
+			response.writeHead(200, 'ok', headers).end();
 	}
 
 	// GET|HEAD /:domain
-	function httpGetServer(request, response, match) {
-		var domain = match.path[1];
-		var respond = local.http.ext.responder(response);
-		var router = local.http.ext.router(request);
-		// headers
-		var headerer = local.http.ext.headerer();
-		headerer.addLink('/', 'up via service collection');
-		// find
+	function httpGetServer(request, response) {
+		var match = RegExp('^/([^\/]+)/').exec(request.path);
+		var domain = match[1];
+		var headers = {
+			link:[{ href:'/', rel:'up via service collection' }]
+		};
+
 		var server = local.env.getServer(domain);
 		if (server) {
-			// add links
-			headerer.addLink('/'+domain, 'self current');
+			headers.links.push({ href:'/'+domain, rel:'self current' });
 			if (/GET/i.test(request.method)) {
-				// respond with data
-				router.a(/json/i, function() {
-					respond.ok('json', headerer).end(server.config);
-				});
-				router.a(/javascript/i, function() {
+				if (/json/.test(request.headers.accept)) {
+					headers['content-type'] = 'application/json';
+					response.writeHead(200, 'ok'. headers).end(server.config);
+				}
+				else if (/javascript/.test(request.headers.accept)) {
 					// retrieve source
 					Local.promise(server.getSource())
 						.then(function(source) {
-							respond.ok('application/javascript', headerer).end(source);
+					headers['content-type'] = 'application/javascript';
+							response.writeHead(200, 'ok', headers).end(source);
 						}, function(err) { respond.badGateway(headerer).end(); });
-				});
-				router.error(response);
-			} else {
-				// respond with headers
-				respond.ok(null, headerer).end();
-			}
-		} else {
-			respond.notFound().end();
-		}
+				} else
+					response.writeHead(406, 'not acceptable').end();
+			} else
+				response.writeHead(200, 'ok', headers).end();
+		} else
+			response.writeHead(404, 'not found').end();
 	}
 
 	// PUT /:domain
-	function httpPutServer(request, response, match) {
-		var domain = match.path[1];
-		var respond = local.http.ext.responder(response);
-		var router = local.http.ext.router(request);
-		// headers
-		var headerer = local.http.ext.headerer();
-		headerer.addLink('/', 'up via service collection');
-		// find
+	function httpPutServer(request, response) {
+		var match = RegExp('^/([^\/]+)/').exec(request.path);
+		var domain = match[1];
+		var headers = {
+			link:[{ href:'/', rel:'up via service collection' }]
+		};
+
 		var server = local.env.getServer(domain);
 		if (server) {
-			// add links
-			headerer.addLink('/'+domain, 'self current');
-			router.t(/javascript/i, function() {
+			headers.links.push({ href:'/'+domain, rel:'self current' });
+			if (/javascript/i.test(request.headers['content-type'])) {
 				if (server instanceof local.env.WorkerServer) {
 					var config = server.config;
 					// shutdown the server
@@ -101,45 +108,41 @@
 					config.script = request.body;
 					local.env.addServer(domain, new local.env.WorkerServer(config));
 					// done
-					respond.ok().end();
+					response.writeHead(200, 'ok', headers).end();
 				} else {
 					// can't live-update environment servers (...yet?)
-					respond.respond([400, 'only worker servers can be live-updated']).end();
+					response.writeHead(200, 'only worker servers can be live-updated').end();
 				}
-			});
-			router.error(response);
-		} else {
-			respond.notFound().end();
-		}
+			} else
+				return response.writeHead(406, 'not acceptable').end();
+		} else
+			response.writeHead(404, 'not found').end();
 	}
 
 	// GET /:domain/editor
-	function httpGetServerEditor(request, response, match) {
+	function httpGetServerEditor(request, response) {
 		var self = this;
-		var respond = local.http.ext.responder(response);
-		var domain = match.path[1];
-		// headers
-		var headerer = local.http.ext.headerer();
-		headerer.addLink('/', 'via service collection');
-		// find
+		var match = RegExp('^/([^\/]+)/').exec(request.path);
+		var domain = match[1];
+		var headers = {
+			link:[{ href:'/', rel:'via service collection' }]
+		};
+
 		var server = local.env.getServer(domain);
 		if (server) {
-			// add links
-			headerer.addLink('/'+domain, 'up item');
-			headerer.addLink('/'+domain+'/editor', 'self current');
+			headers.link.push({ href:'/'+domain, rel:'up item' });
+			headers.link.push({ href:'/'+domain+'/editor', rel:'self current' });
 			if (/GET/i.test(request.method)) {
 				// retrieve source
 				local.promise(server.getSource())
 					.then(function(source) {
-						respond.ok('html').end(renderServerEditorHtml(self.config.domain, domain, source));
-					}, function(err) { respond.badGateway(headerer).end(); });
-			} else {
-				// respond with headers
-				respond.ok(null, headerer).end();
-			}
-		} else {
-			respond.notFound().end();
-		}
+						headers['content-type'] = 'text/html';
+						response.writeHead(200, 'ok', headers).end(renderServerEditorHtml(self.config.domain, domain, source));
+					}, function(err) { response.writeHead(502, 'bad gateway').end(); });
+			} else
+				response.writeHead(200, 'ok', headers).end();
+		} else
+			response.writeHead(404, 'not found').end();
 	}
 
 	function renderServerEditorHtml(reflectorDomain, workerDomain, source) {
@@ -155,19 +158,17 @@
 	}
 
 	// POST /:domain/editor
-	function httpPostServerEditor(request, response, match) {
-		var respond = local.http.ext.responder(response);
-		var domain = match.path[1];
-		var self = this;
-		// headers
-		var headerer = local.http.ext.headerer();
-		headerer.addLink('/', 'via service collection');
-		// find
+	function httpPostServerEditor(request, response) {
+		var match = RegExp('^/([^\/]+)/').exec(request.path);
+		var domain = match[1];
+		var headers = {
+			link:[{ href:'/', rel:'via service collection' }]
+		};
+
 		var server = local.env.getServer(domain);
 		if (server) {
-			// add links
-			headerer.addLink('/'+domain, 'up item');
-			headerer.addLink('/'+domain+'/editor', 'self current');
+			headers.link.push({ href:'/'+domain, rel:'up item' });
+			headers.link.push({ href:'/'+domain+'/editor', rel:'self current' });
 
 			if (server instanceof local.env.WorkerServer) {
 				var config = server.config;
@@ -175,15 +176,18 @@
 				local.env.killServer(domain);
 				// load a new server in-place with the given source
 				config.script = request.body.source;
+				delete config.scriptUrl;
 				local.env.addServer(domain, new local.env.WorkerServer(config));
 				// respond by piping a request to the new server
-				respond.pipe(local.http.dispatch({ method:'get', url:'httpl://'+domain, headers:{ accept:'text/html' }}, this));
+				local.http.pipe(
+					response,
+					local.http.dispatch({ method:'get', url:'httpl://'+domain, headers:{ accept:'text/html' }}, this)
+				);
 			} else {
 				// can't live-update environment servers (...yet?)
-				respond.respond([400, 'only worker servers can be live-updated']).end();
+				response.writeHead(200, 'only worker servers can be live-updated').end();
 			}
-		} else {
-			respond.notFound().end();
-		}
+		} else
+			response.writeHead(404, 'not found').end();
 	}
 })(window);

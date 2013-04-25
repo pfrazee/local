@@ -152,7 +152,7 @@ function __dispatchRemoteBrowser(req, resPromise) {
 	var url = ((req.urld.protocol) ? (req.urld.protocol + '://') : '') + req.urld.authority + req.urld.relative;
 
 	// make sure our payload is serialized
-	req.headers = local.http.ext.headerer(req.headers).serialize();
+	local.http.serializeRequestHeaders(req.headers);
 	if (req.body !== null && typeof req.body != 'undefined') {
 		req.headers['content-type'] = req.headers['content-type'] || 'application/json';
 		if (typeof req.body !== 'string') {
@@ -314,6 +314,7 @@ ServerResponse.prototype.writeHead = function(status, reason, headers) {
 
 	// fulfill/reject
 	if (this.isStreaming) { fulfillResponsePromise(this.resPromise, this.clientResponse); }
+	return this;
 };
 
 // header access/mutation fns
@@ -325,6 +326,7 @@ ServerResponse.prototype.removeHeader = function(k) { delete this.clientResponse
 // if streaming, will notify the client
 ServerResponse.prototype.write = function(data) {
 	this.clientResponse.write(data, false);
+	return this;
 };
 
 // ends the response, optionally writing any final data
@@ -343,6 +345,8 @@ ServerResponse.prototype.end = function(data) {
 	this.removeAllListeners('close');
 	this.clientResponse.removeAllListeners('data');
 	this.clientResponse.removeAllListeners('end');
+	
+	return this;
 };
 
 // functions added just to compat with nodejs
