@@ -39,28 +39,28 @@ function LocalClient__handleResponse(targetElem, containerElem, response) {
 // replaces the targetElem's innerHTML with the response payload
 function renderResponse(targetElem, containerElem, response) {
 
-	if (response.body) {
-		var type = response.headers['content-type'];
-		if (/application\/html\-deltas\+json/.test(type)) {
-			if (typeof response.body != 'object')
-				console.log('Improperly-formed application/html-deltas+json object', response);
-			else {
-				for (var op in response.body)
-					renderHtmlDeltas(op, response.body[op], targetElem, containerElem);
-			}
-		} else {
-			var html = '';
-			if (/text\/html/.test(type))
-				html = response.body.toString();
-			else {
-				// escape non-html so that it can render correctly
-				if (typeof response.body == 'string')
-					html = response.body.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-				else
-					html = JSON.stringify(response.body);
-			}
-			targetElem.innerHTML = html;
+	response.body = response.body || '';
+	var type = response.headers['content-type'];
+	if (/application\/html\-deltas\+json/.test(type)) {
+		if (typeof response.body != 'object')
+			console.log('Improperly-formed application/html-deltas+json object', response);
+		else {
+			for (var op in response.body)
+				renderHtmlDeltas(op, response.body[op], targetElem, containerElem);
 		}
+	} else {
+		var html = '';
+		if (/text\/html/.test(type))
+			html = response.body.toString();
+		else {
+			// escape non-html so that it can render correctly
+			if (typeof response.body == 'string')
+				html = response.body.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+			else
+				html = JSON.stringify(response.body);
+		}
+		targetElem.innerHTML = html;
+		local.env.postProcessRegion(targetElem);
 	}
 
 	bindAttrEvents(targetElem, containerElem);
@@ -100,6 +100,7 @@ function renderHtmlDeltas(op, deltas, targetElem, containerElem) {
 						deltas[selector].split(' ').forEach(toggleClass);
 					break;
 			}
+			local.env.postProcessRegion(elems[i]);
 		}
 	}
 }

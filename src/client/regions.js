@@ -15,6 +15,7 @@ function Region(id) {
 
 	this.element = document.getElementById(id);
 	if (!this.element) { throw "Region target element not found"; }
+	this.element.classList.add('client-region');
 
 	this.listenerFn = handleRequest.bind(this);
 	this.element.addEventListener('request', this.listenerFn);
@@ -46,9 +47,7 @@ function handleRequest(e) {
 	this.__prepareRequest(request);
 
 	var self = this;
-	var handleResponse = function(response) { 
-		self.__handleResponse(e, request, response);
-	};
+	var handleResponse = function(response) { self.__handleResponse(e, request, response); };
 	local.http.dispatch(request, this).then(handleResponse, handleResponse);
 }
 
@@ -86,11 +85,12 @@ Region.prototype.__prepareRequest = function(request) {
 // applies an HTTP response to its target element
 Region.prototype.__handleResponse = function(e, request, response) {
 	var requestTarget = this.__chooseRequestTarget(e, request);
+	if (!requestTarget)
+		return;
 	var targetClient = local.env.getClientRegion(requestTarget.id);
 	if (targetClient)
 		targetClient.__updateContext(request, response);
 	local.client.handleResponse(requestTarget, this.element, response);
-	local.env.postProcessRegion(requestTarget);
 };
 
 Region.prototype.__updateContext = function(request, response) {

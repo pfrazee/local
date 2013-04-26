@@ -2,9 +2,9 @@ src = src/
 src-promises-files =\
 	${src}promises/promises.js
 src-util-files =\
- 	${src}util/_compiled_header.js\
+	${src}util/_compiled_header.js\
 	${src}util/event-emitter.js\
- 	${src}util/_compiled_footer.js
+	${src}util/_compiled_footer.js
 src-http-files =\
 	${src}http/_compiled_header.js\
 	${src}http/helpers.js\
@@ -13,30 +13,29 @@ src-http-files =\
 	${src}http/events.js\
 	${src}http/uri-template.js\
 	${src}http/navigator.js\
-	${src}http/headers.js\
 	${src}http/_compiled_footer.js
 src-client-files =\
- 	${src}client/_compiled_header.js\
+	${src}client/_compiled_header.js\
 	${src}client/helpers.js\
 	${src}client/domevents.js\
 	${src}client/responses.js\
 	${src}client/regions.js\
- 	${src}client/_compiled_footer.js
+	${src}client/_compiled_footer.js
 src-env-files =\
- 	${src}env/_compiled_header.js\
- 	${src}env/worker.js\
- 	${src}env/server.js\
- 	${src}env/core.js\
- 	${src}env/_compiled_footer.js
+	${src}env/_compiled_header.js\
+	${src}env/worker.js\
+	${src}env/server.js\
+	${src}env/core.js\
+	${src}env/_compiled_footer.js
 src-worker-files =\
 	${src-promises-files}\
 	${src-util-files}\
 	${src-http-files}\
- 	${src}worker/_compiled_header.js\
+	${src}worker/_compiled_header.js\
 	${src}worker/messaging.js\
 	${src}worker/http.js\
 	${src}worker/setup.js\
- 	${src}worker/_compiled_footer.js
+	${src}worker/_compiled_footer.js
 
 lib = lib/
 lib-local-files =\

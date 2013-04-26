@@ -1,6 +1,11 @@
 Changes
 =======
 
+2013/04/26 pfraze
+
+ - Moved region post-processing to the render fn, to ensure that post-processing only occurs on new HTML
+
+
 2013/04/24 pfraze
 
  - Deprecated local.http.ext.*
