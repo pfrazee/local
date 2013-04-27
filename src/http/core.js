@@ -338,14 +338,14 @@ ServerResponse.prototype.end = function(data) {
 	this.emit('close');
 
 	// fulfill/reject now if we had been buffering the response
-	if (!this.isStreaming) 
+	if (!this.isStreaming)
 		fulfillResponsePromise(this.resPromise, this.clientResponse);
 
 	// unbind all listeners
 	this.removeAllListeners('close');
 	this.clientResponse.removeAllListeners('data');
 	this.clientResponse.removeAllListeners('end');
-	
+
 	return this;
 };
 
