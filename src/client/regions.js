@@ -84,13 +84,35 @@ Region.prototype.__prepareRequest = function(request) {
 
 // applies an HTTP response to its target element
 Region.prototype.__handleResponse = function(e, request, response) {
+	response.headers = response.headers || {};
 	var requestTarget = this.__chooseRequestTarget(e, request);
 	if (!requestTarget)
 		return;
+
 	var targetClient = local.env.getClientRegion(requestTarget.id);
 	if (targetClient)
 		targetClient.__updateContext(request, response);
-	local.client.handleResponse(requestTarget, this.element, response);
+
+	// react to the response
+	switch (response.status) {
+		case 204:
+			// no content
+			break;
+		case 205:
+			// reset form
+			// :TODO: should this try to find a parent form to requestTarget?
+			if (requestTarget.tagName === 'FORM')
+				requestTarget.reset();
+			break;
+		case 303:
+			// dispatch for contents
+			var request2 = { method:'get', url:response.headers.location, headers:{ accept:'text/html' }};
+			this.dispatchRequest(request2);
+			break;
+		default:
+			// replace target innards
+			local.client.renderResponse(requestTarget, this.element, response);
+	}
 };
 
 Region.prototype.__updateContext = function(request, response) {

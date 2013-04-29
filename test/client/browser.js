@@ -159,7 +159,7 @@ function request1Handler(e) {
 	var response = { status:200, reason:'Ok', headers:{ 'content-type':'text/html' }, body:'<h1>Response 1</h1>' };
 
 	// pass on to common client
-	local.client.handleResponse(
+	local.client.renderResponse(
 		document.getElementById(e.detail.target),
 		document.getElementById('testarea'),
 		response
@@ -215,7 +215,7 @@ function request2Handler(e) {
   }};
 
   // pass on to common client
-  local.client.handleResponse(
+  local.client.renderResponse(
     document.getElementById('target2'),
     document.getElementById('testarea'),
     response
@@ -284,7 +284,7 @@ function request3Handler(e) {
 	};
 
 	// pass on to common client
-	local.client.handleResponse(
+	local.client.renderResponse(
 		document.getElementById('target3'),
 		document.getElementById('testarea'),
 		response
@@ -428,7 +428,7 @@ local.http.registerLocal('event-emitter.com', function(request, response) {
 	}
 });
 
-local.client.handleResponse(
+local.client.renderResponse(
 	document.getElementById('target4'),
 	document.getElementById('testarea'),
 	{ status:200, reason:'Ok', headers: { 'content-type':'text/html' },

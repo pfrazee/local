@@ -5,37 +5,9 @@
 var attrEvents = ['blur', 'change', 'click', 'dblclick', 'focus', 'keydown', 'keypress', 'keyup',
 	'load', 'mousedown', 'mousemove', 'mouseout', 'mouseover', 'mouseup', 'reset', 'select', 'submit', 'unload'];
 
-// handleResponse()
+// renderResponse()
 // ==============
 // EXPORTED
-// examines a request's response and inserts it into the DOM according to rules
-function LocalClient__handleResponse(targetElem, containerElem, response) {
-	response.headers = response.headers || {};
-
-	// react to the response
-	switch (response.status) {
-	case 204:
-		// no content
-		break;
-	case 205:
-		// reset form
-		// :TODO: should this try to find a parent form to targetElem?
-		if (targetElem.tagName === 'FORM') {
-			targetElem.reset();
-		}
-		break;
-	case 303:
-		// dispatch for contents
-		var request = { method:'get', url:response.headers.location, headers:{ accept:'text/html' }};
-		dispatchRequestEvent(targetElem, request);
-		break;
-	default:
-		// replace target innards
-		renderResponse(targetElem, containerElem, response);
-	}
-}
-
-// INTERNAL
 // replaces the targetElem's innerHTML with the response payload
 function renderResponse(targetElem, containerElem, response) {
 
@@ -188,4 +160,4 @@ function makeErrorEventHandler() {
 	};
 }
 
-local.client.handleResponse = LocalClient__handleResponse;
+local.client.renderResponse = renderResponse;
