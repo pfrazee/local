@@ -81,7 +81,14 @@ function LocalClient__submitHandler(e) {
 	if (request) {
 		e.preventDefault();
 		e.stopPropagation();
-		dispatchRequestEvent(e.target, request);
+		local.promise.bundle(request.body.__fileReads).then(function(files) {
+			delete request.body.__fileReads;
+			files.forEach(function(file) {
+				if (file.formindex) request.body[file.formattr][file.formindex] = file;
+				else request.body[file.formattr] = file;
+			});
+			dispatchRequestEvent(e.target, request);
+		});
 		return false;
 	}
 }

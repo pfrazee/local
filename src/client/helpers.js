@@ -226,7 +226,8 @@ extractRequest.fromForm = function(form, submittingElem) {
 function extractRequestPayload(targetElem, form) {
 
 	// iterate form elements
-	var data = {};
+	var data = { __fileReads:[] };
+	// ^ __fileReads is an array of any promises
 	for (var i=0; i < form.length; i++) {
 		var elem = form[i];
 
@@ -263,6 +264,17 @@ function extractRequestPayload(targetElem, form) {
 						data[elem.name] = elem.value;
 					}
 					break;
+				case 'file':
+					// read the files
+					if (elem.multiple) {
+						for (var i=0, f; f = elem.files[i]; i++)
+							readFile(data, elem, elem.files[i], i);
+						data[elem.name] = [];
+						data[elem.name].length = i;
+					} else {
+						readFile(data, elem, elem.files[0]);
+					}
+					break;
 				default:
 					data[elem.name] = elem.value;
 					break;
@@ -272,6 +284,32 @@ function extractRequestPayload(targetElem, form) {
 	}
 
 	return data;
+}
+
+// INTERNAL
+// file read helper
+function readFile(data, elem, file, index) {
+	var reader = new FileReader();
+	reader.onloadend = readFileLoadEnd(data, elem, file, index);
+	reader.readAsDataURL(file);
+}
+function readFileLoadEnd(data, elem, file, index) {
+	// ^ this avoids a closure circular reference
+	var promise = local.promise();
+	data.__fileReads.push(promise);
+	return function(e) {
+		var obj = {
+			content: e.target.result || null,
+			name: file.name,
+			formattr: elem.name,
+			size: file.size,
+			type: file.type,
+			lastModifiedDate: file.lastModifiedDate
+		};
+		if (typeof index != 'undefined')
+			obj.formindex = index;
+		promise.fulfill(obj);
+	};
 }
 
 local.client.findParentNode = findParentNode;

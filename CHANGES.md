@@ -1,6 +1,11 @@
 Changes
 =======
 
+2013/04/29 pfraze
+
+ - Added file-reading for form submits with input type=file (single and multi)
+
+
 2013/04/26 pfraze
 
  - Moved region post-processing to the render fn, to ensure that post-processing only occurs on new HTML
