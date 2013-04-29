@@ -84,7 +84,8 @@ function LocalClient__submitHandler(e) {
 		local.promise.bundle(request.body.__fileReads).then(function(files) {
 			delete request.body.__fileReads;
 			files.forEach(function(file) {
-				if (file.formindex) request.body[file.formattr][file.formindex] = file;
+				if (typeof file.formindex != 'undefined')
+					request.body[file.formattr][file.formindex] = file;
 				else request.body[file.formattr] = file;
 			});
 			dispatchRequestEvent(e.target, request);
