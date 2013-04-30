@@ -164,6 +164,8 @@ function request1Handler(e) {
 		document.getElementById('testarea'),
 		response
 	);
+	print(document.getElementById('target1').innerHTML);
+	mainDiv.removeEventListener('request', request1Handler);
 }
 
 mainDiv.addEventListener('request', request1Handler);
@@ -171,9 +173,6 @@ mainDiv.addEventListener('request', request1Handler);
 var clickEvent = document.createEvent('MouseEvents');
 clickEvent.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
 document.getElementById('form1submit2').dispatchEvent(clickEvent);
-print(document.getElementById('target1').innerHTML);
-
-mainDiv.removeEventListener('request', request1Handler);
 
 wait(function () { return done; });
 
@@ -220,6 +219,9 @@ function request2Handler(e) {
     document.getElementById('testarea'),
     response
   );
+
+  print(document.getElementById('target2').innerHTML);
+  mainDiv.removeEventListener('request', request2Handler);
 }
 
 mainDiv.addEventListener('request', request2Handler);
@@ -227,9 +229,6 @@ mainDiv.addEventListener('request', request2Handler);
 var clickEvent = document.createEvent('MouseEvents');
 clickEvent.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
 document.getElementById('form1submit2').dispatchEvent(clickEvent);
-print(document.getElementById('target2').innerHTML);
-
-mainDiv.removeEventListener('request', request2Handler);
 
 wait(function () { return done; });
 
@@ -267,6 +266,7 @@ done = false;
 startTime = Date.now();
 
 function request3Handler(e) {
+
 	// fixture response
 	var response = {
 		status:200, reason:'Ok', headers:{ 'content-type':'text/html' },
@@ -289,6 +289,9 @@ function request3Handler(e) {
 		document.getElementById('testarea'),
 		response
 	);
+
+	print(document.getElementById('target3').innerHTML);
+	mainDiv.removeEventListener('request', request3Handler);
 }
 
 mainDiv.addEventListener('request', request3Handler);
@@ -296,51 +299,6 @@ mainDiv.addEventListener('request', request3Handler);
 var clickEvent = document.createEvent('MouseEvents');
 clickEvent.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
 document.getElementById('form1submit2').dispatchEvent(clickEvent);
-print(document.getElementById('target3').innerHTML);
-
-mainDiv.removeEventListener('request', request3Handler);
-
-wait(function () { return done; });
-done = false;
-
-var region = document.getElementById('target3');
-
-var changeEvent = document.createEvent('UIEvents');
-changeEvent.initUIEvent('change', true, true, window, {});
-region.querySelector('[name=text1]').value = 'foobar';
-region.querySelector('[name=text1]').dispatchEvent(changeEvent);
-
-wait(function () { return done; });
-done = false;
-
-var keyupEvent = document.createEvent('UIEvents');
-keyupEvent.initUIEvent('keyup', true, true, window, {});
-region.querySelector('[name=text2]').value = 'foobaz';
-region.querySelector('[name=text2]').dispatchEvent(keyupEvent);
-
-wait(function () { return done; });
-done = false;
-
-var changeEvent = document.createEvent('UIEvents');
-changeEvent.initUIEvent('change', true, true, window, {});
-region.querySelector('[name=text3]').value = 'foobleh';
-region.querySelector('[name=text4]').value = 'foobot';
-region.querySelector('[name=text3]').dispatchEvent(changeEvent);
-
-wait(function () { return done; });
-done = false;
-
-var keydownEvent = document.createEvent('UIEvents');
-keydownEvent.initUIEvent('keydown', true, true, window, {});
-region.querySelector('[name=text4]').dispatchEvent(keydownEvent);
-
-wait(function () { return done; });
-done = false;
-
-var changeEvent = document.createEvent('UIEvents');
-changeEvent.initUIEvent('change', true, true, window, {});
-region.querySelector('[name=text5]').value = 'foobloat';
-region.querySelector('[name=text5]').dispatchEvent(changeEvent);
 
 wait(function () { return done; });
 
@@ -364,6 +322,20 @@ wait(function () { return done; });
   url: "http://www.form1.com/foobar"
 }
 <form method="get" action="http://www.form3.com" target="target3"><input type="text" name="text1"><input type="text" name="text2" formaction="http://www.form3.com/foobar"><fieldset formaction="http://www.form3.com/foobaz"><input type="text" name="text3"><input type="text" name="text4" formenctype="application/json"></fieldset><input type="text" name="text5"></form>
+
+*/
+
+done = false;
+
+var region = document.getElementById('target3');
+
+var changeEvent = document.createEvent('UIEvents');
+changeEvent.initUIEvent('change', true, true, window, {});
+region.querySelector('[name=text1]').value = 'foobar';
+region.querySelector('[name=text1]').dispatchEvent(changeEvent);
+
+wait(function () { return done; });
+/* =>
 {
   body: {text1: "foobar"},
   headers: {"content-type": "application/x-www-form-urlencoded"},
@@ -372,6 +344,16 @@ wait(function () { return done; });
   target: "target3",
   url: "http://www.form3.com"
 }
+*/
+done = false;
+
+var keyupEvent = document.createEvent('UIEvents');
+keyupEvent.initUIEvent('keyup', true, true, window, {});
+region.querySelector('[name=text2]').value = 'foobaz';
+region.querySelector('[name=text2]').dispatchEvent(keyupEvent);
+
+wait(function () { return done; });
+/* =>
 {
   body: {text2: "foobaz"},
   headers: {"content-type": "application/x-www-form-urlencoded"},
@@ -380,6 +362,17 @@ wait(function () { return done; });
   target: "target3",
   url: "http://www.form3.com/foobar"
 }
+*/
+done = false;
+
+var changeEvent = document.createEvent('UIEvents');
+changeEvent.initUIEvent('change', true, true, window, {});
+region.querySelector('[name=text3]').value = 'foobleh';
+region.querySelector('[name=text4]').value = 'foobot';
+region.querySelector('[name=text3]').dispatchEvent(changeEvent);
+
+wait(function () { return done; });
+/* =>
 {
   body: {text3: "foobleh", text4: "foobot"},
   headers: {"content-type": "application/x-www-form-urlencoded"},
@@ -388,6 +381,15 @@ wait(function () { return done; });
   target: "target3",
   url: "http://www.form3.com/foobaz"
 }
+*/
+done = false;
+
+var keydownEvent = document.createEvent('UIEvents');
+keydownEvent.initUIEvent('keydown', true, true, window, {});
+region.querySelector('[name=text4]').dispatchEvent(keydownEvent);
+
+wait(function () { return done; });
+/* =>
 {
   body: {text4: "foobot"},
   headers: {"content-type": "application/json"},
@@ -396,6 +398,17 @@ wait(function () { return done; });
   target: "target3",
   url: "http://www.form3.com/foobaz"
 }
+*/
+done = false;
+
+var changeEvent = document.createEvent('UIEvents');
+changeEvent.initUIEvent('change', true, true, window, {});
+region.querySelector('[name=text5]').value = 'foobloat';
+region.querySelector('[name=text5]').dispatchEvent(changeEvent);
+
+wait(function () { return done; });
+
+/* =>
 {
   body: {
     text1: "foobar",

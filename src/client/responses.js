@@ -99,30 +99,30 @@ function bindAttrEvents(targetElem, containerElem) {
 // provides an event handler which dispatches a request event
 function makeAttrEventHandler(method, containerElem) {
 	return function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+
 		// build request
 		var request = extractRequest(e.currentTarget, containerElem);
 		request.method = method;
+		finishPayloadFileReads(request).then(function() {
 
-		// move the query into the body if not a GET
-		// (extractRequest would have used the wrong method to judge this)
-		var isGET = /GET/i.test(method);
-		if (!isGET && !request.body) {
-			request.body = request.query;
-			request.query = {};
-		}
-		// visa-versa
-		else if (isGET && request.body) {
-			request.query = reduceObjects(request.body, request.query);
-			request.body = {};
-		}
+			// move the query into the body if not a GET
+			// (extractRequest would have used the wrong method to judge this)
+			var isGET = /GET/i.test(method);
+			if (!isGET && !request.body) {
+				request.body = request.query;
+				request.query = {};
+			}
+			// visa-versa
+			else if (isGET && request.body) {
+				request.query = reduceObjects(request.body, request.query);
+				request.body = {};
+			}
 
-		// dispatch request event
-		if (request) {
-			e.preventDefault();
-			e.stopPropagation();
+			// dispatch request event
 			dispatchRequestEvent(e.target, request);
-			return false;
-		}
+		});
 	};
 }
 

@@ -81,16 +81,7 @@ function LocalClient__submitHandler(e) {
 	if (request) {
 		e.preventDefault();
 		e.stopPropagation();
-		var fileReads = (request.body) ? request.body.__fileReads :
-						((request.query) ? request.query.__fileReads : []);
-		local.promise.bundle(fileReads).then(function(files) {
-			if (request.body) delete request.body.__fileReads;
-			if (request.query) delete request.query.__fileReads;
-			files.forEach(function(file) {
-				if (typeof file.formindex != 'undefined')
-					request.body[file.formattr][file.formindex] = file;
-				else request.body[file.formattr] = file;
-			});
+		finishPayloadFileReads(request).then(function() {
 			dispatchRequestEvent(e.target, request);
 		});
 		return false;

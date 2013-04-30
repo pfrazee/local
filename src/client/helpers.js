@@ -287,7 +287,7 @@ function extractRequestPayload(targetElem, form) {
 }
 
 // INTERNAL
-// file read helper
+// file read helpers
 function readFile(data, elem, file, index) {
 	var reader = new FileReader();
 	reader.onloadend = readFileLoadEnd(data, elem, file, index);
@@ -310,6 +310,20 @@ function readFileLoadEnd(data, elem, file, index) {
 			obj.formindex = index;
 		promise.fulfill(obj);
 	};
+}
+function finishPayloadFileReads(request) {
+	var fileReads = (request.body) ? request.body.__fileReads :
+					((request.query) ? request.query.__fileReads : []);
+	return local.promise.bundle(fileReads).then(function(files) {
+		if (request.body) delete request.body.__fileReads;
+		if (request.query) delete request.query.__fileReads;
+		files.forEach(function(file) {
+			if (typeof file.formindex != 'undefined')
+				request.body[file.formattr][file.formindex] = file;
+			else request.body[file.formattr] = file;
+		});
+		return request;
+	});
 }
 
 local.client.findParentNode = findParentNode;
