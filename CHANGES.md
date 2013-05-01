@@ -1,6 +1,12 @@
 Changes
 =======
 
+2013/04/30 pfraze
+
+ - Changed WorkerServer config to use `src` param, which may take a data-uri
+ - Updated `data-subscribe` to optionally take a second URL specifying where to issue the GET to
+
+
 2013/04/29 pfraze
 
  - Added file-reading for form submits with input type=file (single and multi)
