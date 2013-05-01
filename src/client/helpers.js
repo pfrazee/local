@@ -135,7 +135,7 @@ extractRequest.fromAnchor = function(node) {
 
 	// get the anchor
 	node = findParentNode.byTag(node, 'A');
-	if (!node) { return null; }
+	if (!node || !node.attributes.href || node.attributes.href.value.charAt(0) == '#') { return null; }
 
 	// pull out params
 	var request = {
