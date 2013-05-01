@@ -119,7 +119,7 @@
 
 	// helps produce nice-looking routes
 	function makepathregex(str) {
-		return new RegExp(str.replace(/\:collection/g, '([A-z0-9_\\-]+)').replace(/\:item/g, '([^/]+)'));
+		return new RegExp(str.replace(/\:collection/g, '([A-z0-9_\\-\\.]+)').replace(/\:item/g, '([^/]+)'));
 	}
 
 	function buildServiceHeaders() {
