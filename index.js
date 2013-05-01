@@ -49,9 +49,9 @@ local.env.addServer('localstorage.env', new StorageServer(localStorage));
 local.env.addServer('servers.env', new ReflectorServer());
 
 // instantiate apps
-local.env.addServer('intro.doc', new local.env.WorkerServer({ scriptUrl:'../servers/worker/intro.js' }));
-local.env.addServer('features.doc', new local.env.WorkerServer({ scriptUrl:'../servers/worker/features.js' }));
-local.env.addServer('request-log.util', new local.env.WorkerServer({ scriptUrl:'../servers/worker/log.js', title:'request log' }));
+local.env.addServer('intro.doc', new local.env.WorkerServer({ src:'../servers/worker/intro.js' }));
+local.env.addServer('features.doc', new local.env.WorkerServer({ src:'../servers/worker/features.js' }));
+local.env.addServer('request-log.util', new local.env.WorkerServer({ src:'../servers/worker/log.js', title:'request log' }));
 
 // load client regions
 local.env.addClientRegion('intro').dispatchRequest('httpl://intro.doc');

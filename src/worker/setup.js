@@ -81,7 +81,7 @@ self.require = function(url) {
 		return self.modules[url];
 
 	if (local.worker.config && url.indexOf('://') === -1 && url.charAt(0) != '/') // relative url?
-		url = local.worker.config.scriptBaseUrl + url; // make relative to user script's location
+		url = local.worker.config.srcBaseUrl + url; // make relative to user script's location
 
 	var request = new closureXMLHttpRequest();
 	request.open('GET', url, false);

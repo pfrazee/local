@@ -36,23 +36,26 @@
 	// ============
 	// EXPORTED
 	// wrapper for servers run within workers
-	// - `config` must include `scriptUrl` or `script`
+	// - `config` must include `src`, which must be a URL
 	function WorkerServer(config, loaderrorCb) {
+		config = config || {};
 		Server.call(this);
 		this.state = WorkerServer.BOOT;
 
-		if (config) {
-			for (var k in config)
-				this.config[k] = config[k];
+		for (var k in config)
+			this.config[k] = config[k];
+
+		if (!this.config.src)
+			this.config.src = '';
+		if (!this.config.srcBaseUrl) {
+			if (/^data/.test(this.config.src) === false) // scriptBaseUrl is used for relative-path require()s in the worker
+				this.config.srcBaseUrl = this.config.src.replace(/\/[^/]+$/,'/');
+			else
+				this.config.srcBaseUrl = '';
 		}
-		if (!this.config.domain) {
-			this.config.domain = (this.config.scriptUrl) ?
-				'<'+this.config.scriptUrl+'>' :
-				'{'+this.config.script.slice(0,20)+'}';
-		}
+		if (!this.config.domain) // assign a temporary label for logging if no domain is given yet
+			this.config.domain = '<'+this.config.src.slice(0,40)+'>';
 		this.config.environmentHost = window.location.host;
-		if (this.config.scriptUrl)
-			this.config.scriptBaseUrl = this.config.scriptUrl.replace(/\/[^/]+$/,'/');
 
 		this.loaderrorCb = loaderrorCb;
 		this.readyMessage = null;
@@ -100,14 +103,8 @@
 		// send config to the worker thread
 		this.worker.postReply(this.readyMessage, this.config);
 		// load the server program
-		var url = this.config.scriptUrl;
-		if (!url && this.config.script) {
-			// convert the given source to an object url
-			var jsBlob = new Blob([this.config.script], { type:'application/javascript' });
-			url = (window.webkitURL ? webkitURL : URL).createObjectURL(jsBlob);
-		}
 		var self = this;
-		this.worker.importScripts(url, function(importRes) {
+		this.worker.importScripts(this.config.src, function(importRes) {
 			if (importRes.data.error) {
 				if (self.loaderrorCb) self.loaderrorCb(importRes.data);
 				self.terminate();
@@ -130,20 +127,18 @@
 	// retrieve server source
 	// - `requester` is the object making the request
 	WorkerServer.prototype.getSource = function(requester) {
-		var scriptUrl = this.config.scriptUrl;
-		if (scriptUrl) {
-			// request from host
-			var jsRequest = { method:'get', url:scriptUrl, headers:{ accept:'application/javascript' }};
-			return local.http.dispatch(jsRequest, requester).then(
-				function(res) { return res.body; },
-				function(res) {
-					console.log('failed to retrieve worker source:', res);
-					return '';
-				}
-			);
-		} else {
-			return this.config.script;
-		}
+		if (/^data/.test(this.config.src))
+			return local.promise(atob(this.config.src.split(',')[1] || ''));
+
+		// request from host
+		var jsRequest = { method:'get', url:this.config.src, headers:{ accept:'application/javascript' }};
+		return local.http.dispatch(jsRequest, requester).then(
+			function(res) { return res.body; },
+			function(res) {
+				console.log('failed to retrieve worker source:', res);
+				return '';
+			}
+		);
 	};
 
 	// logs the message data

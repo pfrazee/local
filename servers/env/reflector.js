@@ -175,8 +175,7 @@
 				// shutdown the server
 				local.env.killServer(domain);
 				// load a new server in-place with the given source
-				config.script = request.body.source;
-				delete config.scriptUrl;
+				config.src = 'data:application/javascript;base64,'+btoa(request.body.source);
 				local.env.addServer(domain, new local.env.WorkerServer(config));
 				// respond by piping a request to the new server
 				local.http.pipe(

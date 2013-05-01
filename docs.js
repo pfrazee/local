@@ -32,7 +32,7 @@ window.onhashchange = function() {
 
 // instantiate apps
 local.env.addServer('markdown.util', new local.env.WorkerServer({
-	scriptUrl:'../servers/worker/markdown.js',
+	src:'../servers/worker/markdown.js',
 	baseUrl:location.href.substring(0,location.href.split('#')[0].lastIndexOf("/")+1) + 'docs' // http://foobar.net/local/foo.html -> http://foobar.net/local/docs
 }));
 
