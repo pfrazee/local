@@ -6,6 +6,7 @@ Changes
  - Changed WorkerServer config to use `src` param, which may take a data-uri
  - Updated `data-subscribe` to optionally take a second URL specifying where to issue the GET to
  - Added local.http.reqheader() and local.http.reqapi() interfaces
+ - Enforced all-caps request.method in local.http.dispatch()
 
 
 2013/04/29 pfraze
