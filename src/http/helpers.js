@@ -2,6 +2,67 @@
 // =======
 
 // EXPORTED
+// mutable list of shortcut words for common grimwire reltypes
+local.http.relAliases = {
+	storage: 'http://grimwire.com/rel/storage'
+};
+
+// EXPORTED
+// general-purpose request header interface
+local.http.reqheader = function reqheader(request, key, value) {
+	if (typeof value == 'undefined') {
+		// get
+		switch (key) {
+			case 'link':
+				return linkgetter(request);
+			default:
+				return request.headers[key];
+		}
+	} else {
+		// set
+		switch (key) {
+			case 'link':
+				if (!request.headers.link)
+					request.headers.link = [];
+				if (Array.isArray(request.headers.link) === false) {
+					console.warn('Overwrote a bad Link header on request:', request);
+					request.headers.link = [];
+				}
+				if (value && typeof value == 'object' && value.href && value.rel)
+					request.headers.link.push(value);
+				else
+					console.warn('Malformed Link header value given to request:', request, value);
+				break;
+			default:
+				request.headers[key] = value;
+		}
+	}
+};
+
+// INTERNAL
+// an interface for manipulating link headers on requests/responses
+function linkgetter(r) {
+	return {
+		getall: function() {
+			return r.headers.link;
+		},
+		lookup: function(rel, title) {
+			return local.http.lookupLink(r.headers.link, rel, title);
+		}
+	};
+}
+
+// EXPORTED
+// a helper for loading navigators based on requests
+local.http.reqapi = function(request, api) {
+	switch (api) {
+		case 'storage':
+			return local.http.navigator(local.http.reqheader(request, 'link').lookup('storage'));
+	}
+	throw "Unrecognized reqapi: " +api;
+}
+
+// EXPORTED
 // breaks a link header into a javascript object
 local.http.parseLinkHeader = function parseLinkHeader(headerStr) {
 	if (typeof headerStr !== 'string') {
@@ -40,7 +101,9 @@ local.http.lookupLink = function lookupLink(links, rel, title) {
 	var len = links ? links.length : 0;
 	if (!len) { return null; }
 
-	title = title.toLowerCase();
+	rel = local.http.relAliases[rel] || rel;
+	if (title)
+		title = title.toLowerCase();
 
 	// try to find the link with a title equal to the param we were given
 	var match = null;
@@ -50,7 +113,7 @@ local.http.lookupLink = function lookupLink(links, rel, title) {
 		// find all links with a matching rel
 		if (link.rel && link.rel.indexOf(rel) !== -1) {
 			// look for a title match to the primary parameter
-			if (link.title) {
+			if (title && link.title) {
 				if (link.title.toLowerCase() === title) {
 					match = link;
 					break;

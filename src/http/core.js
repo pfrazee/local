@@ -57,7 +57,8 @@ local.http.dispatch = function dispatch(req) {
 	// (urld = url description)
 	if (!req.url)
 		req.url = local.http.joinUrl(req.host, req.path);
-	req.urld = local.http.parseUri(req.url);
+	if (!req.urld)
+		req.urld = local.http.parseUri(req.url);
 	if (!req.urld)
 		throw "no URL or host/path provided in request";
 
