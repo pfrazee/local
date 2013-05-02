@@ -44,9 +44,10 @@ local.http.dispatch = function dispatch(req) {
 	// sanity check
 	if (!req) { throw "no req param provided to request"; }
 
-	// sane defaults
+	// sane defaults & sanitization
 	req.headers = req.headers || {};
 	req.query = req.query || {};
+	req.method = (req.method) ? req.method.toUpperCase() : 'GET';
 
 	// dispatch behavior override
 	// (used by workers to send requests to the parent document for routing)

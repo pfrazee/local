@@ -74,6 +74,11 @@ local.env.getClientRegion = function(id) { return local.env.clientRegions[id]; }
 var __envDispatchWrapper;
 var orgLinkDispatchFn = local.http.dispatch;
 local.http.dispatch = function(req, origin) {
+	// sane defaults & sanitization
+	req.headers = req.headers || {};
+	req.query = req.query || {};
+	req.method = (req.method) ? req.method.toUpperCase() : 'GET';
+
 	// parse the url
 	// (urld = url description)
 	if (!req.url)
