@@ -7,6 +7,8 @@ Changes
  - Added local.http.resheader() interface
  - Added cookie header support to req/resheader
  - Standardized request.path to always give '/' for root resources and never include trailing slashes
+ - Added enumeration of inputs in the request query to data-subscribe event GET requests
+ - Added 'remove' and 'setValue' html-delta operations
 
 
 2013/04/30 pfraze

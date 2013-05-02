@@ -43,6 +43,7 @@ function renderHtmlDeltas(op, deltas, targetElem, containerElem) {
 	if (typeof deltas != 'object')
 		return;
 	for (var selector in deltas) {
+		var value = deltas[selector];
 		var i, ii, elems = containerElem.querySelectorAll(selector);
 		var addClass = function(cls) { elems[i].classList.add(cls); };
 		var removeClass = function(cls) { elems[i].classList.remove(cls); };
@@ -51,25 +52,31 @@ function renderHtmlDeltas(op, deltas, targetElem, containerElem) {
 			if (!elems[i]) continue;
 			switch (op) {
 				case 'replace':
-					elems[i].innerHTML = deltas[selector];
+					elems[i].innerHTML = value;
+					break;
+				case 'remove':
+					elems[i].parentNode.removeChild(elems[i]);
 					break;
 				case 'append':
-					elems[i].innerHTML = elems[i].innerHTML + deltas[selector];
+					elems[i].innerHTML = elems[i].innerHTML + value;
 					break;
 				case 'prepend':
-					elems[i].innerHTML = deltas[selector] + elems[i].innerHTML;
+					elems[i].innerHTML = value + elems[i].innerHTML;
 					break;
 				case 'addClass':
 					if (elems[i].classList)
-						deltas[selector].split(' ').forEach(addClass);
+						value.split(' ').forEach(addClass);
 					break;
 				case 'removeClass':
 					if (elems[i].classList)
-						deltas[selector].split(' ').forEach(removeClass);
+						value.split(' ').forEach(removeClass);
 					break;
 				case 'toggleClass':
 					if (elems[i].classList)
-						deltas[selector].split(' ').forEach(toggleClass);
+						value.split(' ').forEach(toggleClass);
+					break;
+				case 'setValue':
+					elems[i].value = value;
 					break;
 			}
 			local.env.postProcessRegion(elems[i]);
@@ -152,6 +159,10 @@ function subscribeElements(targetElem, containerElem) {
 function makeUpdateEventHandler(url, targetElem) {
 	return function(m) {
 		var request = { method:'get', url:url, target:"_element", headers:{ accept:'text/html' }};
+		if (targetElem.tagName == 'FORM') {
+			// serialize the form values in the query
+			request.query = extractRequestPayload(targetElem, targetElem, { nofiles:true });
+		}
 		dispatchRequestEvent(targetElem, request);
 	};
 }

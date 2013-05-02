@@ -223,11 +223,13 @@ extractRequest.fromForm = function(form, submittingElem) {
 
 // INTERNAL
 // serializes all form elements beneath and including the given element
-function extractRequestPayload(targetElem, form) {
+function extractRequestPayload(targetElem, form, opts) {
+	if (!opts) opts = {};
 
 	// iterate form elements
-	var data = { __fileReads:[] };
-	// ^ __fileReads is an array of any promises
+	var data = {};
+	if (!opts.nofiles)
+		data.__fileReads = []; // an array of promises to read <input type=file>s
 	for (var i=0; i < form.length; i++) {
 		var elem = form[i];
 
@@ -266,6 +268,8 @@ function extractRequestPayload(targetElem, form) {
 					break;
 				case 'file':
 					// read the files
+					if (opts.nofiles)
+						break;
 					if (elem.multiple) {
 						for (var i=0, f; f = elem.files[i]; i++)
 							readFile(data, elem, elem.files[i], i);
