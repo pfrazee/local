@@ -6,6 +6,7 @@ Changes
  - Added link-lookup to navigator constructor
  - Added local.http.resheader() interface
  - Added cookie header support to req/resheader
+ - Standardized request.path to always give '/' for root resources and never include trailing slashes
 
 
 2013/04/30 pfraze
