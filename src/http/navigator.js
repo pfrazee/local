@@ -308,6 +308,13 @@ NAV_RELATION_FNS.forEach(function (r) {
 });
 
 // builder fn
-local.http.navigator = function(url) {
-	return (url instanceof Navigator) ? url : new Navigator(url);
+local.http.navigator = function(urlOrNavOrLinks, optRel, optTitle) {
+	if (urlOrNavOrLinks instanceof Navigator)
+		return urlOrNavOrLinks;
+	var url;
+	if (Array.isArray(urlOrNavOrLinks))
+		url = local.http.lookupLink(urlOrNavOrLinks, optRel, optTitle);
+	else
+		url = urlOrNavOrLinks;
+	return new Navigator(url);
 };

@@ -1,11 +1,18 @@
 Changes
 =======
 
+2013/05/02 pfraze
+
+ - Added link-lookup to navigator constructor
+ - Added local.http.resheader() interface
+ - Added cookie header support to req/resheader
+
+
 2013/04/30 pfraze
 
  - Changed WorkerServer config to use `src` param, which may take a data-uri
  - Updated `data-subscribe` to optionally take a second URL specifying where to issue the GET to
- - Added local.http.reqheader() and local.http.reqapi() interfaces
+ - Added local.http.reqheader() interface with 'link' header support
  - Enforced all-caps request.method in local.http.dispatch()
 
 
