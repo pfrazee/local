@@ -26,7 +26,7 @@ local.http.registerLocal('test.com', function(request, response) {
 	var foos = ['bar', 'baz', 'blah'];
 	var payload = null, linkHeader;
 	if (/^\/?$/g.test(request.path)) {
-		if (request.method === 'get') {
+		if (request.method === 'GET') {
 			payload = 'service resource';
 		}
 		linkHeader = [
@@ -39,7 +39,7 @@ local.http.registerLocal('test.com', function(request, response) {
 		response.end(payload);
 	}
 	else if (/^\/foo\/?$/g.test(request.path)) {
-		if (request.method === 'get') {
+		if (request.method === 'GET') {
 			payload = foos;
 		}
 		linkHeader = [
@@ -65,7 +65,7 @@ local.http.registerLocal('test.com', function(request, response) {
 			response.end();
 			return;
 		}
-		if (request.method === 'get') {
+		if (request.method === 'GET') {
 			payload = itemName;
 		}
 		linkHeader = [
