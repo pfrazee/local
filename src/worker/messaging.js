@@ -92,22 +92,7 @@
 			__replyCbs[message.id] = { func:replyCb, context:replyCbContext };
 		}
 		// post
-		try {
-			self.postMessage(message);
-		} catch(e) {
-			message.data = JSONifyMessage(message.data);
-			self.postMessage(message);
-		}
-	}
-
-	// INTERNAL
-	// helper to try to get a failed message through
-	function JSONifyMessage(data) {
-		if (Array.isArray(data))
-			return data.map(JSONifyMessage);
-		if (data && typeof data == 'object')
-			return JSON.stringify(data);
-		return data;
+		self.postMessage(message);
 	}
 
 	// EXPORTED

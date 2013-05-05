@@ -7,14 +7,26 @@ var closureXMLHttpRequest = XMLHttpRequest; // self.XMLHttpRequest will be nulli
 // sends log message
 local.worker.log = function log() {
 	var args = Array.prototype.slice.call(arguments);
-	if (args.length > 1) {
-		local.worker.postNamedMessage('log', args);
-	} else {
-		local.worker.postNamedMessage('log', args[0]);
+	if (args.length == 1)
+		args = args[0];
+	try { local.worker.postNamedMessage('log', args); }
+	catch (e) {
+		// this is usually caused by trying to log information that cant be serialized
+		local.worker.postNamedMessage('log', JSONifyMessage(args));
 	}
 };
 self.console = {};
 self.console.log = local.worker.log;
+
+// INTERNAL
+// helper to try to get a failed log message through
+function JSONifyMessage(data) {
+	if (Array.isArray(data))
+		return data.map(JSONifyMessage);
+	if (data && typeof data == 'object')
+		return JSON.stringify(data);
+	return data;
+}
 
 // EXPORTED
 // logs the current stack
