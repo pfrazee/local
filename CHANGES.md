@@ -1,6 +1,11 @@
 Changes
 =======
 
+2013/05/06 pfraze
+
+ - Added promise.always()
+ 
+
 2013/05/02 pfraze
 
  - Added link-lookup to navigator constructor
