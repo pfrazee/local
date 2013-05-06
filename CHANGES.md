@@ -4,6 +4,7 @@ Changes
 2013/05/06 pfraze
 
  - Added promise.always()
+ - Added use of <form> `accept` attribute for data-subscribe behavior
  
 
 2013/05/02 pfraze
