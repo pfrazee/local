@@ -45,7 +45,7 @@ function reduceObjects() {
 		obj = objs.shift();
 		if (!obj) { continue; }
 		for (var k in obj) {
-			if (!obj[k]) { continue; }
+			if (typeof obj[k] == 'undefined' || obj[k] === null) { continue; }
 			if (typeof obj[k] == 'object' && !Array.isArray(obj[k])) {
 				acc[k] = reduceObjects(acc[k], obj[k]);
 			} else {
