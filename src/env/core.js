@@ -86,6 +86,15 @@ local.http.dispatch = function(req, origin) {
 	if (!req.urld)
 		req.urld = local.http.parseUri(req.url);
 
+	// if the urld has query parameters, mix them into the request's query object
+	if (req.urld.query) {
+		var q = local.http.contentTypes.deserialize(req.urld.query, 'application/x-www-form-urlencoded');
+		for (var k in q)
+			req.query[k] = q[k];
+		delete req.urld.query; // avoid doing this again later
+		req.urld.relative = req.urld.path;
+	}
+
 	var res = __envDispatchWrapper.call(this, req, origin, orgLinkDispatchFn);
 	if (res instanceof local.Promise) { return res; }
 

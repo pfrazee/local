@@ -1,6 +1,11 @@
 Changes
 =======
 
+2013/05/07 pfraze
+
+ - Decided against and removed local.http.reqheader & local.http.resheader
+
+
 2013/05/06 pfraze
 
  - Added promise.always()
