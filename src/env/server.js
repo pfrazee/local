@@ -102,9 +102,13 @@
 			return; // wait for the worker to be ready
 		// send config to the worker thread
 		this.worker.postReply(this.readyMessage, this.config);
+		// encode src in base64 if needed
+		var src = this.config.src;
+		if (src.indexOf('data:application/javascript,') === 0)
+			src = 'data:application/javacsript;base64,'+btoa(src.slice(28));
 		// load the server program
 		var self = this;
-		this.worker.importScripts(this.config.src, function(importRes) {
+		this.worker.importScripts(src, function(importRes) {
 			if (importRes.data.error) {
 				if (self.loaderrorCb) self.loaderrorCb(importRes.data);
 				self.terminate();
@@ -127,8 +131,12 @@
 	// retrieve server source
 	// - `requester` is the object making the request
 	WorkerServer.prototype.getSource = function(requester) {
-		if (/^data/.test(this.config.src))
-			return local.promise(atob(this.config.src.split(',')[1] || ''));
+		if (/^data/.test(this.config.src)) {
+			if (this.config.src.indexOf('data:application/javascript;base64,') === 0)
+				return local.promise(atob(this.config.src.split(',')[1] || ''));
+			else
+				return local.promise(this.config.src.split(',')[1] || '');
+		}
 
 		// request from host
 		var jsRequest = { method:'get', url:this.config.src, headers:{ accept:'application/javascript' }};

@@ -113,7 +113,7 @@ self.require = function(url) {
 self.modules = {};
 function makeExportClosure(url, src) {
 	src = '(function(){ var module = { exports:{} }; ' + src + '; self.modules["'+url+'"] = module.exports; })();';
-	return 'data:text/javascript;base64,'+btoa(src);
+	return 'data:text/javascript,'+(src);
 }
 
 // Document Commands
