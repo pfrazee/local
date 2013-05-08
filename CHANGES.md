@@ -1,6 +1,11 @@
 Changes
 =======
 
+2013/05/08 pfraze
+
+ - Added the "navigate" operation to html deltas
+
+
 2013/05/07 pfraze
 
  - Decided against and removed local.http.reqheader & local.http.resheader
