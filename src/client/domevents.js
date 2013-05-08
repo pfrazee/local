@@ -50,9 +50,8 @@ function LocalClient__unlisten(container) {
 	var subscribeElems = container.querySelectorAll('[data-subscribe]');
 	Array.prototype.forEach.call(subscribeElems, function(subscribeElem) {
 		if (subscribeElem.__subscriptions) {
-			for (var url in subscribeElem.__subscriptions) {
+			for (var url in subscribeElem.__subscriptions)
 				subscribeElem.__subscriptions[url].close();
-			}
 			delete subscribeElem.__subscriptions;
 		}
 	});

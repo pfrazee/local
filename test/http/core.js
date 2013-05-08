@@ -11,7 +11,6 @@ wait(function () { return done; });
 /* =>
 success
 {
-  _events: {},
   body: {hello: "world"},
   headers: {
     allow: "options, head, get",
@@ -39,7 +38,6 @@ wait(function () { return done; });
 /* =>
 error
 {
-  _events: {},
   body: "",
   headers: {allow: "options, head, get"},
   isConnOpen: false,
@@ -61,7 +59,6 @@ wait(function () { return done; });
 /* =>
 success
 {
-  _events: {},
   body: "service resource",
   headers: {
     "content-type": "text/plain",
@@ -88,12 +85,5 @@ wait(function () { return done; });
 
 /* =>
 error
-{
-  _events: {},
-  body: null,
-  headers: {},
-  isConnOpen: false,
-  reason: "not found",
-  status: 404
-}
+{body: null, headers: {}, isConnOpen: false, reason: "not found", status: 404}
 */

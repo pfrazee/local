@@ -58,6 +58,11 @@ local.http.setEventSubscriber(function(request) {
 		});
 	};
 
+	// on close, signal the stream close to parent
+	eventStream.on('close', function() {
+		local.worker.endMessage(msgStream);
+	});
+
 	return eventStream;
 });
 
@@ -71,9 +76,14 @@ local.worker.onNamedMessage('httpRequest', function(message) {
 			var stream = local.worker.postReply(message, res);
 			if (res.isConnOpen) {
 				res.on('data', function(data) { local.worker.postNamedMessage(stream, data); });
-				res.on('end', function() { local.worker.endMessage(stream); });
-			} else
+				res.on('end', function() {
+					local.worker.endMessage(stream);
+					local.worker.removeAllNamedMessageListeners(message.id);
+				});
+			} else {
 				local.worker.endMessage(stream);
+				local.worker.removeAllNamedMessageListeners(message.id);
+			}
 		};
 
 		// setup the response promise
@@ -82,6 +92,13 @@ local.worker.onNamedMessage('httpRequest', function(message) {
 
 		// create a server response for the request handler to work with
 		var response = new local.http.ServerResponse(resPromise, request.stream);
+
+		// listen for an end message on the original request message
+		// (this occurs when the response is a stream and the client has closed it)
+		local.worker.onNamedMessage(message.id, function(message2) {
+			if (message2.name == 'endMessage')
+				response.clientResponse.close();
+		});
 
 		// pass on to the request handler
 		main(request, response);

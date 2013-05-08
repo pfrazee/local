@@ -9,7 +9,6 @@ wait(function () { return done; });
 /* =>
 success
 {
-  _events: {},
   body: "SERVICE RESOURCE",
   headers: {
     "content-type": "text/piped+plain",

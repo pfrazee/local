@@ -60,6 +60,7 @@
 		this.loaderrorCb = loaderrorCb;
 		this.readyMessage = null;
 		this.canLoadUserscript = false;
+		this.activeEventStreams = [];
 
 		// initialize the web worker with the bootstrap script
 		this.worker = new local.env.Worker(null, { bootstrapUrl:local.env.config.workerBootstrapUrl });
@@ -125,6 +126,7 @@
 	// - called when the worker has died, or when the environment wants the server to die
 	WorkerServer.prototype.terminate = function() {
 		this.state = WorkerServer.DEAD;
+		this.activeEventStreams.forEach(function(stream) { if (stream) { stream.close(); }});
 		this.worker.terminate();
 	};
 
@@ -183,18 +185,27 @@
 		var request = message.data;
 
 		// create the stream
-		// :TODO: no close handling... is this a memory leak?
 		var eventStream = local.http.subscribe(request);
+		var streamIndex = this.activeEventStreams.push(eventStream);
+		eventStream.on('error', function() {
+			self.activeEventStreams[streamIndex] = null;
+		});
 
 		// listen for further requests - they indicate individual message subscribes
 		this.worker.onNamedMessage(message.id, function(message2) {
-			var eventNames = message2.data;
-			var msgStream = self.worker.postReply(message2);
-			// begin listening
-			eventStream.on(eventNames, function(e) {
-				// pipe back
-				self.worker.postNamedMessage(msgStream, e);
-			});
+			if (message2 == 'endMessage') {
+				// stream closed
+				eventStream.close();
+			} else {
+				var eventNames = message2.data;
+				var msgStream = self.worker.postReply(message2);
+				// begin listening
+				eventStream.on(eventNames, function(e) {
+					// pipe back
+					if (self.state != WorkerServer.DEAD)
+						self.worker.postNamedMessage(msgStream, e);
+				});
+			}
 		});
 	};
 
@@ -202,14 +213,15 @@
 	// - called when a request is issued to the worker-server
 	// - mirrors setRequestDispatcher(function) in worker/http.js
 	WorkerServer.prototype.handleHttpRequest = function(request, response) {
-		this.worker.postNamedMessage('httpRequest', request, function(reply) {
+		var worker = this.worker;
+		var requestMessage = worker.postNamedMessage('httpRequest', request, function(reply) {
 			if (!reply.data) { throw "Invalid httpRequest reply to document from worker"; }
 
 			response.writeHead(reply.data.status, reply.data.reason, reply.data.headers);
 			if (typeof reply.data.body != 'undefined' && reply.data.body !== null)
 				response.write(reply.data.body);
 
-			this.worker.onNamedMessage(reply.id, function(streamMessage) {
+			worker.onNamedMessage(reply.id, function(streamMessage) {
 				if (streamMessage.name === 'endMessage') {
 					response.end();
 				} else {
@@ -218,6 +230,11 @@
 				}
 			});
 		}, this);
+		if (request.stream) {
+			response.clientResponse.on('close', function() {
+				// pass this on to the worker so it can close the stream
+				worker.endMessage(requestMessage);
+			});
+		}
 	};
-
 })();

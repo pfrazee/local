@@ -17,7 +17,6 @@ wait(function () { return done; });
 /* =>
 success
 {
-  _events: {},
   body: ["bar", "baz", "blah"],
   headers: {
     allow: "options, head, get",
@@ -34,7 +33,6 @@ success
 }
 success
 {
-  _events: {},
   body: "baz",
   headers: {
     allow: "options, head, get",
@@ -71,7 +69,6 @@ wait(function () { return done; });
 /* =>
 success
 {
-  _events: {},
   body: ["bar", "baz", "blah"],
   headers: {
     allow: "options, head, get",
@@ -103,7 +100,6 @@ wait(function () { return done; });
 /* =>
 success
 {
-  _events: {},
   body: ["bar", "baz", "blah"],
   headers: {
     "content-type": "application/json",
@@ -119,7 +115,6 @@ success
 }
 success
 {
-  _events: {},
   body: "baz",
   headers: {
     allow: "options, head, get",
@@ -165,7 +160,6 @@ wait(function () { return done; });
 /* =>
 success
 {
-  _events: {},
   body: null,
   headers: {
     "content-type": "application/json",
