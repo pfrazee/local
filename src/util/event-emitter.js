@@ -4,7 +4,11 @@
 // A minimal event emitter, based on the NodeJS api
 // initial code borrowed from https://github.com/tmpvar/node-eventemitter (thanks tmpvar)
 function EventEmitter() {
-	this._events = {};
+	Object.defineProperty(this, '_events', {
+		value: {},
+		configurable: true,
+		enumerable: false
+	});
 }
 
 EventEmitter.prototype.emit = function(type) {

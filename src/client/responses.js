@@ -21,6 +21,7 @@ function renderResponse(targetElem, containerElem, response) {
 				renderHtmlDeltas(op, response.body[op], targetElem, containerElem);
 		}
 	} else {
+		// format the output by type
 		var html = '';
 		if (/text\/html/.test(type))
 			html = response.body.toString();
@@ -31,6 +32,8 @@ function renderResponse(targetElem, containerElem, response) {
 			else
 				html = JSON.stringify(response.body);
 		}
+
+		local.client.unlisten(targetElem); // make sure to unregister listeners before replaceing
 		targetElem.innerHTML = html;
 		local.env.postProcessRegion(targetElem);
 	}
@@ -53,9 +56,11 @@ function renderHtmlDeltas(op, deltas, targetElem, containerElem) {
 			var elem = elems[i];
 			switch (op) {
 				case 'replace':
+					local.client.unlisten(elem); // destructive update, do unlisten
 					elem.innerHTML = value;
 					break;
 				case 'remove':
+					local.client.unlisten(elem); // destructive update, do unlisten
 					elem.parentNode.removeChild(elem);
 					break;
 				case 'append':
@@ -157,10 +162,11 @@ function subscribeElements(targetElem, containerElem) {
 
 		subscribeElem.__subscriptions = subscribeElem.__subscriptions || {};
 		var stream = subscribeElem.__subscriptions[eventsUrl];
-		if (!stream)
+		if (!stream) {
 			stream = subscribeElem.__subscriptions[eventsUrl] = local.http.subscribe({ url:eventsUrl });
-		stream.on('update', makeUpdateEventHandler(getUrl, subscribeElem));
-		stream.on('error', makeErrorEventHandler());
+			stream.on('update', makeUpdateEventHandler(getUrl, subscribeElem));
+			stream.on('error', makeErrorEventHandler());
+		}
 	});
 }
 

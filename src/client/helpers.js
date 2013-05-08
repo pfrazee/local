@@ -233,10 +233,13 @@ function extractRequestPayload(targetElem, form, opts) {
 	for (var i=0; i < form.length; i++) {
 		var elem = form[i];
 
-		// skip if not a child of the target element
-		if (!findParentNode.byElement(elem, targetElem)) {
+		// skip if it doesnt have a name
+		if (!elem.name)
 			continue;
-		}
+
+		// skip if not a child of the target element
+		if (!findParentNode.byElement(elem, targetElem))
+			continue;
 
 		// pull value if it has one
 		var isSubmittingElem = elem.getAttribute('submitter') == '1';
