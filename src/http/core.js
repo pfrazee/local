@@ -179,6 +179,10 @@ function __dispatchRemoteBrowser(req, resPromise) {
 	xhrRequest.onreadystatechange = function() {
 		if (xhrRequest.readyState >= XMLHttpRequest.HEADERS_RECEIVED && !clientResponse) {
 			clientResponse = new ClientResponse(xhrRequest.status, xhrRequest.statusText);
+			clientResponse.on('close', function() {
+				if (xhrRequest.readyState !== XMLHttpRequest.DONE)
+					xhrRequest.abort();
+			});
 
 			// :NOTE: a bug in firefox causes getAllResponseHeaders to return an empty string on CORS
 			// we either need to bug them, or iterate the headers we care about with getResponseHeader
@@ -265,6 +269,8 @@ ClientResponse.prototype = Object.create(local.util.EventEmitter.prototype);
 //   - but the 'data' event will only include the data that was new to the response's accumulation
 //     (that is, if this.body=='foo', and response.write('foobar', true), the 'data' event will include 'bar' only)
 ClientResponse.prototype.write = function(data, overwrite) {
+	if (!this.isConnOpen)
+		return;
 	if (!overwrite && typeof data == 'string' && typeof this.body == 'string') {
 		// add to the buffer if its a string
 		this.body += data;
@@ -278,10 +284,24 @@ ClientResponse.prototype.write = function(data, overwrite) {
 };
 
 ClientResponse.prototype.end = function() {
+	if (!this.isConnOpen)
+		return;
 	// now that we have it all, try to deserialize the payload
 	this.__deserialize();
 	this.isConnOpen = false;
 	this.emit('end');
+	this.close();
+};
+
+// clients can use this to stop receiving events
+ClientResponse.prototype.close = function() {
+	if (!this.isConnOpen)
+		return;
+	this.isConnOpen = false;
+	this.emit('close');
+	this.removeAllListeners('data');
+	this.removeAllListeners('end');
+	this.removeAllListeners('close');
 };
 
 // this helper is called when the data finishes coming down
@@ -342,15 +362,11 @@ ServerResponse.prototype.end = function(data) {
 
 	this.clientResponse.end();
 	this.emit('close');
+	this.removeAllListeners('close');
 
 	// fulfill/reject now if we had been buffering the response
 	if (!this.isStreaming)
 		fulfillResponsePromise(this.resPromise, this.clientResponse);
-
-	// unbind all listeners
-	this.removeAllListeners('close');
-	this.clientResponse.removeAllListeners('data');
-	this.clientResponse.removeAllListeners('end');
 
 	return this;
 };

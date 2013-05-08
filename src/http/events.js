@@ -114,6 +114,7 @@ local.http.EventStream = EventStream;
 EventStream.prototype = Object.create(local.util.EventEmitter.prototype);
 EventStream.prototype.close = function() {
 	this.isConnOpen = false;
+	this.emit('close');
 	this.removeAllListeners();
 };
 EventStream.prototype.__emitError = function(e) {
@@ -131,11 +132,13 @@ EventStream.prototype.__emitEvent = function(e) {
 // descendent of EventStream
 function LocalEventStream(resPromise) {
 	EventStream.call(this);
+	this.response = null;
 
 	// wait for the promise
 	var self = this;
 	resPromise.then(
 		function(response) {
+			self.response = response;
 			response.on('data', function(payload) {
 				self.__emitEvent(payload);
 			});
@@ -155,6 +158,9 @@ LocalEventStream.prototype.close = function() {
 	this.__emitError({ event:'error', data:undefined }); // :NOTE: emulating the behavior of EventSource
 	// :TODO: would be great if close didn't emit the above error
 	EventStream.prototype.close.call(this);
+	if (this.response)
+		this.response.close();
+	this.response = null;
 };
 
 // BrowserRemoteEventStream
@@ -211,7 +217,10 @@ local.http.Broadcaster = Broadcaster;
 // listener management
 Broadcaster.prototype.addStream = function(responseStream) {
 	this.streams.push(responseStream);
-	// :TODO listen for close?
+	var self = this;
+	responseStream.clientResponse.on('close', function() {
+		self.endStream(responseStream);
+	});
 };
 Broadcaster.prototype.endStream = function(responseStream) {
 	this.streams = this.streams.filter(function(rS) { return rS != responseStream; });
