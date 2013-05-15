@@ -31,7 +31,7 @@ function main(request, response) {
 		case '/app':
 			if (/html-deltas/.test(request.headers.accept)) {
 				response.writeHead(200, 'ok', {'content-type':'application/html-deltas+json'});
-				response.end({ replace: {'.list-container':makeList(request.query.filter||'') }});
+				response.end(['replace', '.list-container', makeList(request.query.filter||'')]);
 			} else {
 				response.writeHead(200, 'ok', {'content-type':'text/html'});
 				response.end(renderTemplate('app', {domain:config.domain, list:makeList(), filter:(request.query.filter||'')}));

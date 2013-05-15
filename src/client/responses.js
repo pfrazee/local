@@ -14,11 +14,15 @@ function renderResponse(targetElem, containerElem, response) {
 	response.body = response.body || '';
 	var type = response.headers['content-type'];
 	if (/application\/html\-deltas\+json/.test(type)) {
-		if (typeof response.body != 'object')
+		if (typeof response.body != 'object' || !Array.isArray(response.body))
 			console.log('Improperly-formed application/html-deltas+json object', response);
 		else {
-			for (var op in response.body)
-				renderHtmlDeltas(op, response.body[op], targetElem, containerElem);
+			if (Array.isArray(response.body[0])) {
+				response.body.forEach(function(delta) {
+					renderHtmlDelta(delta, targetElem, containerElem);
+				});
+			} else
+				renderHtmlDelta(response.body, targetElem, containerElem);
 		}
 	} else {
 		// format the output by type
@@ -42,57 +46,61 @@ function renderResponse(targetElem, containerElem, response) {
 	subscribeElements(targetElem, containerElem);
 }
 
-function renderHtmlDeltas(op, deltas, targetElem, containerElem) {
-	if (typeof deltas != 'object')
+function renderHtmlDelta(delta, targetElem, containerElem) {
+	if (typeof delta != 'object' || !Array.isArray(delta))
 		return;
-	for (var selector in deltas) {
-		var value = deltas[selector];
-		var i, ii, elems = containerElem.querySelectorAll(selector), region;
-		var addClass = function(cls) { elems[i].classList.add(cls); };
-		var removeClass = function(cls) { elems[i].classList.remove(cls); };
-		var toggleClass = function(cls) { elems[i].classList.toggle(cls); };
-		for (i=0, ii=elems.length; i < ii; i++) {
-			if (!elems[i]) continue;
-			var elem = elems[i];
-			switch (op) {
-				case 'replace':
-					local.client.unlisten(elem); // destructive update, do unlisten
-					elem.innerHTML = value;
-					break;
-				case 'remove':
-					local.client.unlisten(elem); // destructive update, do unlisten
-					elem.parentNode.removeChild(elem);
-					break;
-				case 'append':
-					elem.innerHTML = elem.innerHTML + value;
-					break;
-				case 'prepend':
-					elem.innerHTML = value + elem.innerHTML;
-					break;
-				case 'addClass':
-					if (elem.classList)
-						value.split(' ').forEach(addClass);
-					break;
-				case 'removeClass':
-					if (elem.classList)
-						value.split(' ').forEach(removeClass);
-					break;
-				case 'toggleClass':
-					if (elem.classList)
-						value.split(' ').forEach(toggleClass);
-					break;
-				case 'setValue':
-					elem.value = value;
-					break;
-				case 'navigate':
-					region = local.env.getClientRegion(elem.id);
-					if (region)
-						region.dispatchRequest(value);
-					else
-						console.log('html-delta navigate targeted non-client-region element', elem, selector);
-					break;
-			}
-			local.env.postProcessRegion(elems[i]);
+	var i, ii, region;
+	var op = delta.shift(), selector = delta.shift(), args = delta;
+	if (!op || !selector)
+		return;
+	var elems = containerElem.querySelectorAll(selector);
+	var addClass = function(cls) { elems[i].classList.add(cls); };
+	var removeClass = function(cls) { elems[i].classList.remove(cls); };
+	var toggleClass = function(cls) { elems[i].classList.toggle(cls); };
+	for (i=0, ii=elems.length; i < ii; i++) {
+		if (!elems[i]) continue;
+		var elem = elems[i];
+		switch (op) {
+			case 'replace':
+				local.client.unlisten(elem); // destructive update, do unlisten
+				elem.innerHTML = args[0];
+				local.env.postProcessRegion(elem);
+				break;
+			case 'remove':
+				local.client.unlisten(elem); // destructive update, do unlisten
+				elem.parentNode.removeChild(elem);
+				break;
+			case 'append':
+				elem.innerHTML = elem.innerHTML + args[0];
+				local.env.postProcessRegion(elem);
+				break;
+			case 'prepend':
+				elem.innerHTML = args[0] + elem.innerHTML;
+				local.env.postProcessRegion(elem);
+				break;
+			case 'addClass':
+				if (elem.classList)
+					(args[0]||'').split(' ').forEach(addClass);
+				break;
+			case 'removeClass':
+				if (elem.classList)
+					(args[0]||'').split(' ').forEach(removeClass);
+				break;
+			case 'toggleClass':
+				if (elem.classList)
+					(args[0]||'').split(' ').forEach(toggleClass);
+				break;
+			case 'setAttribute':
+				if (args[0])
+					elem.setAttribute(args[0], args[1]);
+				break;
+			case 'navigate':
+				region = local.env.getClientRegion(elem.id);
+				if (region)
+					region.dispatchRequest(args[0]);
+				else
+					console.log('html-delta navigate targeted non-client-region element', elem, selector);
+				break;
 		}
 	}
 }
