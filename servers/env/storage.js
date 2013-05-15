@@ -66,7 +66,7 @@
 	StorageServer.prototype.removeCollection = function(cid) {
 		if (this.collections[cid]) {
 			this.collections[cid].forEach(function(iid) {
-				this.storage.removeItem(cid+'-'+iid);
+				this.storage.removeItem(cid+'|'+iid);
 			}, this);
 			this.storage.removeItem(cid);
 			delete this.collections[cid];
@@ -81,7 +81,7 @@
 	};
 
 	StorageServer.prototype.getItem = function(cid, iid) {
-		try { return JSON.parse(this.storage.getItem(cid+'-'+iid)); }
+		try { return JSON.parse(this.storage.getItem(cid+'|'+iid)); }
 		catch (e) { return null; }
 	};
 
@@ -89,7 +89,7 @@
 		// store item
 		if (!item.id)
 			item.id = guid();
-		this.storage.setItem(cid+'-'+item.id, JSON.stringify(item));
+		this.storage.setItem(cid+'|'+item.id, JSON.stringify(item));
 
 		// update collection
 		var collection = this.getCollection(cid);
@@ -103,7 +103,7 @@
 		var collection = this.getCollection(cid);
 		this.collections[cid] = collection.filter(function(iid2) { return iid != iid2; });
 		this.saveCollection(cid);
-		this.storage.removeItem(cid+'-'+iid);
+		this.storage.removeItem(cid+'|'+iid);
 	};
 
 	// INTERNAL

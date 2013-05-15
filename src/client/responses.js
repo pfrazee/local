@@ -33,7 +33,7 @@ function renderResponse(targetElem, containerElem, response) {
 			// escape non-html so that it can render correctly
 			if (typeof response.body != 'string')
 				html = JSON.stringify(response.body);
-			html = response.body.replace(/</g, '&lt;').replace(/>/g, '&gt;');			
+			html = response.body.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 		}
 
 		local.client.unlisten(targetElem); // make sure to unregister listeners before replaceing
