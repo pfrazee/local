@@ -1,6 +1,11 @@
 Changes
 =======
 
+2013/05/15 pfraze
+
+ - Changed html-deltas to use an ordered array structure
+ 
+
 2013/05/08 pfraze
 
  - Added the "navigate" operation to html deltas
