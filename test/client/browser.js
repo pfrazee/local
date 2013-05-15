@@ -204,14 +204,16 @@ startTime = Date.now();
 
 function request2Handler(e) {
   // fixture response
-  var response = { status:200, reason:'Ok', headers:{ 'content-type':'application/html-deltas+json' }, body: {
-    replace: { '.replace-me1':'replaced', '.replace-me2':'replaced' },
-    append: { '.append-me':'appended' },
-    prepend: { '.prepend-me':'prepended' },
-    addClass: { '.addclass-me':'added' },
-    removeClass: { '.removeclass-me':'removed' },
-    toggleClass: { '.toggleclass-me':'toggle1 toggle2' }
-  }};
+  var response = { status:200, reason:'Ok', headers:{ 'content-type':'application/html-deltas+json' }, body: [
+    ['replace', '.replace-me1', 'replaced'],
+    ['replace', '.replace-me2', 'replaced'],
+    ['append', '.append-me', 'appended'],
+    ['prepend', '.prepend-me', 'prepended'],
+    ['addClass', '.addclass-me', 'added'],
+    ['removeClass', '.removeclass-me', 'removed'],
+    ['toggleClass', '.toggleclass-me', 'toggle1 toggle2'],
+    ['setAttribute', '.setattribute-me', 'value', 'foobar']
+  ]};
 
   // pass on to common client
   local.client.renderResponse(
@@ -259,6 +261,7 @@ wait(function () { return done; });
 <div class="addclass-me added">original</div>
 <div class="removeclass-me">original</div>
 <div class="toggleclass-me toggle2">original</div>
+<div class="setattribute-me" value="foobar">original</div>
 */
 
 // test: attr event binding
