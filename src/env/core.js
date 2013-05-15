@@ -133,7 +133,7 @@ local.env.setDispatchWrapper = function(fn) {
 // - override this to modify html after it has entered the document
 // - useful for adding local.env widgets
 var __postProcessRegion = function() {};
-local.env.postProcessRegion = function(elem) { return __postProcessRegion(elem); };
+local.env.postProcessRegion = function(elem, containerElem) { return __postProcessRegion(elem, containerElem); };
 local.env.setRegionPostProcessor = function(fn) {
 	__postProcessRegion = fn;
 };
