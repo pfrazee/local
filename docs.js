@@ -1,4 +1,4 @@
-local.env.config.workerBootstrapUrl = '/lib/worker.js';
+// local.env.config.workerBootstrapUrl = '/lib/worker.js';
 
 var lastRequestedHash = window.location.hash; // used to track if a hash-change should produce a request
 var viewNav = document.getElementById('viewer-nav');
