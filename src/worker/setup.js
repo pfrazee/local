@@ -113,7 +113,7 @@ self.require = function(url) {
 self.modules = {};
 function makeExportClosure(url, src) {
 	src = '(function(){ var module = { exports:{} }; ' + src + '; self.modules["'+url+'"] = module.exports; })();';
-	return 'data:text/javascript,'+(src);
+	return 'data:text/javascript;base64,'+btoa(src);
 }
 
 // Document Commands
@@ -135,7 +135,7 @@ local.worker.onNamedMessage('importScripts', function(message) {
 		try {
 			closureImportScripts(message.data);
 		} catch(e) {
-			local.worker.postReply(message, { error:true, reason:e.toString() });
+			local.worker.postReply(message, { error:true, reason:(e ? e.toString() : e) });
 			throw e;
 		}
 	} else {
