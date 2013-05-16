@@ -2,7 +2,9 @@ local.env.config.workerBootstrapUrl = '/lib/worker.js';
 
 var lastRequestedHash = window.location.hash; // used to track if a hash-change should produce a request
 var viewNav = document.getElementById('viewer-nav');
+try {
 viewNav.querySelector('a[href="'+(window.location.hash||'#readme.md')+'"]').parentNode.classList.add('active');
+} catch (e) {}
 
 // request wrapper
 local.env.setDispatchWrapper(function(request, origin, dispatch) {

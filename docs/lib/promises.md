@@ -1,113 +1,82 @@
-Promises
-========
-
-pfraze 2013
-
-
-Monadic function chaining around asynchronously-fulfilled values. Now with 100% more Promises/A+ conformance.
-
-## Usage
-
-A promise can be created with or without a value:
-
 ```javascript
-var p1 = new Local.Promise(); // unfulfilled
-var p2 = Local.promise(); // unfulfilled
-var p3 = Local.promise('foobar'); // fulfilled
-var p4 = Local.promise(p2); // passes through (p3 === p2)
-var p5 = Local.promise(promiseFromOtherLibrary); // wraps ((p4 instanceof Local.Promise) === true)
+local.promise(local.http.dispatch(request))
+  .succeed(updateUI)
+  .fail(goErrorState)
+  .always(respond);
 ```
 
-Functions may be chained using `then`. Each function will receive the current value as the first parameter, and updates the current value with whatever is returned (including `undefined` if no return statement is made).
+<br/>
+### Promise
 
-```javascript
-var myPromise = Local.promise();
-myPromise.then(
-  function(v) {
-    return v + 1;
-  },
-  function(err) {
-    // rejection handler, wont get hit this time
-  })
-  .then(log);
-promise.fulfill(5);
-// => logs "6"
+The promise prototype. Use `local.promise()` to instantiate it.
 
-var myPromise = Local.promise();
-myPromise.then(
-  function(v) {
-    // success handler, wont get hit this time
-  },
-  function(err) {
-    console.log(err);
-  });
-promise.reject("Oh nooo");
-// => logs "Oh nooo"
-```
+<br/>
+#### local.promise( <small>[value]</small> ) <small>=> local.Promise</small>
 
-Functions which throw an error will cause the next promise to be rejected. Subsequent rejection handlers can choose to rethrow to continue rejection, or return a value to indicate normal operation has resumed.
+ - If multiple arguments are given, will return `local.promise.bundle(arguments)`
+ - If `value` is a promise, returns that promise
+ - If `value` is not a promise, returns a promise fulfilled with that value
+ - If `value` is undefined, returns an unfulfilled promise
 
-```javascript
-var myPromise = Local.promise();
-myPromise
-  .then(function(v) { throw "oh nooo"; })
-  .then(null, function(err) { console.log(err); throw "oh nooo!!!"; })
-  .then(null, function(err) { console.log(err); return "jk we're fine"; })
-  .then(log);
-promise.fulfill(true);
-// => logs "oh nooo"
-// => logs "oh nooo!!!"
-// => logs "jk we're fine"
-```
+<br/>
+#### local.promise.bundle( <small>promises, [shouldFulillCb]</small> ) <small>=> local.Promise</small>
 
-In addition to `then`, you can use `succeed` (for non-erroneous values) or `fail` (for erroneous values). The first parameter defines the handler function, and subsequent parameters may be provided to be passed into the handler:
+General-purpose tool for combining multiple promises into one. `promises` should be an Array. `shouldFulfillCb` is an optional function which is called once all promises have resolved. It is called with `(promises, fails)` - the first is an Array of resolved promises (with order maintained) and the latter is promises which were rejected. `shouldFulfillCb` should return true to fulfill and false to reject.
 
-```javascript
-function add(v, x) { return v + x; }
-function subtract(v, x) { return v - x; }
-function wait(v, t) { var self = this; setTimeout(function() { self.fulfill(v); }, t); }
-function log(v) { console.log(v); }
+<br/>
+#### local.promise.all( <small>promises</small> ) <small>=> local.Promise</small>
 
-Local.promise(10)
-  .succeed(add, 5)
-  .succeed(wait, 1000)
-  .succeed(subtract, 10)
-  .succeed(log);
-// => waits 1 second, then logs "5"
-```
+Bundles an array of promises into a single promise that requires all to succeed for fulfillment.
 
-Promises may be chained, to allow the fulfillment or rejection of one to be passed on to the other:
+<br/>
+#### local.promise.any( <small>promises</small> ) <small>=> local.Promise</small>
 
-```javascript
-var p1 = Local.promise(), p2 = Local.promise();
-p2.then(log, log);
-p1.chain(p2);
-p1.fulfill('foobar');
-// => logs "foobar"
-```
+Bundles an array of promises into a single promise that requires one to succeed for fulfillment.
 
-If a promise is not going to continue the chain, and wants to release the references held by downstream promises, it may call cancel:
+<br/>
+#### local.Promise#then( <small>[successCb]</small>, <small>[failCb]</small> ) <small>=> local.Promise</small>
 
-```javascript
-mypromise
-  .then(function(canStop) {
-    if (canStop) {
-      // program logic says we're done
-      console.log('stopping');
-      this.cancel();
-    } else {
-      return 'foobar';
-    }
-  })
-  .then(function(v) {
-    console.log(v);
-  });
-mypromise.fulfill(true);
-// => logs "stopping"
-```
+ - If the promise is unfulfilled, queues the callbacks
+ - Otherwise, execs the callbacks on next tick with the promise's value
 
-For cases where you need to support the `(err, result)` pattern, use `nodeStyleCB()`:
+Returns a promise which will be filled with the return value of the success/fail cbs.
 
-```javascript
-require('http').request(options, Local.nodeStyleCB(mypromise));
-```
+<br/>
+#### local.Promise#succeed( <small>successCb</small> ) <small>=> local.Promise</small>
+
+Sugar for `promise.then(successCb, null)`
+
+<br/>
+#### local.Promise#fail( <small>failCb</small> ) <small>=> local.Promise</small>
+
+Sugar for `promise.then(null, failCb)`
+
+<br/>
+#### local.Promise#always( <small>cb</small> ) <small>=> local.Promise</small>
+
+Sugar for `promise.then(cb, cb)`
+
+<br/>
+#### local.Promise#fulfill( <small>value</small> ) <small>=> this</small>
+
+If the promise is not yet filled, sets the value and calls the queued success callbacks.
+
+<br/>
+#### local.Promise#reject( <small>value</small> ) <small>=> this</small>
+
+If the promise is not yet filled, sets the value and calls the queued fail callbacks.
+
+<br/>
+#### local.Promise#cancel( <small>value</small> ) <small>=> this</small>
+
+Releases any queued callbacks, and instructs downstream promises to cancel as well.
+
+<br/>
+#### local.Promise#chain( <small>otherPromise</small> ) <small>=> otherPromise</small>
+
+Queues success and fail functions which will, respectively, fulfill or reject `otherPromise`.
+
+<br/>
+#### local.Promise#cb( <small>err, value</small> ) <small>=> undefined</small>
+
+A node-style function which will reject if `err` is truthy and fulfill with `value` otherwise.

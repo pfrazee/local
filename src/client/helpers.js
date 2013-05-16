@@ -1,7 +1,7 @@
 // Helpers
 // =======
 
-// INTERNAL
+// EXPORTED
 // searches up the node tree for an element
 function findParentNode(node, test) {
 	while (node) {
@@ -75,7 +75,7 @@ function trackFormSubmitter(node) {
 	}
 }
 
-// INTERNAL
+// EXPORTED
 // extracts request from any given element
 function extractRequest(targetElem, containerElem) {
 	var requests = { form:{}, fieldset:{}, elem:{} };
@@ -129,7 +129,7 @@ function extractRequest(targetElem, containerElem) {
 	return reduceObjects(req, payloadWrapper);
 }
 
-// INTERNAL
+// EXPORTED
 // extracts request parameters from an anchor tag
 extractRequest.fromAnchor = function(node) {
 
@@ -147,7 +147,7 @@ extractRequest.fromAnchor = function(node) {
 	return request;
 };
 
-// INTERNAL
+// EXPORTED
 // extracts request parameters from a form element (inputs, textareas, etc)
 extractRequest.fromFormElement = function(node) {
 	// :TODO: search parent for the form-related element?
@@ -166,7 +166,7 @@ extractRequest.fromFormElement = function(node) {
 	return request;
 };
 
-// INTERNAL
+// EXPORTED
 // extracts request parameters from a form
 extractRequest.fromForm = function(form, submittingElem) {
 
@@ -221,7 +221,7 @@ extractRequest.fromForm = function(form, submittingElem) {
 	return request;
 };
 
-// INTERNAL
+// EXPORTED
 // serializes all form elements beneath and including the given element
 function extractRequestPayload(targetElem, form, opts) {
 	if (!opts) opts = {};
@@ -335,3 +335,4 @@ function finishPayloadFileReads(request) {
 
 local.client.findParentNode = findParentNode;
 local.client.extractRequest = extractRequest;
+local.client.extractRequestPayload = extractRequestPayload;

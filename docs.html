@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 	<head>
-		<title>Local 0.3.0dev - Documentation</title>
+		<title>Local 0.3.0 - Documentation</title>
 
 		<!-- security policies -->
 		<meta http-equiv="X-WebKit-CSP" content="frame-src 'none'; object-src 'none'; script-src 'self'"></meta>
@@ -21,7 +21,7 @@
 		<!-- nav -->
 		<div class="navbar">
 			<div class="navbar-inner">
-				<a class="brand" href="#">Local 0.3.0dev</a>
+				<a class="brand" href="#">Local 0.3.0</a>
 				<ul class="nav">
 					<li><a href="index.html" title="Home">Home</a></li>
 					<!-- <li><a href="profile.html" title="Profile Example Page">Example Page</a></li> -->
@@ -38,50 +38,70 @@
 						<li class="divider"></li>
 						<li class="nav-header"><a href="#readme.md">Readme</a></li>
 						<li class="divider"></li>
-						<li class="nav-header">The Environment</li>
-						<li><a href="#env/getting_started.md">Getting Started</a></li>
-						<li><a href="#env/document_servers.md">Building In-Document Servers</a></li>
-						<li><a href="#env/mediating_traffic.md">Mediating Traffic for Security and Privacy</a></li>
-						<li><a href="#env/adding_widgets.md">Adding Widgets and Client Behaviors</a></li>
+						<li class="nav-header">Topics</li>
+						<li><a href="#topics/page_environment.md">Page Environment</a></li>
+						<li><a href="#topics/document_servers.md">In-Document Servers</a></li>
+						<li><a href="#topics/security.md">Worker Security</a></li>
+						<li><a href="#topics/worker_protocol.md">Worker Protocol</a></li>
 						<li class="divider"></li>
-						<li class="nav-header">Worker Applications</li>
-						<li><a href="#apps/security.md">Worker Security</a></li>
-						<li><a href="#apps/building.md">Building an Application</a></li>
-						<li><a href="#apps/events.md">Server-Sent Events</a></li>
-						<li><a href="#apps/dom_behaviors.md">DOM Interactions</a></li>
-						<li><a href="#apps/worker_protocol.md">Worker Protocol</a></li>
-						<li class="divider"></li>
-						<li class="nav-header">Libraries</li>
-						<li><a href="#lib/promises.md" title="Using Promises, the flow-control tool">Promises</a></li>
-						<li><a href="#lib/linkjs.md" title="Using LinkJS, the HTTP library">LinkJS</a>
+						<li class="nav-header">local</li>
+						<li><a href="#lib/promises.md">promise</a></li>
+						<li><a href="#lib/util.EventEmitter.md">util.EventEmitter</a></li>
+						<li>http
 							<ul>
-								<li><a href="#lib/linkjs/navigator.md" title="Link.Navigator">Navigator</a></li>
-								<li><a href="#lib/linkjs/router.md" title="Link.Router">Router</a></li>
-								<li><a href="#lib/linkjs/responder.md" title="Link.Responder">Responder</a></li>
-								<li><a href="#lib/linkjs/headerer.md" title="Link.Headerer">Headerer</a></li>
-								<li><a href="#lib/linkjs/broadcaster.md" title="Link.Broadcaster">Broadcaster</a></li>
-								<li><a href="#lib/linkjs/eventemitter.md" title="Link.EventEmitter">EventEmitter</a></li>
-								<li><a href="#lib/linkjs/contenttypes.md" title="Link.contentTypes">contentTypes</a></li>
-								<li><a href="#lib/linkjs/helpers.md" title="Linkjs Helpers">Helpers</a></li>
+								<li class="divider"></li>
+								<li><a href="#lib/http/dispatch.md">dispatch</a></li>
+								<li><a href="#lib/http/pipe.md">pipe</a></li>
+								<li><a href="#lib/http/navigator.md">navigator</a></li>
+								<li><a href="#lib/http/ClientResponse.md">ClientResponse</a></li>
+								<li><a href="#lib/http/ServerResponse.md">ServerResponse</a></li>
+								<li class="divider"></li>
+								<li><a href="#lib/http/subscribe.md">subscribe</a></li>
+								<li><a href="#lib/http/broadcaster.md">broadcaster</a></li>
+								<li><a href="#lib/http/EventStream.md">EventStream</a></li>
+								<li class="divider"></li>
+								<li><a href="#lib/http/registerLocal.md">registerLocal</a></li>
+								<li><a href="#lib/http/unregisterLocal.md">unregisterLocal</a></li>
+								<li><a href="#lib/http/getLocal.md">getLocal</a></li>
+								<li><a href="#lib/http/getLocalRegistry.md">getLocalRegistry</a></li>
+								<li class="divider"></li>
+								<li><a href="#lib/http/contentTypes.md">contentTypes</a></li>
+								<li><a href="#lib/http/joinUrl.md">joinUrl</a></li>
+								<li><a href="#lib/http/parseUri.md">parseUri</a></li>
+								<li><a href="#lib/http/UriTemplate.md">UriTemplate</a></li>
+								<li class="divider"></li>
 							</ul>
 						</li>
-						<li><a href="#lib/myhouse.md" title="Using MyHouse, the Worker manager">MyHouse</a></li>
-						<li><a href="#lib/commonclient.md" title="Using CommonClient, the standard DOM behaviors">CommonClient</a></li>
-						<li><a href="#lib/environment.md" title="Using the Environment API">Environment API</a></li>
-						<li class="divider"></li>
-						<li class="nav-header">Examples</li>
-						<li><a href="#examples/index.md">index.html</a></li>
-						<li><a href="#examples/profile.md">profile.html</a></li>
-						<li><a href="#examples/docs.md">docs.html</a></li>
-						<li><a href="#examples/localstorage.md">env/localstorage.js</a></li>
-						<li><a href="#examples/persona.md">env/persona.js</a></li>
-						<li><a href="#examples/reflector.md">env/reflector.js</a></li>
-						<li><a href="#examples/wall.md">apps/social/wall.js</a></li>
-						<li class="divider"></li>
-						<li class="nav-header">Misc</li>
-						<li><a href="#misc/building.md">Building</a></li>
-						<li><a href="#misc/contributing.md">Contributing</a></li>
-						<li><a href="#misc/browser_support.md">Browser Support</a></li>
+						<li>client
+							<ul>
+								<li class="divider"></li>
+								<li><a href="#lib/client/listen.md">listen</a></li>
+								<li><a href="#lib/client/unlisten.md">unlisten</a></li>
+								<li><a href="#lib/client/renderResponse.md">renderResponse</a></li>
+								<li><a href="#lib/client/Region.md">Region</a></li>
+								<li class="divider"></li>
+							</ul>
+						</li>
+						<li>env
+							<ul>
+								<li class="divider"></li>
+								<li><a href="#lib/env/addServer.md">addServer</a></li>
+								<li><a href="#lib/env/killServer.md">killServer</a></li>
+								<li><a href="#lib/env/getServer.md">getServer</a></li>
+								<li class="divider"></li>
+								<li><a href="#lib/env/addClientRegion.md">addClientRegion</a></li>
+								<li><a href="#lib/env/removeClientRegion.md">removeClientRegion</a></li>
+								<li><a href="#lib/env/getClientRegion.md">getClientRegion</a></li>
+								<li class="divider"></li>
+								<li><a href="#lib/env/setDispatchWrapper.md">setDispatchWrapper</a></li>
+								<li><a href="#lib/env/setRegionPostProcessor.md">setRegionPostProcessor</a></li>
+								<li class="divider"></li>
+								<li><a href="#lib/env/Server.md">Server</a></li>
+								<li><a href="#lib/env/Worker.md">Worker</a></li>
+								<li><a href="#lib/env/WorkerServer.md">WorkerServer</a></li>
+								<li class="divider"></li>
+							</ul>
+						</li>
 					</ul>
 				</div>
 				<div class="span9 loading" id="viewer"></div>
@@ -104,3 +124,4 @@
 		<script src="docs.js"></script>
 	</body>
 </html>
+
