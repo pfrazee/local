@@ -1,4 +1,4 @@
-// local.env.config.workerBootstrapUrl = '/lib/worker.js';
+local.env.config.workerBootstrapUrl = '/lib/worker.js';
 
 // request wrapper
 var reqLog = local.http.navigator('httpl://request-log.util');
