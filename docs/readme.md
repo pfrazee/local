@@ -14,6 +14,23 @@ Some terminology:
  - "Applications" are javascript programs run in Web Workers
  - "HTTPL" (HTTP Local) is the protocol for servers hosted in the document or in Web Workers
 
+## Example
+
+```javascript
+// load a local web server into a worker
+local.env.addServer('helloworld.usr', new local.env.WorkerServer({
+  src: 'data:application/javascript,'+
+    'function main(request, response) {'+
+      'response.writeHead(200, "ok", {"content-type":"text/html"});'+
+      'response.end("<h1>Hello, World!</h1>");'+
+    '}'
+}));
+// send an ajax request to the worker
+local.http.dispatch({ method: 'get', url: 'httpl://helloworld.usr' })
+  .then(function(res) { console.log(res.body); });
+  // => "<h1>Hello, World!</h1>"
+```
+
 
 ## Background
 
