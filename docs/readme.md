@@ -72,3 +72,5 @@ git clone https://github.com/grimwire/local.git
 python -m SimpleHTTPServer
 # navigate browser to localhost:8000
 ```
+
+If you're new to Local, the best place to start is with <a href="https://github.com/grimwire/grimwire" target="_blank" title="Grimwire">Grimwire</a>, a general-purpose deployment of Local. Grimwire adds configuration management, layout tools, widgets, and other tools which make starting easier. <a href="http://grimwire.github.io/grimwire/" target="_blank" title="Grimwire Nightly Build">Grimwire's Nightly Build</a> includes additional documentation which will help you familiarize with Local.
