@@ -4,7 +4,7 @@
 
 done = false;
 startTime = Date.now();
-var res = local.http.dispatch({ method:'get', url:'http://linkapjs.com:8080' });
+var res = local.http.dispatch({ method:'get', url:'http://linkapjs.com:8080', headers: { accept: 'application/json' } });
 res.then(printSuccess, printError).then(finishTest);
 wait(function () { return done; });
 
