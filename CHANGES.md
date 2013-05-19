@@ -5,7 +5,7 @@ Changes
 2013/05/19 pfraze
 
  - Moved worker.js and worker.min.js from /lib to / - simplifies paths
- - Commented out the CSP directives, as they are breaking browsers which cant be upgraded (iOS)
+ - Commented out the CSP directives for all but Chrome, as they are breaking browsers which cant be upgraded (iOS)
 
 
 0.3.0
