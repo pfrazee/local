@@ -51,10 +51,10 @@ setup: clean concat buildmin
 clean:
 	@-rm ${lib-local-files}
 	@-rm ${lib}local.js ${lib}local.min.js
-	@-rm ${lib}worker.js ${lib}worker.min.js
+	@-rm worker.js worker.min.js
 	@echo Cleaned Out Libraries
 
-concat: ${lib-local-files} ${lib}local.js ${lib}worker.js
+concat: ${lib-local-files} ${lib}local.js worker.js worker.js
 	@echo Concatted Libraries
 ${lib}local/promises.js: ${src-promises-files}
 	@cat > $@ $^
@@ -68,14 +68,14 @@ ${lib}local/env.js: ${src-env-files}
 	@cat > $@ $^
 ${lib}local.js: ${lib-local-files}
 	@cat > $@ $^
-${lib}worker.js: ${src-worker-files}
+worker.js: ${src-worker-files}
 	@cat > $@ $^
 
-buildmin: ${lib}local.min.js ${lib}worker.min.js
+buildmin: ${lib}local.min.js worker.min.js
 	@echo Built Minified Versions
 ${lib}local.min.js: ${lib}local.js
 	@./minify.sh $@ $^
-${lib}worker.min.js: ${lib}worker.js
+worker.min.js: worker.js
 	@./minify.sh $@ $^
 
 deps: uglifyjs

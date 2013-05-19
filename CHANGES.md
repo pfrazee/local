@@ -1,5 +1,14 @@
 Changes
 =======
+0.3.1
+
+2013/05/19 pfraze
+
+ - Moved worker.js and worker.min.js from /lib to / - simplifies paths
+
+
+0.3.0
+=====
 
 2013/05/15 pfraze
 

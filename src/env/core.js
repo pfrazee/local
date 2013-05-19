@@ -2,7 +2,7 @@
 // ========
 
 local.env.config = {
-	workerBootstrapUrl : 'lib/worker.min.js'
+	workerBootstrapUrl : 'worker.min.js'
 };
 
 local.env.servers = {};
