@@ -1,6 +1,17 @@
 // Regions
 // =======
 
+if (typeof CustomEvent === 'undefined') {
+	// CustomEvent shim (safari)
+	// thanks to netoneko https://github.com/maker/ratchet/issues/101
+	CustomEvent = function(type, eventInitDict) {
+		var event = document.createEvent('CustomEvent');
+
+		event.initCustomEvent(type, eventInitDict['bubbles'], eventInitDict['cancelable'], eventInitDict['detail']);
+		return event;
+	};
+}
+
 // EXPORTED
 // an isolated browsing context in the DOM
 // - `id` indicates the element to add Region behaviors to
