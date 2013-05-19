@@ -1,13 +1,14 @@
 <!doctype html>
 <html>
 	<head>
-		<title>Local 0.3.1dev</title>
+		<title>Local 0.3.1</title>
 
 		<!-- recommended security policies -->
 		<!-- :NOTE: safari 5 (windows, iOS) current doesnt these directives correctly and will break -->
 		<!--        additionally, Firefox does not yet support them through <meta> -->
 		<!-- <meta http-equiv="X-WebKit-CSP" content="frame-src 'none'; object-src 'none'; script-src 'self'" /> -->
 		<!-- <meta http-equiv="X-Content-Security-Policy" content="frame-src 'none'; object-src 'none'; script-src 'self'" /> -->
+		<meta http-equiv="Content-Security-Policy" content="frame-src 'none'; object-src 'none'; script-src 'self'" />
 
 		<!-- styling -->
 		<link rel="stylesheet" href="assets/bootstrap/css/bootstrap.css" />
@@ -23,7 +24,7 @@
 		<!-- nav -->
 		<div class="navbar">
 			<div class="navbar-inner">
-				<a class="brand" href="#">Local 0.3.1dev</a>
+				<a class="brand" href="#">Local 0.3.1</a>
 				<ul class="nav">
 					<li class="active"><a href="index.html" title="Home">Home</a></li>
 					<li><a href="docs.html" title="Documentation">Documentation</a></li>
