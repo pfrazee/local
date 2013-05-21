@@ -134,10 +134,11 @@
 	// - `requester` is the object making the request
 	WorkerServer.prototype.getSource = function(requester) {
 		if (/^data/.test(this.config.src)) {
+			var firstCommaIndex = this.config.src.indexOf(',');
 			if (this.config.src.indexOf('data:application/javascript;base64,') === 0)
-				return local.promise(atob(this.config.src.split(',')[1] || ''));
+				return local.promise(atob(this.config.src.slice(firstCommaIndex+1) || ''));
 			else
-				return local.promise(this.config.src.split(',')[1] || '');
+				return local.promise(this.config.src.slice(firstCommaIndex+1) || '');
 		}
 
 		// request from host
