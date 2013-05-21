@@ -1,6 +1,15 @@
 Changes
 =======
+0.3.2
+
+2013/05/21 pfraze
+
+ - Added `targetEl` parameter to `Region.prototype.dispatchRequest`
+ - Updated URITemplates to latest
+
+
 0.3.1
+=====
 
 2013/05/19 pfraze
 

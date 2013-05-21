@@ -35,12 +35,15 @@ function Region(id) {
 local.client.Region = Region;
 
 // dispatches a 'request' DOM event, which the region will then catch and HTTP-dispatch
-Region.prototype.dispatchRequest = function(request) {
-	if (typeof request === 'string') {
+// - targetEl: optional, the element to dispatch from (defaults to client region's element)
+//             (must be a child element)
+Region.prototype.dispatchRequest = function(request, targetEl) {
+	if (typeof request === 'string')
 		request = { method:'get', url:request, headers:{ accept:'text/html' }};
-	}
+	if (!targetEl)
+		targetEl = this.element;
 	var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:request });
-	this.element.dispatchEvent(re);
+	targetEl.dispatchEvent(re);
 };
 
 // removes the Region behaviors from the given element
