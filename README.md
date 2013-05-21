@@ -1,4 +1,4 @@
-## Local v0.3.0
+## Local v0.3.2dev
 
 Local is a JS toolkit for running multiple applications on the page with Web Workers and HTTP. It allows servers to run in browser threads, where they host HTML and act as proxies to remote services. Because the servers are unable to access the document's namespace, execute inline scripts (due to CSP) or break the message routing policies of the host document, they can be used as containers for untrusted software.
 
