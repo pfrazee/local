@@ -6,6 +6,7 @@ Changes
 
  - Added `targetEl` parameter to `Region.prototype.dispatchRequest`
  - Updated URITemplates to latest
+ - Added support for data-uris to local.http.dispatch()
 
 
 0.3.1

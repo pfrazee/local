@@ -87,3 +87,81 @@ wait(function () { return done; });
 error
 {body: null, headers: {}, isConnOpen: false, reason: "not found", status: 404}
 */
+
+// == SECTION core - data-uri requests
+
+// non-base64-encoded
+
+done = false;
+startTime = Date.now();
+var res = local.http.dispatch({ method:'get', url:'data:text/html;charset=utf-8,%3Ch1%3EHello%20World%21%3C%2Fh1%3E' });
+res.then(printSuccess, printError).then(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "<h1>Hello World!</h1>",
+  headers: {"content-type": "text/html"},
+  isConnOpen: false,
+  reason: "ok",
+  status: 200
+}
+*/
+
+// base64-encoded
+
+done = false;
+startTime = Date.now();
+var res = local.http.dispatch({ method:'get', url:'data:text/html;charset=utf-8;base64,PGgxPkhlbGxvIFdvcmxkITwvaDE+' });
+res.then(printSuccess, printError).then(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "<h1>Hello World!</h1>",
+  headers: {"content-type": "text/html"},
+  isConnOpen: false,
+  reason: "ok",
+  status: 200
+}
+*/
+
+// empty body, non-base64-encoded
+
+done = false;
+startTime = Date.now();
+var res = local.http.dispatch({ method:'get', url:'data:text/html;charset=utf-8,' });
+res.then(printSuccess, printError).then(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: null,
+  headers: {"content-type": "text/html"},
+  isConnOpen: false,
+  reason: "ok",
+  status: 200
+}
+*/
+
+// empty body, base64-encoded
+
+done = false;
+startTime = Date.now();
+var res = local.http.dispatch({ method:'get', url:'data:text/html;charset=utf-8;base64,' });
+res.then(printSuccess, printError).then(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: null,
+  headers: {"content-type": "text/html"},
+  isConnOpen: false,
+  reason: "ok",
+  status: 200
+}
+*/

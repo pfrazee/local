@@ -762,6 +762,8 @@ local.http.dispatch = function dispatch(req) {
 		setTimeout(function() { __dispatchLocal(req, resPromise); }, 0);
 	else if (req.urld.protocol == 'http' || req.urld.protocol == 'https')
 		setTimeout(function() { __dispatchRemote(req, resPromise); }, 0);
+	else if (req.urld.protocol == 'data')
+		setTimeout(function() { __dispatchData(req, resPromise); }, 0);
 	else {
 		var res = new ClientResponse(0, 'unsupported protocol "'+req.urld.protocol+'"');
 		resPromise.reject(res);
@@ -952,6 +954,35 @@ function __dispatchRemoteNodejs(req, resPromise) {
 	var res = new ClientResponse(0, 'dispatch() has not yet been implemented for nodejs');
 	resPromise.reject(res);
 	res.end();
+}
+
+// fulfills a request to a data-uri with the contents of the data uri
+function __dispatchData(req, resPromise) {
+
+	// parse out the uri
+	var firstColonIndex = req.url.indexOf(':');
+	var firstCommaIndex = req.url.indexOf(',');
+
+	var params = req.url.slice(firstColonIndex+1, firstCommaIndex).split(';');
+	var contentType = params.shift();
+	var isBase64 = false;
+	while (params.length) {
+		var param = params.shift();
+		if (param == 'base64')
+			isBase64 = true;
+	}
+
+	var data = req.url.slice(firstCommaIndex+1);
+	if (!data)
+		data = '';
+	if (isBase64)
+		data = atob(data);
+	else
+		data = decodeURIComponent(data);
+
+	var res = new ServerResponse(resPromise);
+	res.writeHead(200, 'ok', {'content-type': contentType});
+	res.end(data);
 }
 
 // EXPORTED
