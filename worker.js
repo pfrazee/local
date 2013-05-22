@@ -405,6 +405,7 @@ local.http.lookupLink = function lookupLink(links, rel, title) {
 
 	if (title)
 		title = title.toLowerCase();
+	var relRegex = RegExp('\\b'+rel+'\\b');
 
 	// try to find the link with a title equal to the param we were given
 	var match = null;
@@ -412,7 +413,7 @@ local.http.lookupLink = function lookupLink(links, rel, title) {
 		var link = links[i];
 		if (!link) { continue; }
 		// find all links with a matching rel
-		if (link.rel && link.rel.indexOf(rel) !== -1) {
+		if (relRegex.test(link.rel)) {
 			// look for a title match to the primary parameter
 			if (title && link.title) {
 				if (link.title.toLowerCase() === title) {
