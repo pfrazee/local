@@ -8,7 +8,7 @@ var contentTypes = {
 	register    : contentTypes__register
 };
 var contentTypes__registry = {};
-local.http.contentTypes = contentTypes;
+local.web.contentTypes = contentTypes;
 
 // EXPORTED
 // serializes an object into a string
@@ -74,7 +74,7 @@ function contentTypes__find(type, fn) {
 
 // Default Types
 // =============
-local.http.contentTypes.register('application/json',
+local.web.contentTypes.register('application/json',
 	function (obj) {
 		try {
 			return JSON.stringify(obj);
@@ -90,7 +90,7 @@ local.http.contentTypes.register('application/json',
 		}
 	}
 );
-local.http.contentTypes.register('application/x-www-form-urlencoded',
+local.web.contentTypes.register('application/x-www-form-urlencoded',
 	function (obj) {
 		var enc = encodeURIComponent;
 		var str = [];

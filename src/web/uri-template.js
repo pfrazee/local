@@ -869,5 +869,5 @@ var UriTemplate = (function () {
 
 }(function (UriTemplate) {
         "use strict";
-        local.http.UriTemplate = UriTemplate;
+        local.web.UriTemplate = UriTemplate;
 }));

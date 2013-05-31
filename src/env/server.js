@@ -245,7 +245,7 @@
 		}
 
 		// create request
-		var request = local.http.clientRequest(message.data);
+		var request = new local.http.Request(message.data);
 		this.worker.setExchangeMeta(message.exchange, 'request', request);
 
 		// dispatch request

@@ -57,7 +57,7 @@ NavigatorContext.prototype.getError   = function() { return this.error; };
 NavigatorContext.prototype.getHost    = function() {
 	if (!this.host) {
 		if (!this.url) { return null; }
-		var urld  = local.http.parseUri(this.url);
+		var urld  = local.web.parseUri(this.url);
 		this.host = (urld.protocol || 'http') + '://' + (urld.authority || getEnvironmentHost());
 	}
 	return this.host;
@@ -70,7 +70,7 @@ NavigatorContext.prototype.resolve    = function(url) {
 	this.error        = null;
 	this.resolveState = NavigatorContext.RESOLVED;
 	this.url          = url;
-	var urld          = local.http.parseUri(this.url);
+	var urld          = local.web.parseUri(this.url);
 	this.host         = (urld.protocol || 'http') + '://' + urld.authority;
 };
 
@@ -117,7 +117,7 @@ function Navigator(context, parentNavigator) {
 			throw "parentNavigator is required for navigators with relative contexts";
 	}
 }
-local.http.Navigator = Navigator;
+local.web.Navigator = Navigator;
 
 // executes an HTTP request to our context
 //  - uses additional parameters on the request options:
@@ -131,7 +131,7 @@ Navigator.prototype.dispatch = function Navigator__dispatch(req) {
 	((req.noresolve) ? local.promise(this.context.getUrl()) : this.resolve({ retry:req.retry, nohead:true }))
 		.succeed(function(url) {
 			req.url = url;
-			return local.http.dispatch(req);
+			return local.web.dispatch(req);
 		})
 		.succeed(function(res) {
 			self.context.error = null;
@@ -157,7 +157,7 @@ Navigator.prototype.dispatch = function Navigator__dispatch(req) {
 Navigator.prototype.subscribe = function Navigator__dispatch() {
 	return this.resolve()
 		.succeed(function(url) {
-			return local.http.subscribe(url);
+			return local.web.subscribe(url);
 		});
 };
 
@@ -231,9 +231,9 @@ Navigator.prototype.__resolveChild = function Navigator__resolveChild(childNav, 
 				childNav.context.resolve(childUrl);
 				resolvedPromise.fulfill(childUrl);
 			} else {
-				var response = new local.http.ClientResponse(404, 'link relation not found');
+				var response = new local.web.Response();
+				response.writeHead(404, 'link relation not found').end();
 				resolvedPromise.reject(response);
-				response.end();
 			}
 		},
 		function(error) {
@@ -255,11 +255,11 @@ Navigator.prototype.__resolveChild = function Navigator__resolveChild(childNav, 
 //    eg item('foobar') -> Link: <http://example.com/some/{item}>; rel="item" -> http://example.com/some/foobar
 Navigator.prototype.__lookupLink = function Navigator__lookupLink(context) {
 	// try to find the link with a title equal to the param we were given
-	var href = local.http.lookupLink(this.links, context.rel, context.relparams.title);
+	var href = local.web.lookupLink(this.links, context.rel, context.relparams.title);
 
 	if (href) {
-		var url = local.http.UriTemplate.parse(href).expand(context.relparams);
-		var urld = local.http.parseUri(url);
+		var url = local.web.UriTemplate.parse(href).expand(context.relparams);
+		var urld = local.web.parseUri(url);
 		if (!urld.host) // handle relative URLs
 			url = this.context.getHost() + urld.relative;
 		return url;
@@ -308,12 +308,12 @@ NAV_RELATION_FNS.forEach(function (r) {
 });
 
 // builder fn
-local.http.navigator = function(urlOrNavOrLinks, optRel, optTitle) {
+local.web.navigator = function(urlOrNavOrLinks, optRel, optTitle) {
 	if (urlOrNavOrLinks instanceof Navigator)
 		return urlOrNavOrLinks;
 	var url;
 	if (Array.isArray(urlOrNavOrLinks))
-		url = local.http.lookupLink(urlOrNavOrLinks, optRel, optTitle);
+		url = local.web.lookupLink(urlOrNavOrLinks, optRel, optTitle);
 	else
 		url = urlOrNavOrLinks;
 	return new Navigator(url);

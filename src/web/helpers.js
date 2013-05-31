@@ -3,7 +3,7 @@
 
 // EXPORTED
 // breaks a link header into a javascript object
-local.http.parseLinkHeader = function parseLinkHeader(headerStr) {
+local.web.parseLinkHeader = function parseLinkHeader(headerStr) {
 	if (typeof headerStr !== 'string') {
 		return headerStr;
 	}
@@ -36,7 +36,7 @@ local.http.parseLinkHeader = function parseLinkHeader(headerStr) {
 //    eg lookupLink(links, 'item', 'foobar'), Link: <http://example.com/some/foobar>; rel="item"; title="foobar" -> http://example.com/some/foobar
 //  - then looks for a matching rel with no title and uses that to generate the link
 //    eg lookupLink(links, 'item', 'foobar'), Link: <http://example.com/some/{title}>; rel="item" -> http://example.com/some/foobar
-local.http.lookupLink = function lookupLink(links, rel, title) {
+local.web.lookupLink = function lookupLink(links, rel, title) {
 	var len = links ? links.length : 0;
 	if (!len) { return null; }
 
@@ -69,7 +69,7 @@ local.http.lookupLink = function lookupLink(links, rel, title) {
 
 // EXPORTED
 // correctly joins together to url segments
-local.http.joinUrl = function joinUrl() {
+local.web.joinUrl = function joinUrl() {
 	var parts = Array.prototype.map.call(arguments, function(arg) {
 		var lo = 0, hi = arg.length;
 		if (arg.charAt(0) === '/')      { lo += 1; }
@@ -80,33 +80,13 @@ local.http.joinUrl = function joinUrl() {
 };
 
 // EXPORTED
-// converts any known header objects into their string versions
-local.http.serializeRequestHeaders = function(headers) {
-	if (headers.authorization && typeof headers.authorization == 'object') {
-		if (!headers.authorization.scheme) { throw "`scheme` required for auth headers"; }
-		var auth;
-		switch (headers.authorization.scheme.toLowerCase()) {
-			case 'basic':
-				auth = 'Basic '+btoa(headers.authorization.name+':'+headers.authorization.password);
-				break;
-			case 'persona':
-				auth = 'Persona name='+headers.authorization.name+' assertion='+headers.authorization.assertion;
-				break;
-			default:
-				throw "unknown auth sceme: "+headers.authorization.scheme;
-		}
-		headers.authorization = auth;
-	}
-};
-
-// EXPORTED
 // parseUri 1.2.2, (c) Steven Levithan <stevenlevithan.com>, MIT License
-local.http.parseUri = function parseUri(str) {
+local.web.parseUri = function parseUri(str) {
 	if (typeof str === 'object') {
 		if (str.url) { str = str.url; }
-		else if (str.host || str.path) { str = local.http.joinUrl(req.host, req.path); }
+		else if (str.host || str.path) { str = local.web.joinUrl(req.host, req.path); }
 	}
-	var	o   = local.http.parseUri.options,
+	var	o   = local.web.parseUri.options,
 		m   = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
 		uri = {},
 		i   = 14;
@@ -121,7 +101,7 @@ local.http.parseUri = function parseUri(str) {
 	return uri;
 };
 
-local.http.parseUri.options = {
+local.web.parseUri.options = {
 	strictMode: false,
 	key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
 	q:   {
@@ -134,7 +114,6 @@ local.http.parseUri.options = {
 	}
 };
 
-
 // sends the given response back verbatim
 // - if `writeHead` has been previously called, it will not change
 // - params:
@@ -142,7 +121,7 @@ local.http.parseUri.options = {
 //   - `source`: the response to pull data from
 //   - `headersCb`: (optional) takes `(headers)` from source and responds updated headers for target
 //   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for target
-local.http.pipe = function(target, source, headersCB, bodyCb) {
+local.web.pipe = function(target, source, headersCB, bodyCb) {
 	headersCB = headersCB || function(v) { return v; };
 	bodyCb = bodyCb || function(v) { return v; };
 	return local.promise(source)

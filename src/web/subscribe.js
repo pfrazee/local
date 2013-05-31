@@ -1,15 +1,10 @@
 // Events
 // ======
-// :NOTE: currently, Chrome does not support event streams with CORS
 
 // the directory of the environment context
 var __windowLocationDirname = (typeof window != 'undefined') ? window.location.pathname.split('/') : [''];
 __windowLocationDirname[__windowLocationDirname.length - 1] = '';
 __windowLocationDirname = __windowLocationDirname.join('/');
-
-// event subscriber func
-// - used in workers to transport subscribes to the parent for routing
-var __customEventSubscriber = null;
 
 // subscribe()
 // ===========
@@ -26,11 +21,6 @@ local.http.subscribe = function subscribe(req) {
 	if (typeof req == 'string') {
 		req = { url:req };
 	}
-
-	// subscribe behavior override
-	// (used by workers to send subscribes to the parent document for routing)
-	if (__customEventSubscriber)
-		return __customEventSubscriber(req);
 
 	// parse the url
 	// (urld = url description)
