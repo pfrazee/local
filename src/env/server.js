@@ -36,15 +36,21 @@
 	// ============
 	// EXPORTED
 	// wrapper for servers run within workers
-	// - `config` must include `src`, which must be a URL
-	function WorkerServer(config, loaderrorCb) {
+	// - `config.src`: required URL
+	// - `loadCb`: optional function(message)
+	function WorkerServer(config, loadCb) {
 		config = config || {};
 		Server.call(this);
 		this.state = WorkerServer.BOOT;
 
+		this.loadCb = loadCb;
+		this.canLoadUserscript = false; // is the environment ready for us to load?
+
+		// merge config
 		for (var k in config)
 			this.config[k] = config[k];
 
+		// prep config
 		if (!this.config.src)
 			this.config.src = '';
 		if (!this.config.srcBaseUrl) {
@@ -57,19 +63,27 @@
 			this.config.domain = '<'+this.config.src.slice(0,40)+'>';
 		this.config.environmentHost = window.location.host;
 
-		this.loaderrorCb = loaderrorCb;
-		this.readyMessage = null;
-		this.canLoadUserscript = false;
-		this.activeEventStreams = [];
-
 		// initialize the web worker with the bootstrap script
-		this.worker = new local.env.Worker(null, { bootstrapUrl:local.env.config.workerBootstrapUrl });
-		this.worker.bufferMessages('httpRequest'); // queue http requests until the app script is loaded
-		this.worker.onNamedMessage('ready', this.onWorkerReady, this);
-		this.worker.onNamedMessage('terminate', this.terminate, this);
-		this.worker.onNamedMessage('httpRequest', this.onWorkerHttpRequest, this);
-		this.worker.onNamedMessage('httpSubscribe', this.onWorkerHttpSubscribe, this);
-		this.worker.onNamedMessage('log', this.onWorkerLog, this);
+		this.worker = new local.env.Worker({ bootstrapUrl:local.env.config.workerBootstrapUrl });
+		this.worker.suspendExchangeTopic('web_request'); // queue web requests until the app script is loaded
+		this.worker.suspendExchangeTopic('web_subscribe'); // ditto for subscribes
+		this.worker.onMessage(this.worker.ops, 'ready', this.onOpsWorkerReady.bind(this));
+		this.worker.onMessage(this.worker.ops, 'log', this.onOpsWorkerLog.bind(this));
+		this.worker.onMessage(this.worker.ops, 'terminate', this.terminate.bind(this));
+		this.worker.onExchange('web_request', this.onWebRequestExchange.bind(this));
+		this.worker.onExchange('web_subscribe', this.onWebSubscribeExchange.bind(this));
+
+		// prebind some message handlers to `this` for reuse
+		this.$onWebRequestHeaders   = this.onWebRequestHeaders.bind(this);
+		this.$onWebRequestData      = this.onWebRequestData.bind(this);
+		this.$onWebRequestEnd       = this.onWebRequestEnd.bind(this);
+		this.$onWebResponseHeaders  = this.onWebResponseHeaders.bind(this);
+		this.$onWebResponseData     = this.onWebResponseData.bind(this);
+		this.$onWebResponseEnd      = this.onWebResponseEnd.bind(this);
+		this.$onWebClose            = this.onWebClose.bind(this);
+		this.$onWebSubscribeUrl     = this.onWebSubscribeUrl.bind(this);
+		this.$onWebSubscribeChannel = this.onWebSubscribeChannel.bind(this);
+		this.$onWebSubscribeClose   = this.onWebSubscribeClose.bind(this);
 	}
 	local.env.WorkerServer = WorkerServer;
 	WorkerServer.prototype = Object.create(Server.prototype);
@@ -81,53 +95,110 @@
 	WorkerServer.ACTIVE = 2; // local bootstrap and user script loaded, server may handle requests
 	WorkerServer.DEAD   = 3; // should be cleaned up
 
+
+	// ops exchange handlers
+	// -
+
 	// runs Local initialization for a worker thread
-	// - called when the myhouse worker_bootstrap has finished loading
-	WorkerServer.prototype.onWorkerReady = function(message) {
+	// - called when the bootstrap has finished loading
+	WorkerServer.prototype.onOpsWorkerReady = function(message) {
 		// disable dangerous APIs
 		this.worker.nullify('XMLHttpRequest');
 		this.worker.nullify('Worker');
-		this.worker.nullify('importScripts');
 		// hold onto the ready message and update state, so the environment can finish preparing us
 		// (the config must be locked before we continue from here)
 		this.state = WorkerServer.READY;
-		this.readyMessage = message;
 		if (this.canLoadUserscript)
 			this.loadUserScript();
 	};
 
-	WorkerServer.prototype.loadUserScript = function() {
-		// flag that the environment is ready for us
-		this.canLoadUserscript = true;
-		if (this.state != WorkerServer.READY)
-			return; // wait for the worker to be ready
-		// send config to the worker thread
-		this.worker.postReply(this.readyMessage, this.config);
-		// encode src in base64 if needed
-		var src = this.config.src;
-		if (src.indexOf('data:application/javascript,') === 0)
-			src = 'data:application/javacsript;base64,'+btoa(src.slice(28));
-		// load the server program
-		var self = this;
-		this.worker.importScripts(src, function(importRes) {
-			if (importRes.data.error) {
-				if (self.loaderrorCb) self.loaderrorCb(importRes.data);
-				self.terminate();
-				return;
-			}
-			if (self.state != WorkerServer.DEAD) {
-				self.state = WorkerServer.ACTIVE;
-				self.worker.releaseMessages('httpRequest'); // stop buffering
-			}
-		});
+	// logs message data from the worker
+	WorkerServer.prototype.onOpsWorkerLog = function(message) {
+		if (!message.data)
+			return;
+		if (!Array.isArray(message.data))
+			return console.error('Received invalid ops-exchange "log" message: Payload must be an array', message);
+
+		var type = message.data.shift();
+		var args = ['['+this.config.domain+']'].concat(message.data);
+		switch (type) {
+			case 'error':
+				console.error.apply(console, args);
+				break;
+			case 'warn':
+				console.warn.apply(console, args);
+				break;
+			default:
+				console.log.apply(console, args);
+				break;
+		}
 	};
 
 	// destroys the server
 	// - called when the worker has died, or when the environment wants the server to die
 	WorkerServer.prototype.terminate = function() {
 		this.state = WorkerServer.DEAD;
-		this.activeEventStreams.forEach(function(stream) { if (stream) { stream.close(); }});
 		this.worker.terminate();
+	};
+
+
+	// user script-loading api
+	// -
+
+	WorkerServer.prototype.loadUserScript = function() {
+		this.canLoadUserscript = true; // flag that the environment is ready for us
+		if (this.state != WorkerServer.READY)
+			return; // wait for the worker to be ready
+
+		this.worker.sendMessage(this.worker.ops, 'configure', this.config);
+
+		// encode src in base64 if needed
+		var src = this.config.src;
+		if (src.indexOf('data:application/javascript,') === 0)
+			src = 'data:application/javacsript;base64,'+btoa(src.slice(28));
+
+		this.worker.importScripts(src, this.onWorkerUserScriptLoaded.bind(this));
+	};
+
+	// starts normal operation
+	// - called when the user script has finished loading
+	WorkerServer.prototype.onWorkerUserScriptLoaded = function(message) {
+		if (this.loadCb && typeof this.loadCb == 'function')
+			this.loadCb(message);
+		if (message.data.error) {
+			console.error('Failed to load user script in worker, terminating', message, this);
+			this.terminate();
+		}
+		else if (this.state != WorkerServer.DEAD) {
+			this.state = WorkerServer.ACTIVE;
+			this.worker.resumeExchangeTopic('web_request');
+			this.worker.resumeExchangeTopic('web_subscribe');
+		}
+	};
+
+
+	// server behavior api
+	// -
+
+	// dispatches the request to the worker for handling
+	// - called when a request is issued to the worker-server
+	// - mirrors setRequestDispatcher(function) in worker/http.js
+	WorkerServer.prototype.handleHttpRequest = function(request, response) {
+		var worker = this.worker;
+
+		// setup exchange and exchange handlers
+		var exchange = worker.startExchange('web_request');
+		worker.setExchangeMeta(exchange, 'request', request);
+		worker.setExchangeMeta(exchange, 'response', response);
+		worker.onMessage(exchange, 'response_headers', this.$onWebResponseHeaders);
+		worker.onMessage(exchange, 'response_data', this.$onWebResponseData);
+		worker.onMessage(exchange, 'response_end', this.$onWebResponseEnd);
+		worker.onMessage(exchange, 'close', this.$onWebClose);
+
+		// wire request into the exchange
+		worker.sendMessage(exchange, 'request_headers', request);
+		request.on('data', function(data) { worker.sendMessage(exchange, 'request_data', data); });
+		request.on('end', function() { worker.sendMessage(exchange, 'request_end'); });
 	};
 
 	// retrieve server source
@@ -152,90 +223,178 @@
 		);
 	};
 
-	// logs the message data
-	// - allows programs to run `app.postMessage('log', 'my log message')`
-	WorkerServer.prototype.onWorkerLog = function(message) {
-		console.log('['+this.config.domain+']', message.data);
-	};
+
+	// web request exchange handlers
+	// -
 
 	// dispatches a request to local.http and sends the response back to the worker
 	// - called when the worker-server issues a request
-	// - mirrors app.onNamedMessage('httpRequest') in worker/http.js
-	WorkerServer.prototype.onWorkerHttpRequest = function(message) {
-		var self = this;
-		var request = message.data;
-
-		// pipe the response back to the worker
-		var handleResponse = function(response) {
-			var stream = self.worker.postReply(message, response);
-			if (response.isConnOpen) {
-				response.on('data', function(data) { self.worker.postNamedMessage(stream, data); });
-				response.on('end', function() { self.worker.endMessage(stream); });
-			} else
-				self.worker.endMessage(stream);
-		};
-
-		// execute the request
-		local.http.dispatch(message.data, this).then(handleResponse, handleResponse);
+	// - mirrors app.onExchange('web_request') in worker/http.js
+	WorkerServer.prototype.onWebRequestExchange = function(exchange) {
+		this.worker.onMessage(exchange, 'request_headers', this.$onWebRequestHeaders);
+		this.worker.onMessage(exchange, 'request_data', this.$onWebRequestData);
+		this.worker.onMessage(exchange, 'request_end', this.$onWebRequestEnd);
+		this.worker.onMessage(exchange, 'close', this.$onWebClose);
 	};
+
+	WorkerServer.prototype.onWebRequestHeaders = function(message) {
+		if (!message.data) {
+			console.error('Invalid "request_headers" message from worker: Payload missing', message);
+			self.worker.endExchange(message.exchange);
+			return;
+		}
+
+		// create request
+		var request = local.http.clientRequest(message.data);
+		this.worker.setExchangeMeta(message.exchange, 'request', request);
+
+		// dispatch request
+		var worker = this.worker;
+		local.http.dispatch(request, this).always(function(response) {
+			worker.setExchangeMeta(message.exchange, 'response', response);
+
+			// wire response into the exchange
+			worker.sendMessage(message.exchange, 'response_headers', response);
+			response.on('data', function(data) { worker.sendMessage(message.exchange, 'response_data', data); });
+			response.on('end', function() {
+				worker.sendMessage(message.exchange, 'response_end');
+				worker.endExchange(message.exchange);
+			});
+		});
+	};
+
+	WorkerServer.prototype.onWebRequestData = function(message) {
+		if (!message.data || typeof message.data != 'string') {
+			console.error('Invalid "request_data" message from worker: Payload must be a string', message);
+			self.worker.endExchange(message.exchange);
+			return;
+		}
+
+		var request = this.worker.getExchangeMeta(message.exchange, 'request');
+		if (!request) {
+			console.error('Invalid "request_data" message from worker: Request headers not previously received', message);
+			self.worker.endExchange(message.exchange);
+			return;
+		}
+
+		request.write(message.data);
+	};
+
+	WorkerServer.prototype.onWebRequestEnd = function(message) {
+		var request = this.worker.getExchangeMeta(message.exchange, 'request');
+		if (!request) {
+			console.error('Invalid "request_end" message from worker: Request headers not previously received', message);
+			self.worker.endExchange(message.exchange);
+			return;
+		}
+
+		request.end();
+	};
+
+	WorkerServer.prototype.onWebResponseHeaders = function(message) {
+		if (!message.data) {
+			console.error('Invalid "response_headers" message from worker: Payload missing', message);
+			self.worker.endExchange(message.exchange);
+			return;
+		}
+
+		var response = this.worker.getExchangeMeta(message.exchange, 'response');
+		if (!response) {
+			console.error('Internal error when receiving "response_headers" message from worker: Response object not present', message);
+			self.worker.endExchange(message.exchange);
+			return;
+		}
+
+		response.writeHead(message.data.status, message.data.reason, message.data.headers);
+	};
+
+	WorkerServer.prototype.onWebResponseData = function(message) {
+		if (!message.data || typeof message.data != 'string') {
+			console.error('Invalid "response_data" message from worker: Payload must be a string', message);
+			self.worker.endExchange(message.exchange);
+			return;
+		}
+
+		var response = this.worker.getExchangeMeta(message.exchange, 'response');
+		if (!response) {
+			console.error('Internal error when receiving "response_data" message from worker: Response object not present', message);
+			self.worker.endExchange(message.exchange);
+			return;
+		}
+
+		response.write(message.data);
+	};
+
+	WorkerServer.prototype.onWebResponseEnd = function(message) {
+		var response = this.worker.getExchangeMeta(message.exchange, 'response');
+		if (!response) {
+			console.error('Internal error when receiving "response_end" message from worker: Response object not present', message);
+			self.worker.endExchange(message.exchange);
+			return;
+		}
+
+		response.end();
+	};
+
+	// closes the request/response, caused by a close of the exchange
+	// - could happen because the response has ended
+	// - could also happen because the request aborted
+	// - could also happen due to a bad message
+	WorkerServer.prototype.onWebClose = function(message) {
+		var request = this.worker.getExchangeMeta(message.exchange, 'request');
+		if (request) request.close();
+		var response = this.worker.getExchangeMeta(message.exchange, 'response');
+		if (response) response.close();
+	};
+
+
+
+	// web subscribe exchange handlers
+	// -
 
 	// routes the subscribe to local.http and sends the events back to the worker
 	// - called when the worker-server issues a subscribe
-	WorkerServer.prototype.onWorkerHttpSubscribe = function(message) {
+	// - sadly, cant just wrap this around dispatch() because the remote-source version
+	//   uses browser-native functions instead of dispatch()
+	WorkerServer.prototype.onWebSubscribeExchange = function(exchange) {
+		this.worker.onMessage(exchange, 'subscribe_url', this.$onWebSubscribeUrl);
+		this.worker.onMessage(exchange, 'subscribe_channel', this.$onWebSubscribeChannel);
+		this.worker.onMessage(exchange, 'close', this.$onWebSubscribeClose);
+	};
+
+	WorkerServer.prototype.onWebSubscribeUrl = function(message) {
+		if (!message.data || typeof message.data != 'string') {
+			console.error('Invalid "subscribe_url" message from worker: Payload must be a url', message);
+			self.worker.endExchange(message.exchange);
+			return;
+		}
+
+		var eventStream = local.http.subscribe(message.data);
+		self.worker.setExchangeMeta(message.exchange, 'eventStream', eventStream);
+	};
+
+	WorkerServer.prototype.onWebSubscribeChannel = function(message) {
+		if (!message.data) {
+			console.error('Invalid "subscribe_channel" message from worker: Payload must be a string or array of strings', message);
+			self.worker.endExchange(message.exchange);
+			return;
+		}
+
+		var eventStream = self.worker.getExchangeMeta(message.exchange, 'eventStream');
+		if (!eventStream) {
+			console.error('Invalid "subscribe_channel" message from worker: EventStream not previously established', message);
+			self.worker.endExchange(message.exchange);
+			return;
+		}
+
 		var self = this;
-		var request = message.data;
-
-		// create the stream
-		var eventStream = local.http.subscribe(request);
-		var streamIndex = this.activeEventStreams.push(eventStream);
-		eventStream.on('error', function() {
-			self.activeEventStreams[streamIndex] = null;
-		});
-
-		// listen for further requests - they indicate individual message subscribes
-		this.worker.onNamedMessage(message.id, function(message2) {
-			if (message2 == 'endMessage') {
-				// stream closed
-				eventStream.close();
-			} else {
-				var eventNames = message2.data;
-				var msgStream = self.worker.postReply(message2);
-				// begin listening
-				eventStream.on(eventNames, function(e) {
-					// pipe back
-					if (self.state != WorkerServer.DEAD)
-						self.worker.postNamedMessage(msgStream, e);
-				});
-			}
+		eventStream.on(message.data, function(e) {
+			self.worker.sendMessage(message.exchange, 'subscribe_event', e);
 		});
 	};
 
-	// dispatches the request to the worker for handling
-	// - called when a request is issued to the worker-server
-	// - mirrors setRequestDispatcher(function) in worker/http.js
-	WorkerServer.prototype.handleHttpRequest = function(request, response) {
-		var worker = this.worker;
-		var requestMessage = worker.postNamedMessage('httpRequest', request, function(reply) {
-			if (!reply.data) { throw "Invalid httpRequest reply to document from worker"; }
-
-			response.writeHead(reply.data.status, reply.data.reason, reply.data.headers);
-			if (typeof reply.data.body != 'undefined' && reply.data.body !== null)
-				response.write(reply.data.body);
-
-			worker.onNamedMessage(reply.id, function(streamMessage) {
-				if (streamMessage.name === 'endMessage') {
-					response.end();
-				} else {
-					// :TODO: update headers?
-					response.write(streamMessage.data);
-				}
-			});
-		}, this);
-		if (request.stream) {
-			response.clientResponse.on('close', function() {
-				// pass this on to the worker so it can close the stream
-				worker.endMessage(requestMessage);
-			});
-		}
+	WorkerServer.prototype.onWebSubscribeClose = function(message) {
+		var eventStream = self.worker.getExchangeMeta(message.exchange, 'eventStream');
+		if (eventStream) eventStream.close();
 	};
 })();

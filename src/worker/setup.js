@@ -1,22 +1,81 @@
 // Setup
 // =====
-var closureImportScripts = importScripts; // self.importScripts will be nullified later
-var closureXMLHttpRequest = XMLHttpRequest; // self.XMLHttpRequest will be nullified later
+
+// create connection to host page
+local.worker.hostConnection = new local.worker.PageConnection(this, true);
+var hostConn = local.worker.hostConnection;
+
+
+// ops-exchange handlers
+// -
+hostConn.onMessage(hostConn.ops, 'configure', function(message) {
+	local.worker.config = message.data;
+});
+
+hostConn.onMessage(hostConn.ops, 'nullify', function(message) {
+	console.log('nullifying: ' + message.data);
+	if (typeof message.data === 'string')
+		self[message.data] = null; // destroy the top-level reference
+	else
+		throw "'nullify' message must include a valid string";
+});
+
+hostConn.onExchange('importScripts', function(exchange) {
+	hostConn.onMessage(exchange, 'urls', function(message) {
+		console.log('importingScripts: ' + message.data);
+		if (message && message.data) {
+			try {
+				closureImportScripts(message.data);
+			} catch(e) {
+				hostConn.sendMessage(message.exchange, 'done', { error: true, reason: (e ? e.toString() : e) });
+				hostConn.endExchange(message.exchange);
+				throw e;
+			}
+		} else {
+			hostConn.sendMessage(message.exchange, 'done', { error: true, reason: (e ? e.toString() : e) });
+			hostConn.endExchange(message.exchange);
+			throw "'importScripts' message must include a valid array/string";
+		}
+		hostConn.sendMessage(message.exchange, 'done', { error: false });
+		hostConn.endExchange(message.exchange);
+	});
+};
+
+
+// apis
+// -
 
 // EXPORTED
-// sends log message
-local.worker.log = function log() {
-	var args = Array.prototype.slice.call(arguments);
-	if (args.length == 1)
-		args = args[0];
-	try { local.worker.postNamedMessage('log', args); }
-	catch (e) {
-		// this is usually caused by trying to log information that cant be serialized
-		local.worker.postNamedMessage('log', JSONifyMessage(args));
+// console.* replacements
+self.console = {
+	log: function() {
+		var args = Array.prototype.slice.call(arguments);
+		doLog('log', args);
+	},
+	dir: function() {
+		var args = Array.prototype.slice.call(arguments);
+		doLog('dir', args);
+	},
+	debug: function() {
+		var args = Array.prototype.slice.call(arguments);
+		doLog('debug', args);
+	},
+	warn: function() {
+		var args = Array.prototype.slice.call(arguments);
+		doLog('warn', args);
+	},
+	error: function() {
+		var args = Array.prototype.slice.call(arguments);
+		doLog('error', args);
 	}
 };
-self.console = {};
-self.console.log = local.worker.log;
+function doLog(type, args) {
+	try { hostConn.sendMessage(hostConn.ops, 'log', [type].concat(args)); }
+	catch (e) {
+		// this is usually caused by trying to log information that cant be serialized
+		hostConn.sendMessage(hostConn.ops, 'log', [type].concat(args.map(JSONifyMessage)));
+	}
+}
 
 // INTERNAL
 // helper to try to get a failed log message through
@@ -27,13 +86,6 @@ function JSONifyMessage(data) {
 		return JSON.stringify(data);
 	return data;
 }
-
-// EXPORTED
-// logs the current stack
-local.worker.logStack = function() {
-	try { stack_trace._fake+=0; }
-	catch(e) { console.log(e.stack); }
-};
 
 // EXPORTED
 // btoa shim
@@ -83,68 +135,5 @@ if (!self.btoa) {
 	};
 }
 
-// EXPORTED
-// GETs a resource, then wraps it in a closure and returns as a variable
-// - SYNCRONOUS: blocks until GET finishes or times out
-// - if the content type or extension is .js, will run `importScripts` after wrapping in a `module.exports` closure
-// - otherwise, returns content as a string
-self.require = function(url) {
-	if (local.worker.config && url.indexOf('://') === -1 && url.charAt(0) != '/') // relative url?
-		url = local.worker.config.srcBaseUrl + url; // make relative to user script's location
-
-	if (url in self.modules)
-		return self.modules[url];
-
-	var request = new closureXMLHttpRequest();
-	request.open('GET', url, false);
-	request.send(null);
-	if (request.status >= 200 && request.status < 300) {
-		if (/\.js$/.test(url)) {
-			closureImportScripts(makeExportClosure(url, request.responseText));
-			return self.modules[url];
-		} else {
-			self.modules[url] = request.responseText;
-			return request.responseText;
-		}
-	}
-	console.log('Failed to require('+url+') - '+request.status);
-	return null;
-};
-self.modules = {};
-function makeExportClosure(url, src) {
-	src = '(function(){ var module = { exports:{} }; ' + src + '; self.modules["'+url+'"] = module.exports; })();';
-	return 'data:text/javascript;base64,'+btoa(src);
-}
-
-// Document Commands
-// removes an object from use
-local.worker.onNamedMessage('nullify', function(message) {
-	console.log('nullifying: ' + message.data);
-	if (message && typeof message.data === 'string') {
-		// destroy the top-level reference
-		self[message.data] = null;
-	} else {
-		throw "'nullify' message must include a valid string";
-	}
-});
-
-// imports the script at/in the given uri
-local.worker.onNamedMessage('importScripts', function(message) {
-	console.log('importingScripts: ' + message.data);
-	if (message && message.data) {
-		try {
-			closureImportScripts(message.data);
-		} catch(e) {
-			local.worker.postReply(message, { error:true, reason:(e ? e.toString() : e) });
-			throw e;
-		}
-	} else {
-		throw "'importScripts' message must include a valid array/string";
-	}
-	local.worker.postReply(message, { error:false });
-});
-
 // let the document know we've loaded
-local.worker.postNamedMessage('ready', null, function(reply) {
-	local.worker.config = reply.data;
-});
+hostConn.sendMessage(hostConn.ops, 'ready');

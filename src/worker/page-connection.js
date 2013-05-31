@@ -1,22 +1,22 @@
-// Env Worker
-// ==========
+// Worker Named Messaging
+// ======================
 
-(function () {
+(function() {
+	var closureImportScripts = importScripts; // self.importScripts will be nullified later
 	var __cur_cid = 1;
 	function gen_cid() { return __cur_cid++; }
 	var __cur_mid = 1;
 	function gen_mid() { return __cur_mid++; }
 
-	// Worker
-	// ======
+	// PageConnection
+	// ==============
 	// EXPORTED
-	// wraps a Web Worker API tools for sandboxing and messaging
-	// - loads the worker with the bootstrap script
-	// - `options.bootstrapUrl` may optionally specify the URL of the worker bootstrap script
-	// - `options.log` will enable logging of traffic
-	function LocalEnvWorker(options) {
-		options = options || {};
-		this.isLogging = options.log;
+	// wraps the comm interface to a page for messaging
+	// - `port`: required object, either `self` (for non-shared workers) or a port from `onconnect`
+	// - `isHost`: boolean, should connection get host privileges?
+	function PageConnection(port, isHost) {
+		this.port = port;
+		this.isHostConnection = isHost;
 
 		this.exchanges = {};
 		this.exchangeListeners = {};
@@ -25,74 +25,30 @@
 		this.ops = 0;
 		this.exchanges[this.ops] = { topic: null, messageListeners: {} };
 
-		// suspension
-		this.suspendedTopics = [];
-		this.messageBuffers = {};
-
-		this.worker = new Worker(options.bootstrapUrl || 'worker.js');
 		setupMessagingHandlers.call(this);
 	}
-	local.env.Worker = LocalEnvWorker;
+	local.worker.PageConnection = PageConnection;
 
 
-	// control api
-	// -
-
-	// EXPORTED
-	// instructs the LocalEnvWorker to set the given name to null
-	// - eg LocalEnvWorker.nullify('XMLHttpRequest'); // no ajax
-	LocalEnvWorker.prototype.nullify = function(name) {
-		this.sendMessage(this.ops, 'nullify', name);
-	};
-
-	// EXPORTED
-	// instructs the LocalEnvWorker to import the JS given by the URL
-	// - eg LocalEnvWorker.importJS('/my/script.js', onImported);
-	// - `urls`: required string|array[string]
-	// - `cb`: optional function(message), called on load/fail
-	// - `urls` may contain data-urls of valid JS
-	LocalEnvWorker.prototype.importScripts = function(urls, cb) {
-		var exImportScripts = this.startExchange('importScripts');
-		if (cb)
-			this.onMessage(exImportScripts, 'done', cb);
-		this.sendMessage(exImportScripts, 'urls', urls);
-		// exImportScripts will be closed by the worker after sending 'done'
-	};
-
-	// EXPORTED
-	// destroys the LocalEnvWorker
-	LocalEnvWorker.prototype.terminate = function() {
-		for (var exchange in this.exchanges)
-			this.endExchange(exchange);
-		delete this.exchangeListeners;
-		delete this.suspendedTopics;
-		delete this.messageBuffers;
-		this.worker.terminate();
-		this.worker = null;
-	};
-
-
-	// exchange & messaging api
+	// messaging api
 	// -
 
 	// INTERNAL
 	// registers listeners required for messaging
 	function setupMessagingHandlers() {
 		// native message handler
-		this.worker.addEventListener('message', (function(event) {
+		this.port.addEventListener('message', (function(event) {
 			var message = event.data;
 			if (!message)
-				return console.error('Invalid message from worker: Payload missing', message);
+				return console.error('Invalid message from page: Payload missing', message);
 			if (!message.id)
-				return console.error('Invalid message from worker: `id` missing', message);
+				return console.error('Invalid message from page: `id` missing', message);
 			if (!message.exchange)
-				return console.error('Invalid message from worker: `exchange` missing', message);
+				return console.error('Invalid message from page: `exchange` missing', message);
 			if (!message.label)
-				return console.error('Invalid message from worker: `label` missing', message);
+				return console.error('Invalid message from page: `label` missing', message);
 
-			if (this.isLogging) { console.log('receiving', message); }
-
-			// exchanges from the worker use negative IDs (to avoid collisions)
+			// exchanges from the page use negative IDs (to avoid collisions)
 			message.exchange = parseInt(message.exchange, 10);
 			if (message.exchange !== this.ops) // (except the ops channel)
 				message.exchange = -message.exchange;
@@ -104,15 +60,13 @@
 		// new exchange handler
 		this.onMessage(this.ops, 'open_exchange', (function(message) {
 			if (!message.data)
-				return console.error('Invalid ops-exchange "open" message from worker: Payload missing', message);
+				return console.error('Invalid ops-exchange "open" message from page: Payload missing', message);
 			if (!message.data.topic)
-				return console.error('Invalid ops-exchange "open" message from worker: `topic` missing', message);
+				return console.error('Invalid ops-exchange "open" message from page: `topic` missing', message);
 			if (!message.data.exchange)
-				return console.error('Invalid ops-exchange "open" message from worker: `exchange` missing', message);
+				return console.error('Invalid ops-exchange "open" message from page: `exchange` missing', message);
 
-			if (this.isLogging) { console.log('open exchange', message); }
-
-			// exchanges from the worker use negative IDs (to avoid collisions)
+			// exchanges from the page use negative IDs (to avoid collisions)
 			message.data.exchange = -parseInt(message.data.exchange, 10);
 			this.exchanges[message.data.exchange] = { topic: topic, messageListeners: {}, metaData: {} };
 
@@ -130,12 +84,8 @@
 			if (!(exchange in this.exchanges))
 				return console.error('Invalid ops-exchange "close" message from worker: Invalid exchange id', message);
 
-			if (this.isLogging) { console.log('close exchange', message); }
-
 			this.removeAllMessageListeners(exchange);
 			delete this.exchanges[exchange];
-			if (exchange in this.messageBuffers)
-				delete this.messageBuffers[exchange];
 		}).bind(this));
 	}
 
@@ -143,14 +93,10 @@
 	// starts a new bidirectional message stream
 	// - sends the 'open_exchange' message on the operations exchange
 	// - `topic`: required string, a label for the exchange
-	LocalEnvWorker.prototype.startExchange = function(topic) {
+	PageConnection.prototype.startExchange = function(topic) {
 		var exchange = gen_cid();
 		this.exchanges[exchange] = { topic: topic, messageListeners: {}, metaData: {} };
 		this.sendMessage(this.ops, 'open_exchange', { exchange: exchange, topic: topic });
-
-		if (this.isExchangeTopicSuspended(topic))
-			this.suspendExchange(exchange);
-
 		return exchange;
 	};
 
@@ -160,7 +106,7 @@
 	//   and 'close' on the given exchange, and broadcasts the 'close' message
 	//   on the local exchange listeners
 	// - `exchange`: required number, an ID given by `startExchange()` or `onExchange()`
-	LocalEnvWorker.prototype.endExchange = function(exchange) {
+	PageConnection.prototype.endExchange = function(exchange) {
 		if (!(exchange in this.exchanges))
 			return;
 
@@ -176,8 +122,6 @@
 
 		this.removeAllMessageListeners(exchange);
 		delete this.exchanges[exchange];
-		if (exchange in this.messageBuffers)
-			delete this.messageBuffers[exchange];
 	};
 
 	// EXPORTED
@@ -185,7 +129,7 @@
 	// - `exchange`: required number
 	// - `k`: required string
 	// - `v`: required mixed
-	LocalEnvWorker.prototype.setExchangeMeta = function(exchange, k, v) {
+	PageConnection.prototype.setExchangeMeta = function(exchange, k, v) {
 		if (exchange in this.exchanges)
 			this.exchanges[exchange].metaData[k] = v;
 	};
@@ -194,7 +138,7 @@
 	// gets data from the exchange
 	// - `exchange`: required number
 	// - `k`: required string
-	LocalEnvWorker.prototype.getExchangeMeta = function(exchange, k, v) {
+	PageConnection.prototype.getExchangeMeta = function(exchange, k, v) {
 		if (exchange in this.exchanges)
 			return this.exchanges[exchange].metaData[k];
 		return null;
@@ -205,7 +149,7 @@
 	// - `exchange`: required number, an ID given by `startExchange()` or `onExchange()`
 	// - `label`: required string, identifies the message type
 	// - `data`: optional mixed, the content of the message
-	LocalEnvWorker.prototype.sendMessage = function(exchange, label, data) {
+	PageConnection.prototype.sendMessage = function(exchange, label, data) {
 		var message;
 		if (typeof exchange == 'object')
 			message = exchange;
@@ -217,13 +161,7 @@
 				data     : data
 			};
 		}
-		if (message.exchange in this.messageBuffers) {
-			// dont send; queue message in the buffer
-			this.messageBuffers[message.exchange].push(message);
-		} else {
-			if (this.isLogging) { console.log('sending', message); }
-			this.worker.postMessage(message);
-		}
+		this.worker.postMessage(message);
 		return message.id;
 	};
 
@@ -231,7 +169,7 @@
 	// registers a callback for handling new exchanges from the worker
 	// - `topic`: required string, the exchange label
 	// - `handler`: required function(exchange:number)
-	LocalEnvWorker.prototype.onExchange = function(topic, handler) {
+	PageConnection.prototype.onExchange = function(topic, handler) {
 		if (!(topic in this.exchangeListeners))
 			this.exchangeListeners[topic] = [];
 		this.exchangeListeners[topic].push(handler);
@@ -252,7 +190,7 @@
 	// removes a callback from the converation topic
 	// - `topic`: required string, the exchange label
 	// - `handler`: required function, the callback to remove
-	LocalEnvWorker.prototype.removeExchangeListener = function(topic, handler) {
+	PageConnection.prototype.removeExchangeListener = function(topic, handler) {
 		if (topic in this.exchangeListeners) {
 			var filterFn = function(listener) { return listener != handler; };
 			this.exchangeListeners[topic] = this.exchangeListeners[topic].filter(filterFn);
@@ -264,7 +202,7 @@
 	// EXPORTED
 	// removes all callbacks from the exchange topic
 	// - `topic`: required string, the exchange label
-	LocalEnvWorker.prototype.removeAllExchangeListeners = function(topic) {
+	PageConnection.prototype.removeAllExchangeListeners = function(topic) {
 		if (topic in this.exchangeListeners)
 			delete this.exchangeListeners[topic];
 	};
@@ -274,7 +212,7 @@
 	// - `exchange`: required number, an ID given by `startExchange()` or `onExchange()`
 	// - `label`: required string, identifies the message type
 	// - `handler`: required function(message:object, exchangeData:object)
-	LocalEnvWorker.prototype.onMessage = function(exchange, label, handler) {
+	PageConnection.prototype.onMessage = function(exchange, label, handler) {
 		var exchangeData = this.exchanges[exchange];
 		if (!exchangeData)
 			return console.error('Invalid `exchange` in onMessage() call: Not a valid ID', exchange);
@@ -302,7 +240,7 @@
 	// - `exchange`: required number
 	// - `label`: required string
 	// - `handler`: required function
-	LocalEnvWorker.prototype.removeMessageListener = function(exchange, label, handler) {
+	PageConnection.prototype.removeMessageListener = function(exchange, label, handler) {
 		var exchangeData = this.exchanges[exchange];
 		if (!exchangeData)
 			return console.warn('Invalid `exchange` in removeMessageListener() call: Not a valid ID', exchange);
@@ -319,7 +257,7 @@
 	// - `exchange`: required number
 	// - `label`: optional string
 	// - if `label` is not given, removes all message listeners on the exchange
-	LocalEnvWorker.prototype.removeAllMessageListeners = function(exchange, label) {
+	PageConnection.prototype.removeAllMessageListeners = function(exchange, label) {
 		var exchangeData = this.exchanges[exchange];
 		if (!exchangeData)
 			return console.warn('Invalid `exchange` in removeMessageListener() call: Not a valid ID', exchange);
@@ -331,62 +269,4 @@
 			exchangeData.messageListeners = {};
 	};
 
-	// EXPORTED
-	// delays all messages of the given exchange until `resumeExchange` is called
-	// - `exchange`: required number
-	LocalEnvWorker.prototype.suspendExchange = function(exchange) {
-		if (!(exchange in this.messageBuffers))
-			this.messageBuffers[exchange] = [];
-	};
-
-	// EXPORTED
-	// stops buffering and sends all queued messages in the exchange
-	// - `exchange`: required number
-	LocalEnvWorker.prototype.resumeExchange = function(exchange) {
-		if (exchange in this.messageBuffers) {
-			var buffer = this.messageBuffers[exchange];
-			delete this.messageBuffers[exchange];
-			buffer.forEach(this.sendMessage, this);
-		}
-	};
-
-	// EXPORTED
-	// - `exchange`: required number
-	LocalEnvWorker.prototype.isExchangeSuspended = function(exchange) {
-		return (exchange in this.messageBuffers);
-	};
-
-	// EXPORTED
-	// delays all messages of the given exchange topic until `resumeExchangeTopic` is called
-	// - `topic`: required string
-	// - only suspends outgoing topics (not incoming)
-	LocalEnvWorker.prototype.suspendExchangeTopic = function(topic) {
-		if (this.suspendTopics.indexOf(topic) === -1) {
-			this.suspendTopics.push(topic);
-			for (var c in this.exchanges) {
-				if (this.exchanges[c].topic == topic)
-					this.suspendExchange(c);
-			}
-		}
-	};
-
-	// EXPORTED
-	// stops buffering and sends all queued messages in the exchanges of the given `topic`
-	// - `topic`: required string
-	LocalEnvWorker.prototype.resumeExchangeTopic = function(topic) {
-		var topicIndex = this.suspendTopics.indexOf(topic);
-		if (topicIndex !== -1) {
-			this.suspendTopics.splice(topicIndex, 1);
-			for (var c in this.exchanges) {
-				if (this.exchanges[c].topic == topic)
-					this.resumeExchange(c);
-			}
-		}
-	};
-
-	// EXPORTED
-	// - `topic`: required string
-	LocalEnvWorker.prototype.isExchangeTopicSuspended = function(topic) {
-		return this.suspendTopics.indexOf(topic) !== -1;
-	};
 })();
