@@ -71,7 +71,7 @@
 		this.worker.onMessage(this.worker.ops, 'log', this.onOpsWorkerLog.bind(this));
 		this.worker.onMessage(this.worker.ops, 'terminate', this.terminate.bind(this));
 		this.worker.onExchange('web_request', this.onWebRequestExchange.bind(this));
-		this.worker.onExchange('web_subscribe', this.onWebSubscribeExchange.bind(this));
+		// this.worker.onExchange('web_subscribe', this.onWebSubscribeExchange.bind(this));
 
 		// prebind some message handlers to `this` for reuse
 		this.$onWebRequestHeaders   = this.onWebRequestHeaders.bind(this);
@@ -81,9 +81,9 @@
 		this.$onWebResponseData     = this.onWebResponseData.bind(this);
 		this.$onWebResponseEnd      = this.onWebResponseEnd.bind(this);
 		this.$onWebClose            = this.onWebClose.bind(this);
-		this.$onWebSubscribeUrl     = this.onWebSubscribeUrl.bind(this);
-		this.$onWebSubscribeChannel = this.onWebSubscribeChannel.bind(this);
-		this.$onWebSubscribeClose   = this.onWebSubscribeClose.bind(this);
+		// this.$onWebSubscribeUrl     = this.onWebSubscribeUrl.bind(this);
+		// this.$onWebSubscribeChannel = this.onWebSubscribeChannel.bind(this);
+		// this.$onWebSubscribeClose   = this.onWebSubscribeClose.bind(this);
 	}
 	local.env.WorkerServer = WorkerServer;
 	WorkerServer.prototype = Object.create(Server.prototype);
@@ -214,7 +214,7 @@
 
 		// request from host
 		var jsRequest = { method:'get', url:this.config.src, headers:{ accept:'application/javascript' }};
-		return local.http.dispatch(jsRequest, requester).then(
+		return local.web.dispatch(jsRequest, requester).then(
 			function(res) { return res.body; },
 			function(res) {
 				console.log('failed to retrieve worker source:', res);
@@ -240,40 +240,38 @@
 	WorkerServer.prototype.onWebRequestHeaders = function(message) {
 		if (!message.data) {
 			console.error('Invalid "request_headers" message from worker: Payload missing', message);
-			self.worker.endExchange(message.exchange);
+			this.worker.endExchange(message.exchange);
 			return;
 		}
 
 		// create request
-		var request = new local.http.Request(message.data);
+		var request = new local.web.Request(message.data);
 		this.worker.setExchangeMeta(message.exchange, 'request', request);
 
 		// dispatch request
 		var worker = this.worker;
-		local.http.dispatch(request, this).always(function(response) {
+		local.web.dispatch(request, this).always(function(response) {
 			worker.setExchangeMeta(message.exchange, 'response', response);
 
 			// wire response into the exchange
 			worker.sendMessage(message.exchange, 'response_headers', response);
 			response.on('data', function(data) { worker.sendMessage(message.exchange, 'response_data', data); });
-			response.on('end', function() {
-				worker.sendMessage(message.exchange, 'response_end');
-				worker.endExchange(message.exchange);
-			});
+			response.on('end', function() { worker.sendMessage(message.exchange, 'response_end'); });
+			response.on('close', function() { worker.endExchange(message.exchange); });
 		});
 	};
 
 	WorkerServer.prototype.onWebRequestData = function(message) {
 		if (!message.data || typeof message.data != 'string') {
 			console.error('Invalid "request_data" message from worker: Payload must be a string', message);
-			self.worker.endExchange(message.exchange);
+			this.worker.endExchange(message.exchange);
 			return;
 		}
 
 		var request = this.worker.getExchangeMeta(message.exchange, 'request');
 		if (!request) {
 			console.error('Invalid "request_data" message from worker: Request headers not previously received', message);
-			self.worker.endExchange(message.exchange);
+			this.worker.endExchange(message.exchange);
 			return;
 		}
 
@@ -284,7 +282,7 @@
 		var request = this.worker.getExchangeMeta(message.exchange, 'request');
 		if (!request) {
 			console.error('Invalid "request_end" message from worker: Request headers not previously received', message);
-			self.worker.endExchange(message.exchange);
+			this.worker.endExchange(message.exchange);
 			return;
 		}
 
@@ -294,14 +292,14 @@
 	WorkerServer.prototype.onWebResponseHeaders = function(message) {
 		if (!message.data) {
 			console.error('Invalid "response_headers" message from worker: Payload missing', message);
-			self.worker.endExchange(message.exchange);
+			this.worker.endExchange(message.exchange);
 			return;
 		}
 
 		var response = this.worker.getExchangeMeta(message.exchange, 'response');
 		if (!response) {
 			console.error('Internal error when receiving "response_headers" message from worker: Response object not present', message);
-			self.worker.endExchange(message.exchange);
+			this.worker.endExchange(message.exchange);
 			return;
 		}
 
@@ -311,14 +309,14 @@
 	WorkerServer.prototype.onWebResponseData = function(message) {
 		if (!message.data || typeof message.data != 'string') {
 			console.error('Invalid "response_data" message from worker: Payload must be a string', message);
-			self.worker.endExchange(message.exchange);
+			this.worker.endExchange(message.exchange);
 			return;
 		}
 
 		var response = this.worker.getExchangeMeta(message.exchange, 'response');
 		if (!response) {
 			console.error('Internal error when receiving "response_data" message from worker: Response object not present', message);
-			self.worker.endExchange(message.exchange);
+			this.worker.endExchange(message.exchange);
 			return;
 		}
 
@@ -329,7 +327,7 @@
 		var response = this.worker.getExchangeMeta(message.exchange, 'response');
 		if (!response) {
 			console.error('Internal error when receiving "response_end" message from worker: Response object not present', message);
-			self.worker.endExchange(message.exchange);
+			this.worker.endExchange(message.exchange);
 			return;
 		}
 
@@ -356,45 +354,45 @@
 	// - called when the worker-server issues a subscribe
 	// - sadly, cant just wrap this around dispatch() because the remote-source version
 	//   uses browser-native functions instead of dispatch()
-	WorkerServer.prototype.onWebSubscribeExchange = function(exchange) {
-		this.worker.onMessage(exchange, 'subscribe_url', this.$onWebSubscribeUrl);
-		this.worker.onMessage(exchange, 'subscribe_channel', this.$onWebSubscribeChannel);
-		this.worker.onMessage(exchange, 'close', this.$onWebSubscribeClose);
-	};
+	// WorkerServer.prototype.onWebSubscribeExchange = function(exchange) {
+	// 	this.worker.onMessage(exchange, 'subscribe_url', this.$onWebSubscribeUrl);
+	// 	this.worker.onMessage(exchange, 'subscribe_channel', this.$onWebSubscribeChannel);
+	// 	this.worker.onMessage(exchange, 'close', this.$onWebSubscribeClose);
+	// };
 
-	WorkerServer.prototype.onWebSubscribeUrl = function(message) {
-		if (!message.data || typeof message.data != 'string') {
-			console.error('Invalid "subscribe_url" message from worker: Payload must be a url', message);
-			self.worker.endExchange(message.exchange);
-			return;
-		}
+	// WorkerServer.prototype.onWebSubscribeUrl = function(message) {
+	// 	if (!message.data || typeof message.data != 'string') {
+	// 		console.error('Invalid "subscribe_url" message from worker: Payload must be a url', message);
+	// 		self.worker.endExchange(message.exchange);
+	// 		return;
+	// 	}
 
-		var eventStream = local.http.subscribe(message.data);
-		self.worker.setExchangeMeta(message.exchange, 'eventStream', eventStream);
-	};
+	// 	var eventStream = local.web.subscribe(message.data);
+	// 	self.worker.setExchangeMeta(message.exchange, 'eventStream', eventStream);
+	// };
 
-	WorkerServer.prototype.onWebSubscribeChannel = function(message) {
-		if (!message.data) {
-			console.error('Invalid "subscribe_channel" message from worker: Payload must be a string or array of strings', message);
-			self.worker.endExchange(message.exchange);
-			return;
-		}
+	// WorkerServer.prototype.onWebSubscribeChannel = function(message) {
+	// 	if (!message.data) {
+	// 		console.error('Invalid "subscribe_channel" message from worker: Payload must be a string or array of strings', message);
+	// 		self.worker.endExchange(message.exchange);
+	// 		return;
+	// 	}
 
-		var eventStream = self.worker.getExchangeMeta(message.exchange, 'eventStream');
-		if (!eventStream) {
-			console.error('Invalid "subscribe_channel" message from worker: EventStream not previously established', message);
-			self.worker.endExchange(message.exchange);
-			return;
-		}
+	// 	var eventStream = self.worker.getExchangeMeta(message.exchange, 'eventStream');
+	// 	if (!eventStream) {
+	// 		console.error('Invalid "subscribe_channel" message from worker: EventStream not previously established', message);
+	// 		self.worker.endExchange(message.exchange);
+	// 		return;
+	// 	}
 
-		var self = this;
-		eventStream.on(message.data, function(e) {
-			self.worker.sendMessage(message.exchange, 'subscribe_event', e);
-		});
-	};
+	// 	var self = this;
+	// 	eventStream.on(message.data, function(e) {
+	// 		self.worker.sendMessage(message.exchange, 'subscribe_event', e);
+	// 	});
+	// };
 
-	WorkerServer.prototype.onWebSubscribeClose = function(message) {
-		var eventStream = self.worker.getExchangeMeta(message.exchange, 'eventStream');
-		if (eventStream) eventStream.close();
-	};
+	// WorkerServer.prototype.onWebSubscribeClose = function(message) {
+	// 	var eventStream = self.worker.getExchangeMeta(message.exchange, 'eventStream');
+	// 	if (eventStream) eventStream.close();
+	// };
 })();

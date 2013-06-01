@@ -4,7 +4,7 @@
 // create connection to host page
 local.worker.hostConnection = new local.worker.PageConnection(this, true);
 var hostConn = local.worker.hostConnection;
-
+local.worker.startWebExchange(hostConn);
 
 // ops-exchange handlers
 // -
@@ -39,7 +39,7 @@ hostConn.onExchange('importScripts', function(exchange) {
 		hostConn.sendMessage(message.exchange, 'done', { error: false });
 		hostConn.endExchange(message.exchange);
 	});
-};
+});
 
 
 // apis

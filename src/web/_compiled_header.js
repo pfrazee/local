@@ -4,10 +4,8 @@
 
 if (typeof this.local == 'undefined')
 	this.local = {};
-if (typeof this.local.http == 'undefined')
-	this.local.http = {};
-if (typeof this.local.http.ext == 'undefined')
-	this.local.http.ext = {};
+if (typeof this.local.web == 'undefined')
+	this.local.web = {};
 
 (function() {
 	function noop() {}

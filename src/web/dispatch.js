@@ -42,7 +42,7 @@ local.web.dispatch = function dispatch(request) {
 	if (request.stream) {
 		// streaming, fulfill on 'headers'
 		response.on('headers', function(response) {
-			fulfillResponsePromise(resPromise, response);
+			local.web.fulfillResponsePromise(resPromise, response);
 		});
 	} else {
 		// buffering, (deserialize and) fulfill on 'end'
@@ -52,7 +52,7 @@ local.web.dispatch = function dispatch(request) {
 			response.body = rezBody;
 			if (response.headers['content-type'])
 				response.body = local.web.contentTypes.deserialize(rezBody, response.headers['content-type']);
-			fulfillResponsePromise(resPromise, response);
+			local.web.fulfillResponsePromise(resPromise, response);
 		});
 	}
 
@@ -73,8 +73,10 @@ local.web.dispatch = function dispatch(request) {
 	return resPromise;
 };
 
+// EXPORTED
 // fulfills/reject a promise for a response with the given response
-function fulfillResponsePromise(promise, response) {
+// - exported because its pretty useful
+local.web.fulfillResponsePromise = function(promise, response) {
 	// wasnt streaming, fulfill now that full response is collected
 	if (response.status >= 200 && response.status < 400)
 		promise.fulfill(response);
