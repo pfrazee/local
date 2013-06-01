@@ -1,6 +1,6 @@
 // == SECTION navigator
 
-var testServer = new local.http.Navigator('http://linkapjs.com:8080');
+var testServer = new local.web.Navigator('http://linkapjs.com:8080');
 
 // remote server navigation
 
@@ -89,7 +89,7 @@ success
 
 done = false;
 startTime = Date.now();
-var testLocal = new local.http.Navigator('httpl://test.com');
+var testLocal = new local.web.Navigator('httpl://test.com');
 testLocal.collection('foo').getJson()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
@@ -139,7 +139,7 @@ success
 
 done = false;
 startTime = Date.now();
-var testLocal = new local.http.Navigator('httpl://test.com');
+var testLocal = new local.web.Navigator('httpl://test.com');
 testLocal.collection('foo').getJson(null, { stream:true })
   .succeed(printSuccess)
   .succeed(function(res) {
@@ -147,10 +147,13 @@ testLocal.collection('foo').getJson(null, { stream:true })
 		res.on('data', function(payload) {
 			print(payload);
 			print(typeof payload);
-			print(res.isConnOpen ? 'connection open' : 'connection closed');
+			print('data ' + (res.isConnOpen ? 'connection open' : 'connection closed'));
 		});
 		res.on('end', function() {
-			print(res.isConnOpen ? 'connection open' : 'connection closed');
+      print('end ' + (res.isConnOpen ? 'connection open' : 'connection closed'));
+    });
+    res.on('close', function() {
+			print('close ' + (res.isConnOpen ? 'connection open' : 'connection closed'));
 			finishTest();
 		});
 	})
@@ -160,7 +163,6 @@ wait(function () { return done; });
 /* =>
 success
 {
-  body: null,
   headers: {
     "content-type": "application/json",
     link: [
@@ -176,34 +178,35 @@ success
 ---
 [
 string
-connection open
+data connection open
 "bar"
 string
-connection open
+data connection open
 ,"baz"
 string
-connection open
+data connection open
 ,"blah"
 string
-connection open
+data connection open
 ]
 string
-connection open
-connection closed
+data connection open
+end connection open
+close connection closed
 */
 
 // event stream subscribe
 
 done = false;
 startTime = Date.now();
-var testLocal = new local.http.Navigator('httpl://test.com');
+var testLocal = new local.web.Navigator('httpl://test.com');
 testLocal.collection('events').subscribe().then(
   function(stream) {
     stream.on('message', function(m) { print(m); });
     stream.on('foo', function(m) { print('foo', m.data); });
     stream.on('bar', function(m) { print('bar', m.data); });
-    stream.on('error', function(e) {
-      print('close', e);
+    stream.on('close', function(e) {
+      print('close');
       console.log(Date.now() - startTime, 'ms');
       done = true;
     });
@@ -221,6 +224,5 @@ bar {c: 3}
 foo {c: 4}
 {data: {c: 5}, event: "foo"}
 foo {c: 5}
-{data: undefined, event: "error"}
-close {data: undefined, event: "error"}
+close
 */

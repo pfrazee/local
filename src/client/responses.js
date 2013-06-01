@@ -170,7 +170,7 @@ function subscribeElements(targetElem, containerElem) {
 		subscribeElem.__subscriptions = subscribeElem.__subscriptions || {};
 		var stream = subscribeElem.__subscriptions[eventsUrl];
 		if (!stream) {
-			stream = subscribeElem.__subscriptions[eventsUrl] = local.http.subscribe({ url:eventsUrl });
+			stream = subscribeElem.__subscriptions[eventsUrl] = local.web.subscribe({ url:eventsUrl });
 			stream.on('update', makeUpdateEventHandler(getUrl, subscribeElem));
 			stream.on('error', makeErrorEventHandler());
 		}

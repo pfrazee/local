@@ -5,12 +5,12 @@
 
 done = false;
 startTime = Date.now();
-var stream = local.http.subscribe({ url:'httpl://test.com/events' });
+var stream = local.web.subscribe({ url:'httpl://test.com/events' });
 stream.on('message', function(m) { print(m); });
 stream.on('foo', function(m) { print('foo', m.data); });
 stream.on('bar', function(m) { print('bar', m.data); });
-stream.on('error', function(e) {
-	print('close', e);
+stream.on('close', function(e) {
+	print('close');
 	console.log(Date.now() - startTime, 'ms');
 	done = true;
 });
@@ -27,20 +27,19 @@ bar {c: 3}
 foo {c: 4}
 {data: {c: 5}, event: "foo"}
 foo {c: 5}
-{data: undefined, event: "error"}
-close {data: undefined, event: "error"}
+close
 */
 
 // remote event server
 
 done = false;
 startTime = Date.now();
-var stream2 = local.http.subscribe({ url:'http://linkapjs.com:8080/events' });
+var stream2 = local.web.subscribe({ url:'http://grimwire.com:8080/events' });
 stream2.on('message', function(m) { print(m); });
 stream2.on('foo', function(m) { print('foo', m.data); });
 stream2.on('bar', function(m) { print('bar', m.data); });
-stream2.on('error', function(e) {
-	print('close', e);
+stream2.on('close', function(e) {
+	print('close');
 	console.log(Date.now() - startTime, 'ms');
 	done = true;
 });
@@ -57,6 +56,5 @@ bar {c: 3}
 foo {c: 4}
 {data: {c: 5}, event: "foo"}
 foo {c: 5}
-{data: undefined, event: "error"}
-close {data: undefined, event: "error"}
+close
 */

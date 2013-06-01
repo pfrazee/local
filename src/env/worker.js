@@ -62,8 +62,7 @@
 	// EXPORTED
 	// destroys the LocalEnvWorker
 	LocalEnvWorker.prototype.terminate = function() {
-		for (var exchange in this.exchanges)
-			this.endExchange(exchange);
+		delete this.exchanges;
 		delete this.exchangeListeners;
 		delete this.suspendedTopics;
 		delete this.messageBuffers;
@@ -83,9 +82,9 @@
 			var message = event.data;
 			if (!message)
 				return console.error('Invalid message from worker: Payload missing', message);
-			if (!message.id)
+			if (typeof message.id == 'undefined')
 				return console.error('Invalid message from worker: `id` missing', message);
-			if (!message.exchange)
+			if (typeof message.exchange == 'undefined')
 				return console.error('Invalid message from worker: `exchange` missing', message);
 			if (!message.label)
 				return console.error('Invalid message from worker: `label` missing', message);
@@ -104,17 +103,17 @@
 		// new exchange handler
 		this.onMessage(this.ops, 'open_exchange', (function(message) {
 			if (!message.data)
-				return console.error('Invalid ops-exchange "open" message from worker: Payload missing', message);
+				return console.error('Invalid ops-exchange "open_exchange" message from worker: Payload missing', message);
 			if (!message.data.topic)
-				return console.error('Invalid ops-exchange "open" message from worker: `topic` missing', message);
-			if (!message.data.exchange)
-				return console.error('Invalid ops-exchange "open" message from worker: `exchange` missing', message);
+				return console.error('Invalid ops-exchange "open_exchange" message from worker: `topic` missing', message);
+			if (typeof message.data.exchange == 'undefined')
+				return console.error('Invalid ops-exchange "open_exchange" message from worker: `exchange` missing', message);
 
 			if (this.isLogging) { console.log('open exchange', message); }
 
 			// exchanges from the worker use negative IDs (to avoid collisions)
 			message.data.exchange = -parseInt(message.data.exchange, 10);
-			this.exchanges[message.data.exchange] = { topic: topic, messageListeners: {}, metaData: {} };
+			this.exchanges[message.data.exchange] = { topic: message.data.topic, messageListeners: {}, metaData: {} };
 
 			// notify onExchange listeners
 			emitOnExchange.call(this, message.data.topic, message.data.exchange);
@@ -122,13 +121,13 @@
 
 		// end exchange handler
 		this.onMessage(this.ops, 'close_exchange', (function(message) {
-			var exchange = message.data;
+			var exchange = -parseInt(message.data, 10);
 			if (exchange === 0)
-				return console.error('Invalid ops-exchange "close" message from worker: Cannot close "ops" exchange', message);
-			if (!exchange)
-				return console.error('Invalid ops-exchange "close" message from worker: Payload missing', message);
+				return console.error('Invalid ops-exchange "close_exchange" message from worker: Cannot close "ops" exchange', message);
+			else if (!exchange)
+				return console.error('Invalid ops-exchange "close_exchange" message from worker: Payload missing', message);
 			if (!(exchange in this.exchanges))
-				return console.error('Invalid ops-exchange "close" message from worker: Invalid exchange id', message);
+				return console.error('Invalid ops-exchange "close_exchange" message from worker: Invalid exchange id', message);
 
 			if (this.isLogging) { console.log('close exchange', message); }
 
@@ -361,8 +360,8 @@
 	// - `topic`: required string
 	// - only suspends outgoing topics (not incoming)
 	LocalEnvWorker.prototype.suspendExchangeTopic = function(topic) {
-		if (this.suspendTopics.indexOf(topic) === -1) {
-			this.suspendTopics.push(topic);
+		if (this.suspendedTopics.indexOf(topic) === -1) {
+			this.suspendedTopics.push(topic);
 			for (var c in this.exchanges) {
 				if (this.exchanges[c].topic == topic)
 					this.suspendExchange(c);
@@ -374,9 +373,9 @@
 	// stops buffering and sends all queued messages in the exchanges of the given `topic`
 	// - `topic`: required string
 	LocalEnvWorker.prototype.resumeExchangeTopic = function(topic) {
-		var topicIndex = this.suspendTopics.indexOf(topic);
+		var topicIndex = this.suspendedTopics.indexOf(topic);
 		if (topicIndex !== -1) {
-			this.suspendTopics.splice(topicIndex, 1);
+			this.suspendedTopics.splice(topicIndex, 1);
 			for (var c in this.exchanges) {
 				if (this.exchanges[c].topic == topic)
 					this.resumeExchange(c);
@@ -387,6 +386,6 @@
 	// EXPORTED
 	// - `topic`: required string
 	LocalEnvWorker.prototype.isExchangeTopicSuspended = function(topic) {
-		return this.suspendTopics.indexOf(topic) !== -1;
+		return this.suspendedTopics.indexOf(topic) !== -1;
 	};
 })();

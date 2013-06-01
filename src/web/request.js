@@ -16,6 +16,8 @@ function Request(options) {
 	this.stream = options.stream || false;
 
 	this.isConnOpen = true;
+	this.keepHistory('data');
+	this.keepHistory('end');
 }
 local.web.Request = Request;
 Request.prototype = Object.create(local.util.EventEmitter.prototype);
@@ -72,7 +74,8 @@ Request.prototype.end = function(data) {
 	if (data)
 		this.write(data);
 	this.emit('end');
-	this.close();
+	// this.close();
+	// ^ do not close - the response should close
 };
 
 // closes the stream, aborting if not yet finished

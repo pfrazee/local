@@ -1,5 +1,5 @@
 var log = [];
-var logBroadcast = local.http.broadcaster();
+var logBroadcast = local.web.broadcaster();
 
 function renderHtml(output) {
 	var entriesHtml = log
@@ -33,9 +33,13 @@ function main(request, response) {
 		logBroadcast.emitTo(response, 'update'); // resync for any changes that might've occured
 	// add entry
 	} else if (/post/i.test(request.method) && /text/.test(request.headers['content-type'])) {
-		log.push(request.body); // store the entry
-		logBroadcast.emit('update'); // tell our listeners about the change
-		response.writeHead(204, 'no content').end();
+		var body='';
+		request.on('data', function(data) { body += data; });
+		request.on('end', function() {
+			log.push(body); // store the entry
+			logBroadcast.emit('update'); // tell our listeners about the change
+			response.writeHead(204, 'no content').end();
+		});
 	} else
 		response.writeHead(405, 'bad method').end();
 }

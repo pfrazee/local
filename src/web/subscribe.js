@@ -15,7 +15,9 @@ local.web.subscribe = function subscribe(request) {
 	if (!request.method) request.method = 'GET';
 	if (!request.headers) request.headers = { accept : 'text/event-stream' };
 	if (!request.headers.accept) request.headers.accept = 'text/event-stream';
-	return new EventStream(request, local.web.dispatch(request));
+
+	var response_ = local.web.dispatch(request);
+	return new EventStream(response_.request, response_);
 };
 
 
@@ -38,7 +40,13 @@ EventStream.prototype.connect = function(response_) {
 	response_.then(
 		function(response) {
 			self.response = response;
-			response.on('data', function(payload) { emitEvent.call(self, payload); });
+			response.on('data', function(payload) {
+				var events = payload.split("\r\n\r\n");
+				events.forEach(function(event) {
+					if (event)
+						emitEvent.call(self, event);
+				});
+			});
 			response.on('end', function() { self.close(); });
 			response.on('close', function() { if (this.isConnOpen) { self.reconnect(); } });
 			// ^ a close event should be predicated by an end(), giving us time to close ourselves
@@ -66,6 +74,7 @@ function emitError(e) {
 	this.emit('error', e);
 }
 function emitEvent(e) {
+	e = local.web.contentTypes.deserialize(e, 'text/event-stream');
 	this.emit('message', e);
 	this.emit(e.event, e);
 }

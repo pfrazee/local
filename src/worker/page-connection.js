@@ -2,7 +2,6 @@
 // ======================
 
 (function() {
-	var closureImportScripts = importScripts; // self.importScripts will be nullified later
 	var __cur_cid = 1;
 	function gen_cid() { return __cur_cid++; }
 	var __cur_mid = 1;
@@ -41,9 +40,9 @@
 			var message = event.data;
 			if (!message)
 				return console.error('Invalid message from page: Payload missing', message);
-			if (!message.id)
+			if (typeof message.id == 'undefined')
 				return console.error('Invalid message from page: `id` missing', message);
-			if (!message.exchange)
+			if (typeof message.exchange == 'undefined')
 				return console.error('Invalid message from page: `exchange` missing', message);
 			if (!message.label)
 				return console.error('Invalid message from page: `label` missing', message);
@@ -60,15 +59,15 @@
 		// new exchange handler
 		this.onMessage(this.ops, 'open_exchange', (function(message) {
 			if (!message.data)
-				return console.error('Invalid ops-exchange "open" message from page: Payload missing', message);
+				return console.error('Invalid ops-exchange "open_exchange" message from page: Payload missing', message);
 			if (!message.data.topic)
-				return console.error('Invalid ops-exchange "open" message from page: `topic` missing', message);
-			if (!message.data.exchange)
-				return console.error('Invalid ops-exchange "open" message from page: `exchange` missing', message);
+				return console.error('Invalid ops-exchange "open_exchange" message from page: `topic` missing', message);
+			if (typeof message.data.exchange == 'undefined')
+				return console.error('Invalid ops-exchange "open_exchange" message from page: `exchange` missing', message);
 
 			// exchanges from the page use negative IDs (to avoid collisions)
 			message.data.exchange = -parseInt(message.data.exchange, 10);
-			this.exchanges[message.data.exchange] = { topic: topic, messageListeners: {}, metaData: {} };
+			this.exchanges[message.data.exchange] = { topic: message.data.topic, messageListeners: {}, metaData: {} };
 
 			// notify onExchange listeners
 			emitOnExchange.call(this, message.data.topic, message.data.exchange);
@@ -76,13 +75,13 @@
 
 		// end exchange handler
 		this.onMessage(this.ops, 'close_exchange', (function(message) {
-			var exchange = message.data;
+			var exchange = -parseInt(message.data, 10);
 			if (exchange === 0)
-				return console.error('Invalid ops-exchange "close" message from worker: Cannot close "ops" exchange', message);
-			if (!exchange)
-				return console.error('Invalid ops-exchange "close" message from worker: Payload missing', message);
+				return console.error('Invalid ops-exchange "close_exchange" message from page: Cannot close "ops" exchange', message);
+			else if (!exchange)
+				return console.error('Invalid ops-exchange "close_exchange" message from page: Payload missing', message);
 			if (!(exchange in this.exchanges))
-				return console.error('Invalid ops-exchange "close" message from worker: Invalid exchange id', message);
+				return console.error('Invalid ops-exchange "close_exchange" message from page: Invalid exchange id', message);
 
 			this.removeAllMessageListeners(exchange);
 			delete this.exchanges[exchange];
@@ -161,7 +160,7 @@
 				data     : data
 			};
 		}
-		this.worker.postMessage(message);
+		this.port.postMessage(message);
 		return message.id;
 	};
 

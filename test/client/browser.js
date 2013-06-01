@@ -435,7 +435,7 @@ startTime = Date.now();
 var streams = [];
 var ready = false;
 
-local.http.registerLocal('event-emitter.com', function(request, response) {
+local.web.registerLocal('event-emitter.com', function(request, response) {
 	response.writeHead(200, 'ok', { 'content-type':'text/event-stream' });
 	streams.push(response);
 	if (streams.length === 2) {

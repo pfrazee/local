@@ -13,7 +13,7 @@ local.web.schemes = schemes;
 function schemes__register(scheme, handler) {
 	if (scheme && Array.isArray(scheme)) {
 		for (var i=0, ii=scheme.length; i < ii; i++)
-			schemes_register(scheme[i], handler);
+			schemes__register(scheme[i], handler);
 	} else
 		schemes__registry[scheme] = handler;
 }
@@ -130,6 +130,7 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 			if (headers.link)
 				headers.link = local.web.parseLinkHeader(headers.link);
 
+			console.log('writing head', xhrRequest.status, xhrRequest.statusText, headers)
 			response.writeHead(xhrRequest.status, xhrRequest.statusText, headers);
 
 			// start polling for updates
@@ -140,13 +141,15 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 					response.write(xhrRequest.responseText.slice(lenOnLastPoll));
 					lenOnLastPoll = len;
 				}
-			}, 500);
+			}, 50);
 		}
 		if (xhrRequest.readyState === XMLHttpRequest.DONE) {
 			if (streamPoller)
 				clearInterval(streamPoller);
+			console.log('writing', xhrRequest.responseText.slice(lenOnLastPoll))
 			response.write(xhrRequest.responseText.slice(lenOnLastPoll));
 			response.end();
+			console.log('ended')
 		}
 	};
 });

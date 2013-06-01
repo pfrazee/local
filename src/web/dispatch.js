@@ -1,3 +1,5 @@
+var envDispatchWrapper;
+
 // dispatch()
 // ==========
 // EXPORTED
@@ -31,46 +33,63 @@ local.web.dispatch = function dispatch(request) {
 
 	// parse the url scheme
 	var scheme, firstColonIndex = request.url.indexOf(':');
-	if (firstIndexColon === -1)
+	if (firstColonIndex === -1)
 		scheme = 'http'; // default for relative paths
 	else
 		scheme = request.url.slice(0, firstColonIndex);
 
 	// wire up the response with the promise
-	var resPromise = local.promise();
+	var response_ = local.promise();
 	var response = new local.web.Response();
 	if (request.stream) {
 		// streaming, fulfill on 'headers'
 		response.on('headers', function(response) {
-			local.web.fulfillResponsePromise(resPromise, response);
+			local.web.fulfillResponsePromise(response_, response);
 		});
 	} else {
 		// buffering, (deserialize and) fulfill on 'end'
-		var rezBody = '';
-		response.on('data', function(e) { rezBody += e.data; });
-		response.on('end', function(e) {
-			response.body = rezBody;
-			if (response.headers['content-type'])
-				response.body = local.web.contentTypes.deserialize(rezBody, response.headers['content-type']);
-			local.web.fulfillResponsePromise(resPromise, response);
+		var rezBody = '', gotData = false;
+		response.on('data', function(data) { gotData = true; rezBody += data; });
+		response.on('end', function() {
+			if (gotData) {
+				response.body = rezBody;
+				if (response.headers['content-type'])
+					response.body = local.web.contentTypes.deserialize(rezBody, response.headers['content-type']);
+			}
+		});
+		response.on('close', function() {
+			local.web.fulfillResponsePromise(response_, response);
 		});
 	}
 
-	// execute (asyncronously) by scheme
-	setTimeout(function() {
-		var schemeHandler = local.web.schemes.get(scheme);
-		if (!schemeHandler) {
-			response.writeHead(0, 'unsupported scheme "'+scheme+'"');
-			response.end();
-		} else {
-			// dispatch according to scheme
-			schemeHandler(request, response);
-			// send request body if not given a local.web.Request
-			if (selfEnd) request.end(body);
-		}
-	}, 0);
+	// pull any extra arguments that may have been passed
+	var args = Array.prototype.slice.call(arguments, 1);
 
-	return resPromise;
+	// (request, response, dispatch, args...)
+	args.unshift(function() {
+		// execute (asyncronously) by scheme
+		setTimeout(function() {
+			var schemeHandler = local.web.schemes.get(scheme);
+			if (!schemeHandler) {
+				response.writeHead(0, 'unsupported scheme "'+scheme+'"');
+				response.end();
+			} else {
+				// dispatch according to scheme
+				schemeHandler(request, response);
+				// send request body if not given a local.web.Request
+				if (selfEnd) request.end(body);
+			}
+		}, 0);
+		return response_;
+	});
+	args.unshift(response);
+	args.unshift(request);
+
+	// allow the wrapper to audit the packet
+	envDispatchWrapper.apply(null, args);
+
+	response_.request = request;
+	return response_;
 };
 
 // EXPORTED
@@ -84,4 +103,12 @@ local.web.fulfillResponsePromise = function(promise, response) {
 		promise.reject(response);
 	else
 		promise.fulfill(response); // :TODO: 1xx protocol handling
-}
+};
+
+local.web.setDispatchWrapper = function(wrapperFn) {
+	envDispatchWrapper = wrapperFn;
+};
+
+local.web.setDispatchWrapper(function(request, response, dispatch) {
+	dispatch(request, response);
+});

@@ -250,12 +250,14 @@
 
 		// dispatch request
 		var worker = this.worker;
+		// request.stream = true;
 		local.web.dispatch(request, this).always(function(response) {
+			console.log('got response, sending headers', response);
 			worker.setExchangeMeta(message.exchange, 'response', response);
 
 			// wire response into the exchange
 			worker.sendMessage(message.exchange, 'response_headers', response);
-			response.on('data', function(data) { worker.sendMessage(message.exchange, 'response_data', data); });
+			response.on('data', function(data) { console.log('got data', data); worker.sendMessage(message.exchange, 'response_data', data); });
 			response.on('end', function() { worker.sendMessage(message.exchange, 'response_end'); });
 			response.on('close', function() { worker.endExchange(message.exchange); });
 		});

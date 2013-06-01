@@ -2,7 +2,7 @@
 
 done = false;
 startTime = Date.now();
-var res = local.http.dispatch({ method:'get', url:'httpl://test.com/pipe' });
+var res = local.web.dispatch({ method:'get', url:'httpl://test.com/pipe' });
 res.then(printSuccess, printError).then(finishTest);
 wait(function () { return done; });
 

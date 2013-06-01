@@ -22,10 +22,10 @@ function printErrorAndFinish(err) { printError(err); finishTest(); }
 
 // local scaffold server
 
-local.http.registerLocal('test.com', function(request, response) {
+local.web.registerLocal('test.com', function(request, response) {
 	var foos = ['bar', 'baz', 'blah'];
 	var payload = null, linkHeader;
-	if (/^\/?$/g.test(request.path)) {
+	if (request.path == '/') {
 		if (request.method === 'GET') {
 			payload = 'service resource';
 		}
@@ -38,7 +38,7 @@ local.http.registerLocal('test.com', function(request, response) {
 		response.writeHead(200, 'ok', { 'content-type':'text/plain', 'link':linkHeader });
 		response.end(payload);
 	}
-	else if (/^\/foo\/?$/g.test(request.path)) {
+	else if (request.path == '/foo') {
 		if (request.method === 'GET') {
 			payload = foos;
 		}
@@ -56,8 +56,8 @@ local.http.registerLocal('test.com', function(request, response) {
 		}
 		response.end();
 	}
-	else if (/^\/foo\/([A-z]*)\/?$/.test(request.path)) {
-		var match = /^\/foo\/([A-z]*)\/?$/.exec(request.path);
+	else if (/^\/foo\/([A-z]*)$/.test(request.path)) {
+		var match = /^\/foo\/([A-z]*)$/.exec(request.path);
 		var itemName = match[1];
 		var itemIndex = foos.indexOf(itemName);
 		if (itemIndex === -1) {
@@ -84,7 +84,7 @@ local.http.registerLocal('test.com', function(request, response) {
 		response.writeHead(200, 'ok', { 'content-type':'application/json', 'link':linkHeader });
 		response.end('"'+payload+'"');
 	}
-	else if (/^\/events\/?$/.test(request.path)) {
+	else if (request.path == '/events') {
 		response.writeHead(200, 'ok', { 'content-type':'text/event-stream' });
 		response.write({ event:'foo', data:{ c:1 }});
 		response.write({ event:'foo', data:{ c:2 }});
@@ -100,7 +100,7 @@ local.http.registerLocal('test.com', function(request, response) {
 		var bodyUpdate = function(body) {
 			return body.toUpperCase();
 		};
-		local.http.pipe(response, local.http.dispatch({ method:'get', url:'httpl://test.com/' }), headerUpdate, bodyUpdate);
+		local.web.pipe(response, local.web.dispatch({ method:'get', url:'httpl://test.com/' }), headerUpdate, bodyUpdate);
 	}
 	else {
 		response.writeHead(404, 'not found');

@@ -62,7 +62,7 @@ function handleRequest(e) {
 
 	var self = this;
 	var handleResponse = function(response) { self.__handleResponse(e, request, response); };
-	local.http.dispatch(request, this).then(handleResponse, handleResponse);
+	local.web.dispatch(request, this).then(handleResponse, handleResponse);
 }
 
 // prepares data from a 'request' DOM event for HTTP dispatch
@@ -73,7 +73,7 @@ Region.prototype.__prepareRequest = function(request) {
 	request.stream = false;
 
 	// relative urls
-	var urld = local.http.parseUri(request);
+	var urld = local.web.parseUri(request);
 	if (!urld.protocol) {
 		// build a new url from the current context
 		var newUrl;
@@ -90,7 +90,7 @@ Region.prototype.__prepareRequest = function(request) {
 		do {
 			request.url = newUrl;
 			newUrl = request.url.replace(/[^\/]+\/\.\.\//i, '');
-		} while (newUrl != request.url && local.http.parseUri(newUrl).host == lastRequestHost);
+		} while (newUrl != request.url && local.web.parseUri(newUrl).host == lastRequestHost);
 		delete request.host;
 		delete request.path;
 	}
@@ -131,7 +131,7 @@ Region.prototype.__handleResponse = function(e, request, response) {
 
 Region.prototype.__updateContext = function(request, response) {
 	// track location for relative urls
-	var urld = local.http.parseUri(request);
+	var urld = local.web.parseUri(request);
 	this.context.urld  = urld;
 	this.context.url   = urld.protocol + '://' + urld.authority + urld.directory;
 	this.context.links = response.headers.link;

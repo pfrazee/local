@@ -5,15 +5,18 @@ src-util-files =\
 	${src}util/_compiled_header.js\
 	${src}util/event-emitter.js\
 	${src}util/_compiled_footer.js
-src-http-files =\
-	${src}http/_compiled_header.js\
-	${src}http/helpers.js\
-	${src}http/content-types.js\
-	${src}http/core.js\
-	${src}http/events.js\
-	${src}http/uri-template.js\
-	${src}http/navigator.js\
-	${src}http/_compiled_footer.js
+src-web-files =\
+	${src}web/_compiled_header.js\
+	${src}web/helpers.js\
+	${src}web/content-types.js\
+	${src}web/request.js\
+	${src}web/response.js\
+	${src}web/schemes.js\
+	${src}web/dispatch.js\
+	${src}web/subscribe.js\
+	${src}web/uri-template.js\
+	${src}web/navigator.js\
+	${src}web/_compiled_footer.js
 src-client-files =\
 	${src}client/_compiled_header.js\
 	${src}client/helpers.js\
@@ -30,10 +33,10 @@ src-env-files =\
 src-worker-files =\
 	${src-promises-files}\
 	${src-util-files}\
-	${src-http-files}\
+	${src-web-files}\
 	${src}worker/_compiled_header.js\
-	${src}worker/messaging.js\
-	${src}worker/http.js\
+	${src}worker/page-connection.js\
+	${src}worker/web.js\
 	${src}worker/setup.js\
 	${src}worker/_compiled_footer.js
 
@@ -41,7 +44,7 @@ lib = lib/
 lib-local-files =\
 	${lib}local/promises.js\
 	${lib}local/util.js\
-	${lib}local/http.js\
+	${lib}local/web.js\
 	${lib}local/client.js\
 	${lib}local/env.js
 
@@ -60,7 +63,7 @@ ${lib}local/promises.js: ${src-promises-files}
 	@cat > $@ $^
 ${lib}local/util.js: ${src-util-files}
 	@cat > $@ $^
-${lib}local/http.js: ${src-http-files}
+${lib}local/web.js: ${src-web-files}
 	@cat > $@ $^
 ${lib}local/client.js: ${src-client-files}
 	@cat > $@ $^

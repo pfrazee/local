@@ -1,11 +1,17 @@
 var config = local.worker.config;
-var templates = {
-	httpl:  require('templates/features-httpl.html'),
-	httpl2: require('templates/features-httpl-posted.html'),
-	app:    require('templates/features-app.html'),
-	env:    require('templates/features-env.html'),
-	more:   require('templates/features-more.html')
-};
+var templates = {};
+function loadTemplate(tmpl, path) {
+	templates[tmpl] = '';
+	local.web.dispatch(path).succeed(function(response) {
+		console.log('got template', response)
+		response.on('data', function(data) { console.log('got data',data);templates[tmpl] += data; });
+	});
+}
+loadTemplate('httpl',  'servers/worker/templates/features-httpl.html');
+loadTemplate('httpl2', 'servers/worker/templates/features-httpl-posted.html');
+loadTemplate('app',    'servers/worker/templates/features-app.html');
+loadTemplate('env',    'servers/worker/templates/features-env.html');
+loadTemplate('more',   'servers/worker/templates/features-more.html');
 
 // live update list
 var theList = [
@@ -15,7 +21,7 @@ var theList = [
 ];
 
 // local storage nav
-var localStorageCollection = local.http.navigator('httpl://localstorage.env').collection('features-test');
+var localStorageCollection = local.web.navigator('httpl://localstorage.env').collection('features-test');
 
 // route handler
 function main(request, response) {
@@ -26,7 +32,7 @@ function main(request, response) {
 			if (request.body && request.body.checks)
 				request.body.checks = request.body.checks.join(', ');
 			response.writeHead(200, 'ok', {'content-type':'text/html'});
-			response.end(renderTemplate(tmpl, request.body, 'httpl'));
+			renderTemplate(response, tmpl, request.body, 'httpl');
 			break;
 		case '/app':
 			if (/html-deltas/.test(request.headers.accept)) {
@@ -34,7 +40,7 @@ function main(request, response) {
 				response.end(['replace', '.list-container', makeList(request.query.filter||'')]);
 			} else {
 				response.writeHead(200, 'ok', {'content-type':'text/html'});
-				response.end(renderTemplate('app', {domain:config.domain, list:makeList(), filter:(request.query.filter||'')}));
+				renderTemplate(response, 'app', {domain:config.domain, list:makeList(), filter:(request.query.filter||'')});
 			}
 			break;
 		case '/env':
@@ -58,7 +64,7 @@ function main(request, response) {
 			})
 			.succeed(function(res) {
 				response.writeHead(200, 'ok', {'content-type':'text/html'});
-				response.end(renderTemplate('env', {domain:config.domain, entry:res.body}));
+				renderTemplate(response, 'env', {domain:config.domain, entry:res.body});
 			})
 			.fail(function() {
 				response.writeHead(502, 'bad gateway');
@@ -67,7 +73,7 @@ function main(request, response) {
 			break;
 		case '/more':
 			response.writeHead(200, 'ok', {'content-type':'text/html'});
-			response.end(renderTemplate('more', {domain:config.domain}));
+			renderTemplate(response, 'more', {domain:config.domain});
 			break;
 	}
 }
@@ -102,29 +108,35 @@ function makeList(filter) {
 	);
 }
 
-function renderTemplate(tmpl, context, tab) {
+function renderTemplate(response, tmpl, context, tab) {
 	if (!tab) tab = tmpl;
 	if (!context) context = {};
 	context.domain = config.domain;
+
 	var html = templates[tmpl];
-	for (var k in context) {
-		if (Array.isArray(context[k]) === false) {
-			var substituteRE = new RegExp('{{'+k+'}}', 'gi');
-			html = html.replace(substituteRE, context[k]);
-		} else {
-			var subtemplateRE = new RegExp('{{'+k+':((.|[\r\n])*):'+k+'}}', 'gi');
-			html = html.replace(subtemplateRE, function(_,subtemplate) {
-				return context[k].map(function(subcontext) {
-					var subhtml = ''+subtemplate;
-					for (var k2 in subcontext) {
-						var substituteRE = new RegExp('{{'+k2+'}}', 'gi');
-						subhtml = subhtml.replace(substituteRE, subcontext[k2]);
-					}
-					return subhtml;
-				}).join('');
-			});
+	console.log(templates, tmpl, html)
+	if (html) {
+		for (var k in context) {
+			if (Array.isArray(context[k]) === false) {
+				var substituteRE = new RegExp('{{'+k+'}}', 'gi');
+				html = html.replace(substituteRE, context[k]);
+			} else {
+				var subtemplateRE = new RegExp('{{'+k+':((.|[\r\n])*):'+k+'}}', 'gi');
+				html = html.replace(subtemplateRE, function(_,subtemplate) {
+					return context[k].map(function(subcontext) {
+						var subhtml = ''+subtemplate;
+						for (var k2 in subcontext) {
+							var substituteRE = new RegExp('{{'+k2+'}}', 'gi');
+							subhtml = subhtml.replace(substituteRE, subcontext[k2]);
+						}
+						return subhtml;
+					}).join('');
+				});
+			}
 		}
+		html = html.replace(/\{\{.*\}\}/g, '');
+		response.end(makeNav(tab) + html);
+	} else {
+		response.end(makeNav(tab) + 'failed to load html for '+tmpl);
 	}
-	html = html.replace(/\{\{.*\}\}/g, '');
-	return makeNav(tab) + html;
 }

@@ -1,8 +1,8 @@
-//local.env.config.workerBootstrapUrl = '/worker.js'; // :DEBUG: non-minified version
+local.env.config.workerBootstrapUrl = '/worker.js'; // :DEBUG: non-minified version
 
 // request wrapper
-var reqLog = local.http.navigator('httpl://request-log.util');
-local.env.setDispatchWrapper(function(request, origin, dispatch) {
+var reqLog = local.web.navigator('httpl://request-log.util');
+local.env.setDispatchWrapper(function(request, response, dispatch, origin) {
 	// make any connectivity / permissions decisions here
 
 	// pass on to the request log
@@ -17,10 +17,10 @@ local.env.setDispatchWrapper(function(request, origin, dispatch) {
 	}
 
 	// allow request
-	var response = dispatch(request);
+	var response_ = dispatch(request, response);
 	if (!isLoggerMsg)
-		response.always(console.log.bind(console, request));
-	return response;
+		response_.always(console.log.bind(console, request));
+	return response_;
 });
 
 // client toolbars

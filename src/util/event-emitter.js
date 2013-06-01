@@ -9,7 +9,17 @@ function EventEmitter() {
 		configurable: true,
 		enumerable: false
 	});
+	Object.defineProperty(this, '_history', {
+		value: {},
+		configurable: true,
+		enumerable: false
+	});
 }
+
+EventEmitter.prototype.keepHistory = function(type) {
+	if (!this._history[type])
+		this._history[type] = [];
+};
 
 EventEmitter.prototype.emit = function(type) {
 	var handlers = this._events[type];
@@ -19,6 +29,8 @@ EventEmitter.prototype.emit = function(type) {
 	for (var i = 0, l = handlers.length; i < l; i++) {
 		handlers[i].apply(this, args);
 	}
+	if (this._history[type])
+		this._history[type].push(args);
 	return true;
 };
 
@@ -41,6 +53,10 @@ EventEmitter.prototype.addListener = function(type, listener) {
 	} else {
 		this._events[type].push(listener);
 	}
+
+	var self = this;
+	if (this._history[type])
+		this._history[type].forEach(function(args) { self.emit(type, args); });
 
 	return this;
 };
@@ -74,6 +90,7 @@ EventEmitter.prototype.removeListener = function(type, listener) {
 
 EventEmitter.prototype.removeAllListeners = function(type) {
 	if (type && this._events[type]) this._events[type] = null;
+	if (this._history[type]) this._history[type] = null;
 	return this;
 };
 

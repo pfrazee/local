@@ -1,72 +1,46 @@
 // Worker HTTP
 // ===========
 
-// override dispatch() behavior to post it to the host document
-// - `conn`: optional PageConnection, to specify the target page of the request
-// - `conn` defaults to the host page
-var orgDispatch = local.web.dispatch;
-local.web.dispatch = function(request, conn) {
-	if (!conn)
-		conn = local.worker.hostConnection;
-
-	// setup exchange and exchange handlers
-	var response_ = local.promise();
-	var exchange = conn.startExchange('web_request');
-	conn.setExchangeMeta(exchange, 'request', request);
-	conn.setExchangeMeta(exchange, 'response_', response_);
-	conn.onMessage(exchange, 'response_headers', onWebResponseHeaders.bind(conn));
-	conn.onMessage(exchange, 'response_data', onWebResponseData.bind(conn));
-	conn.onMessage(exchange, 'response_end', onWebResponseEnd.bind(conn));
-	conn.onMessage(exchange, 'close', onWebClose.bind(conn));
-
-	// wire request into the exchange
-	conn.sendMessage(exchange, 'request_headers', request);
-	request.on('data', function(data) { conn.sendMessage(exchange, 'request_data', data); });
-	request.on('end', function() { conn.sendMessage(exchange, 'request_end'); });
-
-	return response_;
-};
-
-
-local.web.setRequestDispatcher(function(request) {
-	if (typeof request == 'function') {
-		return local.worker.logStack();
-	}
-
-	var resPromise = local.promise();
-	local.worker.postNamedMessage('httpRequest', request, function(reply) {
-		if (!reply.data) { throw "Invalid httpRequest reply to worker from document"; }
-
-		// instantiate client response interface and pass onto the promise
-		var response = new local.web.ClientResponse(reply.data.status, reply.data.reason);
-		response.headers = reply.data.headers;
-
-		// write body now if not streaming
-		if (!request.stream && reply.data.body)
-			response.write(reply.data.body);
-
-		// fulfill/reject
-		if (response.status >= 200 && response.status < 300)
-			resPromise.fulfill(response);
-		else if (response.status >= 400 || !response.status)
-			resPromise.reject(response);
-		else
-			resPromise.fulfill(response); // :TODO: 1xx protocol handling
-
-		// write body now if streaming
-		if (request.stream && reply.data.body)
-			response.write(reply.data.body);
-
-		// setup streaming
-		local.worker.onNamedMessage(reply.id, function(streamMessage) {
-			if (streamMessage.name === 'endMessage') { response.end(); }
-			else { response.write(streamMessage.data); }
-		});
-	});
-	return resPromise;
-});
-
 (function() {
+	// override dispatch() behavior to post it to the host document
+	// - `conn`: optional PageConnection, to specify the target page of the request
+	// - `conn` defaults to the host page
+	local.web.dispatch = function(request, conn) {
+		if (!request) { throw "no request param provided to request"; }
+		if (typeof request == 'string')
+			request = { url: request };
+		if (!request.url)
+			throw "no url on request";
+		if (!conn)
+			conn = local.worker.hostConnection;
+
+		// if not given a local.web.Request, make one and remember to end the request ourselves
+		var body = null, selfEnd = false;
+		if (!(request instanceof local.web.Request)) {
+			body = request.body;
+			request = new local.web.Request(request);
+			selfEnd = true; // we're going to end()
+		}
+
+		// setup exchange and exchange handlers
+		var response_ = local.promise();
+		var exchange = conn.startExchange('web_request');
+		conn.setExchangeMeta(exchange, 'request', request);
+		conn.setExchangeMeta(exchange, 'response_', response_);
+		conn.onMessage(exchange, 'response_headers', onWebResponseHeaders.bind(conn));
+		conn.onMessage(exchange, 'response_data', onWebResponseData.bind(conn));
+		conn.onMessage(exchange, 'response_end', onWebResponseEnd.bind(conn));
+		conn.onMessage(exchange, 'close', onWebClose.bind(conn));
+
+		// wire request into the exchange
+		conn.sendMessage(exchange, 'request_headers', request);
+		request.on('data', function(data) { conn.sendMessage(exchange, 'request_data', data); });
+		request.on('end', function() { conn.sendMessage(exchange, 'request_end'); });
+		if (selfEnd) request.end(body);
+
+		return response_;
+	};
+
 	// EXPORTED
 	// adds the web_request exchange protocol to the page connection
 	function startWebExchange(pageConn) {
@@ -148,16 +122,16 @@ local.web.setRequestDispatcher(function(request) {
 			return;
 		}
 
-		var response_ = this.worker.getExchangeMeta(message.exchange, 'response_');
+		var response_ = this.getExchangeMeta(message.exchange, 'response_');
 		if (!response_) {
 			console.error('Internal error when receiving "response_headers" message from worker: Response promise not present', message);
-			this.worker.endExchange(message.exchange);
+			this.endExchange(message.exchange);
 			return;
 		}
 
 		var response = new local.web.Response();
 		response.writeHead(message.data.status, message.data.reason, message.data.headers);
-		conn.setExchangeMeta(exchange, 'response', response);
+		this.setExchangeMeta(message.exchange, 'response', response);
 		local.web.fulfillResponsePromise(response_, response);
 	}
 
@@ -195,10 +169,10 @@ local.web.setRequestDispatcher(function(request) {
 	// - could also happen due to a bad message
 	function onWebClose(message) {
 		var request = this.getExchangeMeta(message.exchange, 'request');
-		if (request) request.close();
 		var response = this.getExchangeMeta(message.exchange, 'response');
+		if (request) request.close();
 		if (response) response.close();
-	};
+	}
 })();
 
 // override subscribe() behavior to post it to the host document
@@ -225,46 +199,3 @@ local.web.setRequestDispatcher(function(request) {
 
 // 	return eventStream;
 // });
-
-// handler for when the server asks the app to fulfill an HTTP request
-// - mirrors Server.prototype.onWorkerHttpRequest in local.workers.Server
-local.worker.onNamedMessage('httpRequest', function(message) {
-	var request = message.data;
-	if (main) {
-		// pipe the response back to the document
-		var handleResponse = function(res) {
-			var stream = local.worker.postReply(message, res);
-			if (res.isConnOpen) {
-				res.on('data', function(data) { local.worker.postNamedMessage(stream, data); });
-				res.on('end', function() {
-					local.worker.endMessage(stream);
-					local.worker.removeAllNamedMessageListeners(message.id);
-				});
-			} else {
-				local.worker.endMessage(stream);
-				local.worker.removeAllNamedMessageListeners(message.id);
-			}
-		};
-
-		// setup the response promise
-		var resPromise = local.promise();
-		resPromise.then(handleResponse, handleResponse);
-
-		// create a server response for the request handler to work with
-		var response = new local.web.ServerResponse(resPromise, request.stream);
-
-		// listen for an end message on the original request message
-		// (this occurs when the response is a stream and the client has closed it)
-		local.worker.onNamedMessage(message.id, function(message2) {
-			if (message2.name == 'endMessage')
-				response.clientResponse.close();
-		});
-
-		// pass on to the request handler
-		main(request, response);
-	} else {
-		// no request handler
-		var stream = local.worker.postReply(message, { status:404, reason:'server not loaded' });
-		local.worker.endMessage(stream);
-	}
-});

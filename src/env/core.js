@@ -21,7 +21,7 @@ local.env.addServer = function(domain, server) {
 		server.loadUserScript();
 
 	// register the server
-	local.http.registerLocal(domain, server.handleHttpRequest, server);
+	local.web.registerLocal(domain, server.handleHttpRequest, server);
 
 	return server;
 };
@@ -29,7 +29,7 @@ local.env.addServer = function(domain, server) {
 local.env.killServer = function(domain) {
 	var server = local.env.servers[domain];
 	if (server) {
-		local.http.unregisterLocal(domain);
+		local.web.unregisterLocal(domain);
 		server.terminate();
 		delete local.env.servers[domain];
 		local.env.numServers--;
@@ -68,72 +68,38 @@ local.env.removeClientRegion = function(id) {
 
 local.env.getClientRegion = function(id) { return local.env.clientRegions[id]; };
 
-// dispatch monkeypatch
+// dispatch wrapper
 // - allows the deployment to control request permissions / sessions / etc
-// - adds the `origin` parameter, which is the object responsible for the request
-var __envDispatchWrapper;
-var orgLinkDispatchFn = local.http.dispatch;
-local.http.dispatch = function(req, origin) {
-	// sane defaults & sanitization
-	req.headers = req.headers || {};
-	req.query = req.query || {};
-	req.method = (req.method) ? req.method.toUpperCase() : 'GET';
-
+// - adds the `origin` parameter to dispatch(), which is the object responsible for the request
+var envDispatchWrapper;
+local.web.setDispatchWrapper(function(request, response, dispatch, origin) {
 	// parse the url
-	// (urld = url description)
-	if (!req.url)
-		req.url = local.http.joinUrl(req.host, req.path);
-	if (!req.urld)
-		req.urld = local.http.parseUri(req.url);
+	var urld = local.web.parseUri(request.url); // (urld = url description)
 
 	// if the urld has query parameters, mix them into the request's query object
-	if (req.urld.query) {
-		var q = local.http.contentTypes.deserialize(req.urld.query, 'application/x-www-form-urlencoded');
+	if (urld.query) {
+		var q = local.web.contentTypes.deserialize(urld.query, 'application/x-www-form-urlencoded');
 		for (var k in q)
-			req.query[k] = q[k];
-		delete req.urld.query; // avoid doing this again later
-		req.urld.relative = req.urld.path;
+			request.query[k] = q[k];
+		delete urld.query; // avoid doing this again later
+		urld.relative = urld.path;
 	}
 
-	var res = __envDispatchWrapper.call(this, req, origin, orgLinkDispatchFn);
-	if (res instanceof local.Promise) { return res; }
-
-	// make sure we respond with a valid client response
-	if (!res) {
-		res = new local.http.ClientResponse(0, 'Environment did not correctly dispatch the request');
-		res.end();
-	} else if (!(res instanceof local.http.ClientResponse)) {
-		if (typeof res == 'object') {
-			var res2 = new local.http.ClientResponse(res.status, res.reason);
-			res2.headers = res.headers;
-			res2.end(res.body);
-			res = res2;
-		} else {
-			res = new local.http.ClientResponse(0, res.toString());
-			res.end();
-		}
-	}
-
-	// and make sure it's wrapped in a promise
-	var p = local.promise();
-	if (res.status >= 400 || res.status === 0)
-		p.reject(res);
-	else
-		p.fulfill(res);
-	return p;
-};
-__envDispatchWrapper = function(req, origin, dispatch) {
-	return dispatch(req);
-};
+	request.urld = urld;
+	envDispatchWrapper.call(null, request, response, dispatch, origin);
+});
 local.env.setDispatchWrapper = function(fn) {
-	__envDispatchWrapper = fn;
+	envDispatchWrapper = fn;
 };
+local.env.setDispatchWrapper(function(request, response, origin, dispatch) {
+	return dispatch(request, response);
+});
 
 // response html post-process
 // - override this to modify html after it has entered the document
 // - useful for adding local.env widgets
-var __postProcessRegion = function() {};
-local.env.postProcessRegion = function(elem, containerElem) { return __postProcessRegion(elem, containerElem); };
+var postProcessRegion = function() {};
+local.env.postProcessRegion = function(elem, containerElem) { return postProcessRegion(elem, containerElem); };
 local.env.setRegionPostProcessor = function(fn) {
-	__postProcessRegion = fn;
+	postProcessRegion = fn;
 };

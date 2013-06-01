@@ -142,3 +142,18 @@ local.web.contentTypes.register('application/x-www-form-urlencoded',
 		return result;
 	}
 );
+local.web.contentTypes.register('text/event-stream',
+	function (obj) {
+		return "event: "+obj.event+"\r\ndata:"+JSON.stringify(obj.data)+"\r\n\r\n";
+	},
+	function (str) {
+		var parts = str.split('\r\n');
+		var data = parts[1].trim().slice(5);
+		try { data = JSON.parse(data); }
+		catch(e) {}
+		return {
+			event: parts[0].trim().slice(7),
+			data: data
+		};
+	}
+);

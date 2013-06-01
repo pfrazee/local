@@ -277,7 +277,17 @@ function EventEmitter() {
 		configurable: true,
 		enumerable: false
 	});
+	Object.defineProperty(this, '_history', {
+		value: {},
+		configurable: true,
+		enumerable: false
+	});
 }
+
+EventEmitter.prototype.keepHistory = function(type) {
+	if (!this._history[type])
+		this._history[type] = [];
+};
 
 EventEmitter.prototype.emit = function(type) {
 	var handlers = this._events[type];
@@ -287,6 +297,8 @@ EventEmitter.prototype.emit = function(type) {
 	for (var i = 0, l = handlers.length; i < l; i++) {
 		handlers[i].apply(this, args);
 	}
+	if (this._history[type])
+		this._history[type].push(args);
 	return true;
 };
 
@@ -309,6 +321,10 @@ EventEmitter.prototype.addListener = function(type, listener) {
 	} else {
 		this._events[type].push(listener);
 	}
+
+	var self = this;
+	if (this._history[type])
+		this._history[type].forEach(function(args) { self.emit(type, args); });
 
 	return this;
 };
@@ -342,6 +358,7 @@ EventEmitter.prototype.removeListener = function(type, listener) {
 
 EventEmitter.prototype.removeAllListeners = function(type) {
 	if (type && this._events[type]) this._events[type] = null;
+	if (this._history[type]) this._history[type] = null;
 	return this;
 };
 
@@ -355,10 +372,8 @@ local.util.EventEmitter = EventEmitter;})();// Local HTTP
 
 if (typeof this.local == 'undefined')
 	this.local = {};
-if (typeof this.local.http == 'undefined')
-	this.local.http = {};
-if (typeof this.local.http.ext == 'undefined')
-	this.local.http.ext = {};
+if (typeof this.local.web == 'undefined')
+	this.local.web = {};
 
 (function() {
 	function noop() {}// Helpers
@@ -366,7 +381,7 @@ if (typeof this.local.http.ext == 'undefined')
 
 // EXPORTED
 // breaks a link header into a javascript object
-local.http.parseLinkHeader = function parseLinkHeader(headerStr) {
+local.web.parseLinkHeader = function parseLinkHeader(headerStr) {
 	if (typeof headerStr !== 'string') {
 		return headerStr;
 	}
@@ -399,7 +414,7 @@ local.http.parseLinkHeader = function parseLinkHeader(headerStr) {
 //    eg lookupLink(links, 'item', 'foobar'), Link: <http://example.com/some/foobar>; rel="item"; title="foobar" -> http://example.com/some/foobar
 //  - then looks for a matching rel with no title and uses that to generate the link
 //    eg lookupLink(links, 'item', 'foobar'), Link: <http://example.com/some/{title}>; rel="item" -> http://example.com/some/foobar
-local.http.lookupLink = function lookupLink(links, rel, title) {
+local.web.lookupLink = function lookupLink(links, rel, title) {
 	var len = links ? links.length : 0;
 	if (!len) { return null; }
 
@@ -432,7 +447,7 @@ local.http.lookupLink = function lookupLink(links, rel, title) {
 
 // EXPORTED
 // correctly joins together to url segments
-local.http.joinUrl = function joinUrl() {
+local.web.joinUrl = function joinUrl() {
 	var parts = Array.prototype.map.call(arguments, function(arg) {
 		var lo = 0, hi = arg.length;
 		if (arg.charAt(0) === '/')      { lo += 1; }
@@ -443,33 +458,13 @@ local.http.joinUrl = function joinUrl() {
 };
 
 // EXPORTED
-// converts any known header objects into their string versions
-local.http.serializeRequestHeaders = function(headers) {
-	if (headers.authorization && typeof headers.authorization == 'object') {
-		if (!headers.authorization.scheme) { throw "`scheme` required for auth headers"; }
-		var auth;
-		switch (headers.authorization.scheme.toLowerCase()) {
-			case 'basic':
-				auth = 'Basic '+btoa(headers.authorization.name+':'+headers.authorization.password);
-				break;
-			case 'persona':
-				auth = 'Persona name='+headers.authorization.name+' assertion='+headers.authorization.assertion;
-				break;
-			default:
-				throw "unknown auth sceme: "+headers.authorization.scheme;
-		}
-		headers.authorization = auth;
-	}
-};
-
-// EXPORTED
 // parseUri 1.2.2, (c) Steven Levithan <stevenlevithan.com>, MIT License
-local.http.parseUri = function parseUri(str) {
+local.web.parseUri = function parseUri(str) {
 	if (typeof str === 'object') {
 		if (str.url) { str = str.url; }
-		else if (str.host || str.path) { str = local.http.joinUrl(req.host, req.path); }
+		else if (str.host || str.path) { str = local.web.joinUrl(req.host, req.path); }
 	}
-	var	o   = local.http.parseUri.options,
+	var	o   = local.web.parseUri.options,
 		m   = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
 		uri = {},
 		i   = 14;
@@ -484,7 +479,7 @@ local.http.parseUri = function parseUri(str) {
 	return uri;
 };
 
-local.http.parseUri.options = {
+local.web.parseUri.options = {
 	strictMode: false,
 	key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
 	q:   {
@@ -497,7 +492,6 @@ local.http.parseUri.options = {
 	}
 };
 
-
 // sends the given response back verbatim
 // - if `writeHead` has been previously called, it will not change
 // - params:
@@ -505,7 +499,7 @@ local.http.parseUri.options = {
 //   - `source`: the response to pull data from
 //   - `headersCb`: (optional) takes `(headers)` from source and responds updated headers for target
 //   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for target
-local.http.pipe = function(target, source, headersCB, bodyCb) {
+local.web.pipe = function(target, source, headersCB, bodyCb) {
 	headersCB = headersCB || function(v) { return v; };
 	bodyCb = bodyCb || function(v) { return v; };
 	return local.promise(source)
@@ -547,7 +541,7 @@ var contentTypes = {
 	register    : contentTypes__register
 };
 var contentTypes__registry = {};
-local.http.contentTypes = contentTypes;
+local.web.contentTypes = contentTypes;
 
 // EXPORTED
 // serializes an object into a string
@@ -613,7 +607,7 @@ function contentTypes__find(type, fn) {
 
 // Default Types
 // =============
-local.http.contentTypes.register('application/json',
+local.web.contentTypes.register('application/json',
 	function (obj) {
 		try {
 			return JSON.stringify(obj);
@@ -629,7 +623,7 @@ local.http.contentTypes.register('application/json',
 		}
 	}
 );
-local.http.contentTypes.register('application/x-www-form-urlencoded',
+local.web.contentTypes.register('application/x-www-form-urlencoded',
 	function (obj) {
 		var enc = encodeURIComponent;
 		var str = [];
@@ -680,199 +674,270 @@ local.http.contentTypes.register('application/x-www-form-urlencoded',
 
 		return result;
 	}
-);// Core
-// ====
-// :KNOWN BUGS:
-// - currently, Firefox is not able to retrieve response headers over CORS
-
-// stores local server functions
-var __httpl_registry = {};
-
-// request dispatcher func
-// - used in workers to transport requests to the parent for routing
-var __customRequestDispatcher = null;
-
-// the directory of the environment context
-var __windowLocationDirname = (typeof window != 'undefined') ? window.location.pathname.split('/') : [''];
-__windowLocationDirname[__windowLocationDirname.length - 1] = '';
-__windowLocationDirname = __windowLocationDirname.join('/');
-
-// fulfills/reject a promise for a response with the given response
-function fulfillResponsePromise(promise, response) {
-	// wasnt streaming, fulfill now that full response is collected
-	if (response.status >= 200 && response.status < 400)
-		promise.fulfill(response);
-	else if (response.status >= 400 && response.status < 600 || response.status === 0)
-		promise.reject(response);
-	else
-		promise.fulfill(response); // :TODO: 1xx protocol handling
-}
-
-// dispatch()
-// ==========
+);
+local.web.contentTypes.register('text/event-stream',
+	function (obj) {
+		return "event: "+obj.event+"\r\ndata:"+JSON.stringify(obj.data)+"\r\n\r\n";
+	},
+	function (str) {
+		var parts = str.split('\r\n');
+		var data = parts[1].trim().slice(5);
+		try { data = JSON.parse(data); }
+		catch(e) {}
+		return {
+			event: parts[0].trim().slice(7),
+			data: data
+		};
+	}
+);// Request
+// =======
 // EXPORTED
-// HTTP request dispatcher
-// - `req` param:
-//   - requires `method`, `body`, and the target url
-//   - target url can be passed in options as `url`, or generated from `host` and `path`
-//   - query parameters may be passed in `query`
-//   - extra request headers may be specified in `headers`
-//   - if `stream` is true, the ClientResponse 'data' events will be called as soon as headers or data are received
-// - returns a `Promise` object
-//   - on success (status code 2xx), the promise is fulfilled with a `ClientResponse` object
-//   - on failure (status code 4xx,5xx), the promise is rejected with a `ClientResponse` object
-//   - all protocol (status code 1xx,3xx) is handled internally
-local.http.dispatch = function dispatch(req) {
-	// sanity check
-	if (!req) { throw "no req param provided to request"; }
+// Interface for sending requests
+function Request(options) {
+	local.util.EventEmitter.call(this);
 
-	// sane defaults & sanitization
-	req.headers = req.headers || {};
-	req.query = req.query || {};
-	req.method = (req.method) ? req.method.toUpperCase() : 'GET';
+	if (!options) options = {};
+	if (typeof options == 'string')
+		options = { url: options };
 
-	// dispatch behavior override
-	// (used by workers to send requests to the parent document for routing)
-	if (__customRequestDispatcher)
-		return __customRequestDispatcher(req);
+	this.method = options.method ? options.method.toUpperCase() : 'GET';
+	this.url = options.url || null;
+	this.query = options.query || {};
+	this.headers = options.headers || {};
+	this.stream = options.stream || false;
 
-	// parse the url
-	// (urld = url description)
-	if (!req.url)
-		req.url = local.http.joinUrl(req.host, req.path);
-	if (!req.urld)
-		req.urld = local.http.parseUri(req.url);
-	if (!req.urld)
-		throw "no URL or host/path provided in request";
+	this.isConnOpen = true;
+	this.keepHistory('data');
+	this.keepHistory('end');
+}
+local.web.Request = Request;
+Request.prototype = Object.create(local.util.EventEmitter.prototype);
 
-	// prepend host on relative path
-	if (!req.urld.protocol) {
-		if (req.url.length > 0 && req.url.charAt(0) != '/') {
-			// relative to current dirname
-			req.url = window.location.protocol + "//" + window.location.host + __windowLocationDirname + req.url;
-		} else {
-			// relative to current hose
-			req.url = window.location.protocol + "//" + window.location.host + req.url;
-		}
-		req.urld = local.http.parseUri(req.url);
-	}
+Request.prototype.setHeader    = function(k, v) { this.headers[k] = v; };
+Request.prototype.getHeader    = function(k) { return this.headers[k]; };
+Request.prototype.removeHeader = function(k) { delete this.headers[k]; };
 
-	// execute (asyncronously) by protocol
-	var resPromise = local.promise();
-	if (req.urld.protocol == 'httpl')
-		setTimeout(function() { __dispatchLocal(req, resPromise); }, 0);
-	else if (req.urld.protocol == 'http' || req.urld.protocol == 'https')
-		setTimeout(function() { __dispatchRemote(req, resPromise); }, 0);
-	else if (req.urld.protocol == 'data')
-		setTimeout(function() { __dispatchData(req, resPromise); }, 0);
-	else {
-		var res = new ClientResponse(0, 'unsupported protocol "'+req.urld.protocol+'"');
-		resPromise.reject(res);
-		res.end();
-	}
-	return resPromise;
+// causes the request/response to abort after the given milliseconds
+Request.prototype.setTimeout = function(ms) {
+	var self = this;
+	setTimeout(function() {
+		if (self.isConnOpen) self.close();
+	}, ms);
 };
 
-// executes a request locally
-function __dispatchLocal(req, resPromise) {
-
-	// find the local server
-	var server = __httpl_registry[req.urld.host];
-	if (!server) {
-		var res = new ClientResponse(404, 'server not found');
-		resPromise.reject(res);
-		res.end();
-		return;
+// EXPORTED
+// converts any known header objects into their string versions
+// - used on remote connections
+Request.prototype.serializeHeaders = function(headers) {
+	if (this.headers.authorization && typeof this.headers.authorization == 'object') {
+		if (!this.headers.authorization.scheme) { throw "`scheme` required for auth headers"; }
+		var auth;
+		switch (this.headers.authorization.scheme.toLowerCase()) {
+			case 'basic':
+				auth = 'Basic '+btoa(this.headers.authorization.name+':'+this.headers.authorization.password);
+				break;
+			case 'persona':
+				auth = 'Persona name='+this.headers.authorization.name+' assertion='+this.headers.authorization.assertion;
+				break;
+			default:
+				throw "unknown auth sceme: "+this.headers.authorization.scheme;
+		}
+		this.headers.authorization = auth;
 	}
+};
 
-	// rebuild the request
-	// :NOTE: could just pass `req`, but would rather be explicit about what a local server receives
-	var req2 = {
-		path    : req.urld.path,
-		method  : req.method,
-		query   : req.query || {},
-		headers : req.headers || {},
-		body    : req.body,
-		stream  : req.stream
-	};
+// sends data over the stream
+// - emits the 'data' event
+Request.prototype.write = function(data) {
+	if (!this.isConnOpen)
+		return;
+	if (typeof data != 'string')
+		data = local.web.contentTypes.serialize(data, this.headers['content-type']);
+	this.emit('data', data);
+};
 
-	// standardize the path
-	if (!req2.path) req2.path = '/';
-	else req2.path = req2.path.replace(/(.)\/$/, '$1');
+// ends the request stream
+// - `data`: optional mixed, to write before ending
+// - emits 'end' and 'close' events
+Request.prototype.end = function(data) {
+	if (!this.isConnOpen)
+		return;
+	if (data)
+		this.write(data);
+	this.emit('end');
+	// this.close();
+	// ^ do not close - the response should close
+};
 
-	// if the urld has query parameters, mix them into the request's query object
-	if (req.urld.query) {
-		var q = local.http.contentTypes.deserialize(req.urld.query, 'application/x-www-form-urlencoded');
-		for (var k in q) {
-			req2.query[k] = q[k];
+// closes the stream, aborting if not yet finished
+// - emits 'close' event
+Request.prototype.close = function() {
+	if (!this.isConnOpen)
+		return;
+	this.isConnOpen = false;
+	this.emit('close');
+	this.removeAllListeners('data');
+	this.removeAllListeners('end');
+	this.removeAllListeners('close');
+};// Response
+// ========
+// EXPORTED
+// Interface for receiving responses
+// - usually internally and returned by `dispatch`
+function Response() {
+	local.util.EventEmitter.call(this);
+
+	this.status = 0;
+	this.reason = null;
+	this.headers = {};
+
+	this.isConnOpen = true;
+	this.keepHistory('data');
+	this.keepHistory('end');
+}
+local.web.Response = Response;
+Response.prototype = Object.create(local.util.EventEmitter.prototype);
+
+Response.prototype.setHeader    = function(k, v) { this.headers[k] = v; };
+Response.prototype.getHeader    = function(k) { return this.headers[k]; };
+Response.prototype.removeHeader = function(k) { delete this.headers[k]; };
+
+// writes the header to the response
+// - emits the 'headers' event
+Response.prototype.writeHead = function(status, reason, headers) {
+	this.status = status;
+	this.reason = reason;
+	if (headers) {
+		for (var k in headers) {
+			if (headers.hasOwnProperty(k))
+				this.setHeader(k, headers[k]);
 		}
 	}
 
-	// pass on to the server
-	server.fn.call(server.context, req2, new ServerResponse(resPromise, req.stream));
+	this.emit('headers', this);
+	return this;
+};
+
+// sends data over the stream
+// - emits the 'data' event
+Response.prototype.write = function(data) {
+	if (!this.isConnOpen)
+		return;
+	if (typeof data != 'string')
+		data = local.web.contentTypes.serialize(data, this.headers['content-type']);
+	this.emit('data', data);
+};
+
+// ends the response stream
+// - `data`: optional mixed, to write before ending
+// - emits 'end' and 'close' events
+Response.prototype.end = function(data) {
+	if (!this.isConnOpen)
+		return;
+	if (data)
+		this.write(data);
+	this.emit('end');
+	this.close();
+};
+
+// closes the stream, aborting if not yet finished
+// - emits 'close' event
+Response.prototype.close = function() {
+	if (!this.isConnOpen)
+		return;
+	this.isConnOpen = false;
+	this.emit('close');
+	this.removeAllListeners('headers');
+	this.removeAllListeners('data');
+	this.removeAllListeners('end');
+	this.removeAllListeners('close');
+};// schemes
+// =======
+// EXPORTED
+// dispatch() handlers, matched to the scheme in the request URIs
+var schemes = {
+	register: schemes__register,
+	unregister: schemes__unregister,
+	get: schemes__get
+};
+var schemes__registry = {};
+local.web.schemes = schemes;
+
+function schemes__register(scheme, handler) {
+	if (scheme && Array.isArray(scheme)) {
+		for (var i=0, ii=scheme.length; i < ii; i++)
+			schemes__register(scheme[i], handler);
+	} else
+		schemes__registry[scheme] = handler;
 }
 
-// executes a request remotely
-function __dispatchRemote(req, resPromise) {
+function schemes__unregister(scheme) {
+	delete schemes__registry[scheme];
+}
+
+function schemes__get(scheme) {
+	return schemes__registry[scheme];
+}
+
+
+// HTTP
+// ====
+local.web.schemes.register(['http', 'https'], function(request, response) {
+	// parse URL
+	var urld = local.web.parseUri(request.url);
 
 	// if a query was given in the options, mix it into the urld
-	if (req.query) {
-		var q = local.http.contentTypes.serialize(req.query, 'application/x-www-form-urlencoded');
+	if (request.query) {
+		var q = local.web.contentTypes.serialize(request.query, 'application/x-www-form-urlencoded');
 		if (q) {
-			if (req.urld.query) {
-				req.urld.query    += '&' + q;
-				req.urld.relative += '&' + q;
+			if (urld.query) {
+				urld.query    += '&' + q;
+				urld.relative += '&' + q;
 			} else {
-				req.urld.query     =  q;
-				req.urld.relative += '?' + q;
+				urld.query     =  q;
+				urld.relative += '?' + q;
 			}
 		}
 	}
 
-	if (typeof window != 'undefined')
-		__dispatchRemoteBrowser(req, resPromise);
-	else
-		__dispatchRemoteNodejs(req, resPromise);
-}
-
-// executes a remote request in the browser
-function __dispatchRemoteBrowser(req, resPromise) {
-
 	// assemble the final url
-	var url = ((req.urld.protocol) ? (req.urld.protocol + '://') : '') + req.urld.authority + req.urld.relative;
-
-	// make sure our payload is serialized
-	local.http.serializeRequestHeaders(req.headers);
-	if (req.body !== null && typeof req.body != 'undefined') {
-		req.headers['content-type'] = req.headers['content-type'] || 'application/json';
-		if (typeof req.body !== 'string') {
-			req.body = local.http.contentTypes.serialize(req.body, req.headers['content-type']);
-		}
-	}
+	var url = ((urld.protocol) ? (urld.protocol + '://') : '') + urld.authority + urld.relative;
 
 	// create the request
 	var xhrRequest = new XMLHttpRequest();
-	xhrRequest.open(req.method, url, true);
+	xhrRequest.open(request.method, url, true);
 
-	for (var k in req.headers) {
-		if (req.headers[k] !== null && req.headers.hasOwnProperty(k))
-			xhrRequest.setRequestHeader(k, req.headers[k]);
+	// set headers
+	request.serializeHeaders();
+	for (var k in request.headers) {
+		if (request.headers[k] !== null && request.headers.hasOwnProperty(k))
+			xhrRequest.setRequestHeader(k, request.headers[k]);
 	}
 
-	var clientResponse, streamPoller=0, lenOnLastPoll=0;
-	xhrRequest.onreadystatechange = function() {
-		if (xhrRequest.readyState >= XMLHttpRequest.HEADERS_RECEIVED && !clientResponse) {
-			clientResponse = new ClientResponse(xhrRequest.status, xhrRequest.statusText);
-			clientResponse.on('close', function() {
-				if (xhrRequest.readyState !== XMLHttpRequest.DONE)
-					xhrRequest.abort();
-			});
+	// buffer the body, send on end
+	var body = '';
+	request.on('data', function(e) { body += e.data; });
+	request.on('end', function() { xhrRequest.send(body); });
 
+	// abort on request close
+	request.on('close', function() {
+		if (xhrRequest.readyState !== XMLHttpRequest.DONE)
+			xhrRequest.abort();
+	});
+
+	// register response handlers
+	var streamPoller=0, lenOnLastPoll=0, headersSent = false;
+	xhrRequest.onreadystatechange = function() {
+		if (xhrRequest.readyState >= XMLHttpRequest.HEADERS_RECEIVED && !headersSent) {
+			headersSent = true;
+
+			// extract headers
+			var headers = {};
 			if (xhrRequest.getAllResponseHeaders()) {
 				xhrRequest.getAllResponseHeaders().split("\n").forEach(function(h) {
 					if (!h) { return; }
 					var kv = h.toLowerCase().replace('\r','').split(': ');
-					clientResponse.headers[kv[0]] = kv[1];
+					headers[kv[0]] = kv[1];
 				});
 			} else {
 				// a bug in firefox causes getAllResponseHeaders to return an empty string on CORS
@@ -880,7 +945,7 @@ function __dispatchRemoteBrowser(req, resPromise) {
 				var extractHeader = function(k) {
 					var v = xhrRequest.getResponseHeader(k);
 					if (v)
-						clientResponse.headers[k.toLowerCase()] = v.toLowerCase();
+						headers[k.toLowerCase()] = v.toLowerCase();
 				};
 				extractHeader('Accept-Ranges');
 				extractHeader('Age');
@@ -914,240 +979,109 @@ function __dispatchRemoteBrowser(req, resPromise) {
 				extractHeader('WWW-Authenticate');
 			}
 
-			// parse any headers we need
-			if (clientResponse.headers.link)
-				clientResponse.headers.link = local.http.parseLinkHeader(clientResponse.headers.link);
+			// parse any headers we use often
+			if (headers.link)
+				headers.link = local.web.parseLinkHeader(headers.link);
 
-			if (req.stream) {
-				// streaming, fulfill ahead of response close
-				fulfillResponsePromise(resPromise, clientResponse);
+			console.log('writing head', xhrRequest.status, xhrRequest.statusText, headers)
+			response.writeHead(xhrRequest.status, xhrRequest.statusText, headers);
 
-				// start polling for updates
-				streamPoller = setInterval(function() {
-					// new data?
-					var len = xhrRequest.responseText.length;
-					if (len > lenOnLastPoll) {
-						lenOnLastPoll = len;
-						clientResponse.write(xhrRequest.responseText, true);
-					}
-				}, req.streamPoll || 500);
-			}
+			// start polling for updates
+			streamPoller = setInterval(function() {
+				// new data?
+				var len = xhrRequest.responseText.length;
+				if (len > lenOnLastPoll) {
+					response.write(xhrRequest.responseText.slice(lenOnLastPoll));
+					lenOnLastPoll = len;
+				}
+			}, 50);
 		}
 		if (xhrRequest.readyState === XMLHttpRequest.DONE) {
-			clientResponse = clientResponse || new ClientResponse(xhrRequest.status, xhrRequest.statusText);
 			if (streamPoller)
 				clearInterval(streamPoller);
-			clientResponse.write(xhrRequest.responseText, true);
-			clientResponse.end();
-
-			if (!req.stream) {
-				// wasnt streaming, fulfill now that full response is collected
-				fulfillResponsePromise(resPromise, clientResponse);
-			}
-
+			console.log('writing', xhrRequest.responseText.slice(lenOnLastPoll))
+			response.write(xhrRequest.responseText.slice(lenOnLastPoll));
+			response.end();
+			console.log('ended')
 		}
 	};
-	xhrRequest.send(req.body);
-}
+});
 
-// executes a remote request in a nodejs process
-function __dispatchRemoteNodejs(req, resPromise) {
-	var res = new ClientResponse(0, 'dispatch() has not yet been implemented for nodejs');
-	resPromise.reject(res);
-	res.end();
-}
 
-// fulfills a request to a data-uri with the contents of the data uri
-function __dispatchData(req, resPromise) {
+// HTTPL
+// =====
+local.web.schemes.register('httpl', function(request, response) {
+	var urld = local.web.parseUri(request.url);
 
-	// parse out the uri
-	var firstColonIndex = req.url.indexOf(':');
-	var firstCommaIndex = req.url.indexOf(',');
+	// find the local server
+	var server = local.web.getLocal(urld.host);
+	if (!server) {
+		response.writeHead(404, 'server not found');
+		response.end();
+		return;
+	}
 
-	var params = req.url.slice(firstColonIndex+1, firstCommaIndex).split(';');
+	// pull out and standardize the path
+	request.path = urld.path;
+	if (!request.path) request.path = '/'; // no path, give a '/'
+	else request.path = request.path.replace(/(.)\/$/, '$1'); // otherwise, never end with a '/'
+
+	// if the urld has query parameters, mix them into the request's query object
+	if (urld.query) {
+		var q = local.web.contentTypes.deserialize(urld.query, 'application/x-www-form-urlencoded');
+		for (var k in q)
+			request.query[k] = q[k];
+	}
+
+	// pass on to the server
+	server.fn.call(server.context, request, response);
+});
+
+
+// Data
+// ====
+local.web.schemes.register('data', function(request, response) {
+	var firstColonIndex = request.url.indexOf(':');
+	var firstCommaIndex = request.url.indexOf(',');
+
+	// parse parameters
+	var param;
+	var params = request.url.slice(firstColonIndex+1, firstCommaIndex).split(';');
 	var contentType = params.shift();
 	var isBase64 = false;
-	while (params.length) {
-		var param = params.shift();
+	while ((param = params.shift())) {
 		if (param == 'base64')
 			isBase64 = true;
 	}
 
-	var data = req.url.slice(firstCommaIndex+1);
-	if (!data)
-		data = '';
-	if (isBase64)
-		data = atob(data);
-	else
-		data = decodeURIComponent(data);
+	// parse data
+	var data = request.url.slice(firstCommaIndex+1);
+	if (!data) data = '';
+	if (isBase64) data = atob(data);
+	else data = decodeURIComponent(data);
 
-	var res = new ServerResponse(resPromise);
-	res.writeHead(200, 'ok', {'content-type': contentType});
-	res.end(data);
-}
+	// respond
+	response.writeHead(200, 'ok', {'content-type': contentType});
+	response.end(data);
+});
+
+
+// Local Server Registry
+// =====================
+var __httpl_registry = {};
 
 // EXPORTED
-// allows the API consumer to dispatch requests with their own code
-// - mainly for workers to submit requests to the document for routing
-local.http.setRequestDispatcher = function setRequestDispatcher(fn) {
-	__customRequestDispatcher = fn;
-};
-
-// ClientResponse
-// ==============
-// EXPORTED
-// Interface for receiving responses
-// - generated internally and returned by `request`
-// - used by ServerResponse (for local servers) and by the remote request handler code
-// - emits 'data' events when a streaming request receives data
-// - emits an 'end' event when the connection is ended
-// - if the request is not streaming, the response body will be present in `body` (and no 'end' event is needed)
-function ClientResponse(status, reason) {
-	local.util.EventEmitter.call(this);
-
-	this.status = status;
-	this.reason = reason;
-	this.headers = {};
-	this.body = null;
-	this.isConnOpen = true;
-}
-local.http.ClientResponse = ClientResponse;
-ClientResponse.prototype = Object.create(local.util.EventEmitter.prototype);
-
-// adds data to the response stream
-// - if `overwrite` is false, will append to accumulated response
-// - if `overwrite` is true, will overwrite the accumulated response
-//   - but the 'data' event will only include the data that was new to the response's accumulation
-//     (that is, if this.body=='foo', and response.write('foobar', true), the 'data' event will include 'bar' only)
-ClientResponse.prototype.write = function(data, overwrite) {
-	if (!this.isConnOpen)
-		return;
-	if (!overwrite && typeof data == 'string' && typeof this.body == 'string') {
-		// add to the buffer if its a string
-		this.body += data;
-	} else {
-		// overwrite otherwise
-		var oldLen = (this.body && typeof this.body == 'string') ? this.body.length : 0;
-		this.body = data;
-		data = (typeof data == 'string') ? data.slice(oldLen) : data; // slice out what we already had, for the emit
-	}
-	this.emit('data', data);
-};
-
-ClientResponse.prototype.end = function() {
-	if (!this.isConnOpen)
-		return;
-	// now that we have it all, try to deserialize the payload
-	this.__deserialize();
-	this.isConnOpen = false;
-	this.emit('end');
-	this.close();
-};
-
-// clients can use this to stop receiving events
-ClientResponse.prototype.close = function() {
-	if (!this.isConnOpen)
-		return;
-	this.isConnOpen = false;
-	this.emit('close');
-	this.removeAllListeners('data');
-	this.removeAllListeners('end');
-	this.removeAllListeners('close');
-};
-
-// this helper is called when the data finishes coming down
-ClientResponse.prototype.__deserialize = function() {
-	// convert from string to an object (if we have a deserializer available)
-	if (typeof this.body == 'string')
-		this.body = local.http.contentTypes.deserialize(this.body, this.headers['content-type']);
-};
-
-// ServerResponse
-// ==============
-// EXPORTED
-// Interface for local servers to respond to requests
-// - generated internally and given to local servers
-// - not given to clients; instead, interfaces with the ClientResponse given to the client
-function ServerResponse(resPromise, isStreaming) {
-	local.util.EventEmitter.call(this);
-
-	this.resPromise  = resPromise;
-	this.isStreaming = isStreaming;
-	this.clientResponse = new ClientResponse();
-}
-local.http.ServerResponse = ServerResponse;
-ServerResponse.prototype = Object.create(local.util.EventEmitter.prototype);
-
-// writes the header to the response
-// if streaming, will notify the client
-ServerResponse.prototype.writeHead = function(status, reason, headers) {
-	// setup client response
-	this.clientResponse.status = status;
-	this.clientResponse.reason = reason;
-	if (headers) {
-		for (var k in headers) {
-			if (headers.hasOwnProperty(k))
-				this.setHeader(k, headers[k]);
-		}
-	}
-
-	// fulfill/reject
-	if (this.isStreaming) { fulfillResponsePromise(this.resPromise, this.clientResponse); }
-	return this;
-};
-
-// header access/mutation fns
-ServerResponse.prototype.setHeader    = function(k, v) { this.clientResponse.headers[k] = v; };
-ServerResponse.prototype.getHeader    = function(k) { return this.clientResponse.headers[k]; };
-ServerResponse.prototype.removeHeader = function(k) { delete this.clientResponse.headers[k]; };
-
-// writes data to the response
-// if streaming, will notify the client
-ServerResponse.prototype.write = function(data) {
-	this.clientResponse.write(data, false);
-	return this;
-};
-
-// ends the response, optionally writing any final data
-ServerResponse.prototype.end = function(data) {
-	// write any remaining data
-	if (data) { this.write(data); }
-
-	this.clientResponse.end();
-	this.emit('close');
-	this.removeAllListeners('close');
-
-	// fulfill/reject now if we had been buffering the response
-	if (!this.isStreaming)
-		fulfillResponsePromise(this.resPromise, this.clientResponse);
-
-	return this;
-};
-
-// functions added just to compat with nodejs
-ServerResponse.prototype.writeContinue = noop;
-ServerResponse.prototype.addTrailers   = noop;
-ServerResponse.prototype.sendDate      = noop; // :TODO: is this useful?
-
-
-// registerLocal()
-// ===============
-// EXPORTED
-// adds a server to the httpl registry
-local.http.registerLocal = function registerLocal(domain, server, serverContext) {
-	var urld = local.http.parseUri(domain);
+local.web.registerLocal = function registerLocal(domain, server, serverContext) {
+	var urld = local.web.parseUri(domain);
 	if (urld.protocol && urld.protocol !== 'httpl') throw "registerLocal can only add servers to the httpl protocol";
 	if (!urld.host) throw "invalid domain provided to registerLocal";
 	if (__httpl_registry[urld.host]) throw "server already registered at domain given to registerLocal";
-	__httpl_registry[urld.host] = { fn:server, context:serverContext };
+	__httpl_registry[urld.host] = { fn: server, context: serverContext };
 };
 
-// unregisterLocal()
-// =================
 // EXPORTED
-// removes a server from the httpl registry
-local.http.unregisterLocal = function unregisterLocal(domain) {
-	var urld = local.http.parseUri(domain);
+local.web.unregisterLocal = function unregisterLocal(domain) {
+	var urld = local.web.parseUri(domain);
 	if (!urld.host) {
 		throw "invalid domain provided toun registerLocal";
 	}
@@ -1156,230 +1090,213 @@ local.http.unregisterLocal = function unregisterLocal(domain) {
 	}
 };
 
-// getLocal()
-// ==========
 // EXPORTED
-// retrieves a server from the httpl registry
-local.http.getLocal = function getLocal(domain) {
-	var urld = local.http.parseUri(domain);
+local.web.getLocal = function getLocal(domain) {
+	var urld = local.web.parseUri(domain);
 	if (!urld.host) {
 		throw "invalid domain provided toun registerLocal";
 	}
 	return __httpl_registry[urld.host];
 };
 
-// getLocalRegistry()
-// ==================
 // EXPORTED
-// retrieves the httpl registry
-local.http.getLocalRegistry = function getLocalRegistry() {
+local.web.getLocalRegistry = function getLocalRegistry() {
 	return __httpl_registry;
-};// Events
+};
+var envDispatchWrapper;
+
+// dispatch()
+// ==========
+// EXPORTED
+// HTTP request dispatcher
+// - `request` param:
+//   - if string, creates GET request for json
+//   - if object, requires `url`, sends immediately (so you cant stream request body)
+//   - if Response, leaves you to run write() and end() (so you can stream request body)
+// - `request.query`: optional object, additional query params
+// - `request.headers`: optional object
+// - `request.body`: optional request body
+// - `request.stream`: boolean, stream the response? If falsey, will buffer and deserialize the response
+// - returns a `Promise` object
+//   - on success (status code 2xx), the promise is fulfilled with a `ClientResponse` object
+//   - on failure (status code 4xx,5xx), the promise is rejected with a `ClientResponse` object
+//   - all protocol (status code 1xx,3xx) is handled internally
+local.web.dispatch = function dispatch(request) {
+	if (!request) { throw "no request param provided to request"; }
+	if (typeof request == 'string')
+		request = { url: request };
+	if (!request.url)
+		throw "no url on request";
+
+	// if not given a local.web.Request, make one and remember to end the request ourselves
+	var body = null, selfEnd = false;
+	if (!(request instanceof local.web.Request)) {
+		body = request.body;
+		request = new local.web.Request(request);
+		selfEnd = true; // we're going to end()
+	}
+
+	// parse the url scheme
+	var scheme, firstColonIndex = request.url.indexOf(':');
+	if (firstColonIndex === -1)
+		scheme = 'http'; // default for relative paths
+	else
+		scheme = request.url.slice(0, firstColonIndex);
+
+	// wire up the response with the promise
+	var response_ = local.promise();
+	var response = new local.web.Response();
+	if (request.stream) {
+		// streaming, fulfill on 'headers'
+		response.on('headers', function(response) {
+			local.web.fulfillResponsePromise(response_, response);
+		});
+	} else {
+		// buffering, (deserialize and) fulfill on 'end'
+		var rezBody = '', gotData = false;
+		response.on('data', function(data) { gotData = true; rezBody += data; });
+		response.on('end', function() {
+			if (gotData) {
+				response.body = rezBody;
+				if (response.headers['content-type'])
+					response.body = local.web.contentTypes.deserialize(rezBody, response.headers['content-type']);
+			}
+		});
+		response.on('close', function() {
+			local.web.fulfillResponsePromise(response_, response);
+		});
+	}
+
+	// pull any extra arguments that may have been passed
+	var args = Array.prototype.slice.call(arguments, 1);
+
+	// (request, response, dispatch, args...)
+	args.unshift(function() {
+		// execute (asyncronously) by scheme
+		setTimeout(function() {
+			var schemeHandler = local.web.schemes.get(scheme);
+			if (!schemeHandler) {
+				response.writeHead(0, 'unsupported scheme "'+scheme+'"');
+				response.end();
+			} else {
+				// dispatch according to scheme
+				schemeHandler(request, response);
+				// send request body if not given a local.web.Request
+				if (selfEnd) request.end(body);
+			}
+		}, 0);
+		return response_;
+	});
+	args.unshift(response);
+	args.unshift(request);
+
+	// allow the wrapper to audit the packet
+	envDispatchWrapper.apply(null, args);
+
+	response_.request = request;
+	return response_;
+};
+
+// EXPORTED
+// fulfills/reject a promise for a response with the given response
+// - exported because its pretty useful
+local.web.fulfillResponsePromise = function(promise, response) {
+	// wasnt streaming, fulfill now that full response is collected
+	if (response.status >= 200 && response.status < 400)
+		promise.fulfill(response);
+	else if (response.status >= 400 && response.status < 600 || response.status === 0)
+		promise.reject(response);
+	else
+		promise.fulfill(response); // :TODO: 1xx protocol handling
+};
+
+local.web.setDispatchWrapper = function(wrapperFn) {
+	envDispatchWrapper = wrapperFn;
+};
+
+local.web.setDispatchWrapper(function(request, response, dispatch) {
+	dispatch(request, response);
+});// Events
 // ======
-// :NOTE: currently, Chrome does not support event streams with CORS
-
-// the directory of the environment context
-var __windowLocationDirname = (typeof window != 'undefined') ? window.location.pathname.split('/') : [''];
-__windowLocationDirname[__windowLocationDirname.length - 1] = '';
-__windowLocationDirname = __windowLocationDirname.join('/');
-
-// event subscriber func
-// - used in workers to transport subscribes to the parent for routing
-var __customEventSubscriber = null;
 
 // subscribe()
 // ===========
 // EXPORTED
 // Establishes a connection and begins an event stream
 // - sends a GET request with 'text/event-stream' as the Accept header
-// - `req` param:
-//   - requires the target url
-//   - target url can be passed in req as `url`, or generated from `host` and `path`
+// - `request`: request object, formed as in `dispatch()`
 // - returns a `EventStream` object
-local.http.subscribe = function subscribe(req) {
+local.web.subscribe = function subscribe(request) {
+	if (typeof request == 'string')
+		request = { url: request };
+	request.stream = true; // stream the response
+	if (!request.method) request.method = 'GET';
+	if (!request.headers) request.headers = { accept : 'text/event-stream' };
+	if (!request.headers.accept) request.headers.accept = 'text/event-stream';
 
-	if (!req) { throw "no options provided to subscribe"; }
-	if (typeof req == 'string') {
-		req = { url:req };
-	}
-
-	// subscribe behavior override
-	// (used by workers to send subscribes to the parent document for routing)
-	if (__customEventSubscriber)
-		return __customEventSubscriber(req);
-
-	// parse the url
-	// (urld = url description)
-	if (!req.url)
-		req.url = local.http.joinUrl(req.host, req.path);
-	req.urld = local.http.parseUri(req.url);
-	if (!req.urld)
-		throw "no URL or host/path provided in request";
-
-	// prepend host on relative path
-	if (!req.urld.protocol) {
-		if (req.url.length > 0 && req.url.charAt(0) != '/') {
-			// relative to current dirname
-			req.url = window.location.protocol + "//" + window.location.host + __windowLocationDirname + req.url;
-		} else {
-			// relative to current hose
-			req.url = window.location.protocol + "//" + window.location.host + req.url;
-		}
-		req.urld = local.http.parseUri(req.url);
-	}
-
-	// execute according to protocol
-	if (req.urld.protocol == 'httpl')
-		return __subscribeLocal(req);
-	else
-		return __subscribeRemote(req);
+	var response_ = local.web.dispatch(request);
+	return new EventStream(response_.request, response_);
 };
 
-// subscribes to a local host
-function __subscribeLocal(req) {
-
-	// initiate the event stream
-	var stream = new LocalEventStream(local.http.dispatch({
-		method  : 'get',
-		url     : 'httpl://' + req.urld.authority + req.urld.relative,
-		headers : { accept : 'text/event-stream' },
-		stream  : true
-	}));
-	return stream;
-}
-
-// subscribes to a remote host
-function __subscribeRemote(req) {
-	if (typeof window != 'undefined')
-		return __subscribeRemoteBrowser(req);
-	else
-		return __subscribeRemoteNodejs(req);
-}
-
-// subscribes to a remote host in the browser
-function __subscribeRemoteBrowser(req) {
-
-	// assemble the final url
-	var url = (req.urld.protocol || 'http') + '://' + req.urld.authority + req.urld.relative;
-
-	// initiate the event stream
-	return new BrowserRemoteEventStream(url);
-}
-
-// subscribes to a remote host in a nodejs process
-function __subscribeRemoteNodejs(req) {
-	throw "subscribe() has not yet been implemented for nodejs";
-}
-
-// EXPORTED
-// allows the API consumer to handle subscribes with their own code
-// - mainly for workers to submit subscribes to the document for routing
-local.http.setEventSubscriber = function setEventSubscriber(fn) {
-	__customEventSubscriber = fn;
-};
 
 // EventStream
 // ===========
 // EXPORTED
 // provided by subscribe() to manage the events
-function EventStream() {
+function EventStream(request, response_) {
 	local.util.EventEmitter.call(this);
-	this.isConnOpen = true;
-}
-local.http.EventStream = EventStream;
-EventStream.prototype = Object.create(local.util.EventEmitter.prototype);
-EventStream.prototype.close = function() {
-	this.isConnOpen = false;
-	this.emit('close');
-	this.removeAllListeners();
-};
-EventStream.prototype.__emitError = function(e) {
-	this.emit('message', e);
-	this.emit('error', e);
-};
-EventStream.prototype.__emitEvent = function(e) {
-	this.emit('message', e);
-	this.emit(e.event, e);
-};
-
-// LocalEventStream
-// ================
-// INTERNAL
-// descendent of EventStream
-function LocalEventStream(resPromise) {
-	EventStream.call(this);
+	this.request = request;
 	this.response = null;
+	this.isConnOpen = true;
 
-	// wait for the promise
+	this.connect(response_);
+}
+local.web.EventStream = EventStream;
+EventStream.prototype = Object.create(local.util.EventEmitter.prototype);
+EventStream.prototype.connect = function(response_) {
 	var self = this;
-	resPromise.then(
+	response_.then(
 		function(response) {
 			self.response = response;
 			response.on('data', function(payload) {
-				self.__emitEvent(payload);
+				var events = payload.split("\r\n\r\n");
+				events.forEach(function(event) {
+					if (event)
+						emitEvent.call(self, event);
+				});
 			});
-			response.on('end', function() {
-				self.close();
-			});
+			response.on('end', function() { self.close(); });
+			response.on('close', function() { if (this.isConnOpen) { self.reconnect(); } });
+			// ^ a close event should be predicated by an end(), giving us time to close ourselves
+			//   if we get a close from the other side without an end message, we assume connection fault
 		},
 		function(response) {
-			self.__emitError({ event:'error', data:response });
+			self.response = response;
+			emitError.call(self, { event: 'error', data: response });
 			self.close();
 		}
 	);
+};
+EventStream.prototype.reconnect = function() {
+	if (this.isConnOpen)
+		this.close();
+	this.connect(local.web.dispatch(this.request));
+};
+EventStream.prototype.close = function() {
+	this.isConnOpen = false;
+	this.request.close();
+	this.emit('close');
+};
+function emitError(e) {
+	this.emit('message', e);
+	this.emit('error', e);
 }
-local.http.LocalEventStream = LocalEventStream;
-LocalEventStream.prototype = Object.create(EventStream.prototype);
-LocalEventStream.prototype.close = function() {
-	this.__emitError({ event:'error', data:undefined }); // :NOTE: emulating the behavior of EventSource
-	// :TODO: would be great if close didn't emit the above error
-	EventStream.prototype.close.call(this);
-	if (this.response)
-		this.response.close();
-	this.response = null;
-};
-
-// BrowserRemoteEventStream
-// ========================
-// INTERNAL
-// descendent of EventStream, abstracts over EventSource
-function BrowserRemoteEventStream(url) {
-	EventStream.call(this);
-
-	// establish the connection to the remote source
-	this.eventSource = new EventSource(url);
-	// wire it up to our functions
-	var self = this;
-	this.eventSource.onerror = function(e) {
-		if (e.target.readyState == EventSource.CLOSED)
-			self.close();
-	};
+function emitEvent(e) {
+	e = local.web.contentTypes.deserialize(e, 'text/event-stream');
+	this.emit('message', e);
+	this.emit(e.event, e);
 }
-local.http.BrowserRemoteEventStream = BrowserRemoteEventStream;
-BrowserRemoteEventStream.prototype = Object.create(EventStream.prototype);
-BrowserRemoteEventStream.prototype.addListener = function(type, listener) {
-	if (Array.isArray(type)) {
-		type.forEach(function(t) { this.addListener(t, listener); }, this);
-		return;
-	}
-	if (!this._events[type]) {
-		// if this is the first add to the event stream, register our interest with the event source
-		var self = this;
-		this.eventSource.addEventListener(type, function(e) {
-			var data = e.data;
-			try { data = JSON.parse(data); } catch(err) {}
-			self.__emitEvent({ event:e.type, data:data });
-		});
-	}
-	local.util.EventEmitter.prototype.addListener.call(this, type, listener);
-};
-BrowserRemoteEventStream.prototype.on = BrowserRemoteEventStream.prototype.addListener;
-BrowserRemoteEventStream.prototype.close = function() {
-	this.eventSource.close();
-	this.eventSource.onerror = null;
-	this.eventSource = null;
-	EventStream.prototype.close.call(this);
-};
+
 
 // Broadcaster
 // ===========
@@ -1388,13 +1305,13 @@ BrowserRemoteEventStream.prototype.close = function() {
 function Broadcaster() {
 	this.streams = [];
 }
-local.http.Broadcaster = Broadcaster;
+local.web.Broadcaster = Broadcaster;
 
 // listener management
 Broadcaster.prototype.addStream = function(responseStream) {
 	this.streams.push(responseStream);
 	var self = this;
-	responseStream.clientResponse.on('close', function() {
+	responseStream.on('close', function() {
 		self.endStream(responseStream);
 	});
 };
@@ -1418,9 +1335,10 @@ Broadcaster.prototype.emitTo = function(responseStream, eventName, data) {
 };
 
 // wrap helper
-local.http.broadcaster = function() {
+local.web.broadcaster = function() {
 	return new Broadcaster();
-};/*
+};
+/*
  UriTemplate Copyright (c) 2012-2013 Franz Antesberger. All Rights Reserved.
  Available via the MIT license.
 */
@@ -2291,7 +2209,7 @@ var UriTemplate = (function () {
 
 }(function (UriTemplate) {
         "use strict";
-        local.http.UriTemplate = UriTemplate;
+        local.web.UriTemplate = UriTemplate;
 }));// Navigator
 // =========
 
@@ -2351,7 +2269,7 @@ NavigatorContext.prototype.getError   = function() { return this.error; };
 NavigatorContext.prototype.getHost    = function() {
 	if (!this.host) {
 		if (!this.url) { return null; }
-		var urld  = local.http.parseUri(this.url);
+		var urld  = local.web.parseUri(this.url);
 		this.host = (urld.protocol || 'http') + '://' + (urld.authority || getEnvironmentHost());
 	}
 	return this.host;
@@ -2364,7 +2282,7 @@ NavigatorContext.prototype.resolve    = function(url) {
 	this.error        = null;
 	this.resolveState = NavigatorContext.RESOLVED;
 	this.url          = url;
-	var urld          = local.http.parseUri(this.url);
+	var urld          = local.web.parseUri(this.url);
 	this.host         = (urld.protocol || 'http') + '://' + urld.authority;
 };
 
@@ -2411,7 +2329,7 @@ function Navigator(context, parentNavigator) {
 			throw "parentNavigator is required for navigators with relative contexts";
 	}
 }
-local.http.Navigator = Navigator;
+local.web.Navigator = Navigator;
 
 // executes an HTTP request to our context
 //  - uses additional parameters on the request options:
@@ -2425,7 +2343,7 @@ Navigator.prototype.dispatch = function Navigator__dispatch(req) {
 	((req.noresolve) ? local.promise(this.context.getUrl()) : this.resolve({ retry:req.retry, nohead:true }))
 		.succeed(function(url) {
 			req.url = url;
-			return local.http.dispatch(req);
+			return local.web.dispatch(req);
 		})
 		.succeed(function(res) {
 			self.context.error = null;
@@ -2451,7 +2369,7 @@ Navigator.prototype.dispatch = function Navigator__dispatch(req) {
 Navigator.prototype.subscribe = function Navigator__dispatch() {
 	return this.resolve()
 		.succeed(function(url) {
-			return local.http.subscribe(url);
+			return local.web.subscribe(url);
 		});
 };
 
@@ -2525,9 +2443,9 @@ Navigator.prototype.__resolveChild = function Navigator__resolveChild(childNav, 
 				childNav.context.resolve(childUrl);
 				resolvedPromise.fulfill(childUrl);
 			} else {
-				var response = new local.http.ClientResponse(404, 'link relation not found');
+				var response = new local.web.Response();
+				response.writeHead(404, 'link relation not found').end();
 				resolvedPromise.reject(response);
-				response.end();
 			}
 		},
 		function(error) {
@@ -2549,11 +2467,11 @@ Navigator.prototype.__resolveChild = function Navigator__resolveChild(childNav, 
 //    eg item('foobar') -> Link: <http://example.com/some/{item}>; rel="item" -> http://example.com/some/foobar
 Navigator.prototype.__lookupLink = function Navigator__lookupLink(context) {
 	// try to find the link with a title equal to the param we were given
-	var href = local.http.lookupLink(this.links, context.rel, context.relparams.title);
+	var href = local.web.lookupLink(this.links, context.rel, context.relparams.title);
 
 	if (href) {
-		var url = local.http.UriTemplate.parse(href).expand(context.relparams);
-		var urld = local.http.parseUri(url);
+		var url = local.web.UriTemplate.parse(href).expand(context.relparams);
+		var urld = local.web.parseUri(url);
 		if (!urld.host) // handle relative URLs
 			url = this.context.getHost() + urld.relative;
 		return url;
@@ -2602,12 +2520,12 @@ NAV_RELATION_FNS.forEach(function (r) {
 });
 
 // builder fn
-local.http.navigator = function(urlOrNavOrLinks, optRel, optTitle) {
+local.web.navigator = function(urlOrNavOrLinks, optRel, optTitle) {
 	if (urlOrNavOrLinks instanceof Navigator)
 		return urlOrNavOrLinks;
 	var url;
 	if (Array.isArray(urlOrNavOrLinks))
-		url = local.http.lookupLink(urlOrNavOrLinks, optRel, optTitle);
+		url = local.web.lookupLink(urlOrNavOrLinks, optRel, optTitle);
 	else
 		url = urlOrNavOrLinks;
 	return new Navigator(url);
@@ -2624,260 +2542,553 @@ if (typeof this.local.worker == 'undefined')
 // ======================
 
 (function() {
-	// keeps the current message id, used for tracking messages
+	var __cur_cid = 1;
+	function gen_cid() { return __cur_cid++; }
 	var __cur_mid = 1;
 	function gen_mid() { return __cur_mid++; }
 
-	// tracked callbacks
-	var __replyCbs = {};
-	var __messageListeners = {};
+	// PageConnection
+	// ==============
+	// EXPORTED
+	// wraps the comm interface to a page for messaging
+	// - `port`: required object, either `self` (for non-shared workers) or a port from `onconnect`
+	// - `isHost`: boolean, should connection get host privileges?
+	function PageConnection(port, isHost) {
+		this.port = port;
+		this.isHostConnection = isHost;
+
+		this.exchanges = {};
+		this.exchangeListeners = {};
+
+		// operations stream - open by default on both ends
+		this.ops = 0;
+		this.exchanges[this.ops] = { topic: null, messageListeners: {} };
+
+		setupMessagingHandlers.call(this);
+	}
+	local.worker.PageConnection = PageConnection;
+
+
+	// messaging api
+	// -
 
 	// INTERNAL
-	// message receive handler
-	self.addEventListener('message', function(event) {
-		var message = event.data;
-		// handle replies
-		if (message.name === 'reply') {
-			var cb = __replyCbs[message.reply_to];
-			if (cb) {
-				cb.func.call(cb.context, message);
-				delete __replyCbs[message.reply_to]; // wont need to call again
-				return;
-			}
+	// registers listeners required for messaging
+	function setupMessagingHandlers() {
+		// native message handler
+		this.port.addEventListener('message', (function(event) {
+			var message = event.data;
+			if (!message)
+				return console.error('Invalid message from page: Payload missing', message);
+			if (typeof message.id == 'undefined')
+				return console.error('Invalid message from page: `id` missing', message);
+			if (typeof message.exchange == 'undefined')
+				return console.error('Invalid message from page: `exchange` missing', message);
+			if (!message.label)
+				return console.error('Invalid message from page: `label` missing', message);
+
+			// exchanges from the page use negative IDs (to avoid collisions)
+			message.exchange = parseInt(message.exchange, 10);
+			if (message.exchange !== this.ops) // (except the ops channel)
+				message.exchange = -message.exchange;
+
+			// notify onMessage listeners
+			emitOnMessage.call(this, message);
+		}).bind(this));
+
+		// new exchange handler
+		this.onMessage(this.ops, 'open_exchange', (function(message) {
+			if (!message.data)
+				return console.error('Invalid ops-exchange "open_exchange" message from page: Payload missing', message);
+			if (!message.data.topic)
+				return console.error('Invalid ops-exchange "open_exchange" message from page: `topic` missing', message);
+			if (typeof message.data.exchange == 'undefined')
+				return console.error('Invalid ops-exchange "open_exchange" message from page: `exchange` missing', message);
+
+			// exchanges from the page use negative IDs (to avoid collisions)
+			message.data.exchange = -parseInt(message.data.exchange, 10);
+			this.exchanges[message.data.exchange] = { topic: message.data.topic, messageListeners: {}, metaData: {} };
+
+			// notify onExchange listeners
+			emitOnExchange.call(this, message.data.topic, message.data.exchange);
+		}).bind(this));
+
+		// end exchange handler
+		this.onMessage(this.ops, 'close_exchange', (function(message) {
+			var exchange = -parseInt(message.data, 10);
+			if (exchange === 0)
+				return console.error('Invalid ops-exchange "close_exchange" message from page: Cannot close "ops" exchange', message);
+			else if (!exchange)
+				return console.error('Invalid ops-exchange "close_exchange" message from page: Payload missing', message);
+			if (!(exchange in this.exchanges))
+				return console.error('Invalid ops-exchange "close_exchange" message from page: Invalid exchange id', message);
+
+			this.removeAllMessageListeners(exchange);
+			delete this.exchanges[exchange];
+		}).bind(this));
+	}
+
+	// EXPORTED
+	// starts a new bidirectional message stream
+	// - sends the 'open_exchange' message on the operations exchange
+	// - `topic`: required string, a label for the exchange
+	PageConnection.prototype.startExchange = function(topic) {
+		var exchange = gen_cid();
+		this.exchanges[exchange] = { topic: topic, messageListeners: {}, metaData: {} };
+		this.sendMessage(this.ops, 'open_exchange', { exchange: exchange, topic: topic });
+		return exchange;
+	};
+
+	// EXPORTED
+	// ends the message stream, signaling the close on the other end
+	// - sends the 'close_exchange' message on the operations exchange
+	//   and 'close' on the given exchange, and broadcasts the 'close' message
+	//   on the local exchange listeners
+	// - `exchange`: required number, an ID given by `startExchange()` or `onExchange()`
+	PageConnection.prototype.endExchange = function(exchange) {
+		if (!(exchange in this.exchanges))
+			return;
+
+		// broadcast 'close' locally
+		emitOnMessage.call(this, {
+			id       : gen_mid(),
+			exchange : exchange,
+			label    : 'close'
+		});
+
+		this.sendMessage(exchange, 'close');
+		this.sendMessage(this.ops, 'close_exchange', exchange);
+
+		this.removeAllMessageListeners(exchange);
+		delete this.exchanges[exchange];
+	};
+
+	// EXPORTED
+	// adds data to the exchange to be used in callbacks
+	// - `exchange`: required number
+	// - `k`: required string
+	// - `v`: required mixed
+	PageConnection.prototype.setExchangeMeta = function(exchange, k, v) {
+		if (exchange in this.exchanges)
+			this.exchanges[exchange].metaData[k] = v;
+	};
+
+	// EXPORTED
+	// gets data from the exchange
+	// - `exchange`: required number
+	// - `k`: required string
+	PageConnection.prototype.getExchangeMeta = function(exchange, k, v) {
+		if (exchange in this.exchanges)
+			return this.exchanges[exchange].metaData[k];
+		return null;
+	};
+
+	// EXPORTED
+	// sends a message on an established exchange stream
+	// - `exchange`: required number, an ID given by `startExchange()` or `onExchange()`
+	// - `label`: required string, identifies the message type
+	// - `data`: optional mixed, the content of the message
+	PageConnection.prototype.sendMessage = function(exchange, label, data) {
+		var message;
+		if (typeof exchange == 'object')
+			message = exchange;
+		else {
+			message = {
+				id       : gen_mid(),
+				exchange : exchange,
+				label    : label,
+				data     : data
+			};
 		}
+		this.port.postMessage(message);
+		return message.id;
+	};
 
-		var listeners = __messageListeners[message.name];
+	// EXPORTED
+	// registers a callback for handling new exchanges from the worker
+	// - `topic`: required string, the exchange label
+	// - `handler`: required function(exchange:number)
+	PageConnection.prototype.onExchange = function(topic, handler) {
+		if (!(topic in this.exchangeListeners))
+			this.exchangeListeners[topic] = [];
+		this.exchangeListeners[topic].push(handler);
+	};
 
-		// streaming
-		if (message.name === 'endMessage') {
-			var mid = message.data;
-			listeners = __messageListeners[mid]; // inform message listeners
-			local.worker.removeAllNamedMessageListeners(mid); // and release their references
-		}
-
-		// dispatch
+	// INTERNAL
+	// calls 'new exchange' listeners
+	function emitOnExchange(topic, exchange) {
+		var listeners = this.exchangeListeners[topic];
 		if (listeners) {
 			listeners.forEach(function(listener) {
-				listener.func.call(listener.context, message);
+				listener(exchange);
 			});
 		}
-	});
-
-	// EXPORTED
-	// sends a message to the document
-	// - `messageName` is required
-	// - returns id of the new message
-	// - if `replyCb` is specified, it will be called once if/when the document sends a reply to the message
-	local.worker.postNamedMessage = function(messageName, messageData, replyCb, replyCbContext) {
-		var message = makeMessage(messageName, messageData);
-		doPostMessage(message, replyCb, replyCbContext);
-		return message.id;
-	};
-
-	// EXPORTED
-	// sends a reply to a message from the document
-	// - parameter 1 (`orgMessage`) should be the message (or id of the message) originally received from the document
-	// - otherwise works exactly like postNamedMessage
-	// - NOTE: replies will only be handled by replyCbs registered during the original send
-	//   - if a sender is not expecting a reply, it will never be handled
-	local.worker.postReply  = function(orgMessage, messageData, replyCb, replyCbContext) {
-		var replyToID = (typeof orgMessage === 'object') ? orgMessage.id : orgMessage;
-		var message = makeMessage('reply', messageData, replyToID);
-		doPostMessage(message, replyCb, replyCbContext);
-		return message.id;
-	};
-
-	// EXPORTED
-	// informs the receiver that no more data will stream, allowing it to release its listeners
-	// - parameter 1 (`orgMessageID`) should be the first message's id (returned by postNamedMessage/postReply)
-	local.worker.endMessage = function(orgMessageID) {
-		return local.worker.postNamedMessage('endMessage', orgMessageID);
-	};
-
-	// INTERNAL
-	// message object builder
-	function makeMessage(name, data, replyToId) {
-		var message = {
-			id       : gen_mid(),
-			reply_to : replyToId,
-			name     : name,
-			data     : data
-		};
-		return message;
-	}
-
-	// INTERNAL
-	// functional body of the post* functions
-	function doPostMessage(message, replyCb, replyCbContext) {
-		// register response CB, if given
-		if (replyCb && typeof replyCb === 'function') {
-			__replyCbs[message.id] = { func:replyCb, context:replyCbContext };
-		}
-		// post
-		self.postMessage(message);
 	}
 
 	// EXPORTED
-	// registers a callback to handle messages from the document
-	// - `messageName` and `func` are required
-	local.worker.addNamedMessageListener = function(messageName, func, context) {
-		if (!(messageName in __messageListeners)) {
-			// create new listener array
-			__messageListeners[messageName] = [];
-		}
-		// add to list
-		__messageListeners[messageName].push({ func:func, context:context });
-	};
-	local.worker.onNamedMessage = local.worker.addNamedMessageListener;
-
-	// EXPORTED
-	// removes a given callback from the message listeners
-	local.worker.removeNamedMessageListener = function(messageName, func) {
-		if (messageName in __messageListeners) {
-			// filter out the listener
-			var filterFn = function(listener) { return listener.func != func; };
-			__messageListeners[messageName] = __messageListeners[messageName].filter(filterFn);
-			if (__messageListeners[messageName].length === 0)
-				delete __messageListeners[messageName];
+	// removes a callback from the converation topic
+	// - `topic`: required string, the exchange label
+	// - `handler`: required function, the callback to remove
+	PageConnection.prototype.removeExchangeListener = function(topic, handler) {
+		if (topic in this.exchangeListeners) {
+			var filterFn = function(listener) { return listener != handler; };
+			this.exchangeListeners[topic] = this.exchangeListeners[topic].filter(filterFn);
+			if (this.exchangeListeners[topic].length === 0)
+				delete this.exchangeListeners[topic];
 		}
 	};
 
 	// EXPORTED
-	// removes all callbacks from the given message
-	local.worker.removeAllNamedMessageListeners = function(messageName) {
-		if (messageName in __messageListeners) {
-			delete __messageListeners[messageName];
+	// removes all callbacks from the exchange topic
+	// - `topic`: required string, the exchange label
+	PageConnection.prototype.removeAllExchangeListeners = function(topic) {
+		if (topic in this.exchangeListeners)
+			delete this.exchangeListeners[topic];
+	};
+
+	// EXPORTED
+	// signals a new message on an established exchange stream
+	// - `exchange`: required number, an ID given by `startExchange()` or `onExchange()`
+	// - `label`: required string, identifies the message type
+	// - `handler`: required function(message:object, exchangeData:object)
+	PageConnection.prototype.onMessage = function(exchange, label, handler) {
+		var exchangeData = this.exchanges[exchange];
+		if (!exchangeData)
+			return console.error('Invalid `exchange` in onMessage() call: Not a valid ID', exchange);
+
+		if (!(label in exchangeData.messageListeners))
+			exchangeData.messageListeners[label] = [];
+		exchangeData.messageListeners[label].push(handler);
+	};
+
+	// INTERNAL
+	// calls 'on message' listeners
+	function emitOnMessage(message) {
+		if (message.exchange in this.exchanges) {
+			var listeners = this.exchanges[message.exchange].messageListeners;
+			if (message.label in listeners) {
+				listeners[message.label].forEach(function(listener) {
+					listener(message);
+				});
+			}
 		}
+	}
+
+	// EXPORTED
+	// removes a callback from a exchange's message listeners
+	// - `exchange`: required number
+	// - `label`: required string
+	// - `handler`: required function
+	PageConnection.prototype.removeMessageListener = function(exchange, label, handler) {
+		var exchangeData = this.exchanges[exchange];
+		if (!exchangeData)
+			return console.warn('Invalid `exchange` in removeMessageListener() call: Not a valid ID', exchange);
+
+		if (label in exchangeData.messageListeners) {
+			var filterFn = function(listener) { return listener != handler; };
+			exchangeData.messageListeners[label] = exchangeData.messageListeners[label].filter(filterFn);
+			if (exchangeData.messageListeners[label].length === 0)
+				delete exchangeData.messageListeners[label];
+		}
+	};
+
+	// EXPORTED
+	// - `exchange`: required number
+	// - `label`: optional string
+	// - if `label` is not given, removes all message listeners on the exchange
+	PageConnection.prototype.removeAllMessageListeners = function(exchange, label) {
+		var exchangeData = this.exchanges[exchange];
+		if (!exchangeData)
+			return console.warn('Invalid `exchange` in removeMessageListener() call: Not a valid ID', exchange);
+
+		if (label) {
+			if (label in exchangeData.messageListeners)
+				delete exchangeData.messageListeners[label];
+		} else
+			exchangeData.messageListeners = {};
 	};
 
 })();// Worker HTTP
 // ===========
 
-// override dispatch() behavior to post it to the host document
-// - mirrors Server.prototype.postHttpRequestMessage in local.workers.Server
-local.http.setRequestDispatcher(function(request) {
-	if (typeof request == 'function') {
-		return local.worker.logStack();
-	}
+(function() {
+	// override dispatch() behavior to post it to the host document
+	// - `conn`: optional PageConnection, to specify the target page of the request
+	// - `conn` defaults to the host page
+	local.web.dispatch = function(request, conn) {
+		if (!request) { throw "no request param provided to request"; }
+		if (typeof request == 'string')
+			request = { url: request };
+		if (!request.url)
+			throw "no url on request";
+		if (!conn)
+			conn = local.worker.hostConnection;
 
-	var resPromise = local.promise();
-	local.worker.postNamedMessage('httpRequest', request, function(reply) {
-		if (!reply.data) { throw "Invalid httpRequest reply to worker from document"; }
+		// if not given a local.web.Request, make one and remember to end the request ourselves
+		var body = null, selfEnd = false;
+		if (!(request instanceof local.web.Request)) {
+			body = request.body;
+			request = new local.web.Request(request);
+			selfEnd = true; // we're going to end()
+		}
 
-		// instantiate client response interface and pass onto the promise
-		var response = new local.http.ClientResponse(reply.data.status, reply.data.reason);
-		response.headers = reply.data.headers;
+		// setup exchange and exchange handlers
+		var response_ = local.promise();
+		var exchange = conn.startExchange('web_request');
+		conn.setExchangeMeta(exchange, 'request', request);
+		conn.setExchangeMeta(exchange, 'response_', response_);
+		conn.onMessage(exchange, 'response_headers', onWebResponseHeaders.bind(conn));
+		conn.onMessage(exchange, 'response_data', onWebResponseData.bind(conn));
+		conn.onMessage(exchange, 'response_end', onWebResponseEnd.bind(conn));
+		conn.onMessage(exchange, 'close', onWebClose.bind(conn));
 
-		// write body now if not streaming
-		if (!request.stream && reply.data.body)
-			response.write(reply.data.body);
+		// wire request into the exchange
+		conn.sendMessage(exchange, 'request_headers', request);
+		request.on('data', function(data) { conn.sendMessage(exchange, 'request_data', data); });
+		request.on('end', function() { conn.sendMessage(exchange, 'request_end'); });
+		if (selfEnd) request.end(body);
 
-		// fulfill/reject
-		if (response.status >= 200 && response.status < 300)
-			resPromise.fulfill(response);
-		else if (response.status >= 400 || !response.status)
-			resPromise.reject(response);
-		else
-			resPromise.fulfill(response); // :TODO: 1xx protocol handling
-
-		// write body now if streaming
-		if (request.stream && reply.data.body)
-			response.write(reply.data.body);
-
-		// setup streaming
-		local.worker.onNamedMessage(reply.id, function(streamMessage) {
-			if (streamMessage.name === 'endMessage') { response.end(); }
-			else { response.write(streamMessage.data); }
-		});
-	});
-	return resPromise;
-});
-
-// override subscribe() behavior to post it to the host document
-local.http.setEventSubscriber(function(request) {
-	var eventStream = new local.http.EventStream();
-
-	// have the environment create the subscription
-	var msgStream = local.worker.postNamedMessage('httpSubscribe', request);
-
-	// change event listening to pass the request to the environment
-	eventStream.addListener = eventStream.on = function(e, listener) {
-		local.worker.postNamedMessage(msgStream, e, function(reply) {
-			// setup the stream as an event-pipe
-			local.worker.onNamedMessage(reply.id, function(eventMessage) {
-				listener(eventMessage.data);
-			});
-		});
+		return response_;
 	};
 
-	// on close, signal the stream close to parent
-	eventStream.on('close', function() {
-		local.worker.endMessage(msgStream);
-	});
+	// EXPORTED
+	// adds the web_request exchange protocol to the page connection
+	function startWebExchange(pageConn) {
+		pageConn.onExchange('web_request', onWebRequestExchange.bind(pageConn));
+	}
+	local.worker.startWebExchange = startWebExchange;
 
-	return eventStream;
+	// INTERNAL
+	// handles incoming requests from the page
+	function onWebRequestExchange(exchange) {
+		this.onMessage(exchange, 'request_headers', onWebRequestHeaders.bind(this));
+		this.onMessage(exchange, 'request_data', onWebRequestData.bind(this));
+		this.onMessage(exchange, 'request_end', onWebRequestEnd.bind(this));
+		this.onMessage(exchange, 'close', onWebClose.bind(this));
+	}
+
+	function onWebRequestHeaders(message) {
+		if (!message.data) {
+			console.error('Invalid "request_headers" message from page: Payload missing', message);
+			this.endExchange(message.exchange);
+			return;
+		}
+
+		var self = this;
+		if (main) {
+			// create request & response
+			var request = new local.web.Request(message.data);
+			var response = new local.web.Response();
+			this.setExchangeMeta(message.exchange, 'request', request);
+			this.setExchangeMeta(message.exchange, 'response', response);
+
+			// wire response into the exchange
+			response.on('headers', function() { self.sendMessage(message.exchange, 'response_headers', response); });
+			response.on('data', function(data) { self.sendMessage(message.exchange, 'response_data', data); });
+			response.on('end', function() { self.sendMessage(message.exchange, 'response_end'); });
+			response.on('close', function() { self.endExchange(message.exchange); });
+
+			// pass on to the request handler
+			main(request, response);
+		} else {
+			this.sendMessage(message.exchange, 'response_headers', { status: 500, reason: 'server not loaded' });
+			this.sendMessage(message.exchange, 'response_end');
+			this.endExchange(message.exchange);
+		}
+	}
+
+	function onWebRequestData(message) {
+		if (!message.data || typeof message.data != 'string') {
+			console.error('Invalid "request_data" message from worker: Payload must be a string', message);
+			this.endExchange(message.exchange);
+			return;
+		}
+
+		var request = this.getExchangeMeta(message.exchange, 'request');
+		if (!request) {
+			console.error('Invalid "request_data" message from worker: Request headers not previously received', message);
+			this.endExchange(message.exchange);
+			return;
+		}
+
+		request.write(message.data);
+	}
+
+	function onWebRequestEnd(message) {
+		var request = this.getExchangeMeta(message.exchange, 'request');
+		if (!request) {
+			console.error('Invalid "request_end" message from worker: Request headers not previously received', message);
+			this.endExchange(message.exchange);
+			return;
+		}
+
+		request.end();
+	}
+
+	function onWebResponseHeaders(message) {
+		if (!message.data) {
+			console.error('Invalid "response_headers" message from worker: Payload missing', message);
+			this.endExchange(message.exchange);
+			return;
+		}
+
+		var response_ = this.getExchangeMeta(message.exchange, 'response_');
+		if (!response_) {
+			console.error('Internal error when receiving "response_headers" message from worker: Response promise not present', message);
+			this.endExchange(message.exchange);
+			return;
+		}
+
+		var response = new local.web.Response();
+		response.writeHead(message.data.status, message.data.reason, message.data.headers);
+		this.setExchangeMeta(message.exchange, 'response', response);
+		local.web.fulfillResponsePromise(response_, response);
+	}
+
+	function onWebResponseData(message) {
+		if (!message.data || typeof message.data != 'string') {
+			console.error('Invalid "response_data" message from worker: Payload must be a string', message);
+			this.endExchange(message.exchange);
+			return;
+		}
+
+		var response = this.getExchangeMeta(message.exchange, 'response');
+		if (!response) {
+			console.error('Internal error when receiving "response_data" message from worker: Response object not present', message);
+			this.endExchange(message.exchange);
+			return;
+		}
+
+		response.write(message.data);
+	}
+
+	function onWebResponseEnd(message) {
+		var response = this.getExchangeMeta(message.exchange, 'response');
+		if (!response) {
+			console.error('Internal error when receiving "response_end" message from worker: Response object not present', message);
+			this.endExchange(message.exchange);
+			return;
+		}
+
+		response.end();
+	}
+
+	// closes the request/response, caused by a close of the exchange
+	// - could happen because the response has ended
+	// - could also happen because the request aborted
+	// - could also happen due to a bad message
+	function onWebClose(message) {
+		var request = this.getExchangeMeta(message.exchange, 'request');
+		var response = this.getExchangeMeta(message.exchange, 'response');
+		if (request) request.close();
+		if (response) response.close();
+	}
+})();
+
+// override subscribe() behavior to post it to the host document
+// local.web.setEventSubscriber(function(request) {
+// 	var eventStream = new local.web.EventStream();
+
+// 	// have the environment create the subscription
+// 	var msgStream = local.worker.postNamedMessage('httpSubscribe', request);
+
+// 	// change event listening to pass the request to the environment
+// 	eventStream.addListener = eventStream.on = function(e, listener) {
+// 		local.worker.postNamedMessage(msgStream, e, function(reply) {
+// 			// setup the stream as an event-pipe
+// 			local.worker.onNamedMessage(reply.id, function(eventMessage) {
+// 				listener(eventMessage.data);
+// 			});
+// 		});
+// 	};
+
+// 	// on close, signal the stream close to parent
+// 	eventStream.on('close', function() {
+// 		local.worker.endMessage(msgStream);
+// 	});
+
+// 	return eventStream;
+// });// Setup
+// =====
+var closureImportScripts = importScripts; // self.importScripts will be nullified later (and we're in a closure right now)
+
+// create connection to host page
+local.worker.hostConnection = new local.worker.PageConnection(this, true);
+var hostConn = local.worker.hostConnection;
+local.worker.startWebExchange(hostConn);
+
+// ops-exchange handlers
+// -
+hostConn.onMessage(hostConn.ops, 'configure', function(message) {
+	local.worker.config = message.data;
 });
 
-// handler for when the server asks the app to fulfill an HTTP request
-// - mirrors Server.prototype.onWorkerHttpRequest in local.workers.Server
-local.worker.onNamedMessage('httpRequest', function(message) {
-	var request = message.data;
-	if (main) {
-		// pipe the response back to the document
-		var handleResponse = function(res) {
-			var stream = local.worker.postReply(message, res);
-			if (res.isConnOpen) {
-				res.on('data', function(data) { local.worker.postNamedMessage(stream, data); });
-				res.on('end', function() {
-					local.worker.endMessage(stream);
-					local.worker.removeAllNamedMessageListeners(message.id);
-				});
-			} else {
-				local.worker.endMessage(stream);
-				local.worker.removeAllNamedMessageListeners(message.id);
+hostConn.onMessage(hostConn.ops, 'nullify', function(message) {
+	console.log('nullifying: ' + message.data);
+	if (typeof message.data === 'string')
+		self[message.data] = null; // destroy the top-level reference
+	else
+		throw "'nullify' message must include a valid string";
+});
+
+hostConn.onExchange('importScripts', function(exchange) {
+	hostConn.onMessage(exchange, 'urls', function(message) {
+		console.log('importingScripts: ' + message.data);
+		if (message && message.data) {
+			try {
+				closureImportScripts(message.data);
+			} catch(e) {
+				console.error((e ? e.toString() : e), (e ? e.stack : e));
+				hostConn.sendMessage(message.exchange, 'done', { error: true, reason: (e ? e.toString() : e) });
+				hostConn.endExchange(message.exchange);
+				return;
 			}
-		};
+		} else {
+			console.error("'importScripts' message must include a valid array/string");
+			hostConn.sendMessage(message.exchange, 'done', { error: true, reason: (e ? e.toString() : e) });
+			hostConn.endExchange(message.exchange);
+			return;
+		}
+		hostConn.sendMessage(message.exchange, 'done', { error: false });
+		hostConn.endExchange(message.exchange);
+	});
+});
 
-		// setup the response promise
-		var resPromise = local.promise();
-		resPromise.then(handleResponse, handleResponse);
 
-		// create a server response for the request handler to work with
-		var response = new local.http.ServerResponse(resPromise, request.stream);
-
-		// listen for an end message on the original request message
-		// (this occurs when the response is a stream and the client has closed it)
-		local.worker.onNamedMessage(message.id, function(message2) {
-			if (message2.name == 'endMessage')
-				response.clientResponse.close();
-		});
-
-		// pass on to the request handler
-		main(request, response);
-	} else {
-		// no request handler
-		var stream = local.worker.postReply(message, { status:404, reason:'server not loaded' });
-		local.worker.endMessage(stream);
-	}
-});// Setup
-// =====
-var closureImportScripts = importScripts; // self.importScripts will be nullified later
-var closureXMLHttpRequest = XMLHttpRequest; // self.XMLHttpRequest will be nullified later
+// apis
+// -
 
 // EXPORTED
-// sends log message
-local.worker.log = function log() {
-	var args = Array.prototype.slice.call(arguments);
-	if (args.length == 1)
-		args = args[0];
-	try { local.worker.postNamedMessage('log', args); }
-	catch (e) {
-		// this is usually caused by trying to log information that cant be serialized
-		local.worker.postNamedMessage('log', JSONifyMessage(args));
+// console.* replacements
+self.console = {
+	log: function() {
+		var args = Array.prototype.slice.call(arguments);
+		doLog('log', args);
+	},
+	dir: function() {
+		var args = Array.prototype.slice.call(arguments);
+		doLog('dir', args);
+	},
+	debug: function() {
+		var args = Array.prototype.slice.call(arguments);
+		doLog('debug', args);
+	},
+	warn: function() {
+		var args = Array.prototype.slice.call(arguments);
+		doLog('warn', args);
+	},
+	error: function() {
+		var args = Array.prototype.slice.call(arguments);
+		doLog('error', args);
 	}
 };
-self.console = {};
-self.console.log = local.worker.log;
+function doLog(type, args) {
+	try { hostConn.sendMessage(hostConn.ops, 'log', [type].concat(args)); }
+	catch (e) {
+		// this is usually caused by trying to log information that cant be serialized
+		hostConn.sendMessage(hostConn.ops, 'log', [type].concat(args.map(JSONifyMessage)));
+	}
+}
 
 // INTERNAL
 // helper to try to get a failed log message through
@@ -2888,13 +3099,6 @@ function JSONifyMessage(data) {
 		return JSON.stringify(data);
 	return data;
 }
-
-// EXPORTED
-// logs the current stack
-local.worker.logStack = function() {
-	try { stack_trace._fake+=0; }
-	catch(e) { console.log(e.stack); }
-};
 
 // EXPORTED
 // btoa shim
@@ -2944,68 +3148,5 @@ if (!self.btoa) {
 	};
 }
 
-// EXPORTED
-// GETs a resource, then wraps it in a closure and returns as a variable
-// - SYNCRONOUS: blocks until GET finishes or times out
-// - if the content type or extension is .js, will run `importScripts` after wrapping in a `module.exports` closure
-// - otherwise, returns content as a string
-self.require = function(url) {
-	if (local.worker.config && url.indexOf('://') === -1 && url.charAt(0) != '/') // relative url?
-		url = local.worker.config.srcBaseUrl + url; // make relative to user script's location
-
-	if (url in self.modules)
-		return self.modules[url];
-
-	var request = new closureXMLHttpRequest();
-	request.open('GET', url, false);
-	request.send(null);
-	if (request.status >= 200 && request.status < 300) {
-		if (/\.js$/.test(url)) {
-			closureImportScripts(makeExportClosure(url, request.responseText));
-			return self.modules[url];
-		} else {
-			self.modules[url] = request.responseText;
-			return request.responseText;
-		}
-	}
-	console.log('Failed to require('+url+') - '+request.status);
-	return null;
-};
-self.modules = {};
-function makeExportClosure(url, src) {
-	src = '(function(){ var module = { exports:{} }; ' + src + '; self.modules["'+url+'"] = module.exports; })();';
-	return 'data:text/javascript;base64,'+btoa(src);
-}
-
-// Document Commands
-// removes an object from use
-local.worker.onNamedMessage('nullify', function(message) {
-	console.log('nullifying: ' + message.data);
-	if (message && typeof message.data === 'string') {
-		// destroy the top-level reference
-		self[message.data] = null;
-	} else {
-		throw "'nullify' message must include a valid string";
-	}
-});
-
-// imports the script at/in the given uri
-local.worker.onNamedMessage('importScripts', function(message) {
-	console.log('importingScripts: ' + message.data);
-	if (message && message.data) {
-		try {
-			closureImportScripts(message.data);
-		} catch(e) {
-			local.worker.postReply(message, { error:true, reason:(e ? e.toString() : e) });
-			throw e;
-		}
-	} else {
-		throw "'importScripts' message must include a valid array/string";
-	}
-	local.worker.postReply(message, { error:false });
-});
-
 // let the document know we've loaded
-local.worker.postNamedMessage('ready', null, function(reply) {
-	local.worker.config = reply.data;
-});})();
+hostConn.sendMessage(hostConn.ops, 'ready');})();

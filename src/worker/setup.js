@@ -1,5 +1,6 @@
 // Setup
 // =====
+var closureImportScripts = importScripts; // self.importScripts will be nullified later (and we're in a closure right now)
 
 // create connection to host page
 local.worker.hostConnection = new local.worker.PageConnection(this, true);
@@ -27,14 +28,16 @@ hostConn.onExchange('importScripts', function(exchange) {
 			try {
 				closureImportScripts(message.data);
 			} catch(e) {
+				console.error((e ? e.toString() : e), (e ? e.stack : e));
 				hostConn.sendMessage(message.exchange, 'done', { error: true, reason: (e ? e.toString() : e) });
 				hostConn.endExchange(message.exchange);
-				throw e;
+				return;
 			}
 		} else {
+			console.error("'importScripts' message must include a valid array/string");
 			hostConn.sendMessage(message.exchange, 'done', { error: true, reason: (e ? e.toString() : e) });
 			hostConn.endExchange(message.exchange);
-			throw "'importScripts' message must include a valid array/string";
+			return;
 		}
 		hostConn.sendMessage(message.exchange, 'done', { error: false });
 		hostConn.endExchange(message.exchange);

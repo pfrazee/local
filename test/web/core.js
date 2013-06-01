@@ -4,7 +4,7 @@
 
 done = false;
 startTime = Date.now();
-var res = local.http.dispatch({ method:'get', url:'http://linkapjs.com:8080', headers: { accept: 'application/json' } });
+var res = local.web.dispatch({ method:'get', url:'http://grimwire.com:8080', headers: { accept: 'application/json' } });
 res.then(printSuccess, printError).then(finishTest);
 wait(function () { return done; });
 
@@ -31,7 +31,7 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.http.dispatch({ method:'get', url:'http://linkapjs.com:8080/bad/url' });
+var res = local.web.dispatch({ method:'get', url:'http://grimwire.com:8080/bad/url' });
 res.then(printSuccess, printError).fail(finishTest);
 wait(function () { return done; });
 
@@ -52,7 +52,7 @@ error
 
 done = false;
 startTime = Date.now();
-var res = local.http.dispatch({ method:'get', url:'httpl://test.com' });
+var res = local.web.dispatch({ method:'get', url:'httpl://test.com' });
 res.then(printSuccess, printError).then(finishTest);
 wait(function () { return done; });
 
@@ -79,13 +79,13 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.http.dispatch({ method:'get', url:'httpl://test.com/bad/url' });
+var res = local.web.dispatch({ method:'get', url:'httpl://test.com/bad/url' });
 res.then(printSuccess, printError).fail(finishTest);
 wait(function () { return done; });
 
 /* =>
 error
-{body: null, headers: {}, isConnOpen: false, reason: "not found", status: 404}
+{headers: {}, isConnOpen: false, reason: "not found", status: 404}
 */
 
 // == SECTION core - data-uri requests
@@ -94,7 +94,7 @@ error
 
 done = false;
 startTime = Date.now();
-var res = local.http.dispatch({ method:'get', url:'data:text/html;charset=utf-8,%3Ch1%3EHello%20World%21%3C%2Fh1%3E' });
+var res = local.web.dispatch({ method:'get', url:'data:text/html;charset=utf-8,%3Ch1%3EHello%20World%21%3C%2Fh1%3E' });
 res.then(printSuccess, printError).then(finishTest);
 wait(function () { return done; });
 
@@ -113,7 +113,7 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.http.dispatch({ method:'get', url:'data:text/html;charset=utf-8;base64,PGgxPkhlbGxvIFdvcmxkITwvaDE+' });
+var res = local.web.dispatch({ method:'get', url:'data:text/html;charset=utf-8;base64,PGgxPkhlbGxvIFdvcmxkITwvaDE+' });
 res.then(printSuccess, printError).then(finishTest);
 wait(function () { return done; });
 
@@ -132,14 +132,13 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.http.dispatch({ method:'get', url:'data:text/html;charset=utf-8,' });
+var res = local.web.dispatch({ method:'get', url:'data:text/html;charset=utf-8,' });
 res.then(printSuccess, printError).then(finishTest);
 wait(function () { return done; });
 
 /* =>
 success
 {
-  body: null,
   headers: {"content-type": "text/html"},
   isConnOpen: false,
   reason: "ok",
@@ -151,14 +150,13 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.http.dispatch({ method:'get', url:'data:text/html;charset=utf-8;base64,' });
+var res = local.web.dispatch({ method:'get', url:'data:text/html;charset=utf-8;base64,' });
 res.then(printSuccess, printError).then(finishTest);
 wait(function () { return done; });
 
 /* =>
 success
 {
-  body: null,
   headers: {"content-type": "text/html"},
   isConnOpen: false,
   reason: "ok",

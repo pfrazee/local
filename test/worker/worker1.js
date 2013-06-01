@@ -1,25 +1,23 @@
-local.worker.onNamedMessage('start', function(message) {
-  local.worker.postNamedMessage('my description', {
-    hasAjax       : !!XMLHttpRequest,
-    hasImporting  : !!importScripts
+var hostConn = local.worker.hostConnection;
+
+hostConn.onExchange('topic1', function(exch1) {
+  hostConn.sendMessage(exch1, 'started', 'hello');
+  hostConn.onMessage(exch1, 'describe yourself', function() {
+    hostConn.sendMessage(exch1, 'my description', {
+      hasAjax       : !!XMLHttpRequest,
+      hasImporting  : !!importScripts
+    });
   });
-});
-
-local.worker.onNamedMessage('stream something', function(message) {
-  var stream = local.worker.postNamedMessage('streaming something', { a:1 });
-  local.worker.postNamedMessage(stream, { b:2 });
-  local.worker.postNamedMessage(stream, { c:3 });
-  local.worker.endMessage(stream);
-});
-
-local.worker.onNamedMessage('ping this back', function(message) {
-  local.worker.postNamedMessage('pinging back', message.data);
-});
-
-local.worker.onNamedMessage('reply to this message', function(message) {
-  local.worker.postReply(message, message.data);
-});
-
-local.worker.onNamedMessage('say goodbye', function(message) {
-  local.worker.postReply(message, { fairwell:'cruel world' });
+  hostConn.onMessage(exch1, 'start a topic2 exchange', function() {
+    var exch2 = hostConn.startExchange('topic2');
+    hostConn.onMessage(exch2, 'ping me', function() {
+      hostConn.sendMessage(exch2, 'ping');
+    });
+    hostConn.onMessage(exch2, 'flood exchange1', function() {
+      hostConn.sendMessage(exch1, 'flood', 'foobar');
+    });
+    hostConn.onMessage(exch2, 'close', function() {
+      hostConn.sendMessage(exch1, 'end it');
+    });
+  });
 });

@@ -9,10 +9,17 @@ function Response() {
 	this.status = 0;
 	this.reason = null;
 	this.headers = {};
+
 	this.isConnOpen = true;
+	this.keepHistory('data');
+	this.keepHistory('end');
 }
 local.web.Response = Response;
 Response.prototype = Object.create(local.util.EventEmitter.prototype);
+
+Response.prototype.setHeader    = function(k, v) { this.headers[k] = v; };
+Response.prototype.getHeader    = function(k) { return this.headers[k]; };
+Response.prototype.removeHeader = function(k) { delete this.headers[k]; };
 
 // writes the header to the response
 // - emits the 'headers' event
