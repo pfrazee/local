@@ -130,7 +130,6 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 			if (headers.link)
 				headers.link = local.web.parseLinkHeader(headers.link);
 
-			console.log('writing head', xhrRequest.status, xhrRequest.statusText, headers)
 			response.writeHead(xhrRequest.status, xhrRequest.statusText, headers);
 
 			// start polling for updates
@@ -146,10 +145,8 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 		if (xhrRequest.readyState === XMLHttpRequest.DONE) {
 			if (streamPoller)
 				clearInterval(streamPoller);
-			console.log('writing', xhrRequest.responseText.slice(lenOnLastPoll))
 			response.write(xhrRequest.responseText.slice(lenOnLastPoll));
 			response.end();
-			console.log('ended')
 		}
 	};
 });

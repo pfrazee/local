@@ -1,17 +1,11 @@
 var config = local.worker.config;
-var templates = {};
-function loadTemplate(tmpl, path) {
-	templates[tmpl] = '';
-	local.web.dispatch(path).succeed(function(response) {
-		console.log('got template', response)
-		response.on('data', function(data) { console.log('got data',data);templates[tmpl] += data; });
-	});
-}
-loadTemplate('httpl',  'servers/worker/templates/features-httpl.html');
-loadTemplate('httpl2', 'servers/worker/templates/features-httpl-posted.html');
-loadTemplate('app',    'servers/worker/templates/features-app.html');
-loadTemplate('env',    'servers/worker/templates/features-env.html');
-loadTemplate('more',   'servers/worker/templates/features-more.html');
+var templates = {
+	httpl: local.web.dispatch('servers/worker/templates/features-httpl.html'),
+	httpl2: local.web.dispatch('servers/worker/templates/features-httpl-posted.html'),
+	app: local.web.dispatch('servers/worker/templates/features-app.html'),
+	env: local.web.dispatch('servers/worker/templates/features-env.html'),
+	more: local.web.dispatch('servers/worker/templates/features-more.html')
+};
 
 // live update list
 var theList = [
@@ -113,9 +107,8 @@ function renderTemplate(response, tmpl, context, tab) {
 	if (!context) context = {};
 	context.domain = config.domain;
 
-	var html = templates[tmpl];
-	console.log(templates, tmpl, html)
-	if (html) {
+	templates[tmpl].succeed(function(response2) {
+		var html = response2.body;
 		for (var k in context) {
 			if (Array.isArray(context[k]) === false) {
 				var substituteRE = new RegExp('{{'+k+'}}', 'gi');
@@ -136,7 +129,7 @@ function renderTemplate(response, tmpl, context, tab) {
 		}
 		html = html.replace(/\{\{.*\}\}/g, '');
 		response.end(makeNav(tab) + html);
-	} else {
+	}).fail(function() {
 		response.end(makeNav(tab) + 'failed to load html for '+tmpl);
-	}
+	});
 }

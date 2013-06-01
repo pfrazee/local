@@ -289,16 +289,23 @@ EventEmitter.prototype.keepHistory = function(type) {
 		this._history[type] = [];
 };
 
+EventEmitter.prototype.loseHistory = function(type) {
+	if (this._history[type])
+		delete this._history[type];
+};
+
 EventEmitter.prototype.emit = function(type) {
+	var args = Array.prototype.slice.call(arguments, 1);
+
+	if (this._history[type])
+		this._history[type].push(args);
+
 	var handlers = this._events[type];
 	if (!handlers) return false;
 
-	var args = Array.prototype.slice.call(arguments, 1);
-	for (var i = 0, l = handlers.length; i < l; i++) {
+	for (var i = 0, l = handlers.length; i < l; i++)
 		handlers[i].apply(this, args);
-	}
-	if (this._history[type])
-		this._history[type].push(args);
+
 	return true;
 };
 
@@ -322,9 +329,10 @@ EventEmitter.prototype.addListener = function(type, listener) {
 		this._events[type].push(listener);
 	}
 
+	// play back history, if we have any
 	var self = this;
-	if (this._history[type])
-		this._history[type].forEach(function(args) { self.emit(type, args); });
+	if (this._history[type] && this._history[type].length)
+		this._history[type].forEach(function(args) { listener.apply(self, args); });
 
 	return this;
 };
@@ -709,6 +717,7 @@ function Request(options) {
 	this.isConnOpen = true;
 	this.keepHistory('data');
 	this.keepHistory('end');
+	this.keepHistory('close');
 }
 local.web.Request = Request;
 Request.prototype = Object.create(local.util.EventEmitter.prototype);
@@ -794,6 +803,7 @@ function Response() {
 	this.isConnOpen = true;
 	this.keepHistory('data');
 	this.keepHistory('end');
+	this.keepHistory('close');
 }
 local.web.Response = Response;
 Response.prototype = Object.create(local.util.EventEmitter.prototype);
@@ -983,7 +993,6 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 			if (headers.link)
 				headers.link = local.web.parseLinkHeader(headers.link);
 
-			console.log('writing head', xhrRequest.status, xhrRequest.statusText, headers)
 			response.writeHead(xhrRequest.status, xhrRequest.statusText, headers);
 
 			// start polling for updates
@@ -999,10 +1008,8 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 		if (xhrRequest.readyState === XMLHttpRequest.DONE) {
 			if (streamPoller)
 				clearInterval(streamPoller);
-			console.log('writing', xhrRequest.responseText.slice(lenOnLastPoll))
 			response.write(xhrRequest.responseText.slice(lenOnLastPoll));
 			response.end();
-			console.log('ended')
 		}
 	};
 });
@@ -1103,7 +1110,7 @@ local.web.getLocal = function getLocal(domain) {
 local.web.getLocalRegistry = function getLocalRegistry() {
 	return __httpl_registry;
 };
-var envDispatchWrapper;
+var webDispatchWrapper;
 
 // dispatch()
 // ==========
@@ -1168,20 +1175,19 @@ local.web.dispatch = function dispatch(request) {
 	}
 
 	// pull any extra arguments that may have been passed
+	// form the paramlist: (request, response, dispatch, args...)
 	var args = Array.prototype.slice.call(arguments, 1);
-
-	// (request, response, dispatch, args...)
-	args.unshift(function() {
+	args.unshift(function(request, response, schemeHandler) {
 		// execute (asyncronously) by scheme
 		setTimeout(function() {
-			var schemeHandler = local.web.schemes.get(scheme);
+			schemeHandler = schemeHandler || local.web.schemes.get(scheme);
 			if (!schemeHandler) {
 				response.writeHead(0, 'unsupported scheme "'+scheme+'"');
 				response.end();
 			} else {
 				// dispatch according to scheme
 				schemeHandler(request, response);
-				// send request body if not given a local.web.Request
+				// autosend request body if not given a local.web.Request `request`
 				if (selfEnd) request.end(body);
 			}
 		}, 0);
@@ -1191,7 +1197,7 @@ local.web.dispatch = function dispatch(request) {
 	args.unshift(request);
 
 	// allow the wrapper to audit the packet
-	envDispatchWrapper.apply(null, args);
+	webDispatchWrapper.apply(null, args);
 
 	response_.request = request;
 	return response_;
@@ -1211,7 +1217,7 @@ local.web.fulfillResponsePromise = function(promise, response) {
 };
 
 local.web.setDispatchWrapper = function(wrapperFn) {
-	envDispatchWrapper = wrapperFn;
+	webDispatchWrapper = wrapperFn;
 };
 
 local.web.setDispatchWrapper(function(request, response, dispatch) {
@@ -2815,28 +2821,14 @@ if (typeof this.local.worker == 'undefined')
 	// override dispatch() behavior to post it to the host document
 	// - `conn`: optional PageConnection, to specify the target page of the request
 	// - `conn` defaults to the host page
-	local.web.dispatch = function(request, conn) {
-		if (!request) { throw "no request param provided to request"; }
-		if (typeof request == 'string')
-			request = { url: request };
-		if (!request.url)
-			throw "no url on request";
+	local.web.setDispatchWrapper(function(request, response, dispatch, conn) {
 		if (!conn)
 			conn = local.worker.hostConnection;
 
-		// if not given a local.web.Request, make one and remember to end the request ourselves
-		var body = null, selfEnd = false;
-		if (!(request instanceof local.web.Request)) {
-			body = request.body;
-			request = new local.web.Request(request);
-			selfEnd = true; // we're going to end()
-		}
-
 		// setup exchange and exchange handlers
-		var response_ = local.promise();
 		var exchange = conn.startExchange('web_request');
 		conn.setExchangeMeta(exchange, 'request', request);
-		conn.setExchangeMeta(exchange, 'response_', response_);
+		conn.setExchangeMeta(exchange, 'response', response);
 		conn.onMessage(exchange, 'response_headers', onWebResponseHeaders.bind(conn));
 		conn.onMessage(exchange, 'response_data', onWebResponseData.bind(conn));
 		conn.onMessage(exchange, 'response_end', onWebResponseEnd.bind(conn));
@@ -2846,10 +2838,9 @@ if (typeof this.local.worker == 'undefined')
 		conn.sendMessage(exchange, 'request_headers', request);
 		request.on('data', function(data) { conn.sendMessage(exchange, 'request_data', data); });
 		request.on('end', function() { conn.sendMessage(exchange, 'request_end'); });
-		if (selfEnd) request.end(body);
 
-		return response_;
-	};
+		dispatch(request, response, function() { }); // send noop scheme handler
+	});
 
 	// EXPORTED
 	// adds the web_request exchange protocol to the page connection
@@ -2881,6 +2872,7 @@ if (typeof this.local.worker == 'undefined')
 			var response = new local.web.Response();
 			this.setExchangeMeta(message.exchange, 'request', request);
 			this.setExchangeMeta(message.exchange, 'response', response);
+			request.path = message.data.path; // copy this over for main()'s benefit
 
 			// wire response into the exchange
 			response.on('headers', function() { self.sendMessage(message.exchange, 'response_headers', response); });
@@ -2898,7 +2890,7 @@ if (typeof this.local.worker == 'undefined')
 	}
 
 	function onWebRequestData(message) {
-		if (!message.data || typeof message.data != 'string') {
+		if (typeof message.data != 'string') {
 			console.error('Invalid "request_data" message from worker: Payload must be a string', message);
 			this.endExchange(message.exchange);
 			return;
@@ -2932,21 +2924,18 @@ if (typeof this.local.worker == 'undefined')
 			return;
 		}
 
-		var response_ = this.getExchangeMeta(message.exchange, 'response_');
-		if (!response_) {
+		var response = this.getExchangeMeta(message.exchange, 'response');
+		if (!response) {
 			console.error('Internal error when receiving "response_headers" message from worker: Response promise not present', message);
 			this.endExchange(message.exchange);
 			return;
 		}
 
-		var response = new local.web.Response();
 		response.writeHead(message.data.status, message.data.reason, message.data.headers);
-		this.setExchangeMeta(message.exchange, 'response', response);
-		local.web.fulfillResponsePromise(response_, response);
 	}
 
 	function onWebResponseData(message) {
-		if (!message.data || typeof message.data != 'string') {
+		if (typeof message.data != 'string') {
 			console.error('Invalid "response_data" message from worker: Payload must be a string', message);
 			this.endExchange(message.exchange);
 			return;

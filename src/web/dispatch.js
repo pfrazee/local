@@ -1,4 +1,4 @@
-var envDispatchWrapper;
+var webDispatchWrapper;
 
 // dispatch()
 // ==========
@@ -63,20 +63,19 @@ local.web.dispatch = function dispatch(request) {
 	}
 
 	// pull any extra arguments that may have been passed
+	// form the paramlist: (request, response, dispatch, args...)
 	var args = Array.prototype.slice.call(arguments, 1);
-
-	// (request, response, dispatch, args...)
-	args.unshift(function() {
+	args.unshift(function(request, response, schemeHandler) {
 		// execute (asyncronously) by scheme
 		setTimeout(function() {
-			var schemeHandler = local.web.schemes.get(scheme);
+			schemeHandler = schemeHandler || local.web.schemes.get(scheme);
 			if (!schemeHandler) {
 				response.writeHead(0, 'unsupported scheme "'+scheme+'"');
 				response.end();
 			} else {
 				// dispatch according to scheme
 				schemeHandler(request, response);
-				// send request body if not given a local.web.Request
+				// autosend request body if not given a local.web.Request `request`
 				if (selfEnd) request.end(body);
 			}
 		}, 0);
@@ -86,7 +85,7 @@ local.web.dispatch = function dispatch(request) {
 	args.unshift(request);
 
 	// allow the wrapper to audit the packet
-	envDispatchWrapper.apply(null, args);
+	webDispatchWrapper.apply(null, args);
 
 	response_.request = request;
 	return response_;
@@ -106,7 +105,7 @@ local.web.fulfillResponsePromise = function(promise, response) {
 };
 
 local.web.setDispatchWrapper = function(wrapperFn) {
-	envDispatchWrapper = wrapperFn;
+	webDispatchWrapper = wrapperFn;
 };
 
 local.web.setDispatchWrapper(function(request, response, dispatch) {

@@ -13,6 +13,7 @@ function Response() {
 	this.isConnOpen = true;
 	this.keepHistory('data');
 	this.keepHistory('end');
+	this.keepHistory('close');
 }
 local.web.Response = Response;
 Response.prototype = Object.create(local.util.EventEmitter.prototype);

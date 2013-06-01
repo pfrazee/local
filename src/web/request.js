@@ -18,6 +18,7 @@ function Request(options) {
 	this.isConnOpen = true;
 	this.keepHistory('data');
 	this.keepHistory('end');
+	this.keepHistory('close');
 }
 local.web.Request = Request;
 Request.prototype = Object.create(local.util.EventEmitter.prototype);

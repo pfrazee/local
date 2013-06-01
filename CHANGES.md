@@ -1,6 +1,25 @@
 Changes
 =======
-0.3.2
+0.4.0
+
+2013/06/01 pfraze
+
+ - Added keepHistory() and loseHistory() to local.util.EventEmitter
+
+
+2013/05/31 pfraze
+
+ - Refactored local.worker/local.env.Worker/local.env.WorkerServer API to use "exchange" protocol
+   - Added local.worker.PageConnection to support multiple pages (for SharedWorker)
+   - Improved logging from workers
+   - Removed require() due to security issues
+ - Renamed local.http to local.web
+   - Added local.web.schemes to control dispatch() behaviors
+   - Added local.web.setDispatchWrapper to allow local.env to wrap without monkey-patching
+   - Added local.web.Request with support for request streaming
+   - Added local.web.Response, dropped local.web.ClientResponse and local.web.ServerResponse
+   - Altered local.web.subscribe to always use dispatch() (removing the need for special worker protocols)
+
 
 2013/05/21 pfraze
 

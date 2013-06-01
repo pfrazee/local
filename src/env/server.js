@@ -250,21 +250,19 @@
 
 		// dispatch request
 		var worker = this.worker;
-		// request.stream = true;
 		local.web.dispatch(request, this).always(function(response) {
-			console.log('got response, sending headers', response);
 			worker.setExchangeMeta(message.exchange, 'response', response);
 
 			// wire response into the exchange
 			worker.sendMessage(message.exchange, 'response_headers', response);
-			response.on('data', function(data) { console.log('got data', data); worker.sendMessage(message.exchange, 'response_data', data); });
+			response.on('data', function(data) { worker.sendMessage(message.exchange, 'response_data', data); });
 			response.on('end', function() { worker.sendMessage(message.exchange, 'response_end'); });
 			response.on('close', function() { worker.endExchange(message.exchange); });
 		});
 	};
 
 	WorkerServer.prototype.onWebRequestData = function(message) {
-		if (!message.data || typeof message.data != 'string') {
+		if (typeof message.data != 'string') {
 			console.error('Invalid "request_data" message from worker: Payload must be a string', message);
 			this.worker.endExchange(message.exchange);
 			return;
@@ -309,7 +307,7 @@
 	};
 
 	WorkerServer.prototype.onWebResponseData = function(message) {
-		if (!message.data || typeof message.data != 'string') {
+		if (typeof message.data != 'string') {
 			console.error('Invalid "response_data" message from worker: Payload must be a string', message);
 			this.worker.endExchange(message.exchange);
 			return;
@@ -342,8 +340,8 @@
 	// - could also happen due to a bad message
 	WorkerServer.prototype.onWebClose = function(message) {
 		var request = this.worker.getExchangeMeta(message.exchange, 'request');
-		if (request) request.close();
 		var response = this.worker.getExchangeMeta(message.exchange, 'response');
+		if (request) request.close();
 		if (response) response.close();
 	};
 
