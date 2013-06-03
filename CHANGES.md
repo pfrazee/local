@@ -2,6 +2,15 @@ Changes
 =======
 0.4.0
 
+2013/06/03 pfraze
+
+ - local.web.Request & local.web.Response
+   - Added automatic buffering with the body_ promise
+ - local.util.EventEmitter
+   - Added suspendEvents()/resumeEvents()
+   - Dropped keepHistory()/loseHistory()
+
+
 2013/06/01 pfraze
 
  - Added keepHistory() and loseHistory() to local.util.EventEmitter
@@ -9,6 +18,7 @@ Changes
 
 2013/05/31 pfraze
 
+ - Changed the param signature of the env dispatch wrapper to `(request, response, dispatch, origin)`
  - Refactored local.worker/local.env.Worker/local.env.WorkerServer API to use "exchange" protocol
    - Added local.worker.PageConnection to support multiple pages (for SharedWorker)
    - Improved logging from workers

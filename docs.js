@@ -1,4 +1,4 @@
-// local.env.config.workerBootstrapUrl = '/lib/worker.js';
+local.env.config.workerBootstrapUrl = '/worker.js';
 
 var lastRequestedHash = window.location.hash; // used to track if a hash-change should produce a request
 var viewNav = document.getElementById('viewer-nav');
@@ -7,9 +7,9 @@ viewNav.querySelector('a[href="'+(window.location.hash||'#readme.md')+'"]').pare
 } catch (e) {}
 
 // request wrapper
-local.env.setDispatchWrapper(function(request, origin, dispatch) {
+local.env.setDispatchWrapper(function(request, response, dispatch, origin) {
 	// allow request
-	return dispatch(request);
+	return dispatch(request, response);
 });
 
 // response post-processor
