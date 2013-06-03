@@ -13,10 +13,13 @@
 	// wraps a Web Worker API tools for sandboxing and messaging
 	// - loads the worker with the bootstrap script
 	// - `options.bootstrapUrl` may optionally specify the URL of the worker bootstrap script
-	// - `options.log` will enable logging of traffic
+	// - `options.log` will enable logging of all message traffic
+	// - `options.shared` will use SharedWorker instead of WebWorker
+	// - `options.namespace` will set the `name` of SharedWorker, if applicable
 	function LocalEnvWorker(options) {
 		options = options || {};
 		this.isLogging = options.log;
+		this.isShared = options.shared;
 
 		this.exchanges = {};
 		this.exchangeListeners = {};
@@ -29,10 +32,18 @@
 		this.suspendedTopics = [];
 		this.messageBuffers = {};
 
-		this.worker = new Worker(options.bootstrapUrl || 'worker.js');
+		if (this.isShared) {
+			this.worker = new SharedWorker(options.bootstrapUrl || 'worker.js', options.namespace);
+			this.worker.port.start();
+		} else
+			this.worker = new Worker(options.bootstrapUrl || 'worker.js');
 		setupMessagingHandlers.call(this);
 	}
 	local.env.Worker = LocalEnvWorker;
+
+	LocalEnvWorker.prototype.getPort = function() {
+		return this.worker.port ? this.worker.port : this.worker;
+	};
 
 
 	// control api
@@ -78,7 +89,7 @@
 	// registers listeners required for messaging
 	function setupMessagingHandlers() {
 		// native message handler
-		this.worker.addEventListener('message', (function(event) {
+		this.getPort().addEventListener('message', (function(event) {
 			var message = event.data;
 			if (!message)
 				return console.error('Invalid message from worker: Payload missing', message);
@@ -221,7 +232,7 @@
 			this.messageBuffers[message.exchange].push(message);
 		} else {
 			if (this.isLogging) { console.log('sending', message); }
-			this.worker.postMessage(message);
+			this.getPort().postMessage(message);
 		}
 		return message.id;
 	};

@@ -2643,6 +2643,8 @@ if (typeof this.local.worker == 'undefined')
 		this.exchanges[this.ops] = { topic: null, messageListeners: {} };
 
 		setupMessagingHandlers.call(this);
+		if (isHost)
+			setupHostOpsHandlers.call(this);
 	}
 	local.worker.PageConnection = PageConnection;
 
@@ -2704,6 +2706,46 @@ if (typeof this.local.worker == 'undefined')
 			this.removeAllMessageListeners(exchange);
 			delete this.exchanges[exchange];
 		}).bind(this));
+	}
+
+	// INTERNAL
+	// registers listeners for host-privileged ops messages
+	function setupHostOpsHandlers() {
+		var conn = this;
+		conn.onMessage(conn.ops, 'configure', function(message) {
+			local.worker.config = message.data;
+		});
+
+		conn.onMessage(conn.ops, 'nullify', function(message) {
+			console.log('nullifying: ' + message.data);
+			if (typeof message.data === 'string')
+				self[message.data] = null; // destroy the top-level reference
+			else
+				throw "'nullify' message must include a valid string";
+		});
+
+		conn.onExchange('importScripts', function(exchange) {
+			conn.onMessage(exchange, 'urls', function(message) {
+				console.log('importingScripts: ' + message.data);
+				if (message && message.data) {
+					try {
+						closureImportScripts(message.data);
+					} catch(e) {
+						console.error((e ? e.toString() : e), (e ? e.stack : e));
+						conn.sendMessage(message.exchange, 'done', { error: true, reason: (e ? e.toString() : e) });
+						conn.endExchange(message.exchange);
+						return;
+					}
+				} else {
+					console.error("'importScripts' message must include a valid array/string");
+					conn.sendMessage(message.exchange, 'done', { error: true, reason: (e ? e.toString() : e) });
+					conn.endExchange(message.exchange);
+					return;
+				}
+				conn.sendMessage(message.exchange, 'done', { error: false });
+				conn.endExchange(message.exchange);
+			});
+		});
 	}
 
 	// EXPORTED
@@ -3048,49 +3090,6 @@ if (typeof this.local.worker == 'undefined')
 // =====
 var closureImportScripts = importScripts; // self.importScripts will be nullified later (and we're in a closure right now)
 
-// create connection to host page
-local.worker.hostConnection = new local.worker.PageConnection(this, true);
-var hostConn = local.worker.hostConnection;
-local.worker.startWebExchange(hostConn);
-
-// ops-exchange handlers
-// -
-hostConn.onMessage(hostConn.ops, 'configure', function(message) {
-	local.worker.config = message.data;
-});
-
-hostConn.onMessage(hostConn.ops, 'nullify', function(message) {
-	console.log('nullifying: ' + message.data);
-	if (typeof message.data === 'string')
-		self[message.data] = null; // destroy the top-level reference
-	else
-		throw "'nullify' message must include a valid string";
-});
-
-hostConn.onExchange('importScripts', function(exchange) {
-	hostConn.onMessage(exchange, 'urls', function(message) {
-		console.log('importingScripts: ' + message.data);
-		if (message && message.data) {
-			try {
-				closureImportScripts(message.data);
-			} catch(e) {
-				console.error((e ? e.toString() : e), (e ? e.stack : e));
-				hostConn.sendMessage(message.exchange, 'done', { error: true, reason: (e ? e.toString() : e) });
-				hostConn.endExchange(message.exchange);
-				return;
-			}
-		} else {
-			console.error("'importScripts' message must include a valid array/string");
-			hostConn.sendMessage(message.exchange, 'done', { error: true, reason: (e ? e.toString() : e) });
-			hostConn.endExchange(message.exchange);
-			return;
-		}
-		hostConn.sendMessage(message.exchange, 'done', { error: false });
-		hostConn.endExchange(message.exchange);
-	});
-});
-
-
 // apis
 // -
 
@@ -3119,6 +3118,7 @@ self.console = {
 	}
 };
 function doLog(type, args) {
+	var hostConn = local.worker.hostConnection;
 	try { hostConn.sendMessage(hostConn.ops, 'log', [type].concat(args)); }
 	catch (e) {
 		// this is usually caused by trying to log information that cant be serialized
@@ -3184,5 +3184,23 @@ if (!self.btoa) {
 	};
 }
 
-// let the document know we've loaded
-hostConn.sendMessage(hostConn.ops, 'ready');})();
+// setup for future connections (shared worker)
+addEventListener('connect', function(e) {
+	var isHost = (!local.worker.hostConnection);
+	var conn = new local.worker.PageConnection(e.ports[0], isHost);
+	if (isHost)
+		local.worker.hostConnection = conn;
+	local.worker.startWebExchange(conn);
+
+	// let the document know we're active
+	e.ports[0].start();
+	conn.sendMessage(conn.ops, 'ready', { hostPrivileges: isHost });
+});
+
+// create connection to host page (regular worker)
+if (self.postMessage) {
+	local.worker.hostConnection = new local.worker.PageConnection(this, true);
+	local.worker.startWebExchange(local.worker.hostConnection);
+	local.worker.hostConnection.sendMessage(0, 'ready', { hostPrivileges: true });
+}
+})();

@@ -4,6 +4,8 @@ Changes
 
 2013/06/03 pfraze
 
+ - Added support for SharedWorkers
+   - Controlled with `shared` and `namespace` options to local.env.WorkerServer() and local.env.Worker()
  - local.web.Request & local.web.Response
    - Added automatic buffering with the body_ promise
  - local.util.EventEmitter

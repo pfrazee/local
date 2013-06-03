@@ -25,6 +25,8 @@
 		this.exchanges[this.ops] = { topic: null, messageListeners: {} };
 
 		setupMessagingHandlers.call(this);
+		if (isHost)
+			setupHostOpsHandlers.call(this);
 	}
 	local.worker.PageConnection = PageConnection;
 
@@ -86,6 +88,46 @@
 			this.removeAllMessageListeners(exchange);
 			delete this.exchanges[exchange];
 		}).bind(this));
+	}
+
+	// INTERNAL
+	// registers listeners for host-privileged ops messages
+	function setupHostOpsHandlers() {
+		var conn = this;
+		conn.onMessage(conn.ops, 'configure', function(message) {
+			local.worker.config = message.data;
+		});
+
+		conn.onMessage(conn.ops, 'nullify', function(message) {
+			console.log('nullifying: ' + message.data);
+			if (typeof message.data === 'string')
+				self[message.data] = null; // destroy the top-level reference
+			else
+				throw "'nullify' message must include a valid string";
+		});
+
+		conn.onExchange('importScripts', function(exchange) {
+			conn.onMessage(exchange, 'urls', function(message) {
+				console.log('importingScripts: ' + message.data);
+				if (message && message.data) {
+					try {
+						closureImportScripts(message.data);
+					} catch(e) {
+						console.error((e ? e.toString() : e), (e ? e.stack : e));
+						conn.sendMessage(message.exchange, 'done', { error: true, reason: (e ? e.toString() : e) });
+						conn.endExchange(message.exchange);
+						return;
+					}
+				} else {
+					console.error("'importScripts' message must include a valid array/string");
+					conn.sendMessage(message.exchange, 'done', { error: true, reason: (e ? e.toString() : e) });
+					conn.endExchange(message.exchange);
+					return;
+				}
+				conn.sendMessage(message.exchange, 'done', { error: false });
+				conn.endExchange(message.exchange);
+			});
+		});
 	}
 
 	// EXPORTED

@@ -37,14 +37,18 @@
 	// EXPORTED
 	// wrapper for servers run within workers
 	// - `config.src`: required URL
+	// - `config.shared`: boolean, should the workerserver be shared?
+	// - `config.namespace`: optional string, what should the shared worker be named?
+	//   - defaults to `config.src` if undefined
 	// - `loadCb`: optional function(message)
 	function WorkerServer(config, loadCb) {
 		config = config || {};
 		Server.call(this);
 		this.state = WorkerServer.BOOT;
-
-		this.loadCb = loadCb;
 		this.canLoadUserscript = false; // is the environment ready for us to load?
+		this.hasHostPrivileges = true; // do we have full control over the worker?
+		// ^ set to false by the ready message of a shared worker (if we're not the first page to connect)
+		this.loadCb = loadCb;
 
 		// merge config
 		for (var k in config)
@@ -64,14 +68,17 @@
 		this.config.environmentHost = window.location.host;
 
 		// initialize the web worker with the bootstrap script
-		this.worker = new local.env.Worker({ bootstrapUrl:local.env.config.workerBootstrapUrl });
+		this.worker = new local.env.Worker({
+			bootstrapUrl: local.env.config.workerBootstrapUrl,
+			shared: config.shared || false,
+			namespace: config.namespace || config.src
+		});
 		this.worker.suspendExchangeTopic('web_request'); // queue web requests until the app script is loaded
 		this.worker.suspendExchangeTopic('web_subscribe'); // ditto for subscribes
 		this.worker.onMessage(this.worker.ops, 'ready', this.onOpsWorkerReady.bind(this));
 		this.worker.onMessage(this.worker.ops, 'log', this.onOpsWorkerLog.bind(this));
 		this.worker.onMessage(this.worker.ops, 'terminate', this.terminate.bind(this));
 		this.worker.onExchange('web_request', this.onWebRequestExchange.bind(this));
-		// this.worker.onExchange('web_subscribe', this.onWebSubscribeExchange.bind(this));
 
 		// prebind some message handlers to `this` for reuse
 		this.$onWebRequestHeaders   = this.onWebRequestHeaders.bind(this);
@@ -81,9 +88,6 @@
 		this.$onWebResponseData     = this.onWebResponseData.bind(this);
 		this.$onWebResponseEnd      = this.onWebResponseEnd.bind(this);
 		this.$onWebClose            = this.onWebClose.bind(this);
-		// this.$onWebSubscribeUrl     = this.onWebSubscribeUrl.bind(this);
-		// this.$onWebSubscribeChannel = this.onWebSubscribeChannel.bind(this);
-		// this.$onWebSubscribeClose   = this.onWebSubscribeClose.bind(this);
 	}
 	local.env.WorkerServer = WorkerServer;
 	WorkerServer.prototype = Object.create(Server.prototype);
@@ -102,9 +106,12 @@
 	// runs Local initialization for a worker thread
 	// - called when the bootstrap has finished loading
 	WorkerServer.prototype.onOpsWorkerReady = function(message) {
-		// disable dangerous APIs
-		this.worker.nullify('XMLHttpRequest');
-		this.worker.nullify('Worker');
+		this.hasHostPrivileges = message.data.hostPrivileges;
+		if (this.hasHostPrivileges) {
+			// disable dangerous APIs
+			this.worker.nullify('XMLHttpRequest');
+			this.worker.nullify('Worker');
+		}
 		// hold onto the ready message and update state, so the environment can finish preparing us
 		// (the config must be locked before we continue from here)
 		this.state = WorkerServer.READY;
@@ -150,14 +157,16 @@
 		if (this.state != WorkerServer.READY)
 			return; // wait for the worker to be ready
 
-		this.worker.sendMessage(this.worker.ops, 'configure', this.config);
-
-		// encode src in base64 if needed
-		var src = this.config.src;
-		if (src.indexOf('data:application/javascript,') === 0)
-			src = 'data:application/javacsript;base64,'+btoa(src.slice(28));
-
-		this.worker.importScripts(src, this.onWorkerUserScriptLoaded.bind(this));
+		if (this.hasHostPrivileges) {
+			// encode src in base64 if needed
+			var src = this.config.src;
+			if (src.indexOf('data:application/javascript,') === 0)
+				src = 'data:application/javacsript;base64,'+btoa(src.slice(28));
+			this.worker.sendMessage(this.worker.ops, 'configure', this.config);
+			this.worker.importScripts(src, this.onWorkerUserScriptLoaded.bind(this));
+		} else {
+			this.onWorkerUserScriptLoaded();
+		}
 	};
 
 	// starts normal operation
@@ -165,7 +174,7 @@
 	WorkerServer.prototype.onWorkerUserScriptLoaded = function(message) {
 		if (this.loadCb && typeof this.loadCb == 'function')
 			this.loadCb(message);
-		if (message.data.error) {
+		if (message && message.data.error) {
 			console.error('Failed to load user script in worker, terminating', message, this);
 			this.terminate();
 		}
@@ -250,7 +259,7 @@
 
 		// dispatch request
 		var worker = this.worker;
-		request.stream = true; // we want streaming so we can wire up to the data & end events
+		request.stream = true; // we always want streaming so we can wire up to the data & end events
 		local.web.dispatch(request, this).always(function(response) {
 			worker.setExchangeMeta(message.exchange, 'response', response);
 
@@ -345,55 +354,4 @@
 		if (request) request.close();
 		if (response) response.close();
 	};
-
-
-
-	// web subscribe exchange handlers
-	// -
-
-	// routes the subscribe to local.http and sends the events back to the worker
-	// - called when the worker-server issues a subscribe
-	// - sadly, cant just wrap this around dispatch() because the remote-source version
-	//   uses browser-native functions instead of dispatch()
-	// WorkerServer.prototype.onWebSubscribeExchange = function(exchange) {
-	// 	this.worker.onMessage(exchange, 'subscribe_url', this.$onWebSubscribeUrl);
-	// 	this.worker.onMessage(exchange, 'subscribe_channel', this.$onWebSubscribeChannel);
-	// 	this.worker.onMessage(exchange, 'close', this.$onWebSubscribeClose);
-	// };
-
-	// WorkerServer.prototype.onWebSubscribeUrl = function(message) {
-	// 	if (!message.data || typeof message.data != 'string') {
-	// 		console.error('Invalid "subscribe_url" message from worker: Payload must be a url', message);
-	// 		self.worker.endExchange(message.exchange);
-	// 		return;
-	// 	}
-
-	// 	var eventStream = local.web.subscribe(message.data);
-	// 	self.worker.setExchangeMeta(message.exchange, 'eventStream', eventStream);
-	// };
-
-	// WorkerServer.prototype.onWebSubscribeChannel = function(message) {
-	// 	if (!message.data) {
-	// 		console.error('Invalid "subscribe_channel" message from worker: Payload must be a string or array of strings', message);
-	// 		self.worker.endExchange(message.exchange);
-	// 		return;
-	// 	}
-
-	// 	var eventStream = self.worker.getExchangeMeta(message.exchange, 'eventStream');
-	// 	if (!eventStream) {
-	// 		console.error('Invalid "subscribe_channel" message from worker: EventStream not previously established', message);
-	// 		self.worker.endExchange(message.exchange);
-	// 		return;
-	// 	}
-
-	// 	var self = this;
-	// 	eventStream.on(message.data, function(e) {
-	// 		self.worker.sendMessage(message.exchange, 'subscribe_event', e);
-	// 	});
-	// };
-
-	// WorkerServer.prototype.onWebSubscribeClose = function(message) {
-	// 	var eventStream = self.worker.getExchangeMeta(message.exchange, 'eventStream');
-	// 	if (eventStream) eventStream.close();
-	// };
 })();
