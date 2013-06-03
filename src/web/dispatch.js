@@ -47,16 +47,7 @@ local.web.dispatch = function dispatch(request) {
 			local.web.fulfillResponsePromise(response_, response);
 		});
 	} else {
-		// buffering, (deserialize and) fulfill on 'end'
-		var rezBody = '', gotData = false;
-		response.on('data', function(data) { gotData = true; rezBody += data; });
-		response.on('end', function() {
-			if (gotData) {
-				response.body = rezBody;
-				if (response.headers['content-type'])
-					response.body = local.web.contentTypes.deserialize(rezBody, response.headers['content-type']);
-			}
-		});
+		// buffering, fulfill on 'close'
 		response.on('close', function() {
 			local.web.fulfillResponsePromise(response_, response);
 		});

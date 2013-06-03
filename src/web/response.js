@@ -9,8 +9,33 @@ function Response() {
 	this.status = 0;
 	this.reason = null;
 	this.headers = {};
-
 	this.isConnOpen = true;
+	this.body = '';
+
+	// non-enumerables (dont include in response messages)
+	Object.defineProperty(this, 'isConnOpen', {
+		value: true,
+		configurable: true,
+		enumerable: false,
+		writeable: true
+	});
+
+	// response buffering
+	Object.defineProperty(this, 'body_', {
+		value: local.promise(),
+		configurable: true,
+		enumerable: false,
+		writable: false
+	});
+	(function buffer(self) {
+		self.on('data', function(data) { self.body += data; });
+		self.on('end', function() {
+			if (self.headers['content-type'])
+				self.body = local.web.contentTypes.deserialize(self.body, self.headers['content-type']);
+			self.body_.fulfill(self.body);
+		});
+	})(this);
+
 	this.keepHistory('data');
 	this.keepHistory('end');
 	this.keepHistory('close');

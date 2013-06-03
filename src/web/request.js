@@ -13,9 +13,38 @@ function Request(options) {
 	this.url = options.url || null;
 	this.query = options.query || {};
 	this.headers = options.headers || {};
-	this.stream = options.stream || false;
+	this.body = '';
 
-	this.isConnOpen = true;
+	// non-enumerables (dont include in request messages)
+	Object.defineProperty(this, 'stream', {
+		value: options.stream || false,
+		configurable: false,
+		enumerable: false,
+		writeable: false
+	});
+	Object.defineProperty(this, 'isConnOpen', {
+		value: true,
+		configurable: true,
+		enumerable: false,
+		writeable: true
+	});
+
+	// request buffering
+	Object.defineProperty(this, 'body_', {
+		value: local.promise(),
+		configurable: true,
+		enumerable: false,
+		writable: false
+	});
+	(function buffer(self) {
+		self.on('data', function(data) { self.body += data; });
+		self.on('end', function() {
+			if (self.headers['content-type'])
+				self.body = local.web.contentTypes.deserialize(self.body, self.headers['content-type']);
+			self.body_.fulfill(self.body);
+		});
+	})(this);
+
 	this.keepHistory('data');
 	this.keepHistory('end');
 	this.keepHistory('close');

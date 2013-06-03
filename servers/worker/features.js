@@ -28,6 +28,7 @@ function main(request, response) {
 			response.writeHead(200, 'ok', {'content-type':'text/html'});
 			renderTemplate(response, tmpl, request.body, 'httpl');
 			break;
+
 		case '/app':
 			if (/html-deltas/.test(request.headers.accept)) {
 				response.writeHead(200, 'ok', {'content-type':'application/html-deltas+json'});
@@ -37,8 +38,9 @@ function main(request, response) {
 				renderTemplate(response, 'app', {domain:config.domain, list:makeList(), filter:(request.query.filter||'')});
 			}
 			break;
+
 		case '/env':
-			local.promise((function() {
+			request.body_.then(function() {
 				// POST request?
 				if (/post/i.test(request.method)) {
 					if (request.body['delete']) { // delete button?
@@ -52,8 +54,8 @@ function main(request, response) {
 				}
 				// GET request, do nothing this step
 				return true;
-			})())
-			.succeed(function(res) {
+			})
+			.succeed(function() {
 				return localStorageCollection.getJson();
 			})
 			.succeed(function(res) {
@@ -65,6 +67,7 @@ function main(request, response) {
 				response.end();
 			});
 			break;
+
 		case '/more':
 			response.writeHead(200, 'ok', {'content-type':'text/html'});
 			renderTemplate(response, 'more', {domain:config.domain});
