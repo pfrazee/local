@@ -53,23 +53,29 @@ local.web.dispatch = function dispatch(request) {
 		});
 	}
 
+	// just until the scheme handler gets a chance to wire up
+	// (allows async to occur in the webDispatchWrapper)
+	request.suspendEvents();
+	response.suspendEvents();
+
 	// pull any extra arguments that may have been passed
 	// form the paramlist: (request, response, dispatch, args...)
 	var args = Array.prototype.slice.call(arguments, 1);
 	args.unshift(function(request, response, schemeHandler) {
-		// execute (asyncronously) by scheme
-		setTimeout(function() {
-			schemeHandler = schemeHandler || local.web.schemes.get(scheme);
-			if (!schemeHandler) {
-				response.writeHead(0, 'unsupported scheme "'+scheme+'"');
-				response.end();
-			} else {
-				// dispatch according to scheme
-				schemeHandler(request, response);
-				// autosend request body if not given a local.web.Request `request`
-				if (selfEnd) request.end(body);
-			}
-		}, 0);
+		// execute by scheme
+		schemeHandler = schemeHandler || local.web.schemes.get(scheme);
+		if (!schemeHandler) {
+			response.writeHead(0, 'unsupported scheme "'+scheme+'"');
+			response.end();
+		} else {
+			// dispatch according to scheme
+			schemeHandler(request, response);
+			// now that the scheme handler has wired up, the spice must flow
+			request.resumeEvents();
+			response.resumeEvents();
+			// autosend request body if not given a local.web.Request `request`
+			if (selfEnd) request.end(body);
+		}
 		return response_;
 	});
 	args.unshift(response);

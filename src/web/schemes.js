@@ -157,6 +157,10 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 local.web.schemes.register('httpl', function(request, response) {
 	var urld = local.web.parseUri(request.url);
 
+	// need additional time to get the worker wired up
+	request.suspendEvents();
+	response.suspendEvents();
+
 	// find the local server
 	var server = local.web.getLocal(urld.host);
 	if (!server) {
@@ -177,8 +181,12 @@ local.web.schemes.register('httpl', function(request, response) {
 			request.query[k] = q[k];
 	}
 
-	// pass on to the server
-	server.fn.call(server.context, request, response);
+	// pass on to the server (async)
+	setTimeout(function() {
+		server.fn.call(server.context, request, response);
+		request.resumeEvents();
+		response.resumeEvents();
+	}, 0);
 });
 
 
@@ -204,9 +212,11 @@ local.web.schemes.register('data', function(request, response) {
 	if (isBase64) data = atob(data);
 	else data = decodeURIComponent(data);
 
-	// respond
-	response.writeHead(200, 'ok', {'content-type': contentType});
-	response.end(data);
+	// respond (async)
+	setTimeout(function() {
+		response.writeHead(200, 'ok', {'content-type': contentType});
+		response.end(data);
+	});
 });
 
 

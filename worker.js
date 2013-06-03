@@ -274,35 +274,53 @@ if (typeof this.local.util == 'undefined')
 function EventEmitter() {
 	Object.defineProperty(this, '_events', {
 		value: {},
-		configurable: true,
+		configurable: false,
 		enumerable: false
 	});
+	Object.defineProperty(this, '_suspensions', {
+		value: 0,
+		configurable: false,
+		enumerable: false,
+		writable: true
+	});
 	Object.defineProperty(this, '_history', {
-		value: {},
-		configurable: true,
+		value: [],
+		configurable: false,
 		enumerable: false
 	});
 }
 
-EventEmitter.prototype.keepHistory = function(type) {
-	if (!this._history[type])
-		this._history[type] = [];
+EventEmitter.prototype.suspendEvents = function() {
+	this._suspensions++;
 };
 
-EventEmitter.prototype.loseHistory = function(type) {
-	if (this._history[type])
-		delete this._history[type];
+EventEmitter.prototype.resumeEvents = function() {
+	this._suspensions--;
+	if (this._suspensions <= 0)
+		this.playbackHistory();
 };
+
+EventEmitter.prototype.isSuspended = function() { return this._suspensions > 0; };
+
+EventEmitter.prototype.playbackHistory = function() {
+	var e;
+	// always check if we're suspended - a handler might resuspend us
+	while (!this.isSuspended() && (e = this._history.shift()))
+		this.emit.apply(this, e);
+}
 
 EventEmitter.prototype.emit = function(type) {
-	var args = Array.prototype.slice.call(arguments, 1);
+	var args = Array.prototype.slice.call(arguments);
 
-	if (this._history[type])
-		this._history[type].push(args);
+	if (this.isSuspended()) {
+		this._history.push(args);
+		return;
+	}
 
 	var handlers = this._events[type];
 	if (!handlers) return false;
 
+	args = args.slice(1);
 	for (var i = 0, l = handlers.length; i < l; i++)
 		handlers[i].apply(this, args);
 
@@ -328,11 +346,6 @@ EventEmitter.prototype.addListener = function(type, listener) {
 	} else {
 		this._events[type].push(listener);
 	}
-
-	// play back history, if we have any
-	var self = this;
-	if (this._history[type] && this._history[type].length)
-		this._history[type].forEach(function(args) { listener.apply(self, args); });
 
 	return this;
 };
@@ -717,15 +730,15 @@ function Request(options) {
 	// non-enumerables (dont include in request messages)
 	Object.defineProperty(this, 'stream', {
 		value: options.stream || false,
-		configurable: false,
+		configurable: true,
 		enumerable: false,
-		writeable: false
+		writable: true
 	});
 	Object.defineProperty(this, 'isConnOpen', {
 		value: true,
 		configurable: true,
 		enumerable: false,
-		writeable: true
+		writable: true
 	});
 
 	// request buffering
@@ -743,10 +756,6 @@ function Request(options) {
 			self.body_.fulfill(self.body);
 		});
 	})(this);
-
-	this.keepHistory('data');
-	this.keepHistory('end');
-	this.keepHistory('close');
 }
 local.web.Request = Request;
 Request.prototype = Object.create(local.util.EventEmitter.prototype);
@@ -814,9 +823,12 @@ Request.prototype.close = function() {
 		return;
 	this.isConnOpen = false;
 	this.emit('close');
-	this.removeAllListeners('data');
-	this.removeAllListeners('end');
-	this.removeAllListeners('close');
+
+	// :TODO: when events are suspended, this can cause problems
+	//        maybe put these "removes" in a 'close' listener?
+	// this.removeAllListeners('data');
+	// this.removeAllListeners('end');
+	// this.removeAllListeners('close');
 };// Response
 // ========
 // EXPORTED
@@ -836,7 +848,7 @@ function Response() {
 		value: true,
 		configurable: true,
 		enumerable: false,
-		writeable: true
+		writable: true
 	});
 
 	// response buffering
@@ -854,10 +866,6 @@ function Response() {
 			self.body_.fulfill(self.body);
 		});
 	})(this);
-
-	this.keepHistory('data');
-	this.keepHistory('end');
-	this.keepHistory('close');
 }
 local.web.Response = Response;
 Response.prototype = Object.create(local.util.EventEmitter.prototype);
@@ -911,10 +919,13 @@ Response.prototype.close = function() {
 		return;
 	this.isConnOpen = false;
 	this.emit('close');
-	this.removeAllListeners('headers');
-	this.removeAllListeners('data');
-	this.removeAllListeners('end');
-	this.removeAllListeners('close');
+	
+	// :TODO: when events are suspended, this can cause problems
+	//        maybe put these "removes" in a 'close' listener?
+	// this.removeAllListeners('headers');
+	// this.removeAllListeners('data');
+	// this.removeAllListeners('end');
+	// this.removeAllListeners('close');
 };// schemes
 // =======
 // EXPORTED
@@ -1074,6 +1085,10 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 local.web.schemes.register('httpl', function(request, response) {
 	var urld = local.web.parseUri(request.url);
 
+	// need additional time to get the worker wired up
+	request.suspendEvents();
+	response.suspendEvents();
+
 	// find the local server
 	var server = local.web.getLocal(urld.host);
 	if (!server) {
@@ -1094,8 +1109,12 @@ local.web.schemes.register('httpl', function(request, response) {
 			request.query[k] = q[k];
 	}
 
-	// pass on to the server
-	server.fn.call(server.context, request, response);
+	// pass on to the server (async)
+	setTimeout(function() {
+		server.fn.call(server.context, request, response);
+		request.resumeEvents();
+		response.resumeEvents();
+	}, 0);
 });
 
 
@@ -1121,9 +1140,11 @@ local.web.schemes.register('data', function(request, response) {
 	if (isBase64) data = atob(data);
 	else data = decodeURIComponent(data);
 
-	// respond
-	response.writeHead(200, 'ok', {'content-type': contentType});
-	response.end(data);
+	// respond (async)
+	setTimeout(function() {
+		response.writeHead(200, 'ok', {'content-type': contentType});
+		response.end(data);
+	});
 });
 
 
@@ -1219,23 +1240,29 @@ local.web.dispatch = function dispatch(request) {
 		});
 	}
 
+	// just until the scheme handler gets a chance to wire up
+	// (allows async to occur in the webDispatchWrapper)
+	request.suspendEvents();
+	response.suspendEvents();
+
 	// pull any extra arguments that may have been passed
 	// form the paramlist: (request, response, dispatch, args...)
 	var args = Array.prototype.slice.call(arguments, 1);
 	args.unshift(function(request, response, schemeHandler) {
-		// execute (asyncronously) by scheme
-		setTimeout(function() {
-			schemeHandler = schemeHandler || local.web.schemes.get(scheme);
-			if (!schemeHandler) {
-				response.writeHead(0, 'unsupported scheme "'+scheme+'"');
-				response.end();
-			} else {
-				// dispatch according to scheme
-				schemeHandler(request, response);
-				// autosend request body if not given a local.web.Request `request`
-				if (selfEnd) request.end(body);
-			}
-		}, 0);
+		// execute by scheme
+		schemeHandler = schemeHandler || local.web.schemes.get(scheme);
+		if (!schemeHandler) {
+			response.writeHead(0, 'unsupported scheme "'+scheme+'"');
+			response.end();
+		} else {
+			// dispatch according to scheme
+			schemeHandler(request, response);
+			// now that the scheme handler has wired up, the spice must flow
+			request.resumeEvents();
+			response.resumeEvents();
+			// autosend request body if not given a local.web.Request `request`
+			if (selfEnd) request.end(body);
+		}
 		return response_;
 	});
 	args.unshift(response);
@@ -3017,32 +3044,7 @@ if (typeof this.local.worker == 'undefined')
 		if (request) request.close();
 		if (response) response.close();
 	}
-})();
-
-// override subscribe() behavior to post it to the host document
-// local.web.setEventSubscriber(function(request) {
-// 	var eventStream = new local.web.EventStream();
-
-// 	// have the environment create the subscription
-// 	var msgStream = local.worker.postNamedMessage('httpSubscribe', request);
-
-// 	// change event listening to pass the request to the environment
-// 	eventStream.addListener = eventStream.on = function(e, listener) {
-// 		local.worker.postNamedMessage(msgStream, e, function(reply) {
-// 			// setup the stream as an event-pipe
-// 			local.worker.onNamedMessage(reply.id, function(eventMessage) {
-// 				listener(eventMessage.data);
-// 			});
-// 		});
-// 	};
-
-// 	// on close, signal the stream close to parent
-// 	eventStream.on('close', function() {
-// 		local.worker.endMessage(msgStream);
-// 	});
-
-// 	return eventStream;
-// });// Setup
+})();// Setup
 // =====
 var closureImportScripts = importScripts; // self.importScripts will be nullified later (and we're in a closure right now)
 

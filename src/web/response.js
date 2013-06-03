@@ -17,7 +17,7 @@ function Response() {
 		value: true,
 		configurable: true,
 		enumerable: false,
-		writeable: true
+		writable: true
 	});
 
 	// response buffering
@@ -35,10 +35,6 @@ function Response() {
 			self.body_.fulfill(self.body);
 		});
 	})(this);
-
-	this.keepHistory('data');
-	this.keepHistory('end');
-	this.keepHistory('close');
 }
 local.web.Response = Response;
 Response.prototype = Object.create(local.util.EventEmitter.prototype);
@@ -92,8 +88,11 @@ Response.prototype.close = function() {
 		return;
 	this.isConnOpen = false;
 	this.emit('close');
-	this.removeAllListeners('headers');
-	this.removeAllListeners('data');
-	this.removeAllListeners('end');
-	this.removeAllListeners('close');
+	
+	// :TODO: when events are suspended, this can cause problems
+	//        maybe put these "removes" in a 'close' listener?
+	// this.removeAllListeners('headers');
+	// this.removeAllListeners('data');
+	// this.removeAllListeners('end');
+	// this.removeAllListeners('close');
 };

@@ -18,15 +18,15 @@ function Request(options) {
 	// non-enumerables (dont include in request messages)
 	Object.defineProperty(this, 'stream', {
 		value: options.stream || false,
-		configurable: false,
+		configurable: true,
 		enumerable: false,
-		writeable: false
+		writable: true
 	});
 	Object.defineProperty(this, 'isConnOpen', {
 		value: true,
 		configurable: true,
 		enumerable: false,
-		writeable: true
+		writable: true
 	});
 
 	// request buffering
@@ -44,10 +44,6 @@ function Request(options) {
 			self.body_.fulfill(self.body);
 		});
 	})(this);
-
-	this.keepHistory('data');
-	this.keepHistory('end');
-	this.keepHistory('close');
 }
 local.web.Request = Request;
 Request.prototype = Object.create(local.util.EventEmitter.prototype);
@@ -115,7 +111,10 @@ Request.prototype.close = function() {
 		return;
 	this.isConnOpen = false;
 	this.emit('close');
-	this.removeAllListeners('data');
-	this.removeAllListeners('end');
-	this.removeAllListeners('close');
+
+	// :TODO: when events are suspended, this can cause problems
+	//        maybe put these "removes" in a 'close' listener?
+	// this.removeAllListeners('data');
+	// this.removeAllListeners('end');
+	// this.removeAllListeners('close');
 };

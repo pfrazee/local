@@ -20,7 +20,9 @@
 			if (method && path) {
 				if (RegExp('^'+path+'$','i').test(request.path) && RegExp('^'+method+'$','i').test(request.method)) {
 					handled = true;
-					fn.call(self, request, response);
+					request.body_.always(function() {
+						fn.call(self, request, response);
+					});
 				}
 			} else
 				response.writeHead(404,'not found').end();
@@ -178,9 +180,9 @@
 				config.src = 'data:application/javascript;base64,'+btoa(request.body.source);
 				local.env.addServer(domain, new local.env.WorkerServer(config));
 				// respond by piping a request to the new server
-				local.http.pipe(
+				local.web.pipe(
 					response,
-					local.http.dispatch({ method:'get', url:'httpl://'+domain, headers:{ accept:'text/html' }}, this)
+					local.web.dispatch({ method:'get', url:'httpl://'+domain, headers:{ accept:'text/html' }}, this)
 				);
 			} else {
 				// can't live-update environment servers (...yet?)

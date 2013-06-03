@@ -250,6 +250,7 @@
 
 		// dispatch request
 		var worker = this.worker;
+		request.stream = true; // we want streaming so we can wire up to the data & end events
 		local.web.dispatch(request, this).always(function(response) {
 			worker.setExchangeMeta(message.exchange, 'response', response);
 

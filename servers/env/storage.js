@@ -27,7 +27,9 @@
 					var match = path.exec(request.path);
 					// (request, response, match1, match2, match3...)
 					var args = [request, response].concat(match.slice(1));
-					fn.apply(self, args);
+					request.body_.always(function() {
+						fn.apply(self, args);
+					});
 				}
 			} else
 				response.writeHead(404,'not found').end();

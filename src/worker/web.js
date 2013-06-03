@@ -157,28 +157,3 @@
 		if (response) response.close();
 	}
 })();
-
-// override subscribe() behavior to post it to the host document
-// local.web.setEventSubscriber(function(request) {
-// 	var eventStream = new local.web.EventStream();
-
-// 	// have the environment create the subscription
-// 	var msgStream = local.worker.postNamedMessage('httpSubscribe', request);
-
-// 	// change event listening to pass the request to the environment
-// 	eventStream.addListener = eventStream.on = function(e, listener) {
-// 		local.worker.postNamedMessage(msgStream, e, function(reply) {
-// 			// setup the stream as an event-pipe
-// 			local.worker.onNamedMessage(reply.id, function(eventMessage) {
-// 				listener(eventMessage.data);
-// 			});
-// 		});
-// 	};
-
-// 	// on close, signal the stream close to parent
-// 	eventStream.on('close', function() {
-// 		local.worker.endMessage(msgStream);
-// 	});
-
-// 	return eventStream;
-// });
