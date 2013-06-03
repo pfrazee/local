@@ -96,22 +96,27 @@ if (!self.btoa) {
 	};
 }
 
-// setup for future connections (shared worker)
-addEventListener('connect', function(e) {
+local.worker.pageConnections = [];
+function addConnection(port) {
 	var isHost = (!local.worker.hostConnection);
-	var conn = new local.worker.PageConnection(e.ports[0], isHost);
-	if (isHost)
-		local.worker.hostConnection = conn;
+	var conn = new local.worker.PageConnection(port, isHost);
 	local.worker.startWebExchange(conn);
 
+	if (isHost)
+		local.worker.hostConnection = conn;
+	local.worker.pageConnections.push(conn);
+
 	// let the document know we're active
-	e.ports[0].start();
+	if (port.start)
+		port.start();
 	conn.sendMessage(conn.ops, 'ready', { hostPrivileges: isHost });
+}
+
+// setup for future connections (shared worker)
+addEventListener('connect', function(e) {
+	addConnection(e.ports[0]);
 });
 
 // create connection to host page (regular worker)
-if (self.postMessage) {
-	local.worker.hostConnection = new local.worker.PageConnection(this, true);
-	local.worker.startWebExchange(local.worker.hostConnection);
-	local.worker.hostConnection.sendMessage(0, 'ready', { hostPrivileges: true });
-}
+if (self.postMessage)
+	addConnection(self);
