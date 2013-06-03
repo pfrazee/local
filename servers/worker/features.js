@@ -22,11 +22,13 @@ function main(request, response) {
 	switch (request.path) {
 		case '/httpl':
 		default:
-			var tmpl = (/post/i.test(request.method)) ? 'httpl2' : 'httpl';
-			if (request.body && request.body.checks)
-				request.body.checks = request.body.checks.join(', ');
-			response.writeHead(200, 'ok', {'content-type':'text/html'});
-			renderTemplate(response, tmpl, request.body, 'httpl');
+			request.body_.then(function() {
+				var tmpl = (/post/i.test(request.method)) ? 'httpl2' : 'httpl';
+				if (request.body && request.body.checks)
+					request.body.checks = request.body.checks.join(', ');
+				response.writeHead(200, 'ok', {'content-type':'text/html'});
+				renderTemplate(response, tmpl, request.body, 'httpl');
+			});
 			break;
 
 		case '/app':
