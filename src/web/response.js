@@ -9,7 +9,6 @@ function Response() {
 	this.status = 0;
 	this.reason = null;
 	this.headers = {};
-	this.isConnOpen = true;
 	this.body = '';
 
 	// non-enumerables (dont include in response messages)

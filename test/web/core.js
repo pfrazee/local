@@ -21,7 +21,6 @@ success
       {href: "/{title}", rel: "collection"}
     ]
   },
-  isConnOpen: false,
   reason: "Ok",
   status: 200
 }
@@ -40,7 +39,6 @@ error
 {
   body: "",
   headers: {allow: "options, head, get"},
-  isConnOpen: false,
   reason: "Not Found",
   status: 404
 }
@@ -69,7 +67,6 @@ success
       {href: "/{title}", rel: "collection"}
     ]
   },
-  isConnOpen: false,
   reason: "ok",
   status: 200
 }
@@ -85,7 +82,7 @@ wait(function () { return done; });
 
 /* =>
 error
-{headers: {}, isConnOpen: false, reason: "not found", status: 404}
+{body: "", headers: {},  reason: "not found", status: 404}
 */
 
 // == SECTION core - data-uri requests
@@ -103,7 +100,6 @@ success
 {
   body: "<h1>Hello World!</h1>",
   headers: {"content-type": "text/html"},
-  isConnOpen: false,
   reason: "ok",
   status: 200
 }
@@ -122,7 +118,6 @@ success
 {
   body: "<h1>Hello World!</h1>",
   headers: {"content-type": "text/html"},
-  isConnOpen: false,
   reason: "ok",
   status: 200
 }
@@ -138,12 +133,7 @@ wait(function () { return done; });
 
 /* =>
 success
-{
-  headers: {"content-type": "text/html"},
-  isConnOpen: false,
-  reason: "ok",
-  status: 200
-}
+{body: "", headers: {"content-type": "text/html"}, reason: "ok", status: 200}
 */
 
 // empty body, base64-encoded
@@ -156,10 +146,5 @@ wait(function () { return done; });
 
 /* =>
 success
-{
-  headers: {"content-type": "text/html"},
-  isConnOpen: false,
-  reason: "ok",
-  status: 200
-}
+{body: "", headers: {"content-type": "text/html"}, reason: "ok", status: 200}
 */

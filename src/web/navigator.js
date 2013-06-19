@@ -154,10 +154,12 @@ Navigator.prototype.dispatch = function Navigator__dispatch(req) {
 };
 
 // executes a GET text/event-stream request to our context
-Navigator.prototype.subscribe = function Navigator__dispatch() {
+Navigator.prototype.subscribe = function Navigator__subscribe(opts) {
+	if (!opts) opts = {};
 	return this.resolve()
 		.succeed(function(url) {
-			return local.web.subscribe(url);
+			opts.url = url;
+			return local.web.subscribe(opts);
 		});
 };
 

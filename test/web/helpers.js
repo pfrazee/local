@@ -19,7 +19,6 @@ success
       {href: "/{title}", rel: "collection"}
     ]
   },
-  isConnOpen: false,
   reason: "ok",
   status: 200
 }

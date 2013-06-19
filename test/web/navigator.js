@@ -1,6 +1,6 @@
 // == SECTION navigator
 
-var testServer = new local.web.Navigator('http://linkapjs.com:8080');
+var testServer = new local.web.Navigator('http://grimwire.com:8080');
 
 // remote server navigation
 
@@ -27,7 +27,6 @@ success
       {href: "/foo/{title}", rel: "item"}
     ]
   },
-  isConnOpen: false,
   reason: "Ok",
   status: 200
 }
@@ -47,7 +46,6 @@ success
       {href: "/foo/blah", rel: "next"}
     ]
   },
-  isConnOpen: false,
   reason: "Ok",
   status: 200
 }
@@ -79,7 +77,6 @@ success
       {href: "/foo/{title}", rel: "item"}
     ]
   },
-  isConnOpen: false,
   reason: "Ok",
   status: 200
 }
@@ -93,7 +90,7 @@ var testLocal = new local.web.Navigator('httpl://test.com');
 testLocal.collection('foo').getJson()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
-    fooCollection.item('baz').get().then(printSuccessAndFinish, printErrorAndFinish);
+    testLocal.collection('foo').item('baz').get().then(printSuccessAndFinish, printErrorAndFinish);
   });
 wait(function () { return done; });
 
@@ -109,7 +106,6 @@ success
       {href: "/foo/{title}", rel: "item"}
     ]
   },
-  isConnOpen: false,
   reason: "ok",
   status: 200
 }
@@ -117,7 +113,6 @@ success
 {
   body: "baz",
   headers: {
-    allow: "options, head, get",
     "content-type": "application/json",
     link: [
       {href: "/", rel: "via service"},
@@ -129,8 +124,7 @@ success
       {href: "/foo/blah", rel: "next"}
     ]
   },
-  isConnOpen: false,
-  reason: "Ok",
+  reason: "ok",
   status: 200
 }
 */
@@ -147,13 +141,12 @@ testLocal.collection('foo').getJson(null, { stream:true })
 		res.on('data', function(payload) {
 			print(payload);
 			print(typeof payload);
-			print('data ' + (res.isConnOpen ? 'connection open' : 'connection closed'));
 		});
 		res.on('end', function() {
-      print('end ' + (res.isConnOpen ? 'connection open' : 'connection closed'));
+      print('end conn');
     });
     res.on('close', function() {
-			print('close ' + (res.isConnOpen ? 'connection open' : 'connection closed'));
+			print('close conn');
 			finishTest();
 		});
 	})
@@ -163,6 +156,7 @@ wait(function () { return done; });
 /* =>
 success
 {
+  body: "",
   headers: {
     "content-type": "application/json",
     link: [
@@ -171,28 +165,22 @@ success
       {href: "/foo/{title}", rel: "item"}
     ]
   },
-  isConnOpen: true,
   reason: "ok",
   status: 200
 }
 ---
 [
 string
-data connection open
 "bar"
 string
-data connection open
 ,"baz"
 string
-data connection open
 ,"blah"
 string
-data connection open
 ]
 string
-data connection open
-end connection open
-close connection closed
+end conn
+close conn
 */
 
 // event stream subscribe
