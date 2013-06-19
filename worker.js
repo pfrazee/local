@@ -720,7 +720,7 @@ local.web.contentTypes.register('text/event-stream',
 );
 function splitEventstreamKV(kv) {
 	var i = kv.indexOf(':');
-	return [kv.slice(0, i), kv.slice(i+2)];
+	return [kv.slice(0, i).trim(), kv.slice(i+2).trim()];
 }// Request
 // =======
 // EXPORTED
