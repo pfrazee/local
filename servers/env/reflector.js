@@ -48,7 +48,7 @@
 		};
 		var servers = local.env.servers;
 		for (var domain in servers) {
-			headers.link.push({ href:'/'+domain, rel:'item', title:domain });
+			headers.link.push({ href:'/'+domain, rel:'item', id:domain });
 			configs.push(servers[domain].config);
 		}
 

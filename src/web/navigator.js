@@ -165,15 +165,15 @@ Navigator.prototype.subscribe = function Navigator__subscribe(opts) {
 
 // follows a link relation from our context, generating a new navigator
 //  - uses URI Templates to generate links
-//  - first looks for a matching rel and title
-//    eg relation('item', 'foobar'), Link: <http://example.com/some/foobar>; rel="item"; title="foobar" -> http://example.com/some/foobar
-//  - then looks for a matching rel with no title and uses that to generate the link
-//    eg relation('item', 'foobar'), Link: <http://example.com/some/{title}>; rel="item" -> http://example.com/some/foobar
+//  - first looks for a matching rel and id
+//    eg relation('item', 'foobar'), Link: <http://example.com/some/foobar>; rel="item"; id="foobar" -> http://example.com/some/foobar
+//  - then looks for a matching rel with no id and uses that to generate the link
+//    eg relation('item', 'foobar'), Link: <http://example.com/some/{id}>; rel="item" -> http://example.com/some/foobar
 //  - `extraParams` are any other URI template substitutions which should occur
-//    eg relation('item', 'foobar', { limit:5 }), Link: <http://example.com/some/{item}{?limit}>; rel="item" -> http://example.com/some/foobar?limit=5
-Navigator.prototype.relation = function Navigator__relation(rel, title, extraParams) {
+//    eg relation('item', 'foobar', { limit:5 }), Link: <http://example.com/some/{id}{?limit}>; rel="item" -> http://example.com/some/foobar?limit=5
+Navigator.prototype.relation = function Navigator__relation(rel, id, extraParams) {
 	var params = extraParams || {};
-	params['title'] = (title || '').toLowerCase();
+	params.id = (id || '').toLowerCase();
 
 	return new Navigator(new NavigatorContext(rel, params), this);
 };
@@ -251,13 +251,13 @@ Navigator.prototype.__resolveChild = function Navigator__resolveChild(childNav, 
 };
 
 // looks up a link in the cache and generates the URI
-//  - first looks for a matching rel and title
-//    eg item('foobar') -> Link: <http://example.com/some/foobar>; rel="item"; title="foobar" -> http://example.com/some/foobar
-//  - then looks for a matching rel with no title and uses that to generate the link
+//  - first looks for a matching rel and id
+//    eg item('foobar') -> Link: <http://example.com/some/foobar>; rel="item"; id="foobar" -> http://example.com/some/foobar
+//  - then looks for a matching rel with no id and uses that to generate the link
 //    eg item('foobar') -> Link: <http://example.com/some/{item}>; rel="item" -> http://example.com/some/foobar
 Navigator.prototype.__lookupLink = function Navigator__lookupLink(context) {
-	// try to find the link with a title equal to the param we were given
-	var href = local.web.lookupLink(this.links, context.rel, context.relparams.title);
+	// try to find the link with a id equal to the param we were given
+	var href = local.web.lookupLink(this.links, context.rel, context.relparams.id);
 
 	if (href) {
 		var url = local.web.UriTemplate.parse(href).expand(context.relparams);
@@ -310,12 +310,12 @@ NAV_RELATION_FNS.forEach(function (r) {
 });
 
 // builder fn
-local.web.navigator = function(urlOrNavOrLinks, optRel, optTitle) {
+local.web.navigator = function(urlOrNavOrLinks, optRel, optId) {
 	if (urlOrNavOrLinks instanceof Navigator)
 		return urlOrNavOrLinks;
 	var url;
 	if (Array.isArray(urlOrNavOrLinks))
-		url = local.web.lookupLink(urlOrNavOrLinks, optRel, optTitle);
+		url = local.web.lookupLink(urlOrNavOrLinks, optRel, optId);
 	else
 		url = urlOrNavOrLinks;
 	return new Navigator(url);

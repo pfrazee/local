@@ -24,7 +24,7 @@ success
     link: [
       {href: "/", rel: "up via service"},
       {href: "/foo", rel: "self current"},
-      {href: "/foo/{title}", rel: "item"}
+      {href: "/foo/{id}", rel: "item"}
     ]
   },
   reason: "Ok",
@@ -74,7 +74,7 @@ success
     link: [
       {href: "/", rel: "up via service"},
       {href: "/foo", rel: "self current"},
-      {href: "/foo/{title}", rel: "item"}
+      {href: "/foo/{id}", rel: "item"}
     ]
   },
   reason: "Ok",
@@ -103,7 +103,7 @@ success
     link: [
       {href: "/", rel: "up via service"},
       {href: "/foo", rel: "self current"},
-      {href: "/foo/{title}", rel: "item"}
+      {href: "/foo/{id}", rel: "item"}
     ]
   },
   reason: "ok",
@@ -162,7 +162,7 @@ success
     link: [
       {href: "/", rel: "up via service"},
       {href: "/foo", rel: "self current"},
-      {href: "/foo/{title}", rel: "item"}
+      {href: "/foo/{id}", rel: "item"}
     ]
   },
   reason: "ok",

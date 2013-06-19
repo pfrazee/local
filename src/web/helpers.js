@@ -7,12 +7,12 @@ local.web.parseLinkHeader = function parseLinkHeader(headerStr) {
 	if (typeof headerStr !== 'string') {
 		return headerStr;
 	}
-	// '</foo/bar>; rel="baz"; title="blah", </foo/bar>; rel="baz"; title="blah", </foo/bar>; rel="baz"; title="blah"'
+	// '</foo/bar>; rel="baz"; id="blah", </foo/bar>; rel="baz"; id="blah", </foo/bar>; rel="baz"; id="blah"'
 	return headerStr.replace(/,[\s]*</g, '|||<').split('|||').map(function(linkStr) {
-		// ['</foo/bar>; rel="baz"; title="blah"', '</foo/bar>; rel="baz"; title="blah"']
+		// ['</foo/bar>; rel="baz"; id="blah"', '</foo/bar>; rel="baz"; id="blah"']
 		var link = {};
 		linkStr.trim().split(';').forEach(function(attrStr) {
-			// ['</foo/bar>', 'rel="baz"', 'title="blah"']
+			// ['</foo/bar>', 'rel="baz"', 'id="blah"']
 			attrStr = attrStr.trim();
 			if (!attrStr) { return; }
 			if (attrStr.charAt(0) === '<') {
@@ -32,33 +32,33 @@ local.web.parseLinkHeader = function parseLinkHeader(headerStr) {
 
 // EXPORTED
 // looks up a link in the cache and generates the URI
-//  - first looks for a matching rel and title
-//    eg lookupLink(links, 'item', 'foobar'), Link: <http://example.com/some/foobar>; rel="item"; title="foobar" -> http://example.com/some/foobar
-//  - then looks for a matching rel with no title and uses that to generate the link
-//    eg lookupLink(links, 'item', 'foobar'), Link: <http://example.com/some/{title}>; rel="item" -> http://example.com/some/foobar
-local.web.lookupLink = function lookupLink(links, rel, title) {
+//  - first looks for a matching rel and id
+//    eg lookupLink(links, 'item', 'foobar'), Link: <http://example.com/some/foobar>; rel="item"; id="foobar" -> http://example.com/some/foobar
+//  - then looks for a matching rel with no id and uses that to generate the link
+//    eg lookupLink(links, 'item', 'foobar'), Link: <http://example.com/some/{id}>; rel="item" -> http://example.com/some/foobar
+local.web.lookupLink = function lookupLink(links, rel, id) {
 	var len = links ? links.length : 0;
 	if (!len) { return null; }
 
-	if (title)
-		title = title.toLowerCase();
+	if (id)
+		id = id.toLowerCase();
 	var relRegex = RegExp('\\b'+rel+'\\b');
 
-	// try to find the link with a title equal to the param we were given
+	// try to find the link with a id equal to the param we were given
 	var match = null;
 	for (var i=0; i < len; i++) {
 		var link = links[i];
 		if (!link) { continue; }
 		// find all links with a matching rel
 		if (relRegex.test(link.rel)) {
-			// look for a title match to the primary parameter
-			if (title && link.title) {
-				if (link.title.toLowerCase() === title) {
+			// look for a id match to the primary parameter
+			if (id && link.id) {
+				if (link.id.toLowerCase() === id) {
 					match = link;
 					break;
 				}
 			} else {
-				// no title attribute -- it's the template URI, so hold onto it
+				// no id attribute -- it's the template URI, so hold onto it
 				match = link;
 			}
 		}

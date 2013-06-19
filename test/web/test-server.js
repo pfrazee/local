@@ -39,8 +39,8 @@ function serveHome(request, response) {
 	// links
 	var linkHeader = toLinkHeader([
 		{ rel:'self current', href:'/' },
-		{ rel:'collection', href:'/foo', title:'foo' },
-		{ rel:'collection', href:'/{title}' }
+		{ rel:'collection', href:'/foo', id:'foo' },
+		{ rel:'collection', href:'/{id}' }
 	]);
 
 	// method
@@ -87,7 +87,7 @@ function serveFoo(request, response) {
 	var linkHeader = toLinkHeader([
 		{ rel:'up via service', href:'/' },
 		{ rel:'self current', href:'/foo' },
-		{ rel:'item', href:'/foo/{title}' }
+		{ rel:'item', href:'/foo/{id}' }
 	]);
 
 	// method

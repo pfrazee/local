@@ -128,11 +128,11 @@
 		var headers = {
 			link:[
 				{ href:'/', rel:'self current' },
-				{ href:'/{title}', rel:'collection' }
+				{ href:'/{id}', rel:'collection' }
 			]
 		};
 		Object.keys(this.collections).forEach(function(cid) {
-			headers.link.push({ href:'/'+cid, rel:'collection', title:cid });
+			headers.link.push({ href:'/'+cid, rel:'collection', id:cid });
 		});
 		return headers;
 	}
@@ -143,7 +143,7 @@
 		};
 		if (cid) {
 			headers.link.push({ href:'/'+cid, rel:'self current' });
-			headers.link.push({ href:'/'+cid+'/{title}', rel:'item' });
+			headers.link.push({ href:'/'+cid+'/{id}', rel:'item' });
 		}
 		return headers;
 	}

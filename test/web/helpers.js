@@ -14,9 +14,9 @@ success
     "content-type": "text/piped+plain",
     link: [
       {href: "/", rel: "self current"},
-      {href: "/events", rel: "collection", title: "events"},
-      {href: "/foo", rel: "collection", title: "foo"},
-      {href: "/{title}", rel: "collection"}
+      {href: "/events", id: "events", rel: "collection"},
+      {href: "/foo", id: "foo", rel: "collection"},
+      {href: "/{id}", rel: "collection"}
     ]
   },
   reason: "ok",
