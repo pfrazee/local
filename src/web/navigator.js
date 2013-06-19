@@ -106,6 +106,7 @@ function Navigator(context, parentNavigator) {
 	this.context         = context         || null;
 	this.parentNavigator = parentNavigator || null;
 	this.links           = null;
+	this.authHeader      = null;
 
 	// were we passed a url?
 	if (typeof this.context == 'string') {
@@ -119,6 +120,11 @@ function Navigator(context, parentNavigator) {
 }
 local.web.Navigator = Navigator;
 
+// sets an auth header value to be used in all requests (when no auth is given in the request)
+Navigator.prototype.setAuthHeader = function(v) {
+	this.authHeader = v;
+}
+
 // executes an HTTP request to our context
 //  - uses additional parameters on the request options:
 //    - retry: bool, should the url resolve be tried if it previously failed?
@@ -126,6 +132,9 @@ local.web.Navigator = Navigator;
 Navigator.prototype.dispatch = function Navigator__dispatch(req) {
 	if (!req || !req.method) { throw "request options not provided"; }
 	var self = this;
+
+	if (!req.headers.authorization && this.authHeader)
+		req.headers.authorization = this.authHeader;
 
 	var response = local.promise();
 	((req.noresolve) ? local.promise(this.context.getUrl()) : this.resolve({ retry:req.retry, nohead:true }))
@@ -155,10 +164,14 @@ Navigator.prototype.dispatch = function Navigator__dispatch(req) {
 
 // executes a GET text/event-stream request to our context
 Navigator.prototype.subscribe = function Navigator__subscribe(opts) {
+	var self = this;
 	if (!opts) opts = {};
+	if (!opts.headers) opts.headers = {};
 	return this.resolve()
 		.succeed(function(url) {
 			opts.url = url;
+			if (!opts.headers.authorization && self.authHeader)
+				opts.headers.authorization = self.authHeader;
 			return local.web.subscribe(opts);
 		});
 };
@@ -175,7 +188,10 @@ Navigator.prototype.relation = function Navigator__relation(rel, id, extraParams
 	var params = extraParams || {};
 	params.id = (id || '').toLowerCase();
 
-	return new Navigator(new NavigatorContext(rel, params), this);
+	var child = new Navigator(new NavigatorContext(rel, params), this);
+	if (this.authHeader)
+		child.setAuthHeader(this.authHeader);
+	return child;
 };
 
 // resolves the navigator's URL, reporting failure if a link or resource is unfound

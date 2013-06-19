@@ -5,6 +5,7 @@ Changes
 2013/06/19 pfraze
 
  - Changed web.navigator (discovery protocol) to use the id attribute instead of title
+ - Added setAuthHeader to web.navigator
 
 
 2013/06/03 pfraze
