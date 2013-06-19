@@ -1077,8 +1077,9 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 				// new data?
 				var len = xhrRequest.responseText.length;
 				if (len > lenOnLastPoll) {
-					response.write(xhrRequest.responseText.slice(lenOnLastPoll));
+					var chunk = xhrRequest.responseText.slice(lenOnLastPoll);
 					lenOnLastPoll = len;
+					response.write(chunk);
 				}
 			}, 50);
 		}
