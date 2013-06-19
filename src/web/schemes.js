@@ -63,7 +63,7 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 
 	// buffer the body, send on end
 	var body = '';
-	request.on('data', function(e) { body += e.data; });
+	request.on('data', function(data) { body += data; });
 	request.on('end', function() { xhrRequest.send(body); });
 
 	// abort on request close
