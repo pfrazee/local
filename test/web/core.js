@@ -5,7 +5,7 @@
 done = false;
 startTime = Date.now();
 var res = local.web.dispatch({ method:'get', url:'http://grimwire.com:8080', headers: { accept: 'application/json' } });
-res.then(printSuccess, printError).then(finishTest);
+res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -31,7 +31,7 @@ success
 done = false;
 startTime = Date.now();
 var res = local.web.dispatch({ method:'get', url:'http://grimwire.com:8080/bad/url' });
-res.then(printSuccess, printError).fail(finishTest);
+res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -51,7 +51,7 @@ error
 done = false;
 startTime = Date.now();
 var res = local.web.dispatch({ method:'get', url:'httpl://test.com' });
-res.then(printSuccess, printError).then(finishTest);
+res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -77,7 +77,7 @@ success
 done = false;
 startTime = Date.now();
 var res = local.web.dispatch({ method:'get', url:'httpl://test.com/bad/url' });
-res.then(printSuccess, printError).fail(finishTest);
+res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -92,7 +92,7 @@ error
 done = false;
 startTime = Date.now();
 var res = local.web.dispatch({ method:'get', url:'data:text/html;charset=utf-8,%3Ch1%3EHello%20World%21%3C%2Fh1%3E' });
-res.then(printSuccess, printError).then(finishTest);
+res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -110,7 +110,7 @@ success
 done = false;
 startTime = Date.now();
 var res = local.web.dispatch({ method:'get', url:'data:text/html;charset=utf-8;base64,PGgxPkhlbGxvIFdvcmxkITwvaDE+' });
-res.then(printSuccess, printError).then(finishTest);
+res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -128,7 +128,7 @@ success
 done = false;
 startTime = Date.now();
 var res = local.web.dispatch({ method:'get', url:'data:text/html;charset=utf-8,' });
-res.then(printSuccess, printError).then(finishTest);
+res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -141,7 +141,7 @@ success
 done = false;
 startTime = Date.now();
 var res = local.web.dispatch({ method:'get', url:'data:text/html;charset=utf-8;base64,' });
-res.then(printSuccess, printError).then(finishTest);
+res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>

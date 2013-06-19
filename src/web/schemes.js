@@ -80,55 +80,57 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 
 			// extract headers
 			var headers = {};
-			if (xhrRequest.getAllResponseHeaders()) {
-				xhrRequest.getAllResponseHeaders().split("\n").forEach(function(h) {
-					if (!h) { return; }
-					var kv = h.toLowerCase().replace('\r','').split(': ');
-					headers[kv[0]] = kv[1];
-				});
-			} else {
-				// a bug in firefox causes getAllResponseHeaders to return an empty string on CORS
-				// (not ideal, but) iterate the likely headers
-				var extractHeader = function(k) {
-					var v = xhrRequest.getResponseHeader(k);
-					if (v)
-						headers[k.toLowerCase()] = v.toLowerCase();
-				};
-				extractHeader('Accept-Ranges');
-				extractHeader('Age');
-				extractHeader('Allow');
-				extractHeader('Cache-Control');
-				extractHeader('Connection');
-				extractHeader('Content-Encoding');
-				extractHeader('Content-Language');
-				extractHeader('Content-Length');
-				extractHeader('Content-Location');
-				extractHeader('Content-MD5');
-				extractHeader('Content-Disposition');
-				extractHeader('Content-Range');
-				extractHeader('Content-Type');
-				extractHeader('Date');
-				extractHeader('ETag');
-				extractHeader('Expires');
-				extractHeader('Last-Modified');
-				extractHeader('Link');
-				extractHeader('Location');
-				extractHeader('Pragma');
-				extractHeader('Refresh');
-				extractHeader('Retry-After');
-				extractHeader('Server');
-				extractHeader('Set-Cookie');
-				extractHeader('Trailer');
-				extractHeader('Transfer-Encoding');
-				extractHeader('Vary');
-				extractHeader('Via');
-				extractHeader('Warning');
-				extractHeader('WWW-Authenticate');
-			}
+			if (xhrRequest.status !== 0) {
+				if (xhrRequest.getAllResponseHeaders()) {
+					xhrRequest.getAllResponseHeaders().split("\n").forEach(function(h) {
+						if (!h) { return; }
+						var kv = h.toLowerCase().replace('\r','').split(': ');
+						headers[kv[0]] = kv[1];
+					});
+				} else {
+					// a bug in firefox causes getAllResponseHeaders to return an empty string on CORS
+					// (not ideal, but) iterate the likely headers
+					var extractHeader = function(k) {
+						var v = xhrRequest.getResponseHeader(k);
+						if (v)
+							headers[k.toLowerCase()] = v.toLowerCase();
+					};
+					extractHeader('Accept-Ranges');
+					extractHeader('Age');
+					extractHeader('Allow');
+					extractHeader('Cache-Control');
+					extractHeader('Connection');
+					extractHeader('Content-Encoding');
+					extractHeader('Content-Language');
+					extractHeader('Content-Length');
+					extractHeader('Content-Location');
+					extractHeader('Content-MD5');
+					extractHeader('Content-Disposition');
+					extractHeader('Content-Range');
+					extractHeader('Content-Type');
+					extractHeader('Date');
+					extractHeader('ETag');
+					extractHeader('Expires');
+					extractHeader('Last-Modified');
+					extractHeader('Link');
+					extractHeader('Location');
+					extractHeader('Pragma');
+					extractHeader('Refresh');
+					extractHeader('Retry-After');
+					extractHeader('Server');
+					extractHeader('Set-Cookie');
+					extractHeader('Trailer');
+					extractHeader('Transfer-Encoding');
+					extractHeader('Vary');
+					extractHeader('Via');
+					extractHeader('Warning');
+					extractHeader('WWW-Authenticate');
+				}
 
-			// parse any headers we use often
-			if (headers.link)
-				headers.link = local.web.parseLinkHeader(headers.link);
+				// parse any headers we use often
+				if (headers.link)
+					headers.link = local.web.parseLinkHeader(headers.link);
+			}
 
 			response.writeHead(xhrRequest.status, xhrRequest.statusText, headers);
 
@@ -145,7 +147,8 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 		if (xhrRequest.readyState === XMLHttpRequest.DONE) {
 			if (streamPoller)
 				clearInterval(streamPoller);
-			response.write(xhrRequest.responseText.slice(lenOnLastPoll));
+			if (xhrRequest.responseText)
+				response.write(xhrRequest.responseText.slice(lenOnLastPoll));
 			response.end();
 		}
 	};
