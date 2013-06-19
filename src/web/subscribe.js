@@ -43,8 +43,8 @@ EventStream.prototype.connect = function(response_) {
 			response.on('data', function(payload) {
 				var events = payload.split("\r\n\r\n");
 				events.forEach(function(event) {
-					if (event)
-						emitEvent.call(self, event);
+					if (/^[\s]*$/.test(event)) return; // skip all whitespace
+					emitEvent.call(self, event);
 				});
 			});
 			response.on('end', function() { self.close(); });

@@ -33,7 +33,12 @@ function contentTypes__deserialize(str, type) {
 	if (!fn) {
 		return str;
 	}
-	return fn(str);
+	try {
+		return fn(str);
+	} catch (e) {
+		console.warn('Failed to deserialize content', type, str);
+		return str;
+	}
 }
 
 // EXPORTED
@@ -147,13 +152,19 @@ local.web.contentTypes.register('text/event-stream',
 		return "event: "+obj.event+"\r\ndata:"+JSON.stringify(obj.data)+"\r\n\r\n";
 	},
 	function (str) {
-		var parts = str.split('\r\n');
-		var data = parts[1].trim().slice(5);
-		try { data = JSON.parse(data); }
+		var m = {};
+		str.split("\r\n").forEach(function(kv) {
+			if (/^[\s]*$/.test(kv))
+				return;
+			kv = splitEventstreamKV(kv);
+			m[kv[0]] = kv[1];
+		});
+		try { m.data = JSON.parse(m.data); }
 		catch(e) {}
-		return {
-			event: parts[0].trim().slice(7),
-			data: data
-		};
+		return m;
 	}
 );
+function splitEventstreamKV(kv) {
+	var i = kv.indexOf(':');
+	return [kv.slice(0, i), kv.slice(i+2)];
+}
