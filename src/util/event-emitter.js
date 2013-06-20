@@ -7,7 +7,8 @@ function EventEmitter() {
 	Object.defineProperty(this, '_events', {
 		value: {},
 		configurable: false,
-		enumerable: false
+		enumerable: false,
+		writable: true
 	});
 	Object.defineProperty(this, '_suspensions', {
 		value: 0,
@@ -18,7 +19,8 @@ function EventEmitter() {
 	Object.defineProperty(this, '_history', {
 		value: [],
 		configurable: false,
-		enumerable: false
+		enumerable: false,
+		writable: true
 	});
 }
 

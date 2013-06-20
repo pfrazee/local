@@ -29,6 +29,7 @@ function EventStream(request, response_) {
 	local.util.EventEmitter.call(this);
 	this.request = request;
 	this.response = null;
+	this.lastEventId = -1;
 	this.isConnOpen = true;
 
 	this.connect(response_);
@@ -39,6 +40,7 @@ EventStream.prototype.connect = function(response_) {
 	var self = this;
 	response_.then(
 		function(response) {
+			self.isConnOpen = true;
 			self.response = response;
 			response.on('data', function(payload) {
 				var events = payload.split("\r\n\r\n");
@@ -48,7 +50,7 @@ EventStream.prototype.connect = function(response_) {
 				});
 			});
 			response.on('end', function() { self.close(); });
-			response.on('close', function() { if (this.isConnOpen) { self.reconnect(); } });
+			response.on('close', function() { if (self.isConnOpen) { self.isConnOpen = false; self.reconnect(); } });
 			// ^ a close event should be predicated by an end(), giving us time to close ourselves
 			//   if we get a close from the other side without an end message, we assume connection fault
 		},
@@ -62,7 +64,12 @@ EventStream.prototype.connect = function(response_) {
 EventStream.prototype.reconnect = function() {
 	if (this.isConnOpen)
 		this.close();
+
+	this.request = new local.web.Request(this.request);
+	if (!this.request.headers) this.request.headers = {};
+	if (this.lastEventId) this.request.headers['last-event-id'] = this.lastEventId;
 	this.connect(local.web.dispatch(this.request));
+	this.request.end();
 };
 EventStream.prototype.close = function() {
 	this.isConnOpen = false;
@@ -75,6 +82,9 @@ function emitError(e) {
 }
 function emitEvent(e) {
 	e = local.web.contentTypes.deserialize(e, 'text/event-stream');
+	var id = parseInt(e.id, 10);
+	if (typeof id != 'undefined' && id > this.lastEventId)
+		this.lastEventId = id;
 	this.emit('message', e);
 	this.emit(e.event, e);
 }

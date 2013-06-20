@@ -148,9 +148,15 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 		if (xhrRequest.readyState === XMLHttpRequest.DONE) {
 			if (streamPoller)
 				clearInterval(streamPoller);
-			if (xhrRequest.responseText)
-				response.write(xhrRequest.responseText.slice(lenOnLastPoll));
-			response.end();
+			if (response.status !== 0 && xhrRequest.status === 0) {
+				// a sudden switch to 0 (after getting a non-0) probably means a timeout
+				console.debug('XHR looks like it timed out; treating it as a premature close'); // just in case things get weird
+				response.close();
+			} else {
+				if (xhrRequest.responseText)
+					response.write(xhrRequest.responseText.slice(lenOnLastPoll));
+				response.end();
+			}
 		}
 	};
 });
