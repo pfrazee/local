@@ -123,7 +123,7 @@ local.web.Navigator = Navigator;
 // sets an auth header value to be used in all requests (when no auth is given in the request)
 Navigator.prototype.setAuthHeader = function(v) {
 	this.authHeader = v;
-}
+};
 
 // executes an HTTP request to our context
 //  - uses additional parameters on the request options:

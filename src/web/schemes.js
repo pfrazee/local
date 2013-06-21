@@ -164,6 +164,13 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 
 // HTTPL
 // =====
+var localNotFoundServer = {
+	fn: function(request, response) {
+		response.writeHead(404, 'server not found');
+		response.end();
+	},
+	context: null
+};
 local.web.schemes.register('httpl', function(request, response) {
 	var urld = local.web.parseUri(request.url);
 
@@ -173,11 +180,8 @@ local.web.schemes.register('httpl', function(request, response) {
 
 	// find the local server
 	var server = local.web.getLocal(urld.host);
-	if (!server) {
-		response.writeHead(404, 'server not found');
-		response.end();
-		return;
-	}
+	if (!server)
+		server = localNotFoundServer;
 
 	// pull out and standardize the path
 	request.path = urld.path;

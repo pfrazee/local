@@ -820,7 +820,7 @@ Request.prototype.serializeHeaders = function(headers) {
 				v.host,
 				((v.comment) ? v.comment : '')
 			].join(' ');
-		}).join(', ')
+		}).join(', ');
 	}
 };
 
@@ -1122,6 +1122,13 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 
 // HTTPL
 // =====
+var localNotFoundServer = {
+	fn: function(request, response) {
+		response.writeHead(404, 'server not found');
+		response.end();
+	},
+	context: null
+};
 local.web.schemes.register('httpl', function(request, response) {
 	var urld = local.web.parseUri(request.url);
 
@@ -1131,11 +1138,8 @@ local.web.schemes.register('httpl', function(request, response) {
 
 	// find the local server
 	var server = local.web.getLocal(urld.host);
-	if (!server) {
-		response.writeHead(404, 'server not found');
-		response.end();
-		return;
-	}
+	if (!server)
+		server = localNotFoundServer;
 
 	// pull out and standardize the path
 	request.path = urld.path;
@@ -2463,7 +2467,7 @@ local.web.Navigator = Navigator;
 // sets an auth header value to be used in all requests (when no auth is given in the request)
 Navigator.prototype.setAuthHeader = function(v) {
 	this.authHeader = v;
-}
+};
 
 // executes an HTTP request to our context
 //  - uses additional parameters on the request options:
