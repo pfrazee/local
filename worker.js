@@ -705,7 +705,7 @@ local.web.contentTypes.register('application/x-www-form-urlencoded',
 );
 local.web.contentTypes.register('text/event-stream',
 	function (obj) {
-		return "event: "+obj.event+"\r\ndata:"+JSON.stringify(obj.data)+"\r\n\r\n";
+		return "event: "+obj.event+"\r\ndata: "+JSON.stringify(obj.data)+"\r\n\r\n";
 	},
 	function (str) {
 		var m = {};
@@ -713,6 +713,7 @@ local.web.contentTypes.register('text/event-stream',
 			if (/^[\s]*$/.test(kv))
 				return;
 			kv = splitEventstreamKV(kv);
+			if (!kv[0]) return; // comment lines have nothing before the colon
 			m[kv[0]] = kv[1];
 		});
 		try { m.data = JSON.parse(m.data); }
@@ -722,7 +723,7 @@ local.web.contentTypes.register('text/event-stream',
 );
 function splitEventstreamKV(kv) {
 	var i = kv.indexOf(':');
-	return [kv.slice(0, i).trim(), kv.slice(i+2).trim()];
+	return [kv.slice(0, i).trim(), kv.slice(i+1).trim()];
 }// Request
 // =======
 // EXPORTED
