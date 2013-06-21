@@ -742,6 +742,12 @@ function Request(options) {
 	this.body = '';
 
 	// non-enumerables (dont include in request messages)
+	Object.defineProperty(this, 'body', {
+		value: '',
+		configurable: true,
+		enumerable: false,
+		writable: true
+	});
 	Object.defineProperty(this, 'stream', {
 		value: options.stream || false,
 		configurable: true,
