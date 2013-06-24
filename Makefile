@@ -28,6 +28,7 @@ src-env-files =\
 	${src}env/_compiled_header.js\
 	${src}env/worker.js\
 	${src}env/server.js\
+	${src}env/rtcpeer.js\
 	${src}env/core.js\
 	${src}env/_compiled_footer.js
 src-worker-files =\

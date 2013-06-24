@@ -2,6 +2,11 @@ Changes
 =======
 0.4.0
 
+2013/06/24 pfraze
+
+ - Added env.RTCPeerServer (brought over from Grimwire repo)
+
+
 2013/06/19 pfraze
 
  - Changed web.navigator (discovery protocol) to use the id attribute instead of title
