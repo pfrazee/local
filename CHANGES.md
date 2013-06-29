@@ -2,6 +2,11 @@ Changes
 =======
 0.4.0
 
+2013/06/29 pfraze
+
+ - Changed local.client.renderResponse to wrap non-html content in <pre> tags.
+
+
 2013/06/24 pfraze
 
  - Added env.RTCPeerServer (brought over from Grimwire repo)
@@ -66,7 +71,7 @@ Changes
 2013/05/15 pfraze
 
  - Changed html-deltas to use an ordered array structure
- 
+
 
 2013/05/08 pfraze
 
@@ -82,7 +87,7 @@ Changes
 
  - Added promise.always()
  - Added use of <form> `accept` attribute for data-subscribe behavior
- 
+
 
 2013/05/02 pfraze
 
@@ -125,7 +130,7 @@ Changes
 2013/04/23 pfraze
 
  - Added require() method to workers
- 
+
 
 2013/04/22 pfraze
 
