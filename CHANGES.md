@@ -2,6 +2,11 @@ Changes
 =======
 0.4.0
 
+2013/07/01 pfraze
+
+ - Updated http response header parsing to preserve case of header values (but still toLower() header names)
+
+
 2013/06/29 pfraze
 
  - Changed local.client.renderResponse to wrap non-html content in <pre> tags.
