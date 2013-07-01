@@ -19,7 +19,7 @@ success
 {
   body: ["bar", "baz", "blah"],
   headers: {
-    allow: "options, head, get",
+    allow: "OPTIONS, HEAD, GET",
     "content-type": "application/json",
     link: [
       {href: "/", rel: "up via service"},
@@ -34,7 +34,7 @@ success
 {
   body: "baz",
   headers: {
-    allow: "options, head, get",
+    allow: "OPTIONS, HEAD, GET",
     "content-type": "application/json",
     link: [
       {href: "/", rel: "via service"},
@@ -69,7 +69,7 @@ success
 {
   body: ["bar", "baz", "blah"],
   headers: {
-    allow: "options, head, get",
+    allow: "OPTIONS, HEAD, GET",
     "content-type": "application/json",
     link: [
       {href: "/", rel: "up via service"},

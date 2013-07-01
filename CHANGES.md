@@ -5,6 +5,7 @@ Changes
 2013/07/01 pfraze
 
  - Updated http response header parsing to preserve case of header values (but still toLower() header names)
+ - Added binary request support to HTTP/S
 
 
 2013/06/29 pfraze

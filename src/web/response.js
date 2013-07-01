@@ -2,7 +2,7 @@
 // ========
 // EXPORTED
 // Interface for receiving responses
-// - usually internally and returned by `dispatch`
+// - usually created internally and returned by `dispatch`
 function Response() {
 	local.util.EventEmitter.call(this);
 
@@ -27,7 +27,12 @@ function Response() {
 		writable: false
 	});
 	(function buffer(self) {
-		self.on('data', function(data) { self.body += data; });
+		self.on('data', function(data) { 
+			if (data instanceof ArrayBuffer)
+				self.body = data; // browsers buffer binary responses, so dont try to stream
+			else
+				self.body += data;
+		});
 		self.on('end', function() {
 			if (self.headers['content-type'])
 				self.body = local.web.contentTypes.deserialize(self.body, self.headers['content-type']);

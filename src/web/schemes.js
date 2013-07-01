@@ -53,6 +53,11 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 	// create the request
 	var xhrRequest = new XMLHttpRequest();
 	xhrRequest.open(request.method, url, true);
+	if (request.binary) {
+		xhrRequest.responseType = 'arraybuffer';
+		if (request.stream)
+			console.warn('Got HTTP/S request with binary=true and stream=true - sorry, not supported, binary responses must be buffered (its a browser thing)', request);
+	}
 
 	// set headers
 	request.serializeHeaders();
@@ -135,15 +140,18 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 			response.writeHead(xhrRequest.status, xhrRequest.statusText, headers);
 
 			// start polling for updates
-			streamPoller = setInterval(function() {
-				// new data?
-				var len = xhrRequest.responseText.length;
-				if (len > lenOnLastPoll) {
-					var chunk = xhrRequest.responseText.slice(lenOnLastPoll);
-					lenOnLastPoll = len;
-					response.write(chunk);
-				}
-			}, 50);
+			if (!response.binary) {
+				// ^ browsers buffer binary responses, so dont bother streaming
+				streamPoller = setInterval(function() {
+					// new data?
+					var len = xhrRequest.response.length;
+					if (len > lenOnLastPoll) {
+						var chunk = xhrRequest.response.slice(lenOnLastPoll);
+						lenOnLastPoll = len;
+						response.write(chunk);
+					}
+				}, 50);
+			}
 		}
 		if (xhrRequest.readyState === XMLHttpRequest.DONE) {
 			if (streamPoller)
@@ -153,8 +161,8 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 				console.debug('XHR looks like it timed out; treating it as a premature close'); // just in case things get weird
 				response.close();
 			} else {
-				if (xhrRequest.responseText)
-					response.write(xhrRequest.responseText.slice(lenOnLastPoll));
+				if (xhrRequest.response)
+					response.write(xhrRequest.response.slice(lenOnLastPoll));
 				response.end();
 			}
 		}
@@ -194,6 +202,10 @@ local.web.schemes.register('httpl', function(request, response) {
 		for (var k in q)
 			request.query[k] = q[k];
 	}
+
+	// support warnings
+	if (request.binary)
+		console.warn('Got HTTPL request with binary=true - sorry, not currently supported', request);
 
 	// pass on to the server (async)
 	setTimeout(function() {

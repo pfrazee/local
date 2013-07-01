@@ -28,6 +28,12 @@ function Request(options) {
 		enumerable: false,
 		writable: true
 	});
+	Object.defineProperty(this, 'binary', {
+		value: options.binary || false,
+		configurable: true,
+		enumerable: false,
+		writable: true
+	});
 	Object.defineProperty(this, 'isConnOpen', {
 		value: true,
 		configurable: true,
