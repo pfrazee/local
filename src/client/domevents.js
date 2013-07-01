@@ -12,9 +12,10 @@
 // - `container` must be a valid DOM element
 // - `options` may disable event listeners by setting `links`, `forms`, or `dragdrops` to false
 function LocalClient__listen(container, options) {
-	if (!container || !(container instanceof Element)) {
-		throw "Listen() requires a valid DOM element as a first parameter";
-	}
+	// :TODO: come up with an iframe-compliant test
+	// if (!container || !(container instanceof Element)) {
+	// 	throw "Listen() requires a valid DOM element as a first parameter";
+	// }
 
 	container.__eventHandlers = [];
 	options = options || {};
