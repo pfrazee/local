@@ -139,7 +139,7 @@ extractRequest.fromAnchor = function(node) {
 
 	// pull out params
 	var request = {
-		method  : 'get',
+		// method  : 'get',
 		url     : node.attributes.href.value,
 		target  : node.getAttribute('target'),
 		headers : { accept:node.getAttribute('type') }
