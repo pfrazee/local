@@ -71,6 +71,7 @@ local.web.lookupLink = function lookupLink(links, rel, id) {
 // correctly joins together to url segments
 local.web.joinUrl = function joinUrl() {
 	var parts = Array.prototype.map.call(arguments, function(arg, i) {
+		arg = ''+arg;
 		var lo = 0, hi = arg.length;
 		if (arg == '/') return '';
 		if (i !== 0 && arg.charAt(0) === '/') { lo += 1; }
