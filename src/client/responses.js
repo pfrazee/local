@@ -31,9 +31,8 @@ function renderResponse(targetElem, containerElem, response) {
 			html = response.body.toString();
 		else {
 			// escape non-html so that it can render correctly
-			if (typeof response.body != 'string')
-				html = JSON.stringify(response.body);
-			html = '<pre>'+response.body.replace(/</g, '&lt;').replace(/>/g, '&gt;')+'</pre>';
+			html = (typeof response.body != 'string') ? JSON.stringify(response.body, null, 2) : response.body;
+			html = '<pre>'+html.replace(/</g, '&lt;').replace(/>/g, '&gt;')+'</pre>';
 		}
 
 		local.client.unlisten(targetElem); // make sure to unregister listeners before replaceing
