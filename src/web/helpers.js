@@ -70,10 +70,10 @@ local.web.lookupLink = function lookupLink(links, rel, id) {
 // EXPORTED
 // correctly joins together to url segments
 local.web.joinUrl = function joinUrl() {
-	var parts = Array.prototype.map.call(arguments, function(arg) {
+	var parts = Array.prototype.map.call(arguments, function(arg, i) {
 		var lo = 0, hi = arg.length;
 		if (arg == '/') return '';
-		if (arg.charAt(0) === '/')      { lo += 1; }
+		if (i !== 0 && arg.charAt(0) === '/') { lo += 1; }
 		if (arg.charAt(hi - 1) === '/') { hi -= 1; }
 		return arg.substring(lo, hi);
 	});
