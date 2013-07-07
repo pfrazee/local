@@ -104,7 +104,7 @@ function extractRequest(targetElem, containerElem) {
 
 	// extract payload
 	var payload = extractRequestPayload(targetElem, form);
-	
+
 	// extract form headers
 	if (form) {
 		requests.form = extractRequest.fromForm(form, targetElem);
@@ -223,6 +223,9 @@ extractRequest.fromForm = function(form, submittingElem) {
 
 // EXPORTED
 // serializes all form elements beneath and including the given element
+// - `targetElem`: container element, will reject the field if not within (optional)
+// - `form`: an array of HTMLElements or a form field (they behave the same for iteration)
+// - `opts.nofiles`: dont try to read files in file fields? (optional)
 function extractRequestPayload(targetElem, form, opts) {
 	if (!opts) opts = {};
 
@@ -238,7 +241,7 @@ function extractRequestPayload(targetElem, form, opts) {
 			continue;
 
 		// skip if not a child of the target element
-		if (!findParentNode.byElement(elem, targetElem))
+		if (targetElem && !findParentNode.byElement(elem, targetElem))
 			continue;
 
 		// pull value if it has one
@@ -336,3 +339,4 @@ function finishPayloadFileReads(request) {
 local.client.findParentNode = findParentNode;
 local.client.extractRequest = extractRequest;
 local.client.extractRequestPayload = extractRequestPayload;
+local.client.finishPayloadFileReads = finishPayloadFileReads;
