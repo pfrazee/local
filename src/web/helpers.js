@@ -88,6 +88,12 @@ local.web.parseUri = function parseUri(str) {
 		if (str.url) { str = str.url; }
 		else if (str.host || str.path) { str = local.web.joinUrl(req.host, req.path); }
 	}
+
+	// handle data-uris specially - performance characteristics are much different
+	if (str.slice(0,5) == 'data:') {
+		return { protocol: 'data', source: str };
+	}
+
 	var	o   = local.web.parseUri.options,
 		m   = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
 		uri = {},
