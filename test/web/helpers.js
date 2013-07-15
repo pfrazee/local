@@ -47,6 +47,14 @@ print(local.web.queryLinks(links, { rel: 'foo', id: 'whatever' }).length);
 // => 1
 print(local.web.queryLinks(links, { rel: 'other.com/-item' }).length);
 // => 1
+print(local.web.queryLinks(links, { rel: '!foo' }).length);
+// => 0
+print(local.web.queryLinks(links, { rel: '!whatever.com/rel/collection' }).length);
+// => 2
+print(local.web.queryLinks(links, { rel: 'item !whatever.com/rel/collection' }).length);
+// => 1
+print(local.web.queryLinks(links, { rel: '!whatever.com/rel/collection item' }).length);
+// => 1
 finishTest();
 
 
