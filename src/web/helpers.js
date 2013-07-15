@@ -8,22 +8,27 @@ local.web.parseLinkHeader = function parseLinkHeader(headerStr) {
 		return headerStr;
 	}
 	// '</foo/bar>; rel="baz"; id="blah", </foo/bar>; rel="baz"; id="blah", </foo/bar>; rel="baz"; id="blah"'
-	return headerStr.replace(/,[\s]*</g, '|||<').split('|||').map(function(linkStr) {
+	return headerStr.split(/,[\s]*/g).map(function(linkStr) {
 		// ['</foo/bar>; rel="baz"; id="blah"', '</foo/bar>; rel="baz"; id="blah"']
 		var link = {};
-		linkStr.trim().split(';').forEach(function(attrStr) {
+		linkStr.split(/\s*;\s*/g).forEach(function(attrStr) {
 			// ['</foo/bar>', 'rel="baz"', 'id="blah"']
-			attrStr = attrStr.trim();
 			if (!attrStr) { return; }
 			if (attrStr.charAt(0) === '<') {
 				// '</foo/bar>'
 				link.href = attrStr.trim().slice(1, -1);
 			} else {
-				var attrParts = attrStr.split('=');
-				// ['rel', '"baz"']
-				var k = attrParts[0].trim();
-				var v = attrParts[1].trim().slice(1, -1);
-				link[k] = v;
+				var attrParts = attrStr.split(/\s*=\s*/g);
+				if (attrParts[1]) {
+					// ['rel', '"baz"'] or ['rel', 'baz']
+					var k = attrParts[0];
+					var v = attrParts[1].replace(/^"|"$/g, '');
+					link[k] = v;
+				} else {
+					// ['attr']
+					var k = attrParts[0];
+					link[k] = true;
+				}
 			}
 		});
 		return link;

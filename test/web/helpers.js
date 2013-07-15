@@ -27,6 +27,24 @@ success
 */
 
 
+// parseLinkHeader
+
+startTime = Date.now();
+print(local.web.parseLinkHeader('</foo>; id="foo"; rel="what ever"'));
+// => [{href: "/foo", id: "foo", rel: "what ever"}]
+print(local.web.parseLinkHeader('</foo>; id="foo"; rel="what ever", </bar>; id="bar"; rel="what ever"'));
+/* => 
+[
+  {href: "/foo", id: "foo", rel: "what ever"},
+  {href: "/bar", id: "bar", rel: "what ever"}
+]
+*/
+print(local.web.parseLinkHeader('</foo>; id=foo'));
+// => [{href: "/foo", id: "foo"}]
+print(local.web.parseLinkHeader('</foo>; foobar; foobaz'));
+// => [{foobar: true, foobaz: true, href: "/foo"}]
+finishTest();
+
 // queryLink(s)
 
 startTime = Date.now();
@@ -59,6 +77,7 @@ finishTest();
 
 
 // preferredType(s)
+
 startTime = Date.now();
 print(local.web.preferredTypes('text/html, application/*;q=0.2, image/jpeg;q=0.8'));
 // => ['text/html', 'application/*', 'image/jpeg']

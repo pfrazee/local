@@ -7,6 +7,7 @@ Changes
  - Added helpers: web.queryLink, web.queryLinks
  - Added web.parseAcceptHeader, web.preferredTypes, web.preferredType
    - from https://github.com/federomero/negotiator
+ - Improved web.parseLinkHeader (now handles non-quoted values and attributes without values)
 
 
 2013/07/05 pfraze
