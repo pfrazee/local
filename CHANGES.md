@@ -2,6 +2,13 @@ Changes
 =======
 0.4.0
 
+2013/07/15 pfraze
+
+ - Added helpers: web.queryLink, web.queryLinks
+ - Added web.parseAcceptHeader, web.preferredTypes, web.preferredType
+   - from https://github.com/federomero/negotiator
+
+
 2013/07/05 pfraze
 
  - Changed anchor element's generated request to have no method, so that decision can occur elsewhere

@@ -68,6 +68,136 @@ local.web.lookupLink = function lookupLink(links, rel, id) {
 };
 
 // EXPORTED
+// takes parsed a link header and a query object, produces an array of matching links
+local.web.queryLinks = function queryLinks(links, query) {
+	if (!links || Array.isArray(links) === false) return [];
+	return links.filter(function(link) { return local.web.queryLink(link, query); });
+};
+
+// EXPORTED
+// takes parsed link and a query object, produces a boolean `isMatch`
+// - `query`: object, keys are attributes to test, values are values to test against (strings)
+//            eg { rel: 'foo bar', id: 'x' }
+// - Query rules
+//   - rel: can take multiple values, space-separated, which are ANDed logically
+//   - rel: will ignore the preceding scheme and trailing slash on URI values
+local.web.queryLink = function queryLink(link, query) {
+	for (var attr in query) {
+		if (attr == 'rel') {
+			var terms = query.rel.split(' ');
+			for (var i=0; i < terms.length; i++) {
+				if (RegExp('\\b(.*//)?'+terms[i]+'\\b', 'i').test(link.rel) === false)
+					return false;
+			}
+		}
+		else {
+			if (link[attr] != query[attr])
+				return false;
+		}
+	}
+	return true;
+};
+
+// <https://github.com/federomero/negotiator>
+// for to ^ for the content negotation helpers below
+
+// EXPORTED
+// breaks an accept header into a javascript object
+// - `accept`: string, the accept header
+local.web.parseAcceptHeader = function parseAcceptHeader(accept) {
+	return accept.split(',')
+		.map(function(e) { return parseMediaType(e.trim()); })
+		.filter(function(e) { return e && e.q > 0; });
+};
+
+// INTERNAL
+function parseMediaType(s) {
+	var match = s.match(/\s*(\S+)\/([^;\s]+)\s*(?:;(.*))?/);
+	if (!match) return null;
+
+	var type = match[1];
+	var subtype = match[2];
+	var full = "" + type + "/" + subtype;
+	var params = {}, q = 1;
+
+	if (match[3]) {
+		params = match[3].split(';')
+			.map(function(s) { return s.trim().split('='); })
+			.reduce(function (set, p) { set[p[0]] = p[1]; return set; }, params);
+
+		if (params.q != null) {
+			q = parseFloat(params.q);
+			delete params.q;
+		}
+	}
+
+	return {
+		type: type,
+		subtype: subtype,
+		params: params,
+		q: q,
+		full: full
+	};
+}
+
+// INTERNAL
+function getMediaTypePriority(type, accepted) {
+	var matches = accepted
+		.filter(function(a) { return specify(type, a); })
+		.sort(function (a, b) { return a.q > b.q ? -1 : 1; }) // revsort
+	return matches[0] ? matches[0].q : 0;
+}
+
+// INTERNAL
+function specifies(spec, type) {
+	return spec === '*' || spec === type;
+}
+
+// INTERNAL
+function specify(type, spec) {
+	var p = parseMediaType(type);
+
+	if (spec.params) {
+		var keys = Object.keys(spec.params);
+		if (keys.some(function (k) { return !specifies(spec.params[k], p.params[k]); })) {
+			// some didn't specify.
+			return null;
+		}
+	}
+
+	if (specifies(spec.type, p.type) && specifies(spec.subtype, p.subtype)) {
+		return spec;
+	}
+}
+
+// EXPORTED
+// returns an array of preferred media types ordered by priority from a list of available media types
+// - `accept`: string/object, given accept header or request object
+// - `provided`: optional [string], allowed media types
+local.web.preferredTypes = function preferredTypes(accept, provided) {
+	if (typeof accept == 'object')
+		accept = accept.headers.accept;
+	accept = local.web.parseAcceptHeader(accept || '');
+	if (provided) {
+		return provided
+			.map(function(type) { return [type, getMediaTypePriority(type, accept)]; })
+			.filter(function(pair) { return pair[1] > 0; })
+			.sort(function(a, b) { return a[1] === b[1] ? 0 : a[1] > b[1] ? -1 : 1; }) // revsort
+			.map(function(pair) { return pair[0]; });
+	}
+	return accept.map(function(type) { return type.full; });
+}
+
+// EXPORTED
+// returns the top preferred media type from a list of available media types
+// - `accept`: string/object, given accept header or request object
+// - `provided`: optional [string], allowed media types
+local.web.preferredType = function preferredType(accept, provided) {
+	return local.web.preferredTypes(accept, provided)[0];
+}
+// </https://github.com/federomero/negotiator>
+
+// EXPORTED
 // correctly joins together to url segments
 local.web.joinUrl = function joinUrl() {
 	var parts = Array.prototype.map.call(arguments, function(arg, i) {
