@@ -475,9 +475,19 @@ local.web.lookupLink = function lookupLink(links, rel, id) {
 
 // EXPORTED
 // takes parsed a link header and a query object, produces an array of matching links
+// - `links`: [object]/object, either the parsed array of links or the request/response object
 local.web.queryLinks = function queryLinks(links, query) {
-	if (!links || Array.isArray(links) === false) return [];
+	if (!links) return [];
+	if (links.headers) links = links.headers.link; // actually a request or response object
+	if (!Array.isArray(links)) return [];
 	return links.filter(function(link) { return local.web.queryLink(link, query); });
+};
+
+// EXPORTED
+// gives the first result from queryLinks
+local.web.queryLinks1 = function queryLinks1(links, query) {
+	var links = local.web.queryLinks(links, query);
+	return links[0];
 };
 
 // EXPORTED
