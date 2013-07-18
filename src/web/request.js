@@ -120,7 +120,7 @@ Request.prototype.write = function(data) {
 Request.prototype.end = function(data) {
 	if (!this.isConnOpen)
 		return;
-	if (data)
+	if (typeof data != 'undefined')
 		this.write(data);
 	this.emit('end');
 	// this.close();
