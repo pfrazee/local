@@ -99,7 +99,7 @@ if (!self.btoa) {
 local.worker.pageConnections = [];
 function addConnection(port) {
 	var isHost = (!local.worker.hostConnection);
-	var conn = new local.worker.PageConnection(port, isHost);
+	var conn = new local.worker.PageConnection(local.worker.pageConnections.length, port, isHost);
 	local.worker.startWebExchange(conn);
 
 	if (isHost)

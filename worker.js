@@ -2884,9 +2884,11 @@ if (typeof this.local.worker == 'undefined')
 	// ==============
 	// EXPORTED
 	// wraps the comm interface to a page for messaging
+	// - `id`: required number, should be the index of the connection in the list
 	// - `port`: required object, either `self` (for non-shared workers) or a port from `onconnect`
 	// - `isHost`: boolean, should connection get host privileges?
-	function PageConnection(port, isHost) {
+	function PageConnection(id, port, isHost) {
+		this.id = id;
 		this.port = port;
 		this.isHostConnection = isHost;
 
@@ -3250,7 +3252,7 @@ if (typeof this.local.worker == 'undefined')
 			response.on('close', function() { self.endExchange(message.exchange); });
 
 			// pass on to the request handler
-			main(request, response);
+			main(request, response, this);
 		} else {
 			this.sendMessage(message.exchange, 'response_headers', { status: 500, reason: 'server not loaded' });
 			this.sendMessage(message.exchange, 'response_end');
@@ -3442,7 +3444,7 @@ if (!self.btoa) {
 local.worker.pageConnections = [];
 function addConnection(port) {
 	var isHost = (!local.worker.hostConnection);
-	var conn = new local.worker.PageConnection(port, isHost);
+	var conn = new local.worker.PageConnection(local.worker.pageConnections.length, port, isHost);
 	local.worker.startWebExchange(conn);
 
 	if (isHost)
