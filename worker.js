@@ -1452,6 +1452,10 @@ local.web.dispatch = function dispatch(request) {
 	else
 		scheme = request.url.slice(0, firstColonIndex);
 
+	// if given a proxy: scheme, that's not something we can handle
+	if (scheme == 'proxy')
+		scheme = convertToProxyRequest(request); // so convert the request to something we can do
+
 	// wire up the response with the promise
 	var response_ = local.promise();
 	var response = new local.web.Response();
@@ -1521,7 +1525,51 @@ local.web.setDispatchWrapper = function(wrapperFn) {
 
 local.web.setDispatchWrapper(function(request, response, dispatch) {
 	dispatch(request, response);
-});// Events
+});
+
+// INTERNAL
+// Helper to convert a request using a proxy: scheme url into a proxy request using http/s/l
+// - returns the new scheme of the request
+function convertToProxyRequest(request) {
+	// split into url list
+	try {
+		var firstColonIndex = request.url.indexOf(':');
+		var urls = request.url.slice(firstColonIndex+1).split('|');
+	} catch(e) {
+		console.warn('Failed to parse proxy URL', request.url, e);
+		return response.writeHead(0, 'invalid proxy URL').end();
+	}
+
+	// update request to instruct proxy
+	var proxyUrl = urls.shift();
+	var destUrl = null;
+	if (!urls[0]) {
+		// only one url in the proxy string, just un-proxyify the url
+		// eg proxy:http://grimwire.com -> http://grimwire.com
+		request.url = proxyUrl;
+	} else {
+		if (!urls[1]) {
+			// two urls in the proxy string
+			// eg proxy:httpl://myproxy.grim|http://grimwire.com -> [httpl://myproxy.grim, http://grimwire.com]
+			destUrl = urls[0];
+		} else {
+			// multiple urls in the proxy string, reform destination as a smaller proxy url
+			// eg proxy:httpl://myproxy.grim|httpl://myproxy2.grim|http://grimwire.com
+			//     -> [httpl://myproxy.grim, proxy:httpl://myproxy2.grim|http://grimwire.com]
+			destUrl = 'proxy:'+urls.join('|');
+		}
+
+		// reform request as a proxy request
+		request.url = proxyUrl;
+		request.headers['proxy-to'] = destUrl;
+		request.headers['proxy-method'] = request.method;
+		request.method = 'PROXY';
+	}
+
+	// return new scheme
+	firstColonIndex = request.url.indexOf(':');
+	return request.url.slice(0, firstColonIndex);
+}// Events
 // ======
 
 // subscribe()
@@ -2886,9 +2934,11 @@ if (typeof this.local.worker == 'undefined')
 	// ==============
 	// EXPORTED
 	// wraps the comm interface to a page for messaging
+	// - `id`: required number, should be the index of the connection in the list
 	// - `port`: required object, either `self` (for non-shared workers) or a port from `onconnect`
 	// - `isHost`: boolean, should connection get host privileges?
-	function PageConnection(port, isHost) {
+	function PageConnection(id, port, isHost) {
+		this.id = id;
 		this.port = port;
 		this.isHostConnection = isHost;
 
@@ -3252,7 +3302,7 @@ if (typeof this.local.worker == 'undefined')
 			response.on('close', function() { self.endExchange(message.exchange); });
 
 			// pass on to the request handler
-			main(request, response);
+			main(request, response, this);
 		} else {
 			this.sendMessage(message.exchange, 'response_headers', { status: 500, reason: 'server not loaded' });
 			this.sendMessage(message.exchange, 'response_end');
@@ -3444,7 +3494,7 @@ if (!self.btoa) {
 local.worker.pageConnections = [];
 function addConnection(port) {
 	var isHost = (!local.worker.hostConnection);
-	var conn = new local.worker.PageConnection(port, isHost);
+	var conn = new local.worker.PageConnection(local.worker.pageConnections.length, port, isHost);
 	local.worker.startWebExchange(conn);
 
 	if (isHost)

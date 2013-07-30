@@ -2,6 +2,16 @@ Changes
 =======
 0.4.0
 
+2013/07/29 pfraze
+
+ - Added support for the "proxy" URI scheme
+
+
+2013/07/25 pfraze
+
+ - Added `conn` parameter to web worker main function (signature is now `main(request, response, conn)`)
+
+
 2013/07/15 pfraze
 
  - Added helpers: web.queryLink, web.queryLinks, web.queryLinks1

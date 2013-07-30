@@ -65,7 +65,7 @@
 			response.on('close', function() { self.endExchange(message.exchange); });
 
 			// pass on to the request handler
-			main(request, response);
+			main(request, response, this);
 		} else {
 			this.sendMessage(message.exchange, 'response_headers', { status: 500, reason: 'server not loaded' });
 			this.sendMessage(message.exchange, 'response_end');

@@ -102,6 +102,16 @@ local.web.registerLocal('test.com', function(request, response) {
 		};
 		local.web.pipe(response, local.web.dispatch({ method:'get', url:'httpl://test.com/' }), headerUpdate, bodyUpdate);
 	}
+	else if (request.path == '/proxy') {
+		var proxyRequest = new local.web.Request(request);
+		proxyRequest.method = request.headers['proxy-method'];
+		proxyRequest.url = request.headers['proxy-to'];
+		local.web.pipe(response, local.web.dispatch(proxyRequest), function(headers) {
+			headers.via = ['httpl://test.com'];
+			return headers;
+		});
+		proxyRequest.end();
+	}
 	else {
 		response.writeHead(404, 'not found');
 		response.end();

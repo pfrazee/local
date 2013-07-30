@@ -11,9 +11,11 @@
 	// ==============
 	// EXPORTED
 	// wraps the comm interface to a page for messaging
+	// - `id`: required number, should be the index of the connection in the list
 	// - `port`: required object, either `self` (for non-shared workers) or a port from `onconnect`
 	// - `isHost`: boolean, should connection get host privileges?
-	function PageConnection(port, isHost) {
+	function PageConnection(id, port, isHost) {
+		this.id = id;
 		this.port = port;
 		this.isHostConnection = isHost;
 
