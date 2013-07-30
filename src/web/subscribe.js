@@ -75,6 +75,7 @@ EventStream.prototype.close = function() {
 	this.isConnOpen = false;
 	this.request.close();
 	this.emit('close');
+	this.removeAllListeners();
 };
 function emitError(e) {
 	this.emit('message', e);
