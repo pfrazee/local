@@ -149,7 +149,9 @@ local.web.contentTypes.register('application/x-www-form-urlencoded',
 );
 local.web.contentTypes.register('text/event-stream',
 	function (obj) {
-		return "event: "+obj.event+"\r\ndata: "+JSON.stringify(obj.data)+"\r\n\r\n";
+		if (typeof obj.data != 'undefined')
+			return "event: "+obj.event+"\r\ndata: "+JSON.stringify(obj.data)+"\r\n\r\n";
+		return "event: "+obj.event+"\r\n\r\n";
 	},
 	function (str) {
 		var m = {};
