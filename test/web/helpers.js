@@ -45,6 +45,7 @@ print(local.web.parseLinkHeader('</foo>; foobar; foobaz'));
 // => [{foobar: true, foobaz: true, href: "/foo"}]
 finishTest();
 
+
 // queryLink(s)
 
 startTime = Date.now();
@@ -86,3 +87,18 @@ print(local.web.preferredTypes('text/html, application/*;q=0.2, image/jpeg;q=0.8
 print(local.web.preferredType('text/html, application/*;q=0.2, image/jpeg;q=0.8', ['text/html', 'text/plain', 'application/json']));
 // => text/html
 finishTest();
+
+
+// joinRelPath
+
+startTime = Date.now();
+print(local.web.joinRelPath('http://grimwire.com', '/foo'));
+// => http://grimwire.com/foo
+print(local.web.joinRelPath('http://grimwire.com/bar', '/foo'));
+// => http://grimwire.com/foo
+print(local.web.joinRelPath('http://grimwire.com/bar', 'foo'));
+// => http://grimwire.com/bar/foo
+print(local.web.joinRelPath('http://grimwire.com/bar/bar', '../foo'));
+// => http://grimwire.com/bar/foo
+print(local.web.joinRelPath('http://grimwire.com/bar/bar', '../../foo'));
+// => http://grimwire.com/foo

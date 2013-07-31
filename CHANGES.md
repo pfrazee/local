@@ -2,6 +2,11 @@ Changes
 =======
 0.4.0
 
+2013/07/31 pfraze
+
+ - Added local.web.joinRelPath
+
+
 2013/07/29 pfraze
 
  - Added support for the "proxy" URI scheme

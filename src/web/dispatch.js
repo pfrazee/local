@@ -12,6 +12,7 @@ var webDispatchWrapper;
 // - `request.headers`: optional object
 // - `request.body`: optional request body
 // - `request.stream`: boolean, stream the response? If falsey, will buffer and deserialize the response
+// - `request.binary`: boolean, receive a binary arraybuffer response? Only applies to HTTP/S
 // - returns a `Promise` object
 //   - on success (status code 2xx), the promise is fulfilled with a `ClientResponse` object
 //   - on failure (status code 4xx,5xx), the promise is rejected with a `ClientResponse` object

@@ -621,7 +621,8 @@ local.web.preferredType = function preferredType(accept, provided) {
 // </https://github.com/federomero/negotiator>
 
 // EXPORTED
-// correctly joins together to url segments
+// correctly joins together all url segments given in the arguments
+// eg joinUrl('/foo/', '/bar', '/baz/') -> '/foo/bar/baz/'
 local.web.joinUrl = function joinUrl() {
 	var parts = Array.prototype.map.call(arguments, function(arg, i) {
 		arg = ''+arg;
@@ -632,6 +633,31 @@ local.web.joinUrl = function joinUrl() {
 		return arg.substring(lo, hi);
 	});
 	return parts.join('/');
+};
+
+// EXPORTED
+// takes a context url and a relative path and forms a new valid url
+// eg joinRelPath('http://grimwire.com/foo/bar', '../fuz/bar') -> 'http://grimwire.com/foo/fuz/bar'
+local.web.joinRelPath = function(urld, relpath) {
+	if (typeof urld == 'string')
+		urld = local.web.parseUri(urld);
+	if (relpath.charAt(0) == '/')
+		// "absolute" relative, easy stuff
+		return urld.protocol + '://' + urld.authority + relpath;
+	// totally relative, oh god
+	// (thanks to geoff parker for this)
+	var hostpath = urld.path;
+	var hostpathParts = hostpath.split('/');
+	var relpathParts = relpath.split('/');
+	for (var i=0, ii=relpathParts.length; i < ii; i++) {
+		if (relpathParts[i] == '.')
+			continue; // noop
+		if (relpathParts[i] == '..')
+			hostpathParts.pop();
+		else
+			hostpathParts.push(relpathParts[i]);
+	}
+	return local.web.joinUrl(urld.protocol + '://' + urld.authority, hostpathParts.join('/'));
 };
 
 // EXPORTED
@@ -1426,6 +1452,7 @@ var webDispatchWrapper;
 // - `request.headers`: optional object
 // - `request.body`: optional request body
 // - `request.stream`: boolean, stream the response? If falsey, will buffer and deserialize the response
+// - `request.binary`: boolean, receive a binary arraybuffer response? Only applies to HTTP/S
 // - returns a `Promise` object
 //   - on success (status code 2xx), the promise is fulfilled with a `ClientResponse` object
 //   - on failure (status code 4xx,5xx), the promise is rejected with a `ClientResponse` object
