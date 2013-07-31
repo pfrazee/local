@@ -22,9 +22,9 @@ success
     allow: "OPTIONS, HEAD, GET",
     "content-type": "application/json",
     link: [
-      {href: "/", rel: "up via service"},
-      {href: "/foo", rel: "self current"},
-      {href: "/foo/{id}", rel: "item"}
+      {href: "http://grimwire.com:8080/", rel: "up via service"},
+      {href: "http://grimwire.com:8080/foo", rel: "self current"},
+      {href: "http://grimwire.com:8080/foo/{id}", rel: "item"}
     ]
   },
   reason: "Ok",
@@ -37,13 +37,13 @@ success
     allow: "OPTIONS, HEAD, GET",
     "content-type": "application/json",
     link: [
-      {href: "/", rel: "via service"},
-      {href: "/foo", rel: "up collection index"},
-      {href: "/foo/baz", rel: "self current"},
-      {href: "/foo/bar", rel: "first"},
-      {href: "/foo/blah", rel: "last"},
-      {href: "/foo/bar", rel: "prev"},
-      {href: "/foo/blah", rel: "next"}
+      {href: "http://grimwire.com:8080/", rel: "via service"},
+      {href: "http://grimwire.com:8080/foo", rel: "up collection index"},
+      {href: "http://grimwire.com:8080/foo/baz", rel: "self current"},
+      {href: "http://grimwire.com:8080/foo/bar", rel: "first"},
+      {href: "http://grimwire.com:8080/foo/blah", rel: "last"},
+      {href: "http://grimwire.com:8080/foo/bar", rel: "prev"},
+      {href: "http://grimwire.com:8080/foo/blah", rel: "next"}
     ]
   },
   reason: "Ok",
@@ -72,9 +72,9 @@ success
     allow: "OPTIONS, HEAD, GET",
     "content-type": "application/json",
     link: [
-      {href: "/", rel: "up via service"},
-      {href: "/foo", rel: "self current"},
-      {href: "/foo/{id}", rel: "item"}
+      {href: "http://grimwire.com:8080/", rel: "up via service"},
+      {href: "http://grimwire.com:8080/foo", rel: "self current"},
+      {href: "http://grimwire.com:8080/foo/{id}", rel: "item"}
     ]
   },
   reason: "Ok",
@@ -101,9 +101,9 @@ success
   headers: {
     "content-type": "application/json",
     link: [
-      {href: "/", rel: "up via service"},
-      {href: "/foo", rel: "self current"},
-      {href: "/foo/{id}", rel: "item"}
+      {href: "httpl://test.com/", rel: "up via service"},
+      {href: "httpl://test.com/foo", rel: "self current"},
+      {href: "httpl://test.com/foo/{id}", rel: "item"}
     ]
   },
   reason: "ok",
@@ -115,19 +115,18 @@ success
   headers: {
     "content-type": "application/json",
     link: [
-      {href: "/", rel: "via service"},
-      {href: "/foo", rel: "up collection index"},
-      {href: "/foo/baz", rel: "self current"},
-      {href: "/foo/bar", rel: "first"},
-      {href: "/foo/blah", rel: "last"},
-      {href: "/foo/bar", rel: "prev"},
-      {href: "/foo/blah", rel: "next"}
+      {href: "httpl://test.com/", rel: "via service"},
+      {href: "httpl://test.com/foo", rel: "up collection index"},
+      {href: "httpl://test.com/foo/baz", rel: "self current"},
+      {href: "httpl://test.com/foo/bar", rel: "first"},
+      {href: "httpl://test.com/foo/blah", rel: "last"},
+      {href: "httpl://test.com/foo/bar", rel: "prev"},
+      {href: "httpl://test.com/foo/blah", rel: "next"}
     ]
   },
   reason: "ok",
   status: 200
-}
-*/
+}*/
 
 // local streaming
 

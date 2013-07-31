@@ -5,6 +5,7 @@ Changes
 2013/07/31 pfraze
 
  - Added local.web.joinRelPath
+ - Added response header processing to change relative links (Link header) to absolute
 
 
 2013/07/29 pfraze

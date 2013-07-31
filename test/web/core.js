@@ -16,14 +16,15 @@ success
     allow: "OPTIONS, HEAD, GET",
     "content-type": "application/json",
     link: [
-      {href: "/", rel: "self current"},
-      {href: "/foo", id: "foo", rel: "collection"},
-      {href: "/{id}", rel: "collection"}
+      {href: "http://grimwire.com:8080/", rel: "self current"},
+      {href: "http://grimwire.com:8080/foo", id: "foo", rel: "collection"},
+      {href: "http://grimwire.com:8080/{id}", rel: "collection"}
     ]
   },
   reason: "Ok",
   status: 200
 }
+
 */
 
 // unsuccessful remote requests
@@ -61,10 +62,10 @@ success
   headers: {
     "content-type": "text/plain",
     link: [
-      {href: "/", rel: "self current"},
-      {href: "/events", id: "events", rel: "collection"},
-      {href: "/foo", id: "foo", rel: "collection"},
-      {href: "/{id}", rel: "collection"}
+      {href: "httpl://test.com/", rel: "self current"},
+      {href: "httpl://test.com/events", id: "events", rel: "collection"},
+      {href: "httpl://test.com/foo", id: "foo", rel: "collection"},
+      {href: "httpl://test.com/{id}", rel: "collection"}
     ]
   },
   reason: "ok",
@@ -166,10 +167,10 @@ success
   headers: {
     "content-type": "text/plain",
     link: [
-      {href: "/", rel: "self current"},
-      {href: "/events", id: "events", rel: "collection"},
-      {href: "/foo", id: "foo", rel: "collection"},
-      {href: "/{id}", rel: "collection"}
+      {href: "httpl://test.com/", rel: "self current"},
+      {href: "httpl://test.com/events", id: "events", rel: "collection"},
+      {href: "httpl://test.com/foo", id: "foo", rel: "collection"},
+      {href: "httpl://test.com/{id}", rel: "collection"}
     ],
     via: ["httpl://test.com"]
   },
@@ -212,9 +213,9 @@ success
     allow: "OPTIONS, HEAD, GET",
     "content-type": "application/json",
     link: [
-      {href: "/", rel: "self current"},
-      {href: "/foo", id: "foo", rel: "collection"},
-      {href: "/{id}", rel: "collection"}
+      {href: "http://grimwire.com:8080/", rel: "self current"},
+      {href: "http://grimwire.com:8080/foo", id: "foo", rel: "collection"},
+      {href: "http://grimwire.com:8080/{id}", rel: "collection"}
     ],
     via: ["httpl://test.com"]
   },
@@ -256,10 +257,10 @@ success
   headers: {
     "content-type": "text/plain",
     link: [
-      {href: "/", rel: "self current"},
-      {href: "/events", id: "events", rel: "collection"},
-      {href: "/foo", id: "foo", rel: "collection"},
-      {href: "/{id}", rel: "collection"}
+      {href: "httpl://test.com/", rel: "self current"},
+      {href: "httpl://test.com/events", id: "events", rel: "collection"},
+      {href: "httpl://test.com/foo", id: "foo", rel: "collection"},
+      {href: "httpl://test.com/{id}", rel: "collection"}
     ],
     via: ["httpl://test.com"]
   },

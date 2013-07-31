@@ -15,10 +15,10 @@ success
   headers: {
     "content-type": "text/piped+plain",
     link: [
-      {href: "/", rel: "self current"},
-      {href: "/events", id: "events", rel: "collection"},
-      {href: "/foo", id: "foo", rel: "collection"},
-      {href: "/{id}", rel: "collection"}
+      {href: "httpl://test.com/", rel: "self current"},
+      {href: "httpl://test.com/events", id: "events", rel: "collection"},
+      {href: "httpl://test.com/foo", id: "foo", rel: "collection"},
+      {href: "httpl://test.com/{id}", rel: "collection"}
     ]
   },
   reason: "ok",
