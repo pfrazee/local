@@ -72,7 +72,6 @@ local.env.getClientRegion = function(id) { return local.env.clientRegions[id]; }
 // - allows the deployment to control request permissions / sessions / etc
 // - adds the `origin` parameter to dispatch(), which is the object responsible for the request
 var envDispatchWrapper;
-var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
 local.web.setDispatchWrapper(function(request, response, dispatch, origin) {
 	// parse the url
 	var urld = local.web.parseUri(request.url); // (urld = url description)
@@ -86,16 +85,6 @@ local.web.setDispatchWrapper(function(request, response, dispatch, origin) {
 		urld.relative = urld.path + ((urld.anchor) ? ('#'+urld.anchor) : '');
 		request.url = urld.protocol+'://'+urld.authority+urld.relative;
 	}
-
-	// update link headers to be absolute
-	response.on('headers', function() {
-		if (response.headers.link) {
-			response.headers.link.forEach(function(link) {
-				if (isUrlAbsoluteRE.test(link.href) === false)
-					link.href = local.web.joinRelPath(request.urld, link.href);
-			});
-		}
-	});
 
 	request.urld = urld;
 	envDispatchWrapper.call(null, request, response, dispatch, origin);

@@ -275,14 +275,8 @@ Navigator.prototype.__resolveChild = function Navigator__resolveChild(childNav, 
 Navigator.prototype.__lookupLink = function Navigator__lookupLink(context) {
 	// try to find the link with a id equal to the param we were given
 	var href = local.web.lookupLink(this.links, context.rel, context.relparams.id);
-
-	if (href) {
-		var url = local.web.UriTemplate.parse(href).expand(context.relparams);
-		var urld = local.web.parseUri(url);
-		if (!urld.host) // handle relative URLs
-			url = this.context.getHost() + urld.relative;
-		return url;
-	}
+	if (href)
+		return local.web.UriTemplate.parse(href).expand(context.relparams);
 	console.log('Failed to find a link to resolve context. Target link:', context.rel, context.relparams, 'Navigator:', this);
 	return null;
 };

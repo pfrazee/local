@@ -1463,6 +1463,7 @@ local.web.dispatch = function dispatch(request) {
 		request = { url: request };
 	if (!request.url)
 		throw "no url on request";
+	var response = new local.web.Response();
 
 	// if not given a local.web.Request, make one and remember to end the request ourselves
 	var body = null, selfEnd = false;
@@ -1483,9 +1484,11 @@ local.web.dispatch = function dispatch(request) {
 	if (scheme == 'proxy')
 		scheme = convertToProxyRequest(request); // so convert the request to something we can do
 
+	// update link headers to be absolute
+	response.on('headers', function() { processResponseHeaders(request, response); });
+
 	// wire up the response with the promise
 	var response_ = local.promise();
-	var response = new local.web.Response();
 	if (request.stream) {
 		// streaming, fulfill on 'headers'
 		response.on('headers', function(response) {
@@ -1555,13 +1558,26 @@ local.web.setDispatchWrapper(function(request, response, dispatch) {
 });
 
 // INTERNAL
+// Helper to massage response values
+var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
+function processResponseHeaders(request, response) {
+	if (response.headers.link) {
+		response.headers.link.forEach(function(link) {
+			if (isUrlAbsoluteRE.test(link.href) === false)
+				link.href = local.web.joinRelPath(request.urld, link.href);
+		});
+	}
+}
+
+// INTERNAL
 // Helper to convert a request using a proxy: scheme url into a proxy request using http/s/l
 // - returns the new scheme of the request
 function convertToProxyRequest(request) {
 	// split into url list
+	var urls, firstColonIndex;
 	try {
-		var firstColonIndex = request.url.indexOf(':');
-		var urls = request.url.slice(firstColonIndex+1).split('|');
+		firstColonIndex = request.url.indexOf(':');
+		urls = request.url.slice(firstColonIndex+1).split('|');
 	} catch(e) {
 		console.warn('Failed to parse proxy URL', request.url, e);
 		return response.writeHead(0, 'invalid proxy URL').end();
@@ -2878,14 +2894,8 @@ Navigator.prototype.__resolveChild = function Navigator__resolveChild(childNav, 
 Navigator.prototype.__lookupLink = function Navigator__lookupLink(context) {
 	// try to find the link with a id equal to the param we were given
 	var href = local.web.lookupLink(this.links, context.rel, context.relparams.id);
-
-	if (href) {
-		var url = local.web.UriTemplate.parse(href).expand(context.relparams);
-		var urld = local.web.parseUri(url);
-		if (!urld.host) // handle relative URLs
-			url = this.context.getHost() + urld.relative;
-		return url;
-	}
+	if (href)
+		return local.web.UriTemplate.parse(href).expand(context.relparams);
 	console.log('Failed to find a link to resolve context. Target link:', context.rel, context.relparams, 'Navigator:', this);
 	return null;
 };

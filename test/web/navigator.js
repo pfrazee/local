@@ -159,9 +159,9 @@ success
   headers: {
     "content-type": "application/json",
     link: [
-      {href: "/", rel: "up via service"},
-      {href: "/foo", rel: "self current"},
-      {href: "/foo/{id}", rel: "item"}
+      {href: "httpl://test.com/", rel: "up via service"},
+      {href: "httpl://test.com/foo", rel: "self current"},
+      {href: "httpl://test.com/foo/{id}", rel: "item"}
     ]
   },
   reason: "ok",
