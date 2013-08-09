@@ -89,8 +89,11 @@ local.web.registerLocal('test.com', function(request, response) {
 		response.write({ event:'foo', data:{ c:1 }});
 		response.write({ event:'foo', data:{ c:2 }});
 		response.write({ event:'bar', data:{ c:3 }});
-		response.write({ event:'foo', data:{ c:4 }});
-		response.end({ event:'foo', data:{ c:5 }});
+		response.write('event: foo\r\n');
+		setTimeout(function() { // break up the event to make sure the client waits for the whole thing
+			response.write('data: { "c": 4 }\r\n\r\n');
+			response.end({ event:'foo', data:{ c:5 }});
+		}, 50);
 	}
 	else if (request.path == '/pipe') {
 		var headerUpdate = function(headers) {

@@ -38,16 +38,22 @@ local.web.EventStream = EventStream;
 EventStream.prototype = Object.create(local.util.EventEmitter.prototype);
 EventStream.prototype.connect = function(response_) {
 	var self = this;
+	var buffer = '', eventDelimIndex;
 	response_.then(
 		function(response) {
 			self.isConnOpen = true;
 			self.response = response;
 			response.on('data', function(payload) {
-				var events = payload.split("\r\n\r\n");
-				events.forEach(function(event) {
-					if (/^[\s]*$/.test(event)) return; // skip all whitespace
+				// Add any data we've buffered from past events
+				payload = buffer + payload;
+				// Step through each event, as its been given
+				while ((eventDelimIndex = payload.indexOf('\r\n\r\n')) !== -1) {
+					var event = payload.slice(0, eventDelimIndex);
 					emitEvent.call(self, event);
-				});
+					payload = payload.slice(eventDelimIndex+4);
+				}
+				// Hold onto any lefovers
+				buffer = payload;
 			});
 			response.on('end', function() { self.close(); });
 			response.on('close', function() { if (self.isConnOpen) { self.isConnOpen = false; self.reconnect(); } });
