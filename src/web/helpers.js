@@ -198,17 +198,9 @@ local.web.joinUrl = function joinUrl() {
 
 // EXPORTED
 // tests to see if a URL is absolute
-// - the heuristic here is, does it have a //?
-// - the following are seen as relative URLs:
-//   - foobar.com
-//   - /foo/bar
-//   - rel:||foobar
-//   - rel:foo.com||bar
-// - the following are seen as absolute URLs:
-//   - http://foobar.com
-//   - //foobar.com
-//   - rel:http://foo.com||bar
-var isAbsUriRE = /\/\//;
+// - "absolute" means that the URL can reach something without additional context
+// - eg http://foo.com, //foo.com, httpl://bar.app, rel:http://foo.com, rel:foo.com
+var isAbsUriRE = /^(http(s|l)?:)|(rel:[^|])|(\/\/)/;
 local.web.isAbsUri = function(v) {
 	return isAbsUriRE.test(v);
 };

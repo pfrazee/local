@@ -48,7 +48,7 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 	}
 
 	// assemble the final url
-	var url = ((urld.protocol) ? (urld.protocol + '://') : '') + urld.authority + urld.relative;
+	var url = ((urld.protocol) ? (urld.protocol + '://') : '//') + urld.authority + urld.relative;
 
 	// create the request
 	var xhrRequest = new XMLHttpRequest();

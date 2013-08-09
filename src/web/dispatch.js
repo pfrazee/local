@@ -25,11 +25,17 @@ local.web.dispatch = function dispatch(request) {
 		throw "no url on request";
 
 	// parse the url scheme
-	var scheme, firstColonIndex = request.url.indexOf(':');
-	if (firstColonIndex === -1)
-		scheme = 'http'; // default for relative paths
-	else
-		scheme = request.url.slice(0, firstColonIndex);
+	var scheme, schemeMatch = /^([^.^:]*):/.exec(request.url);
+	if (!schemeMatch) {
+		// shorthand/default schemes
+		if (request.url.indexOf('//') === 0)
+			scheme = 'http';
+		else if (request.url.indexOf('||') === 0)
+			scheme = 'rel';
+		else
+			scheme = 'httpl';
+	} else
+		scheme = schemeMatch[1];
 
 	// if given a rel: scheme, spawn a navigator to handle it
 	if (scheme == 'rel') {
