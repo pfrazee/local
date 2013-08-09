@@ -86,7 +86,7 @@ success
 
 var testLocal = new local.web.navigator('httpl://test.com');
 
-// local server navigation
+// document local server navigation
 
 done = false;
 startTime = Date.now();
@@ -127,6 +127,53 @@ success
       {href: "httpl://test.com/foo/blah", rel: "last"},
       {href: "httpl://test.com/foo/bar", rel: "prev"},
       {href: "httpl://test.com/foo/blah", rel: "next"}
+    ]
+  },
+  reason: "ok",
+  status: 200
+}*/
+
+// worker local server navigation
+
+done = false;
+startTime = Date.now();
+local.web.navigator('httpl://test.worker').follow({ rel: 'collection', id: 'foo' }).get()
+  .then(printSuccess, printErrorAndFinish)
+  .then(function(res) {
+    local.web.navigator('httpl://test.worker').follow({ rel: 'collection', id: 'foo'})
+      .follow({ rel: 'item', id: 'baz' })
+      .get().then(printSuccessAndFinish, printErrorAndFinish);
+  });
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: ["bar", "baz", "blah"],
+  headers: {
+    "content-type": "application/json",
+    link: [
+      {href: "httpl://test.worker/", rel: "up via service"},
+      {href: "httpl://test.worker/foo", rel: "self current"},
+      {href: "httpl://test.worker/foo/{id}", rel: "item"}
+    ]
+  },
+  reason: "ok",
+  status: 200
+}
+success
+{
+  body: "baz",
+  headers: {
+    "content-type": "application/json",
+    link: [
+      {href: "httpl://test.worker/", rel: "via service"},
+      {href: "httpl://test.worker/foo", rel: "up collection index"},
+      {href: "httpl://test.worker/foo/baz", rel: "self current"},
+      {href: "httpl://test.worker/foo/bar", rel: "first"},
+      {href: "httpl://test.worker/foo/blah", rel: "last"},
+      {href: "httpl://test.worker/foo/bar", rel: "prev"},
+      {href: "httpl://test.worker/foo/blah", rel: "next"}
     ]
   },
   reason: "ok",

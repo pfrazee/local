@@ -1,33 +1,4 @@
-
-// test runner helpers
-
-var done;
-var startTime;
-function printSuccess(res) {
-	print('success');
-	print(res);
-	return res;
-}
-function printError(res) {
-	print('error');
-	print(res);
-	throw res;
-}
-function finishTest() {
-	console.log(Date.now() - startTime, 'ms');
-	done = true;
-}
-function printSuccessAndFinish(res) { printSuccess(res); finishTest(); }
-function printErrorAndFinish(err) { printError(err); finishTest(); }
-
-// worker local scaffold server
-
-local.env.config.workerBootstrapUrl = '../worker.js';
-local.env.addServer('test.worker', new local.env.WorkerServer({ src: 'test/web/_worker.js' }));
-
-// document local scaffold server
-
-local.web.registerLocal('test.com', function(request, response) {
+function main(request, response) {
 	var foos = ['bar', 'baz', 'blah'];
 	var payload = null, linkHeader;
 	if (request.path == '/') {
@@ -110,8 +81,12 @@ local.web.registerLocal('test.com', function(request, response) {
 		};
 		local.web.pipe(response, local.web.dispatch({ method:'get', url:'httpl://test.com/' }), headerUpdate, bodyUpdate);
 	}
+	else if (request.path == '/unserializable-response') {
+		response.writeHead(200, 'ok', { 'content-type':'text/faketype' });
+		response.end({ unserializable: 'response' });
+	}
 	else {
 		response.writeHead(404, 'not found');
 		response.end();
 	}
-});
+}

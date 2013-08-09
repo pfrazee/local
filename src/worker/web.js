@@ -60,7 +60,7 @@
 
 			// wire response into the exchange
 			response.on('headers', function() { self.sendMessage(message.exchange, 'response_headers', response); });
-			response.on('data', function(data) { self.sendMessage(message.exchange, 'response_data', data); });
+			response.on('data', function(data) {self.sendMessage(message.exchange, 'response_data', data); });
 			response.on('end', function() { self.sendMessage(message.exchange, 'response_end'); });
 			response.on('close', function() { self.endExchange(message.exchange); });
 
@@ -74,12 +74,6 @@
 	}
 
 	function onWebRequestData(message) {
-		if (typeof message.data != 'string') {
-			console.error('Invalid "request_data" message from worker: Payload must be a string', message);
-			this.endExchange(message.exchange);
-			return;
-		}
-
 		var request = this.getExchangeMeta(message.exchange, 'request');
 		if (!request) {
 			console.error('Invalid "request_data" message from worker: Request headers not previously received', message);
@@ -119,12 +113,6 @@
 	}
 
 	function onWebResponseData(message) {
-		if (typeof message.data != 'string') {
-			console.error('Invalid "response_data" message from worker: Payload must be a string', message);
-			this.endExchange(message.exchange);
-			return;
-		}
-
 		var response = this.getExchangeMeta(message.exchange, 'response');
 		if (!response) {
 			console.error('Internal error when receiving "response_data" message from worker: Response object not present', message);

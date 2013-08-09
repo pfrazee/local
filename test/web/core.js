@@ -45,7 +45,7 @@ error
 }
 */
 
-// == SECTION core - local requests
+// == SECTION core - document local requests
 
 // successful local requests
 
@@ -84,6 +84,65 @@ wait(function () { return done; });
 /* =>
 error
 {body: "", headers: {},  reason: "not found", status: 404}
+*/
+
+// == SECTION core - worker local requests
+
+// successful local requests
+
+done = false;
+startTime = Date.now();
+var res = local.web.dispatch({ method:'get', url:'httpl://test.worker' });
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "service resource",
+  headers: {
+    "content-type": "text/plain",
+    link: [
+      {href: "httpl://test.worker/", rel: "self current"},
+      {href: "httpl://test.worker/events", id: "events", rel: "collection"},
+      {href: "httpl://test.worker/foo", id: "foo", rel: "collection"},
+      {href: "httpl://test.worker/{id}", rel: "collection"}
+    ]
+  },
+  reason: "ok",
+  status: 200
+}
+*/
+
+// unsuccessful local requests
+
+done = false;
+startTime = Date.now();
+var res = local.web.dispatch({ method:'get', url:'httpl://test.worker/bad/url' });
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+error
+{body: "", headers: {},  reason: "not found", status: 404}
+*/
+
+// test of a unserializable response
+
+done = false;
+startTime = Date.now();
+var res = local.web.dispatch({ method:'get', url:'httpl://test.worker/unserializable-response' });
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "[object Object]",
+  headers: {"content-type": "text/faketype"},
+  reason: "ok",
+  status: 200
+}
 */
 
 // == SECTION core - rel-uri requests
