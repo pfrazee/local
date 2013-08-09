@@ -5,6 +5,7 @@ Changes
 2013/08/09 pfraze
 
  - Removed the "proxy" URI scheme (supplanted by the "rel" scheme)
+ - Updated local.env.addServer to accept functions as well as local.env.Server objects
 
 
 2013/08/08 pfraze

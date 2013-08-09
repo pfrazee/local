@@ -12,7 +12,7 @@ var s1 = new local.env.Worker({ bootstrapUrl:'../worker.js' });
 s1.onMessage(0, 'ready', function() {
   printLog('got ready');
 
-  s1.importScripts('../../test/worker/worker1.js', function(message) {
+  s1.importScripts('test/worker/worker1.js', function(message) {
     printLog(message);
   });
   s1.nullify('XMLHttpRequest');

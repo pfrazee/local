@@ -27,7 +27,7 @@ function Response() {
 		writable: false
 	});
 	(function buffer(self) {
-		self.on('data', function(data) { 
+		self.on('data', function(data) {
 			if (data instanceof ArrayBuffer)
 				self.body = data; // browsers buffer binary responses, so dont try to stream
 			else
@@ -68,8 +68,9 @@ Response.prototype.writeHead = function(status, reason, headers) {
 Response.prototype.write = function(data) {
 	if (!this.isConnOpen)
 		return;
-	if (typeof data != 'string')
+	if (typeof data != 'string') {
 		data = local.web.contentTypes.serialize(data, this.headers['content-type']);
+	}
 	this.emit('data', data);
 };
 
@@ -92,7 +93,7 @@ Response.prototype.close = function() {
 		return;
 	this.isConnOpen = false;
 	this.emit('close');
-	
+
 	// :TODO: when events are suspended, this can cause problems
 	//        maybe put these "removes" in a 'close' listener?
 	// this.removeAllListeners('headers');

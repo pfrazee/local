@@ -21,12 +21,7 @@ document.getElementById('atag1').dispatchEvent(clickEvent);
 wait(function () { return done; });
 
 /* =>
-{
-	headers: {accept: null},
-	method: "get",
-	target: null,
-	url: "http://www.atag1.com"
-}
+{headers: {accept: null}, target: null, url: "http://www.atag1.com"}
 */
 
 // test: completely-filled anchor tag
@@ -41,10 +36,9 @@ wait(function () { return done; });
 
 /* =>
 {
-	headers: {accept: "text/plain"},
-	method: "get",
-	target: "target1",
-	url: "http://www.atag2.com"
+  headers: {accept: "text/plain"},
+  target: "target1",
+  url: "http://www.atag2.com"
 }
 */
 

@@ -10,18 +10,22 @@ local.env.clientRegions = {};
 local.env.numServers = 0;
 local.env.numClientRegions = 0;
 
-local.env.addServer = function(domain, server) {
-	// instantiate the application
-	server.config.domain = domain;
+local.env.addServer = function(domain, server, context) {
+	var isServerObj = (server instanceof local.env.Server);
+	if (isServerObj)
+		server.config.domain = domain;
 	local.env.servers[domain] = server;
 	local.env.numServers++;
 
-	// allow the user script to load
+	// allow the user script to load (for workers)
 	if (server.loadUserScript)
 		server.loadUserScript();
 
 	// register the server
-	local.web.registerLocal(domain, server.handleHttpRequest, server);
+	if (isServerObj)
+		local.web.registerLocal(domain, server.handleHttpRequest, server);
+	else
+		local.web.registerLocal(domain, server, context);
 
 	return server;
 };
@@ -30,7 +34,8 @@ local.env.killServer = function(domain) {
 	var server = local.env.servers[domain];
 	if (server) {
 		local.web.unregisterLocal(domain);
-		server.terminate();
+		if (server instanceof local.env.Server)
+			server.terminate();
 		delete local.env.servers[domain];
 		local.env.numServers--;
 	}
