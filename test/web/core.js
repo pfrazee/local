@@ -86,6 +86,63 @@ error
 {body: "", headers: {},  reason: "not found", status: 404}
 */
 
+// == SECTION core - rel-uri requests
+
+// successful local requests
+
+done = false;
+startTime = Date.now();
+var res = local.web.dispatch({ method:'get', url:'rel:httpl://test.com||collection=foo||item=baz' });
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "baz",
+  headers: {
+    "content-type": "application/json",
+    link: [
+      {href: "httpl://test.com/", rel: "via service"},
+      {href: "httpl://test.com/foo", rel: "up collection index"},
+      {href: "httpl://test.com/foo/baz", rel: "self current"},
+      {href: "httpl://test.com/foo/bar", rel: "first"},
+      {href: "httpl://test.com/foo/blah", rel: "last"},
+      {href: "httpl://test.com/foo/bar", rel: "prev"},
+      {href: "httpl://test.com/foo/blah", rel: "next"}
+    ]
+  },
+  reason: "ok",
+  status: 200
+}
+*/
+
+// unsuccessful local requests
+
+done = false;
+startTime = Date.now();
+var res = local.web.dispatch({ method:'get', url:'rel:httpl://test.com||collection=lolno||item=baz' });
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+error
+{body: "", headers: {}, reason: "not found", status: 404}
+*/
+
+// unsuccessful local requests
+
+done = false;
+startTime = Date.now();
+var res = local.web.dispatch({ method:'get', url:'rel:httpl://test.com||collection=foo||item=blammo' });
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+error
+{body: "", headers: {}, reason: "not found", status: 404}
+*/
+
 // == SECTION core - data-uri requests
 
 // non-base64-encoded

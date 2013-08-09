@@ -23,6 +23,20 @@ local.web.dispatch = function dispatch(request) {
 		request = { url: request };
 	if (!request.url)
 		throw "no url on request";
+
+	// parse the url scheme
+	var scheme, firstColonIndex = request.url.indexOf(':');
+	if (firstColonIndex === -1)
+		scheme = 'http'; // default for relative paths
+	else
+		scheme = request.url.slice(0, firstColonIndex);
+
+	// if given a rel: scheme, spawn a navigator to handle it
+	if (scheme == 'rel') {
+		var url = request.url; delete request.url;
+		return local.web.navigator(url).dispatch(request);
+	}
+
 	var response = new local.web.Response();
 
 	// if not given a local.web.Request, make one and remember to end the request ourselves
@@ -32,13 +46,6 @@ local.web.dispatch = function dispatch(request) {
 		request = new local.web.Request(request);
 		selfEnd = true; // we're going to end()
 	}
-
-	// parse the url scheme
-	var scheme, firstColonIndex = request.url.indexOf(':');
-	if (firstColonIndex === -1)
-		scheme = 'http'; // default for relative paths
-	else
-		scheme = request.url.slice(0, firstColonIndex);
 
 	// if given a proxy: scheme, that's not something we can handle
 	if (scheme == 'proxy')

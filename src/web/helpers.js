@@ -208,10 +208,18 @@ local.web.joinUrl = function joinUrl() {
 //   - http://foobar.com
 //   - //foobar.com
 //   - rel:http://foo.com||bar
-var isAbsUrlRE = /\/\//;
-local.web.isAbsUrl = function(v) {
-	return isAbsUrlRE.test(v);
+var isAbsUriRE = /\/\//;
+local.web.isAbsUri = function(v) {
+	return isAbsUriRE.test(v);
 };
+
+// EXPORTED
+// tests to see if a URL is using the rel scheme
+var isRelSchemeUriRE = /\|\||rel:/;
+local.web.isRelSchemeUri = function(v) {
+	return isRelSchemeUriRE.test(v);
+};
+
 
 // EXPORTED
 // takes a context url and a relative path and forms a new valid url
@@ -277,6 +285,46 @@ local.web.parseUri.options = {
 		strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
 		loose:  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
 	}
+};
+
+// EXPORTED
+// Converts a 'rel:' URI into an array of http/s/l URIs and link query objects
+local.web.parseRelUri = function(str) {
+	if (!str) return [];
+
+	// Split into navigations
+	var parts = str.split('||');
+
+	// First entry - starting URL
+	// eg rel:http://foo.com||...
+	if (parts[0]) {
+		// Drop the scheme
+		if (parts[0].indexOf('rel:') === 0)
+			parts[0] = parts[0].slice(4);
+	}
+
+	// Remaining entries - queries
+	// eg ...||rel=id,attr1=value1,attr2=value2||...
+	for (var i=1; i < parts.length; i++) {
+		var query = {};
+		var attrs = parts[i].split(',');
+		for (var j=0; j < attrs.length; j++) {
+			var kv = attrs[j].split('=');
+			if (j === 0) {
+				query.rel = kv[0].replace(/\+/, ' ');
+				if (kv[1])
+					query.id = kv[1];
+			} else
+				query[kv[0]] = decodeURIComponent(kv[1]).replace(/\+/, ' ');
+		}
+		parts[i] = query;
+	}
+
+	// Drop first entry if empty
+	if (!parts[0])
+		parts.shift();
+
+	return parts;
 };
 
 // sends the given response back verbatim

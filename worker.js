@@ -447,43 +447,6 @@ local.web.parseLinkHeader = function parseLinkHeader(headerStr) {
 };
 
 // EXPORTED
-// looks up a link in the cache and generates the URI
-//  - first looks for a matching rel and id
-//    eg lookupLink(links, 'item', 'foobar'), Link: <http://example.com/some/foobar>; rel="item"; id="foobar" -> http://example.com/some/foobar
-//  - then looks for a matching rel with no id and uses that to generate the link
-//    eg lookupLink(links, 'item', 'foobar'), Link: <http://example.com/some/{id}>; rel="item" -> http://example.com/some/foobar
-local.web.lookupLink = function lookupLink(links, rel, id) {
-	var len = links ? links.length : 0;
-	if (!len) { return null; }
-
-	if (id)
-		id = id.toLowerCase();
-	var relRegex = RegExp('\\b'+rel+'\\b');
-
-	// try to find the link with a id equal to the param we were given
-	var match = null;
-	for (var i=0; i < len; i++) {
-		var link = links[i];
-		if (!link) { continue; }
-		// find all links with a matching rel
-		if (relRegex.test(link.rel)) {
-			// look for a id match to the primary parameter
-			if (id && link.id) {
-				if (link.id.toLowerCase() === id) {
-					match = link;
-					break;
-				}
-			} else {
-				// no id attribute -- it's the template URI, so hold onto it
-				match = link;
-			}
-		}
-	}
-
-	return match ? match.href : null;
-};
-
-// EXPORTED
 // takes parsed a link header and a query object, produces an array of matching links
 // - `links`: [object]/object, either the parsed array of links or the request/response object
 local.web.queryLinks = function queryLinks(links, query) {
@@ -656,10 +619,18 @@ local.web.joinUrl = function joinUrl() {
 //   - http://foobar.com
 //   - //foobar.com
 //   - rel:http://foo.com||bar
-var isAbsUrlRE = /\/\//;
-local.web.isAbsUrl = function(v) {
-	return isAbsUrlRE.test(v);
+var isAbsUriRE = /\/\//;
+local.web.isAbsUri = function(v) {
+	return isAbsUriRE.test(v);
 };
+
+// EXPORTED
+// tests to see if a URL is using the rel scheme
+var isRelSchemeUriRE = /\|\||rel:/;
+local.web.isRelSchemeUri = function(v) {
+	return isRelSchemeUriRE.test(v);
+};
+
 
 // EXPORTED
 // takes a context url and a relative path and forms a new valid url
@@ -725,6 +696,46 @@ local.web.parseUri.options = {
 		strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
 		loose:  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
 	}
+};
+
+// EXPORTED
+// Converts a 'rel:' URI into an array of http/s/l URIs and link query objects
+local.web.parseRelUri = function(str) {
+	if (!str) return [];
+
+	// Split into navigations
+	var parts = str.split('||');
+
+	// First entry - starting URL
+	// eg rel:http://foo.com||...
+	if (parts[0]) {
+		// Drop the scheme
+		if (parts[0].indexOf('rel:') === 0)
+			parts[0] = parts[0].slice(4);
+	}
+
+	// Remaining entries - queries
+	// eg ...||rel=id,attr1=value1,attr2=value2||...
+	for (var i=1; i < parts.length; i++) {
+		var query = {};
+		var attrs = parts[i].split(',');
+		for (var j=0; j < attrs.length; j++) {
+			var kv = attrs[j].split('=');
+			if (j === 0) {
+				query.rel = kv[0].replace(/\+/, ' ');
+				if (kv[1])
+					query.id = kv[1];
+			} else
+				query[kv[0]] = decodeURIComponent(kv[1]).replace(/\+/, ' ');
+		}
+		parts[i] = query;
+	}
+
+	// Drop first entry if empty
+	if (!parts[0])
+		parts.shift();
+
+	return parts;
 };
 
 // sends the given response back verbatim
@@ -1491,6 +1502,20 @@ local.web.dispatch = function dispatch(request) {
 		request = { url: request };
 	if (!request.url)
 		throw "no url on request";
+
+	// parse the url scheme
+	var scheme, firstColonIndex = request.url.indexOf(':');
+	if (firstColonIndex === -1)
+		scheme = 'http'; // default for relative paths
+	else
+		scheme = request.url.slice(0, firstColonIndex);
+
+	// if given a rel: scheme, spawn a navigator to handle it
+	if (scheme == 'rel') {
+		var url = request.url; delete request.url;
+		return local.web.navigator(url).dispatch(request);
+	}
+
 	var response = new local.web.Response();
 
 	// if not given a local.web.Request, make one and remember to end the request ourselves
@@ -1500,13 +1525,6 @@ local.web.dispatch = function dispatch(request) {
 		request = new local.web.Request(request);
 		selfEnd = true; // we're going to end()
 	}
-
-	// parse the url scheme
-	var scheme, firstColonIndex = request.url.indexOf(':');
-	if (firstColonIndex === -1)
-		scheme = 'http'; // default for relative paths
-	else
-		scheme = request.url.slice(0, firstColonIndex);
 
 	// if given a proxy: scheme, that's not something we can handle
 	if (scheme == 'proxy')
@@ -2667,7 +2685,7 @@ function NavigatorContext(query) {
 	this.query = query;
 	this.resolveState = NavigatorContext.UNRESOLVED;
 	this.error = null;
-	this.queryIsAbsolute = (typeof query == 'string' && local.web.isAbsUrl(query));
+	this.queryIsAbsolute = (typeof query == 'string' && local.web.isAbsUri(query));
 	if (this.queryIsAbsolute) {
 		this.url  = query;
 		this.urld = local.web.parseUri(this.url);
@@ -2867,12 +2885,23 @@ Navigator.prototype.subscribe = function(req) {
 //   - the exception to this is: `rel` matches and the HREF has an {id} token
 //   - all other attributes are used to fill URI Template tokens and are not required to match
 Navigator.prototype.follow = function(query) {
-	// :TODO: array of queries
-	// :TODO: rel: URI
-	var child = new Navigator(new NavigatorContext(query), this);
-	if (this.requestDefaults)
-		child.setRequestDefaults(this.requestDefaults);
-	return child;
+	// convert rel: uri to a query array
+	if (typeof query == 'string' && local.web.isRelSchemeUri(query))
+		query = local.web.parseRelUri(query);
+
+	// make sure we always have an array
+	if (!Array.isArray(query))
+		query = [query];
+
+	// build a full follow() chain
+	var nav = this;
+	do {
+		nav = new Navigator(new NavigatorContext(query.shift()), nav);
+		if (this.requestDefaults)
+			nav.setRequestDefaults(this.requestDefaults);
+	} while (query[0]);
+
+	return nav;
 };
 
 // Resolves the navigator's URL, reporting failure if a link or resource is unfound
@@ -3002,11 +3031,24 @@ Navigator.prototype.patch  = makeDispWBodySugar('PATCH');
 // Builder
 // =======
 local.web.navigator = function(queryOrNav) {
-	// :TODO: array of queries
-	// :TODO: rel: URI
 	if (queryOrNav instanceof Navigator)
 		return queryOrNav;
-	return new Navigator(new NavigatorContext(queryOrNav));
+
+	// convert rel: uri to a query array
+	if (typeof queryOrNav == 'string' && local.web.isRelSchemeUri(queryOrNav))
+		queryOrNav = local.web.parseRelUri(queryOrNav);
+
+	// make sure we always have an array
+	if (!Array.isArray(queryOrNav))
+		queryOrNav = [queryOrNav];
+
+	// build a full follow() chain
+	var nav = new Navigator(new NavigatorContext(queryOrNav.shift()));
+	while (queryOrNav[0]) {
+		nav = new Navigator(new NavigatorContext(queryOrNav.shift()), nav);
+	}
+
+	return nav;
 };})();// Local Worker Tools
 // ==================
 // pfraze 2013

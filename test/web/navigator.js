@@ -133,6 +133,113 @@ success
   status: 200
 }*/
 
+// array of queries navigation
+
+done = false;
+startTime = Date.now();
+local.web.navigator([
+  'httpl://test.com',
+  { rel: 'collection', id: 'foo' },
+  { rel: 'item', id: 'baz' }
+]).get()
+  .then(printSuccess, printErrorAndFinish)
+  .then(function(res) {
+    testLocal.follow([
+      { rel: 'collection', id: 'foo'},
+      { rel: 'item', id: 'baz' }
+    ]).get().then(printSuccessAndFinish, printErrorAndFinish);
+  });
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "baz",
+  headers: {
+    "content-type": "application/json",
+    link: [
+      {href: "httpl://test.com/", rel: "via service"},
+      {href: "httpl://test.com/foo", rel: "up collection index"},
+      {href: "httpl://test.com/foo/baz", rel: "self current"},
+      {href: "httpl://test.com/foo/bar", rel: "first"},
+      {href: "httpl://test.com/foo/blah", rel: "last"},
+      {href: "httpl://test.com/foo/bar", rel: "prev"},
+      {href: "httpl://test.com/foo/blah", rel: "next"}
+    ]
+  },
+  reason: "ok",
+  status: 200
+}
+success
+{
+  body: "baz",
+  headers: {
+    "content-type": "application/json",
+    link: [
+      {href: "httpl://test.com/", rel: "via service"},
+      {href: "httpl://test.com/foo", rel: "up collection index"},
+      {href: "httpl://test.com/foo/baz", rel: "self current"},
+      {href: "httpl://test.com/foo/bar", rel: "first"},
+      {href: "httpl://test.com/foo/blah", rel: "last"},
+      {href: "httpl://test.com/foo/bar", rel: "prev"},
+      {href: "httpl://test.com/foo/blah", rel: "next"}
+    ]
+  },
+  reason: "ok",
+  status: 200
+}
+*/
+
+// rel: navigation
+
+done = false;
+startTime = Date.now();
+local.web.navigator('rel:httpl://test.com||collection=foo||item=baz').get()
+  .then(printSuccess, printErrorAndFinish)
+  .then(function(res) {
+    testLocal.follow('||collection=foo||item=baz').get().then(printSuccessAndFinish, printErrorAndFinish);
+  });
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "baz",
+  headers: {
+    "content-type": "application/json",
+    link: [
+      {href: "httpl://test.com/", rel: "via service"},
+      {href: "httpl://test.com/foo", rel: "up collection index"},
+      {href: "httpl://test.com/foo/baz", rel: "self current"},
+      {href: "httpl://test.com/foo/bar", rel: "first"},
+      {href: "httpl://test.com/foo/blah", rel: "last"},
+      {href: "httpl://test.com/foo/bar", rel: "prev"},
+      {href: "httpl://test.com/foo/blah", rel: "next"}
+    ]
+  },
+  reason: "ok",
+  status: 200
+}
+success
+{
+  body: "baz",
+  headers: {
+    "content-type": "application/json",
+    link: [
+      {href: "httpl://test.com/", rel: "via service"},
+      {href: "httpl://test.com/foo", rel: "up collection index"},
+      {href: "httpl://test.com/foo/baz", rel: "self current"},
+      {href: "httpl://test.com/foo/bar", rel: "first"},
+      {href: "httpl://test.com/foo/blah", rel: "last"},
+      {href: "httpl://test.com/foo/bar", rel: "prev"},
+      {href: "httpl://test.com/foo/blah", rel: "next"}
+    ]
+  },
+  reason: "ok",
+  status: 200
+}
+*/
+
 // local streaming
 
 done = false;

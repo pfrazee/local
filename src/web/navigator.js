@@ -20,7 +20,7 @@ function NavigatorContext(query) {
 	this.query = query;
 	this.resolveState = NavigatorContext.UNRESOLVED;
 	this.error = null;
-	this.queryIsAbsolute = (typeof query == 'string' && local.web.isAbsUrl(query));
+	this.queryIsAbsolute = (typeof query == 'string' && local.web.isAbsUri(query));
 	if (this.queryIsAbsolute) {
 		this.url  = query;
 		this.urld = local.web.parseUri(this.url);
@@ -220,12 +220,23 @@ Navigator.prototype.subscribe = function(req) {
 //   - the exception to this is: `rel` matches and the HREF has an {id} token
 //   - all other attributes are used to fill URI Template tokens and are not required to match
 Navigator.prototype.follow = function(query) {
-	// :TODO: array of queries
-	// :TODO: rel: URI
-	var child = new Navigator(new NavigatorContext(query), this);
-	if (this.requestDefaults)
-		child.setRequestDefaults(this.requestDefaults);
-	return child;
+	// convert rel: uri to a query array
+	if (typeof query == 'string' && local.web.isRelSchemeUri(query))
+		query = local.web.parseRelUri(query);
+
+	// make sure we always have an array
+	if (!Array.isArray(query))
+		query = [query];
+
+	// build a full follow() chain
+	var nav = this;
+	do {
+		nav = new Navigator(new NavigatorContext(query.shift()), nav);
+		if (this.requestDefaults)
+			nav.setRequestDefaults(this.requestDefaults);
+	} while (query[0]);
+
+	return nav;
 };
 
 // Resolves the navigator's URL, reporting failure if a link or resource is unfound
@@ -355,9 +366,22 @@ Navigator.prototype.patch  = makeDispWBodySugar('PATCH');
 // Builder
 // =======
 local.web.navigator = function(queryOrNav) {
-	// :TODO: array of queries
-	// :TODO: rel: URI
 	if (queryOrNav instanceof Navigator)
 		return queryOrNav;
-	return new Navigator(new NavigatorContext(queryOrNav));
+
+	// convert rel: uri to a query array
+	if (typeof queryOrNav == 'string' && local.web.isRelSchemeUri(queryOrNav))
+		queryOrNav = local.web.parseRelUri(queryOrNav);
+
+	// make sure we always have an array
+	if (!Array.isArray(queryOrNav))
+		queryOrNav = [queryOrNav];
+
+	// build a full follow() chain
+	var nav = new Navigator(new NavigatorContext(queryOrNav.shift()));
+	while (queryOrNav[0]) {
+		nav = new Navigator(new NavigatorContext(queryOrNav.shift()), nav);
+	}
+
+	return nav;
 };

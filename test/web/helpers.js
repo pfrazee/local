@@ -1,4 +1,4 @@
-// == SECTION helpers 
+// == SECTION helpers
 
 // pipe()
 
@@ -33,7 +33,7 @@ startTime = Date.now();
 print(local.web.parseLinkHeader('</foo>; id="foo"; rel="what ever"'));
 // => [{href: "/foo", id: "foo", rel: "what ever"}]
 print(local.web.parseLinkHeader('</foo>; id="foo"; rel="what ever", </bar>; id="bar"; rel="what ever"'));
-/* => 
+/* =>
 [
   {href: "/foo", id: "foo", rel: "what ever"},
   {href: "/bar", id: "bar", rel: "what ever"}
@@ -102,3 +102,36 @@ print(local.web.joinRelPath('http://grimwire.com/bar/bar', '../foo'));
 // => http://grimwire.com/bar/foo
 print(local.web.joinRelPath('http://grimwire.com/bar/bar', '../../foo'));
 // => http://grimwire.com/foo
+finishTest();
+
+
+// parseRelUri
+
+startTime = Date.now();
+print(local.web.parseRelUri());
+// => []
+print(local.web.parseRelUri('rel:'));
+// => []
+print(local.web.parseRelUri('rel:http://foo.com'));
+// => ["http://foo.com"]
+print(local.web.parseRelUri('rel:http://foo.com||bar'));
+// => ["http://foo.com", {rel: "bar"}]
+print(local.web.parseRelUri('||bar'));
+// => [{rel: "bar"}]
+print(local.web.parseRelUri('rel:http://foo.com||bar=baz'));
+// => ["http://foo.com", {id: "baz", rel: "bar"}]
+print(local.web.parseRelUri('rel:http://foo.com||bar+bum'));
+// => ["http://foo.com", {rel: "bar bum"}]
+print(local.web.parseRelUri('rel:http://foo.com||bar+!bum'));
+// => ["http://foo.com", {rel: "bar !bum"}]
+print(local.web.parseRelUri('rel:http://foo.com||bar+bum=baz'));
+// => ["http://foo.com", {id: "baz", rel: "bar bum"}]
+print(local.web.parseRelUri('rel:http://foo.com||bar=baz,a=b'));
+// => ["http://foo.com", {a: "b", id: "baz", rel: "bar"}]
+print(local.web.parseRelUri('rel:http://foo.com||bar=baz,a=b,c=f+g'));
+// => ["http://foo.com", {a: "b", c: "f g", id: "baz", rel: "bar"}]
+print(local.web.parseRelUri('rel:http://foo.com||bar=baz,a=b,c=f%20g'));
+// => ["http://foo.com", {a: "b", c: "f g", id: "baz", rel: "bar"}]
+print(local.web.parseRelUri('rel:http://foo.com||bar=baz||faa=feh'));
+// => ["http://foo.com", {id: "baz", rel: "bar"}, {id: "feh", rel: "faa"}]
+finishTest();

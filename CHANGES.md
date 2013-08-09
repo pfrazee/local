@@ -4,6 +4,7 @@ Changes
 
 2013/08/08 pfraze
 
+ - Added support for the "rel" URI scheme
  - Refactored local.web.Navigator
    - Replaced `relation()` with `follow()`, which uses link queries in the form of `local.web.queryLink()`
    - Removed all `relation()` sugars (eg `collection()`, `item()`, etc)
