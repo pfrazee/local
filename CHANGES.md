@@ -2,6 +2,16 @@ Changes
 =======
 0.4.0
 
+2013/08/08 pfraze
+
+ - Refactored local.web.Navigator
+   - Replaced `relation()` with `follow()`, which uses link queries in the form of `local.web.queryLink()`
+   - Removed all `relation()` sugars (eg `collection()`, `item()`, etc)
+   - Removed `get*` sugars and simplified existing dispatch sugars, as JSON is now pushed as the default
+ - Added `local.web.isAbsUrl()` helper
+ - Removed `local.web.lookupLink()` helper
+
+
 2013/07/31 pfraze
 
  - Added local.web.joinRelPath

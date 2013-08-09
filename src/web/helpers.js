@@ -36,43 +36,6 @@ local.web.parseLinkHeader = function parseLinkHeader(headerStr) {
 };
 
 // EXPORTED
-// looks up a link in the cache and generates the URI
-//  - first looks for a matching rel and id
-//    eg lookupLink(links, 'item', 'foobar'), Link: <http://example.com/some/foobar>; rel="item"; id="foobar" -> http://example.com/some/foobar
-//  - then looks for a matching rel with no id and uses that to generate the link
-//    eg lookupLink(links, 'item', 'foobar'), Link: <http://example.com/some/{id}>; rel="item" -> http://example.com/some/foobar
-local.web.lookupLink = function lookupLink(links, rel, id) {
-	var len = links ? links.length : 0;
-	if (!len) { return null; }
-
-	if (id)
-		id = id.toLowerCase();
-	var relRegex = RegExp('\\b'+rel+'\\b');
-
-	// try to find the link with a id equal to the param we were given
-	var match = null;
-	for (var i=0; i < len; i++) {
-		var link = links[i];
-		if (!link) { continue; }
-		// find all links with a matching rel
-		if (relRegex.test(link.rel)) {
-			// look for a id match to the primary parameter
-			if (id && link.id) {
-				if (link.id.toLowerCase() === id) {
-					match = link;
-					break;
-				}
-			} else {
-				// no id attribute -- it's the template URI, so hold onto it
-				match = link;
-			}
-		}
-	}
-
-	return match ? match.href : null;
-};
-
-// EXPORTED
 // takes parsed a link header and a query object, produces an array of matching links
 // - `links`: [object]/object, either the parsed array of links or the request/response object
 local.web.queryLinks = function queryLinks(links, query) {
@@ -231,6 +194,23 @@ local.web.joinUrl = function joinUrl() {
 		return arg.substring(lo, hi);
 	});
 	return parts.join('/');
+};
+
+// EXPORTED
+// tests to see if a URL is absolute
+// - the heuristic here is, does it have a //?
+// - the following are seen as relative URLs:
+//   - foobar.com
+//   - /foo/bar
+//   - rel:||foobar
+//   - rel:foo.com||bar
+// - the following are seen as absolute URLs:
+//   - http://foobar.com
+//   - //foobar.com
+//   - rel:http://foo.com||bar
+var isAbsUrlRE = /\/\//;
+local.web.isAbsUrl = function(v) {
+	return isAbsUrlRE.test(v);
 };
 
 // EXPORTED

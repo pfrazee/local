@@ -4,9 +4,11 @@ src-promises-files =\
 src-util-files =\
 	${src}util/_compiled_header.js\
 	${src}util/event-emitter.js\
+	${src}util/helpers.js\
 	${src}util/_compiled_footer.js
 src-web-files =\
 	${src}web/_compiled_header.js\
+	${src}web/constants.js\
 	${src}web/helpers.js\
 	${src}web/content-types.js\
 	${src}web/request.js\

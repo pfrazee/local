@@ -1,16 +1,16 @@
 // == SECTION navigator
 
-var testServer = new local.web.Navigator('http://grimwire.com:8080');
+var testRemote = new local.web.navigator('http://grimwire.com:8080');
 
 // remote server navigation
 
 done = false;
 startTime = Date.now();
-var fooCollection = testServer.collection('foo');
-fooCollection.getJson()
+var fooCollection = testRemote.follow({ rel: 'collection', id: 'foo' });
+fooCollection.get()
   .then(printSuccess, printErrorAndFinish)
   .succeed(function(res) {
-    fooCollection.item('baz').get().then(printSuccessAndFinish, printErrorAndFinish);
+    fooCollection.follow({ rel: 'item', id: 'baz' }).get().then(printSuccessAndFinish, printErrorAndFinish);
   });
 wait(function () { return done; });
 
@@ -55,13 +55,14 @@ success
 
 done = false;
 startTime = Date.now();
-testServer
-  .collection('foo')
-  .item('bar')
-  .up()
-  .via()
-  .self()
-  .collection('foo').get().then(printSuccessAndFinish, printErrorAndFinish);
+testRemote
+  .follow({ rel: 'collection', id: 'foo' })
+  .follow({ rel: 'item', id: 'bar' })
+  .follow({ rel: 'up' })
+  .follow({ rel: 'via' })
+  .follow({ rel: 'self' })
+  .follow({ rel: 'collection', id: 'foo' })
+  .get().then(printSuccessAndFinish, printErrorAndFinish);
 wait(function () { return done; });
 
 /* =>
@@ -82,15 +83,19 @@ success
 }
 */
 
+
+var testLocal = new local.web.navigator('httpl://test.com');
+
 // local server navigation
 
 done = false;
 startTime = Date.now();
-var testLocal = new local.web.Navigator('httpl://test.com');
-testLocal.collection('foo').getJson()
+testLocal.follow({ rel: 'collection', id: 'foo' }).get()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
-    testLocal.collection('foo').item('baz').get().then(printSuccessAndFinish, printErrorAndFinish);
+    testLocal.follow({ rel: 'collection', id: 'foo'})
+      .follow({ rel: 'item', id: 'baz' })
+      .get().then(printSuccessAndFinish, printErrorAndFinish);
   });
 wait(function () { return done; });
 
@@ -132,23 +137,22 @@ success
 
 done = false;
 startTime = Date.now();
-var testLocal = new local.web.Navigator('httpl://test.com');
-testLocal.collection('foo').getJson(null, { stream:true })
+testLocal.follow({ rel: 'collection', id: 'foo' }).get(null, { stream: true })
   .succeed(printSuccess)
   .succeed(function(res) {
-		print('---');
-		res.on('data', function(payload) {
-			print(payload);
-			print(typeof payload);
-		});
-		res.on('end', function() {
+    print('---');
+    res.on('data', function(payload) {
+      print(payload);
+      print(typeof payload);
+    });
+    res.on('end', function() {
       print('end conn');
     });
     res.on('close', function() {
-			print('close conn');
-			finishTest();
-		});
-	})
+      print('close conn');
+      finishTest();
+    });
+  })
   .fail(printErrorAndFinish);
 wait(function () { return done; });
 
@@ -186,8 +190,7 @@ close conn
 
 done = false;
 startTime = Date.now();
-var testLocal = new local.web.Navigator('httpl://test.com');
-testLocal.collection('events').subscribe().then(
+testLocal.follow({ rel: 'collection', id: 'events' }).subscribe().then(
   function(stream) {
     stream.on('message', function(m) { print(m); });
     stream.on('foo', function(m) { print('foo', m.data); });
