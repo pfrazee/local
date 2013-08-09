@@ -2,6 +2,11 @@ Changes
 =======
 0.4.0
 
+2013/08/09 pfraze
+
+ - Removed the "proxy" URI scheme (supplanted by the "rel" scheme)
+
+
 2013/08/08 pfraze
 
  - Added support for the "rel" URI scheme
