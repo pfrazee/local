@@ -8,7 +8,7 @@ function printLog() {
   // console.log.apply(console, args);
 }
 
-var s1 = new local.env.Worker({ bootstrapUrl:'../worker.js' });
+var s1 = new local.web.WorkerExchangeWrapper({ bootstrapUrl:'../worker.js' });
 s1.onMessage(0, 'ready', function() {
   printLog('got ready');
 

@@ -24,7 +24,7 @@
     var self = this;
     if (!config) config = {};
     if (!config.sigRelay) throw "`config.sigRelay` is required";
-    local.env.Server.call(this);
+    local.web.Server.call(this);
 
     // :DEBUG:
     this.debugname = config.initiate ? 'A' : 'B';
@@ -70,8 +70,8 @@
 
     this.signal({ type: 'ready' });
   }
-  local.env.RTCPeerServer = RTCPeerServer;
-  RTCPeerServer.prototype = Object.create(local.env.Server.prototype);
+  local.web.RTCPeerServer = RTCPeerServer;
+  RTCPeerServer.prototype = Object.create(local.web.Server.prototype);
 
   // :DEBUG:
   RTCPeerServer.prototype.debugLog = function() {
@@ -84,9 +84,9 @@
   // -
 
   // request handler
-  RTCPeerServer.prototype.handleHttpRequest = function(request, response) {
+  RTCPeerServer.prototype.handleWebRequest = function(request, response) {
     this.debugLog('HANDLING REQUEST', request);
-    
+
     if (request.path == '/') {
       // Self resource
       response.setHeader('link', [

@@ -14,21 +14,18 @@ src-web-files =\
 	${src}web/content-types.js\
 	${src}web/request.js\
 	${src}web/response.js\
+	${src}web/server.js\
+	${src}web/worker-server.js\
+	${src}web/rtcpeer-server.js\
 	${src}web/schemes.js\
 	${src}web/dispatch.js\
 	${src}web/subscribe.js\
 	${src}web/uri-template.js\
 	${src}web/navigator.js\
 	${src}web/_compiled_footer.js
-src-env-files =\
-	${src}env/_compiled_header.js\
-	${src}env/worker.js\
-	${src}env/server.js\
-	${src}env/rtcpeer.js\
-	${src}env/core.js\
-	${src}env/_compiled_footer.js
 src-toplevel-files =\
 	${src}_compiled_header.js\
+	${src}config.js\
 	${src}aliases.js\
 	${src}request-dom-events.js\
 	${src}_compiled_footer.js
@@ -47,8 +44,7 @@ lib = lib/
 lib-local-files =\
 	${lib}local/promises.js\
 	${lib}local/util.js\
-	${lib}local/web.js\
-	${lib}local/env.js
+	${lib}local/web.js
 
 setup: clean concat buildmin
 	@echo "Done!"
@@ -66,8 +62,6 @@ ${lib}local/promises.js: ${src-promises-files}
 ${lib}local/util.js: ${src-util-files}
 	@cat > $@ $^
 ${lib}local/web.js: ${src-web-files}
-	@cat > $@ $^
-${lib}local/env.js: ${src-env-files}
 	@cat > $@ $^
 ${lib}local.js: ${lib-local-files} ${src-toplevel-files}
 	@cat > $@ $^

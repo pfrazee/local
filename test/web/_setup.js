@@ -22,8 +22,9 @@ function printErrorAndFinish(err) { printError(err); finishTest(); }
 
 // worker local scaffold server
 
-local.env.config.workerBootstrapUrl = '../worker.js';
-local.env.addServer('test.worker', new local.env.WorkerServer({ src: 'test/web/_worker.js' }));
+local.workerBootstrapUrl = '../worker.js';
+var testWorkerServer = new local.web.WorkerServer({ src: 'test/web/_worker.js' });
+local.web.registerLocal('test.worker', testWorkerServer);
 
 // document local scaffold server
 

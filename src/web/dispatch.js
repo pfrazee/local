@@ -24,40 +24,35 @@ local.web.dispatch = function dispatch(request) {
 	if (!request.url)
 		throw "no url on request";
 
-	// parse the url scheme
-	var scheme, schemeMatch = /^([^.^:]*):/.exec(request.url);
-	if (!schemeMatch) {
-		// shorthand/default schemes
-		if (request.url.indexOf('//') === 0)
-			scheme = 'http';
-		else if (request.url.indexOf('||') === 0)
-			scheme = 'rel';
-		else
-			scheme = 'httpl';
-	} else
-		scheme = schemeMatch[1];
-
-	// if given a rel: scheme, spawn a navigator to handle it
+	// If given a rel: scheme, spawn a navigator to handle it
+	var scheme = parseScheme(request.url);
 	if (scheme == 'rel') {
-		var url = request.url; delete request.url;
+		var url = request.url;
+		delete request.url;
 		return local.web.navigator(url).dispatch(request);
 	}
 
-	var response = new local.web.Response();
-
-	// if not given a local.web.Request, make one and remember to end the request ourselves
+	// Prepare the request
 	var body = null, selfEnd = false;
 	if (!(request instanceof local.web.Request)) {
 		body = request.body;
 		request = new local.web.Request(request);
 		selfEnd = true; // we're going to end()
 	}
+	request.urld = local.web.parseUri(request.url); // (urld = url description)
+	if (request.urld.query) {
+		// Extract URL query parameters into the request's query object
+		var q = local.web.contentTypes.deserialize(request.urld.query, 'application/x-www-form-urlencoded');
+		for (var k in q)
+			request.query[k] = q[k];
+		request.urld.relative = request.urld.path + ((request.urld.anchor) ? ('#'+request.urld.anchor) : '');
+		request.url = request.urld.protocol+'://'+request.urld.authority+request.urld.relative;
+	}
 
-	// update link headers to be absolute
-	response.on('headers', function() { processResponseHeaders(request, response); });
-
-	// wire up the response with the promise
+	// Generate response
+	var response = new local.web.Response();
 	var response_ = local.promise();
+	response.on('headers', function() { processResponseHeaders(request, response); });
 	if (request.stream) {
 		// streaming, fulfill on 'headers'
 		response.on('headers', function(response) {
@@ -70,12 +65,12 @@ local.web.dispatch = function dispatch(request) {
 		});
 	}
 
-	// just until the scheme handler gets a chance to wire up
+	// Suspend events until the scheme handler gets a chance to wire up
 	// (allows async to occur in the webDispatchWrapper)
 	request.suspendEvents();
 	response.suspendEvents();
 
-	// pull any extra arguments that may have been passed
+	// Pull any extra arguments that may have been passed
 	// form the paramlist: (request, response, dispatch, args...)
 	var args = Array.prototype.slice.call(arguments, 1);
 	args.unshift(function(request, response, schemeHandler) {
@@ -98,7 +93,7 @@ local.web.dispatch = function dispatch(request) {
 	args.unshift(response);
 	args.unshift(request);
 
-	// allow the wrapper to audit the packet
+	// Allow the wrapper to audit the message
 	webDispatchWrapper.apply(null, args);
 
 	response_.request = request;
@@ -127,7 +122,7 @@ local.web.setDispatchWrapper(function(request, response, dispatch) {
 });
 
 // INTERNAL
-// Helper to massage response values
+// Makes sure response header links are absolute
 var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
 function processResponseHeaders(request, response) {
 	if (response.headers.link) {
@@ -136,4 +131,19 @@ function processResponseHeaders(request, response) {
 				link.href = local.web.joinRelPath(request.urld, link.href);
 		});
 	}
+}
+
+// INTERNAL
+function parseScheme(url) {
+	var schemeMatch = /^([^.^:]*):/.exec(url);
+	if (!schemeMatch) {
+		// shorthand/default schemes
+		if (url.indexOf('//') === 0)
+			return 'http';
+		else if (url.indexOf('||') === 0)
+			return 'rel';
+		else
+			return 'httpl';
+	}
+	return schemeMatch[1];
 }

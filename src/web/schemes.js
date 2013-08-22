@@ -180,28 +180,19 @@ var localNotFoundServer = {
 	context: null
 };
 local.web.schemes.register('httpl', function(request, response) {
-	var urld = local.web.parseUri(request.url);
-
 	// need additional time to get the worker wired up
 	request.suspendEvents();
 	response.suspendEvents();
 
 	// find the local server
-	var server = local.web.getLocal(urld.host);
+	var server = local.web.getLocal(request.urld.host);
 	if (!server)
 		server = localNotFoundServer;
 
 	// pull out and standardize the path
-	request.path = urld.path;
+	request.path = request.urld.path;
 	if (!request.path) request.path = '/'; // no path, give a '/'
 	else request.path = request.path.replace(/(.)\/$/, '$1'); // otherwise, never end with a '/'
-
-	// if the urld has query parameters, mix them into the request's query object
-	if (urld.query) {
-		var q = local.web.contentTypes.deserialize(urld.query, 'application/x-www-form-urlencoded');
-		for (var k in q)
-			request.query[k] = q[k];
-	}
 
 	// support warnings
 	if (request.binary)
@@ -256,6 +247,13 @@ local.web.registerLocal = function registerLocal(domain, server, serverContext) 
 	if (urld.protocol && urld.protocol !== 'httpl') throw "registerLocal can only add servers to the httpl protocol";
 	if (!urld.host) throw "invalid domain provided to registerLocal";
 	if (__httpl_registry[urld.host]) throw "server already registered at domain given to registerLocal";
+
+	var isServerObj = (server instanceof local.web.Server);
+	if (isServerObj) {
+		serverContext = server;
+		server = server.handleWebRequest;
+	}
+
 	__httpl_registry[urld.host] = { fn: server, context: serverContext };
 };
 

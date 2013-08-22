@@ -8,4 +8,3 @@ if (typeof this.local.web == 'undefined')
 	this.local.web = {};
 
 (function() {
-	function noop() {}
