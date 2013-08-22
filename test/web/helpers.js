@@ -15,7 +15,10 @@ success
   headers: {
     "content-type": "text/piped+plain",
     link: [
-      {href: "httpl://test.com/", rel: "self current"},
+      {
+        href: "httpl://test.com/",
+        rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
+      },
       {href: "httpl://test.com/events", id: "events", rel: "collection"},
       {href: "httpl://test.com/foo", id: "foo", rel: "collection"},
       {href: "httpl://test.com/{id}", rel: "collection"}
@@ -135,3 +138,31 @@ print(local.web.parseRelUri('rel:http://foo.com||bar=baz,a=b,c=f%20g'));
 print(local.web.parseRelUri('rel:http://foo.com||bar=baz||faa=feh'));
 // => ["http://foo.com", {id: "baz", rel: "bar"}, {id: "feh", rel: "faa"}]
 finishTest();
+
+
+// hosts service
+
+done = false;
+startTime = Date.now();
+local.dispatch({ method: 'HEAD', url: 'httpl://hosts' })
+  .then(printSuccessAndFinish, printErrorAndFinish);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "",
+  headers: {
+    link: [
+      {href: "httpl://_worker.js", id: "_worker.js", rel: "service item"},
+      {
+        href: "httpl://test.com",
+        id: "test.com",
+        rel: "http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com service item"
+      }
+    ]
+  },
+  reason: "ok, no content",
+  status: 204
+}
+*/

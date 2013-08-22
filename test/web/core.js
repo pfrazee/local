@@ -62,7 +62,10 @@ success
   headers: {
     "content-type": "text/plain",
     link: [
-      {href: "httpl://test.com/", rel: "self current"},
+      {
+        href: "httpl://test.com/",
+        rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
+      },
       {href: "httpl://test.com/events", id: "events", rel: "collection"},
       {href: "httpl://test.com/foo", id: "foo", rel: "collection"},
       {href: "httpl://test.com/{id}", rel: "collection"}
@@ -71,6 +74,7 @@ success
   reason: "ok",
   status: 200
 }
+
 */
 
 // unsuccessful local requests

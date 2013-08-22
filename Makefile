@@ -22,6 +22,7 @@ src-web-files =\
 	${src}web/subscribe.js\
 	${src}web/uri-template.js\
 	${src}web/navigator.js\
+	${src}web/hosts-service.js\
 	${src}web/_compiled_footer.js
 src-toplevel-files =\
 	${src}_compiled_header.js\

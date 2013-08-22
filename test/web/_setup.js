@@ -35,7 +35,7 @@ local.web.registerLocal('test.com', function(request, response) {
 			payload = 'service resource';
 		}
 		linkHeader = [
-			{ rel:'self current', href:'/' },
+			{ rel:'self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com', href:'/' },
 			{ rel:'collection', href:'/events', id:'events' },
 			{ rel:'collection', href:'/foo', id:'foo' },
 			{ rel:'collection', href:'/{id}' }
