@@ -5,6 +5,7 @@ Changes
 2013/08/22 pfraze
 
  - Added local.* aliases (dispatch, subscribe, navigator, etc)
+ - Added local.spawnAppServer, local.spawnWorkerServer
  - Removed local.client
    - Moved findParentNode, dispatchRequestEvent, trackFormSubmitter, extractRequest, extractRequestPayload, finishPayloadFileReads to local.util
    - Changed local.client.listen to local.bindRequestEvents

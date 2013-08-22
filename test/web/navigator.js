@@ -137,10 +137,10 @@ success
 
 done = false;
 startTime = Date.now();
-local.web.navigator('httpl://test.worker').follow({ rel: 'collection', id: 'foo' }).get()
+local.web.navigator('httpl://_worker.js').follow({ rel: 'collection', id: 'foo' }).get()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
-    local.web.navigator('httpl://test.worker').follow({ rel: 'collection', id: 'foo'})
+    local.web.navigator('httpl://_worker.js').follow({ rel: 'collection', id: 'foo'})
       .follow({ rel: 'item', id: 'baz' })
       .get().then(printSuccessAndFinish, printErrorAndFinish);
   });
@@ -153,9 +153,9 @@ success
   headers: {
     "content-type": "application/json",
     link: [
-      {href: "httpl://test.worker/", rel: "up via service"},
-      {href: "httpl://test.worker/foo", rel: "self current"},
-      {href: "httpl://test.worker/foo/{id}", rel: "item"}
+      {href: "httpl://_worker.js/", rel: "up via service"},
+      {href: "httpl://_worker.js/foo", rel: "self current"},
+      {href: "httpl://_worker.js/foo/{id}", rel: "item"}
     ]
   },
   reason: "ok",
@@ -167,13 +167,13 @@ success
   headers: {
     "content-type": "application/json",
     link: [
-      {href: "httpl://test.worker/", rel: "via service"},
-      {href: "httpl://test.worker/foo", rel: "up collection index"},
-      {href: "httpl://test.worker/foo/baz", rel: "self current"},
-      {href: "httpl://test.worker/foo/bar", rel: "first"},
-      {href: "httpl://test.worker/foo/blah", rel: "last"},
-      {href: "httpl://test.worker/foo/bar", rel: "prev"},
-      {href: "httpl://test.worker/foo/blah", rel: "next"}
+      {href: "httpl://_worker.js/", rel: "via service"},
+      {href: "httpl://_worker.js/foo", rel: "up collection index"},
+      {href: "httpl://_worker.js/foo/baz", rel: "self current"},
+      {href: "httpl://_worker.js/foo/bar", rel: "first"},
+      {href: "httpl://_worker.js/foo/blah", rel: "last"},
+      {href: "httpl://_worker.js/foo/bar", rel: "prev"},
+      {href: "httpl://_worker.js/foo/blah", rel: "next"}
     ]
   },
   reason: "ok",

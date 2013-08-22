@@ -92,7 +92,7 @@ error
 
 done = false;
 startTime = Date.now();
-var res = local.web.dispatch({ method:'get', url:'httpl://test.worker' });
+var res = local.web.dispatch({ method:'get', url:'httpl://_worker.js' });
 res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
@@ -103,10 +103,10 @@ success
   headers: {
     "content-type": "text/plain",
     link: [
-      {href: "httpl://test.worker/", rel: "self current"},
-      {href: "httpl://test.worker/events", id: "events", rel: "collection"},
-      {href: "httpl://test.worker/foo", id: "foo", rel: "collection"},
-      {href: "httpl://test.worker/{id}", rel: "collection"}
+      {href: "httpl://_worker.js/", rel: "self current"},
+      {href: "httpl://_worker.js/events", id: "events", rel: "collection"},
+      {href: "httpl://_worker.js/foo", id: "foo", rel: "collection"},
+      {href: "httpl://_worker.js/{id}", rel: "collection"}
     ]
   },
   reason: "ok",
@@ -118,7 +118,7 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.web.dispatch({ method:'get', url:'httpl://test.worker/bad/url' });
+var res = local.web.dispatch({ method:'get', url:'httpl://_worker.js/bad/url' });
 res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
@@ -131,7 +131,7 @@ error
 
 done = false;
 startTime = Date.now();
-var res = local.web.dispatch({ method:'get', url:'httpl://test.worker/unserializable-response' });
+var res = local.web.dispatch({ method:'get', url:'httpl://_worker.js/unserializable-response' });
 res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 

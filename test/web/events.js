@@ -34,7 +34,7 @@ close
 
 done = false;
 startTime = Date.now();
-var stream = local.web.subscribe({ url:'httpl://test.worker/events' });
+var stream = local.web.subscribe({ url:'httpl://_worker.js/events' });
 stream.on('message', function(m) { print(m); });
 stream.on('foo', function(m) { print('foo', m.data); });
 stream.on('bar', function(m) { print('bar', m.data); });

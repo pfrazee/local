@@ -411,14 +411,12 @@
 		if (!config || !config.src)
 			throw "WorkerServer requires config with `src` attribute.";
 
-		local.web.Server.call(this);
+		local.web.Server.call(this, config);
 		this.hasHostPrivileges = true; // do we have full control over the worker?
 		// ^ set to false by the ready message of a shared worker (if we're not the first page to connect)
 		this.loadCb = loadCb;
 
 		// Prep config
-		for (var k in config)
-			this.config[k] = config[k];
 		if (!this.config.domain) // assign a temporary label for logging if no domain is given yet
 			this.config.domain = '<'+this.config.src.slice(0,40)+'>';
 		this.config.environmentHost = window.location.host;

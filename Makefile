@@ -27,6 +27,7 @@ src-toplevel-files =\
 	${src}_compiled_header.js\
 	${src}config.js\
 	${src}aliases.js\
+	${src}spawners.js\
 	${src}request-dom-events.js\
 	${src}_compiled_footer.js
 src-worker-files =\

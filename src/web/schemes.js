@@ -243,10 +243,7 @@ var __httpl_registry = {};
 
 // EXPORTED
 local.web.registerLocal = function registerLocal(domain, server, serverContext) {
-	var urld = local.web.parseUri(domain);
-	if (urld.protocol && urld.protocol !== 'httpl') throw "registerLocal can only add servers to the httpl protocol";
-	if (!urld.host) throw "invalid domain provided to registerLocal";
-	if (__httpl_registry[urld.host]) throw "server already registered at domain given to registerLocal";
+	if (__httpl_registry[domain]) throw "server already registered at domain given to registerLocal";
 
 	var isServerObj = (server instanceof local.web.Server);
 	if (isServerObj) {
@@ -254,27 +251,19 @@ local.web.registerLocal = function registerLocal(domain, server, serverContext) 
 		server = server.handleWebRequest;
 	}
 
-	__httpl_registry[urld.host] = { fn: server, context: serverContext };
+	__httpl_registry[domain] = { fn: server, context: serverContext };
 };
 
 // EXPORTED
 local.web.unregisterLocal = function unregisterLocal(domain) {
-	var urld = local.web.parseUri(domain);
-	if (!urld.host) {
-		throw "invalid domain provided toun registerLocal";
-	}
-	if (__httpl_registry[urld.host]) {
-		delete __httpl_registry[urld.host];
+	if (__httpl_registry[domain]) {
+		delete __httpl_registry[domain];
 	}
 };
 
 // EXPORTED
 local.web.getLocal = function getLocal(domain) {
-	var urld = local.web.parseUri(domain);
-	if (!urld.host) {
-		throw "invalid domain provided toun registerLocal";
-	}
-	return __httpl_registry[urld.host];
+	return __httpl_registry[domain];
 };
 
 // EXPORTED

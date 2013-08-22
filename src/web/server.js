@@ -2,8 +2,12 @@
 // ======
 // EXPORTED
 // core type for all servers, should be used as a prototype
-function Server() {
-	this.config = { domain:null };
+function Server(config) {
+	this.config = { domain: null };
+	if (config) {
+		for (var k in config)
+			this.config[k] = config[k];
+	}
 }
 
 // request handler, should be overwritten by subclasses
