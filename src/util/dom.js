@@ -1,6 +1,17 @@
 // Helpers
 // =======
 
+if (typeof CustomEvent === 'undefined') {
+	// CustomEvent shim (safari)
+	// thanks to netoneko https://github.com/maker/ratchet/issues/101
+	CustomEvent = function(type, eventInitDict) {
+		var event = document.createEvent('CustomEvent');
+
+		event.initCustomEvent(type, eventInitDict['bubbles'], eventInitDict['cancelable'], eventInitDict['detail']);
+		return event;
+	};
+}
+
 // EXPORTED
 // searches up the node tree for an element
 function findParentNode(node, test) {
@@ -56,14 +67,14 @@ function reduceObjects() {
 	return acc;
 }
 
-// INTERNAL
+// EXPORTED
 // dispatches a request event, stopping the given event
 function dispatchRequestEvent(targetElem, request) {
 	var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:request });
 	targetElem.dispatchEvent(re);
 }
 
-// INTERNAL
+// EXPORTED
 // submit helper, makes it possible to find the button which triggered the submit
 function trackFormSubmitter(node) {
 	var elem = findParentNode.thatisFormRelated(node);
@@ -337,7 +348,9 @@ function finishPayloadFileReads(request) {
 	});
 }
 
-local.client.findParentNode = findParentNode;
-local.client.extractRequest = extractRequest;
-local.client.extractRequestPayload = extractRequestPayload;
-local.client.finishPayloadFileReads = finishPayloadFileReads;
+local.util.findParentNode = findParentNode;
+local.util.trackFormSubmitter = trackFormSubmitter;
+local.util.dispatchRequestEvent = dispatchRequestEvent;
+local.util.extractRequest = extractRequest;
+local.util.extractRequestPayload = extractRequestPayload;
+local.util.finishPayloadFileReads = finishPayloadFileReads;

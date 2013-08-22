@@ -4,6 +4,7 @@ src-promises-files =\
 src-util-files =\
 	${src}util/_compiled_header.js\
 	${src}util/event-emitter.js\
+	${src}util/dom.js\
 	${src}util/helpers.js\
 	${src}util/_compiled_footer.js
 src-web-files =\
@@ -19,13 +20,6 @@ src-web-files =\
 	${src}web/uri-template.js\
 	${src}web/navigator.js\
 	${src}web/_compiled_footer.js
-src-client-files =\
-	${src}client/_compiled_header.js\
-	${src}client/helpers.js\
-	${src}client/domevents.js\
-	${src}client/responses.js\
-	${src}client/regions.js\
-	${src}client/_compiled_footer.js
 src-env-files =\
 	${src}env/_compiled_header.js\
 	${src}env/worker.js\
@@ -36,6 +30,7 @@ src-env-files =\
 src-toplevel-files =\
 	${src}_compiled_header.js\
 	${src}aliases.js\
+	${src}request-dom-events.js\
 	${src}_compiled_footer.js
 src-worker-files =\
 	${src-promises-files}\
@@ -53,7 +48,6 @@ lib-local-files =\
 	${lib}local/promises.js\
 	${lib}local/util.js\
 	${lib}local/web.js\
-	${lib}local/client.js\
 	${lib}local/env.js
 
 setup: clean concat buildmin
@@ -72,8 +66,6 @@ ${lib}local/promises.js: ${src-promises-files}
 ${lib}local/util.js: ${src-util-files}
 	@cat > $@ $^
 ${lib}local/web.js: ${src-web-files}
-	@cat > $@ $^
-${lib}local/client.js: ${src-client-files}
 	@cat > $@ $^
 ${lib}local/env.js: ${src-env-files}
 	@cat > $@ $^
