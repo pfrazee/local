@@ -362,6 +362,7 @@ Navigator.prototype.delete = makeDispSugar('DELETE');
 Navigator.prototype.post   = makeDispWBodySugar('POST');
 Navigator.prototype.put    = makeDispWBodySugar('PUT');
 Navigator.prototype.patch  = makeDispWBodySugar('PATCH');
+Navigator.prototype.notify = makeDispWBodySugar('NOTIFY');
 
 // Builder
 // =======

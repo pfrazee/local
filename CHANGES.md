@@ -7,6 +7,8 @@ Changes
  - Added local.* aliases (dispatch, subscribe, navigator, etc)
  - Added local.spawnAppServer, local.spawnWorkerServer
  - Added httpl://hosts service
+ - Added navigator.notify()
+ -
  - Removed local.client
    - Moved findParentNode, dispatchRequestEvent, trackFormSubmitter, extractRequest, extractRequestPayload, finishPayloadFileReads to local.util
    - Changed local.client.listen to local.bindRequestEvents
