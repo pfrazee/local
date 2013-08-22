@@ -3596,4 +3596,14 @@ addEventListener('connect', function(e) {
 // create connection to host page (regular worker)
 if (self.postMessage)
 	addConnection(self);
-})();
+})();// Local Toplevel
+// ==============
+// pfraze 2013
+
+if (typeof this.local == 'undefined')
+	this.local = {};
+
+(function() {// Aliases to common functions
+local.dispatch = local.web.dispatch;
+local.subscribe = local.web.subscribe;
+local.navigator = local.web.navigator;})();

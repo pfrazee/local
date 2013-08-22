@@ -33,6 +33,10 @@ src-env-files =\
 	${src}env/rtcpeer.js\
 	${src}env/core.js\
 	${src}env/_compiled_footer.js
+src-toplevel-files =\
+	${src}_compiled_header.js\
+	${src}aliases.js\
+	${src}_compiled_footer.js
 src-worker-files =\
 	${src-promises-files}\
 	${src-util-files}\
@@ -41,7 +45,8 @@ src-worker-files =\
 	${src}worker/page-connection.js\
 	${src}worker/web.js\
 	${src}worker/setup.js\
-	${src}worker/_compiled_footer.js
+	${src}worker/_compiled_footer.js\
+	${src-toplevel-files}
 
 lib = lib/
 lib-local-files =\
@@ -60,7 +65,7 @@ clean:
 	@-rm worker.js worker.min.js
 	@echo Cleaned Out Libraries
 
-concat: ${lib-local-files} ${lib}local.js worker.js worker.js
+concat: ${lib-local-files} ${lib}local.js worker.js
 	@echo Concatted Libraries
 ${lib}local/promises.js: ${src-promises-files}
 	@cat > $@ $^
@@ -72,7 +77,7 @@ ${lib}local/client.js: ${src-client-files}
 	@cat > $@ $^
 ${lib}local/env.js: ${src-env-files}
 	@cat > $@ $^
-${lib}local.js: ${lib-local-files}
+${lib}local.js: ${lib-local-files} ${src-toplevel-files}
 	@cat > $@ $^
 worker.js: ${src-worker-files}
 	@cat > $@ $^
