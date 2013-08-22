@@ -63,6 +63,7 @@ Request.prototype = Object.create(local.util.EventEmitter.prototype);
 Request.prototype.setHeader    = function(k, v) { this.headers[k] = v; };
 Request.prototype.getHeader    = function(k) { return this.headers[k]; };
 Request.prototype.removeHeader = function(k) { delete this.headers[k]; };
+Request.prototype.finishStream = function() { return this.body_; };
 
 // causes the request/response to abort after the given milliseconds
 Request.prototype.setTimeout = function(ms) {

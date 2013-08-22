@@ -44,8 +44,15 @@ local.web.registerLocal('test.com', function(request, response) {
 		response.end(payload);
 	}
 	else if (request.path == '/foo') {
-		if (request.method === 'GET') {
+		if (request.method != 'HEAD') {
 			payload = foos;
+		}
+		if (request.method == 'POST') {
+			return request.finishStream()
+				.then(function(body) {
+					response.writeHead(200, 'ok', { 'content-type': request.headers['content-type'] });
+					response.end(body);
+				});
 		}
 		linkHeader = [
 			{ rel:'up via service', href:'/' },

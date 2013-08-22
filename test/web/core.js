@@ -90,6 +90,29 @@ error
 {body: "", headers: {},  reason: "not found", status: 404}
 */
 
+// successful local posts
+
+done = false;
+startTime = Date.now();
+var res = local.web.dispatch({
+  method: 'post',
+  url: 'httpl://test.com/foo',
+  headers: { 'content-type': 'text/plain' },
+  body: 'echo this, please'
+});
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "echo this, please",
+  headers: {"content-type": "text/plain"},
+  reason: "ok",
+  status: 200
+}
+*/
+
 // == SECTION core - worker local requests
 
 // successful local requests
