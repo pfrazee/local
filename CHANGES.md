@@ -9,6 +9,7 @@ Changes
  - Added httpl://hosts service
  - Added Navigator.notify()
  - Added Request.finishStream()
+ - Added self.config to workers
  - Removed local.client
    - Moved findParentNode, dispatchRequestEvent, trackFormSubmitter, extractRequest, extractRequestPayload, finishPayloadFileReads to local.util
    - Changed local.client.listen to local.bindRequestEvents

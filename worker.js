@@ -923,10 +923,14 @@ function specify(type, spec) {
 // - `accept`: string/object, given accept header or request object
 // - `provided`: optional [string], allowed media types
 local.web.preferredTypes = function preferredTypes(accept, provided) {
-	if (typeof accept == 'object')
+	if (typeof accept == 'object') {
 		accept = accept.headers.accept;
+	}
 	accept = local.web.parseAcceptHeader(accept || '');
 	if (provided) {
+		if (!Array.isArray(provided)) {
+			provided = [provided];
+		}
 		return provided
 			.map(function(type) { return [type, getMediaTypePriority(type, accept)]; })
 			.filter(function(pair) { return pair[1] > 0; })
@@ -4679,7 +4683,7 @@ if (typeof this.local.worker == 'undefined')
 	function setupHostOpsHandlers() {
 		var conn = this;
 		conn.onMessage(conn.ops, 'configure', function(message) {
-			local.worker.config = message.data;
+			self.config = local.worker.config = message.data;
 		});
 
 		conn.onMessage(conn.ops, 'nullify', function(message) {
@@ -4945,7 +4949,7 @@ if (typeof this.local.worker == 'undefined')
 			return;
 		}
 
-		var self = this;
+		var this2 = this;
 		if (main) {
 			// create request & response
 			var request = new local.web.Request(message.data);
@@ -4955,10 +4959,10 @@ if (typeof this.local.worker == 'undefined')
 			request.path = message.data.path; // copy this over for main()'s benefit
 
 			// wire response into the exchange
-			response.on('headers', function() { self.sendMessage(message.exchange, 'response_headers', response); });
-			response.on('data', function(data) {self.sendMessage(message.exchange, 'response_data', data); });
-			response.on('end', function() { self.sendMessage(message.exchange, 'response_end'); });
-			response.on('close', function() { self.endExchange(message.exchange); });
+			response.on('headers', function() { this2.sendMessage(message.exchange, 'response_headers', response); });
+			response.on('data', function(data) {this2.sendMessage(message.exchange, 'response_data', data); });
+			response.on('end', function() { this2.sendMessage(message.exchange, 'response_end'); });
+			response.on('close', function() { this2.endExchange(message.exchange); });
 
 			// pass on to the request handler
 			main(request, response, this);

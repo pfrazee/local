@@ -159,10 +159,14 @@ function specify(type, spec) {
 // - `accept`: string/object, given accept header or request object
 // - `provided`: optional [string], allowed media types
 local.web.preferredTypes = function preferredTypes(accept, provided) {
-	if (typeof accept == 'object')
+	if (typeof accept == 'object') {
 		accept = accept.headers.accept;
+	}
 	accept = local.web.parseAcceptHeader(accept || '');
 	if (provided) {
+		if (!Array.isArray(provided)) {
+			provided = [provided];
+		}
 		return provided
 			.map(function(type) { return [type, getMediaTypePriority(type, accept)]; })
 			.filter(function(pair) { return pair[1] > 0; })

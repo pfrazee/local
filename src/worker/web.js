@@ -49,7 +49,7 @@
 			return;
 		}
 
-		var self = this;
+		var this2 = this;
 		if (main) {
 			// create request & response
 			var request = new local.web.Request(message.data);
@@ -59,10 +59,10 @@
 			request.path = message.data.path; // copy this over for main()'s benefit
 
 			// wire response into the exchange
-			response.on('headers', function() { self.sendMessage(message.exchange, 'response_headers', response); });
-			response.on('data', function(data) {self.sendMessage(message.exchange, 'response_data', data); });
-			response.on('end', function() { self.sendMessage(message.exchange, 'response_end'); });
-			response.on('close', function() { self.endExchange(message.exchange); });
+			response.on('headers', function() { this2.sendMessage(message.exchange, 'response_headers', response); });
+			response.on('data', function(data) {this2.sendMessage(message.exchange, 'response_data', data); });
+			response.on('end', function() { this2.sendMessage(message.exchange, 'response_end'); });
+			response.on('close', function() { this2.endExchange(message.exchange); });
 
 			// pass on to the request handler
 			main(request, response, this);

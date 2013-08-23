@@ -97,7 +97,7 @@
 	function setupHostOpsHandlers() {
 		var conn = this;
 		conn.onMessage(conn.ops, 'configure', function(message) {
-			local.worker.config = message.data;
+			self.config = local.worker.config = message.data;
 		});
 
 		conn.onMessage(conn.ops, 'nullify', function(message) {
