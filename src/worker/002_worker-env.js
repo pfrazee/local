@@ -2,9 +2,6 @@
 // =====
 var closureImportScripts = importScripts; // self.importScripts will be nullified later (and we're in a closure right now)
 
-// apis
-// -
-
 // EXPORTED
 // console.* replacements
 self.console = {
@@ -30,11 +27,11 @@ self.console = {
 	}
 };
 function doLog(type, args) {
-	var hostConn = local.worker.hostConnection;
-	try { hostConn.sendMessage(hostConn.ops, 'log', [type].concat(args)); }
+	var hostPage = local.worker.hostPage;
+	try { hostPage.channelSendMsg({ op: 'log', body: [type].concat(args) }); }
 	catch (e) {
 		// this is usually caused by trying to log information that cant be serialized
-		hostConn.sendMessage(hostConn.ops, 'log', [type].concat(args.map(JSONifyMessage)));
+		hostPage.channelSendMsg({ op: 'log', body: [type].concat(args.map(JSONifyMessage)) });
 	}
 }
 
@@ -96,27 +93,31 @@ if (!self.btoa) {
 	};
 }
 
-local.worker.pageConnections = [];
+local.worker.pages = [];
 function addConnection(port) {
-	var isHost = (!local.worker.hostConnection);
-	var conn = new local.worker.PageConnection(local.worker.pageConnections.length, port, isHost);
-	local.worker.startWebExchange(conn);
+	// Create new page server
+	var isHost = (!local.worker.hostPage); // First to add = host page
+	var page = new local.worker.PageServer(local.worker.pages.length, port, isHost);
 
-	if (isHost)
-		local.worker.hostConnection = conn;
-	local.worker.pageConnections.push(conn);
+	// Track new connection
+	if (isHost) {
+		local.worker.hostPage = page;
+	}
+	local.worker.pages.push(page);
+	local.web.registerLocal(page.id+'.page', page);
 
-	// let the document know we're active
-	if (port.start)
+	// Let the document know we're active
+	if (port.start) {
 		port.start();
-	conn.sendMessage(conn.ops, 'ready', { hostPrivileges: isHost });
+	}
+	page.channelSendMsg({ op: 'ready', body: { hostPrivileges: isHost } });
 }
 
-// setup for future connections (shared worker)
+// Setup for future connections (shared worker)
 addEventListener('connect', function(e) {
 	addConnection(e.ports[0]);
 });
-
-// create connection to host page (regular worker)
-if (self.postMessage)
+// Create connection to host page (regular worker)
+if (self.postMessage) {
 	addConnection(self);
+}

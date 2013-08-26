@@ -84,7 +84,7 @@
   // -
 
   // request handler
-  RTCPeerServer.prototype.handleWebRequest = function(request, response) {
+  RTCPeerServer.prototype.handleLocalWebRequest = function(request, response) {
     this.debugLog('HANDLING REQUEST', request);
 
     if (request.path == '/') {
@@ -185,9 +185,9 @@
       var chan = this.reqChannelReliable;
       chan.send(reqid+':'+(reqmid++)+':h:'+JSON.stringify(request));
       // wire up the request to pipe over
-      request.on('data', function(data) { chan.send(reqid+':'+(reqmid++)+':d:'+data); });
-      request.on('end', function() { chan.send(reqid+':'+(reqmid++)+':e'); });
-      request.on('close', function() { chan.send(reqid+':'+(reqmid++)+':c'); });
+      request.on('data',  function(data) { chan.send(reqid+':'+(reqmid++)+':d:'+data); });
+      request.on('end',   function()     { chan.send(reqid+':'+(reqmid++)+':e'); });
+      request.on('close', function()     { chan.send(reqid+':'+(reqmid++)+':c'); });
     } else {
       // not connected, send a 504
       setTimeout(function() { response.writeHead(504, 'gateway timeout').end(); }, 0);

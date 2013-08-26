@@ -17,7 +17,7 @@ Changes
    - Removed regions and response handling utilities (they will be moved to a separate repo)
  - Removed local.env
    - Moved Server classes into local.web
-   - Renamed Server.handleHttpRequest to handleWebRequest
+   - Renamed Server.handleHttpRequest to handleLocalWebRequest
 
 
 2013/08/09 pfraze

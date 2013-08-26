@@ -248,7 +248,7 @@ local.web.registerLocal = function registerLocal(domain, server, serverContext) 
 	var isServerObj = (server instanceof local.web.Server);
 	if (isServerObj) {
 		serverContext = server;
-		server = server.handleWebRequest;
+		server = server.handleLocalWebRequest;
 	}
 
 	__httpl_registry[domain] = { fn: server, context: serverContext };

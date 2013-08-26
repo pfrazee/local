@@ -34,9 +34,8 @@ src-toplevel-files =\
 src-worker-files =\
 	${lib-local-files}\
 	${src}worker/000_header.js\
-	${src}worker/001_page-connection.js\
-	${src}worker/002_httpl.js\
-	${src}worker/003_final-setup.js\
+	${src}worker/001_page-server.js\
+	${src}worker/002_worker-env.js\
 	${src}module_footer.js
 
 lib = lib/

@@ -16,7 +16,6 @@
 		exports = module.exports;
 	}
 
-	function passThrough(v) { return v; }
 	function isPromiselike(p) {
 		return (p && typeof p.then == 'function');
 	}
@@ -390,7 +389,365 @@ EventEmitter.prototype.listeners = function(type) {
 	return this._events[type];
 };
 
-local.util.EventEmitter = EventEmitter;})();// Local HTTP
+local.util.EventEmitter = EventEmitter;// Helpers
+// =======
+
+if (typeof CustomEvent === 'undefined') {
+	// CustomEvent shim (safari)
+	// thanks to netoneko https://github.com/maker/ratchet/issues/101
+	CustomEvent = function(type, eventInitDict) {
+		var event = document.createEvent('CustomEvent');
+
+		event.initCustomEvent(type, eventInitDict['bubbles'], eventInitDict['cancelable'], eventInitDict['detail']);
+		return event;
+	};
+}
+
+// EXPORTED
+// searches up the node tree for an element
+function findParentNode(node, test) {
+	while (node) {
+		if (test(node)) { return node; }
+		node = node.parentNode;
+	}
+	return null;
+}
+
+findParentNode.byTag = function(node, tagName) {
+	return findParentNode(node, function(elem) {
+		return elem.tagName == tagName;
+	});
+};
+
+findParentNode.byClass = function(node, className) {
+	return findParentNode(node, function(elem) {
+		return elem.classList && elem.classList.contains(className);
+	});
+};
+
+findParentNode.byElement = function(node, element) {
+	return findParentNode(node, function(elem) {
+		return elem === element;
+	});
+};
+
+findParentNode.thatisFormRelated = function(node) {
+	return findParentNode(node, function(elem) {
+		return !!elem.form;
+	});
+};
+
+// combines parameters as objects
+// - precedence is rightmost
+//     reduceObjects({a:1}, {a:2}, {a:3}) => {a:3}
+function reduceObjects() {
+	var objs = Array.prototype.slice.call(arguments);
+	var acc = {}, obj;
+	while (objs.length) {
+		obj = objs.shift();
+		if (!obj) { continue; }
+		for (var k in obj) {
+			if (typeof obj[k] == 'undefined' || obj[k] === null) { continue; }
+			if (typeof obj[k] == 'object' && !Array.isArray(obj[k])) {
+				acc[k] = reduceObjects(acc[k], obj[k]);
+			} else {
+				acc[k] = obj[k];
+			}
+		}
+	}
+	return acc;
+}
+
+// EXPORTED
+// dispatches a request event, stopping the given event
+function dispatchRequestEvent(targetElem, request) {
+	var re = new CustomEvent('request', { bubbles:true, cancelable:true, detail:request });
+	targetElem.dispatchEvent(re);
+}
+
+// EXPORTED
+// submit helper, makes it possible to find the button which triggered the submit
+function trackFormSubmitter(node) {
+	var elem = findParentNode.thatisFormRelated(node);
+	if (elem) {
+		for (var i=0; i < elem.form.length; i++) {
+			elem.form[i].setAttribute('submitter', null);
+		}
+		elem.setAttribute('submitter', '1');
+	}
+}
+
+// EXPORTED
+// extracts request from any given element
+function extractRequest(targetElem, containerElem) {
+	var requests = { form:{}, fieldset:{}, elem:{} };
+	var fieldset = null, form = null;
+
+	// find parent fieldset
+	if (targetElem.tagName === 'FIELDSET') {
+		fieldset = targetElem;
+	} else if (targetElem.tagName !== 'FORM') {
+		fieldset = findParentNode.byTag(targetElem, 'FIELDSET');
+	}
+
+	// find parent form
+	if (targetElem.tagName === 'FORM') {
+		form = targetElem;
+	} else {
+		// :TODO: targetElem.form may be a simpler alternative
+		var formId = targetElem.getAttribute('form') || (fieldset ? fieldset.getAttribute('form') : null);
+		if (formId) {
+			form = containerElem.querySelector('#'+formId);
+		}
+		if (!form) {
+			form = findParentNode.byTag(targetElem, 'FORM');
+		}
+	}
+
+	// extract payload
+	var payload = extractRequestPayload(targetElem, form);
+
+	// extract form headers
+	if (form) {
+		requests.form = extractRequest.fromForm(form, targetElem);
+	}
+
+	// extract fieldset headers
+	if (fieldset) {
+		requests.fieldset = extractRequest.fromFormElement(fieldset);
+	}
+
+	// extract element headers
+	if (targetElem.tagName === 'A') {
+		requests.elem = extractRequest.fromAnchor(targetElem);
+	} else if (['FORM','FIELDSET'].indexOf(targetElem.tagName) === -1) {
+		requests.elem = extractRequest.fromFormElement(targetElem);
+	}
+
+	// combine then all, with precedence given to rightmost objects in param list
+	var req = reduceObjects(requests.form, requests.fieldset, requests.elem);
+	var payloadWrapper = {};
+	payloadWrapper[/GET/i.test(req.method) ? 'query' : 'body'] = payload;
+	return reduceObjects(req, payloadWrapper);
+}
+
+// EXPORTED
+// extracts request parameters from an anchor tag
+extractRequest.fromAnchor = function(node) {
+
+	// get the anchor
+	node = findParentNode.byTag(node, 'A');
+	if (!node || !node.attributes.href || node.attributes.href.value.charAt(0) == '#') { return null; }
+
+	// pull out params
+	var request = {
+		// method  : 'get',
+		url     : node.attributes.href.value,
+		target  : node.getAttribute('target'),
+		headers : { accept:node.getAttribute('type') }
+	};
+	return request;
+};
+
+// EXPORTED
+// extracts request parameters from a form element (inputs, textareas, etc)
+extractRequest.fromFormElement = function(node) {
+	// :TODO: search parent for the form-related element?
+	//        might obviate the need for submitter-tracking
+
+	// pull out params
+	var request = {
+		method  : node.getAttribute('formmethod'),
+		url     : node.getAttribute('formaction'),
+		target  : node.getAttribute('formtarget'),
+		headers : {
+			'content-type' : node.getAttribute('formenctype'),
+			accept         : node.getAttribute('formaccept')
+		}
+	};
+	return request;
+};
+
+// EXPORTED
+// extracts request parameters from a form
+extractRequest.fromForm = function(form, submittingElem) {
+
+	// find the submitter, if the submitting element is not form-related
+	if (submittingElem && !submittingElem.form) {
+		for (var i=0; i < form.length; i++) {
+			var elem = form[i];
+			if (elem.getAttribute('submitter') == '1') {
+				submittingElem = elem;
+				elem.setAttribute('submitter', '0');
+				break;
+			}
+		}
+	}
+
+	var requests = { submitter:{}, form:{} };
+	// extract submitting element headers
+	if (submittingElem) {
+		requests.submitter = {
+			method  : submittingElem.getAttribute('formmethod'),
+			url     : submittingElem.getAttribute('formaction'),
+			target  : submittingElem.getAttribute('formtarget'),
+			headers : {
+				'content-type' : submittingElem.getAttribute('formenctype'),
+				accept         : submittingElem.getAttribute('formaccept')
+			}
+		};
+	}
+	// extract form headers
+	requests.form = {
+		method  : form.getAttribute('method'),
+		url     : form.getAttribute('action'),
+		target  : form.getAttribute('target'),
+		headers : {
+			'content-type' : form.getAttribute('enctype') || form.enctype,
+			'accept'       : form.getAttribute('accept')
+		}
+	};
+	if (form.acceptCharset) { requests.form.headers.accept = form.acceptCharset; }
+
+	// combine, with precedence to the submitting element
+	var request = reduceObjects(requests.form, requests.submitter);
+
+	// strip the base URI
+	// :TODO: needed?
+	/*var base_uri = window.location.href.split('#')[0];
+	if (target_uri.indexOf(base_uri) != -1) {
+		target_uri = target_uri.substring(base_uri.length);
+		if (target_uri.charAt(0) != '/') { target_uri = '/' + target_uri; }
+	}*/
+
+	return request;
+};
+
+// EXPORTED
+// serializes all form elements beneath and including the given element
+// - `targetElem`: container element, will reject the field if not within (optional)
+// - `form`: an array of HTMLElements or a form field (they behave the same for iteration)
+// - `opts.nofiles`: dont try to read files in file fields? (optional)
+function extractRequestPayload(targetElem, form, opts) {
+	if (!opts) opts = {};
+
+	// iterate form elements
+	var data = {};
+	if (!opts.nofiles)
+		data.__fileReads = []; // an array of promises to read <input type=file>s
+	for (var i=0; i < form.length; i++) {
+		var elem = form[i];
+
+		// skip if it doesnt have a name
+		if (!elem.name)
+			continue;
+
+		// skip if not a child of the target element
+		if (targetElem && !findParentNode.byElement(elem, targetElem))
+			continue;
+
+		// pull value if it has one
+		var isSubmittingElem = elem.getAttribute('submitter') == '1';
+		if (elem.tagName === 'BUTTON') {
+			if (isSubmittingElem) {
+				// don't pull from buttons unless recently clicked
+				data[elem.name] = elem.value;
+			}
+		} else if (elem.tagName === 'INPUT') {
+			switch (elem.type.toLowerCase()) {
+				case 'button':
+				case 'submit':
+					if (isSubmittingElem) {
+						// don't pull from buttons unless recently clicked
+						data[elem.name] = elem.value;
+					}
+					break;
+				case 'checkbox':
+					if (elem.checked) {
+						// don't pull from checkboxes unless checked
+						data[elem.name] = (data[elem.name] || []).concat(elem.value);
+					}
+					break;
+				case 'radio':
+					if (elem.getAttribute('checked') !== null) {
+						// don't pull from radios unless selected
+						data[elem.name] = elem.value;
+					}
+					break;
+				case 'file':
+					// read the files
+					if (opts.nofiles)
+						break;
+					if (elem.multiple) {
+						for (var i=0, f; f = elem.files[i]; i++)
+							readFile(data, elem, elem.files[i], i);
+						data[elem.name] = [];
+						data[elem.name].length = i;
+					} else {
+						readFile(data, elem, elem.files[0]);
+					}
+					break;
+				default:
+					data[elem.name] = elem.value;
+					break;
+			}
+		} else
+			data[elem.name] = elem.value;
+	}
+
+	return data;
+}
+
+// INTERNAL
+// file read helpers
+function readFile(data, elem, file, index) {
+	if (!file) return; // no value set
+	var reader = new FileReader();
+	reader.onloadend = readFileLoadEnd(data, elem, file, index);
+	reader.readAsDataURL(file);
+}
+function readFileLoadEnd(data, elem, file, index) {
+	// ^ this avoids a closure circular reference
+	var promise = local.promise();
+	data.__fileReads.push(promise);
+	return function(e) {
+		var obj = {
+			content: e.target.result || null,
+			name: file.name,
+			formattr: elem.name,
+			size: file.size,
+			type: file.type,
+			lastModifiedDate: file.lastModifiedDate
+		};
+		if (typeof index != 'undefined')
+			obj.formindex = index;
+		promise.fulfill(obj);
+	};
+}
+function finishPayloadFileReads(request) {
+	var fileReads = (request.body) ? request.body.__fileReads :
+					((request.query) ? request.query.__fileReads : []);
+	return local.promise.bundle(fileReads).then(function(files) {
+		if (request.body) delete request.body.__fileReads;
+		if (request.query) delete request.query.__fileReads;
+		files.forEach(function(file) {
+			if (typeof file.formindex != 'undefined')
+				request.body[file.formattr][file.formindex] = file;
+			else request.body[file.formattr] = file;
+		});
+		return request;
+	});
+}
+
+local.util.findParentNode = findParentNode;
+local.util.trackFormSubmitter = trackFormSubmitter;
+local.util.dispatchRequestEvent = dispatchRequestEvent;
+local.util.extractRequest = extractRequest;
+local.util.extractRequestPayload = extractRequestPayload;
+local.util.finishPayloadFileReads = finishPayloadFileReads;// http://jsperf.com/cloning-an-object/2
+local.util.deepClone = function(obj) {
+	return JSON.parse(JSON.stringify(obj));
+};})();// Local HTTP
 // ==========
 // pfraze 2013
 
@@ -400,7 +757,12 @@ if (typeof this.local.web == 'undefined')
 	this.local.web = {};
 
 (function() {
-	function noop() {}// Helpers
+// Local status codes
+// ==================
+// used to specify client operation states
+
+// link query failed to match
+local.web.LINK_NOT_FOUND = 1;// Helpers
 // =======
 
 // EXPORTED
@@ -435,43 +797,6 @@ local.web.parseLinkHeader = function parseLinkHeader(headerStr) {
 		});
 		return link;
 	});
-};
-
-// EXPORTED
-// looks up a link in the cache and generates the URI
-//  - first looks for a matching rel and id
-//    eg lookupLink(links, 'item', 'foobar'), Link: <http://example.com/some/foobar>; rel="item"; id="foobar" -> http://example.com/some/foobar
-//  - then looks for a matching rel with no id and uses that to generate the link
-//    eg lookupLink(links, 'item', 'foobar'), Link: <http://example.com/some/{id}>; rel="item" -> http://example.com/some/foobar
-local.web.lookupLink = function lookupLink(links, rel, id) {
-	var len = links ? links.length : 0;
-	if (!len) { return null; }
-
-	if (id)
-		id = id.toLowerCase();
-	var relRegex = RegExp('\\b'+rel+'\\b');
-
-	// try to find the link with a id equal to the param we were given
-	var match = null;
-	for (var i=0; i < len; i++) {
-		var link = links[i];
-		if (!link) { continue; }
-		// find all links with a matching rel
-		if (relRegex.test(link.rel)) {
-			// look for a id match to the primary parameter
-			if (id && link.id) {
-				if (link.id.toLowerCase() === id) {
-					match = link;
-					break;
-				}
-			} else {
-				// no id attribute -- it's the template URI, so hold onto it
-				match = link;
-			}
-		}
-	}
-
-	return match ? match.href : null;
 };
 
 // EXPORTED
@@ -598,10 +923,14 @@ function specify(type, spec) {
 // - `accept`: string/object, given accept header or request object
 // - `provided`: optional [string], allowed media types
 local.web.preferredTypes = function preferredTypes(accept, provided) {
-	if (typeof accept == 'object')
+	if (typeof accept == 'object') {
 		accept = accept.headers.accept;
+	}
 	accept = local.web.parseAcceptHeader(accept || '');
 	if (provided) {
+		if (!Array.isArray(provided)) {
+			provided = [provided];
+		}
 		return provided
 			.map(function(type) { return [type, getMediaTypePriority(type, accept)]; })
 			.filter(function(pair) { return pair[1] > 0; })
@@ -634,6 +963,23 @@ local.web.joinUrl = function joinUrl() {
 	});
 	return parts.join('/');
 };
+
+// EXPORTED
+// tests to see if a URL is absolute
+// - "absolute" means that the URL can reach something without additional context
+// - eg http://foo.com, //foo.com, httpl://bar.app, rel:http://foo.com, rel:foo.com
+var isAbsUriRE = /^(http(s|l)?:)|(rel:[^|])|(\/\/)/;
+local.web.isAbsUri = function(v) {
+	return isAbsUriRE.test(v);
+};
+
+// EXPORTED
+// tests to see if a URL is using the rel scheme
+var isRelSchemeUriRE = /\|\||rel:/;
+local.web.isRelSchemeUri = function(v) {
+	return isRelSchemeUriRE.test(v);
+};
+
 
 // EXPORTED
 // takes a context url and a relative path and forms a new valid url
@@ -699,6 +1045,46 @@ local.web.parseUri.options = {
 		strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
 		loose:  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
 	}
+};
+
+// EXPORTED
+// Converts a 'rel:' URI into an array of http/s/l URIs and link query objects
+local.web.parseRelUri = function(str) {
+	if (!str) return [];
+
+	// Split into navigations
+	var parts = str.split('||');
+
+	// First entry - starting URL
+	// eg rel:http://foo.com||...
+	if (parts[0]) {
+		// Drop the scheme
+		if (parts[0].indexOf('rel:') === 0)
+			parts[0] = parts[0].slice(4);
+	}
+
+	// Remaining entries - queries
+	// eg ...||rel=id,attr1=value1,attr2=value2||...
+	for (var i=1; i < parts.length; i++) {
+		var query = {};
+		var attrs = parts[i].split(',');
+		for (var j=0; j < attrs.length; j++) {
+			var kv = attrs[j].split('=');
+			if (j === 0) {
+				query.rel = kv[0].replace(/\+/, ' ');
+				if (kv[1])
+					query.id = kv[1];
+			} else
+				query[kv[0]] = decodeURIComponent(kv[1]).replace(/\+/, ' ');
+		}
+		parts[i] = query;
+	}
+
+	// Drop first entry if empty
+	if (!parts[0])
+		parts.shift();
+
+	return parts;
 };
 
 // sends the given response back verbatim
@@ -977,6 +1363,7 @@ Request.prototype = Object.create(local.util.EventEmitter.prototype);
 Request.prototype.setHeader    = function(k, v) { this.headers[k] = v; };
 Request.prototype.getHeader    = function(k) { return this.headers[k]; };
 Request.prototype.removeHeader = function(k) { delete this.headers[k]; };
+Request.prototype.finishStream = function() { return this.body_; };
 
 // causes the request/response to abort after the given milliseconds
 Request.prototype.setTimeout = function(ms) {
@@ -1083,7 +1470,7 @@ function Response() {
 		writable: false
 	});
 	(function buffer(self) {
-		self.on('data', function(data) { 
+		self.on('data', function(data) {
 			if (data instanceof ArrayBuffer)
 				self.body = data; // browsers buffer binary responses, so dont try to stream
 			else
@@ -1124,8 +1511,9 @@ Response.prototype.writeHead = function(status, reason, headers) {
 Response.prototype.write = function(data) {
 	if (!this.isConnOpen)
 		return;
-	if (typeof data != 'string')
+	if (typeof data != 'string') {
 		data = local.web.contentTypes.serialize(data, this.headers['content-type']);
+	}
 	this.emit('data', data);
 };
 
@@ -1148,14 +1536,882 @@ Response.prototype.close = function() {
 		return;
 	this.isConnOpen = false;
 	this.emit('close');
-	
+
 	// :TODO: when events are suspended, this can cause problems
 	//        maybe put these "removes" in a 'close' listener?
 	// this.removeAllListeners('headers');
 	// this.removeAllListeners('data');
 	// this.removeAllListeners('end');
 	// this.removeAllListeners('close');
-};// schemes
+};// Server
+// ======
+// EXPORTED
+// core type for all servers
+// - should be used as a prototype
+function Server(config) {
+	this.config = { domain: null };
+	if (config) {
+		for (var k in config)
+			this.config[k] = config[k];
+	}
+}
+local.web.Server = Server;
+
+// Local request handler
+// - should be overridden
+Server.prototype.handleLocalWebRequest = function(request, response) {
+	console.warn('handleLocalWebRequest not defined', this);
+	response.writeHead(500, 'server not implemented');
+	response.end();
+};
+
+// Called before server destruction
+// - may be overridden
+// - executes syncronously; does not wait for cleanup to finish
+Server.prototype.terminate = function() {
+};
+
+
+// BridgeServer
+// ============
+// EXPORTED
+// Core type for all servers which pipe requests between separated namespaces (eg WorkerServer, RTCPeerServer)
+// - Should be used as a prototype
+// - Provides HTTPL implementation using the channel methods (which should be overridden by the subclasses)
+// - Underlying channel must be:
+//   - reliable
+//   - order-guaranteed
+// - Underlying channel is assumed not to be:
+//   - multiplexed
+// - :NOTE: WebRTC's SCTP should eventually support multiplexing, in which case RTCPeerServer should
+//   abstract multiple streams into the one "channel" to prevent head-of-line blocking
+function BridgeServer(config) {
+	Server.call(this, config);
+
+	this.sidCounter = 1;
+	this.incomingStreams = {}; // maps sid -> request/response stream
+	// ^ only contains active streams (closed streams are deleted)
+	this.msgBuffer = []; // buffer of messages kept until channel is active
+}
+BridgeServer.prototype = Object.create(Server.prototype);
+local.web.BridgeServer = BridgeServer;
+
+// Returns true if the channel is ready for activity
+// - should be overridden
+// - returns boolean
+BridgeServer.prototype.isChannelActive = function() {
+	console.warn('isChannelActive not defined', this);
+	return false;
+};
+
+// Sends a single message across the channel
+// - should be overridden
+// - `msg`: required string
+BridgeServer.prototype.channelSendMsg = function(msg) {
+	console.warn('channelSendMsg not defined', this, msg);
+};
+
+// Remote request handler
+// - should be overridden
+BridgeServer.prototype.handleRemoteWebRequest = function(request, response) {
+	console.warn('handleRemoteWebRequest not defined', this);
+	response.writeHead(500, 'server not implemented');
+	response.end();
+};
+
+// Sends messages that were buffered while waiting for the channel to setup
+// - should be called by the subclass if there's any period between creation and channel activation
+BridgeServer.prototype.flushBufferedMessages = function() {
+	this.msgBuffer.forEach(function(msg) {
+		this.channelSendMsg(msg);
+	}, this);
+	this.msgBuffer.length = 0;
+};
+
+// Helper which buffers messages when the channel isnt active
+BridgeServer.prototype.channelSendMsgWhenReady = function(msg) {
+	if (!this.isChannelActive()) {
+		// Buffer messages if not ready
+		this.msgBuffer.push(msg);
+	} else {
+		this.channelSendMsg(msg);
+	}
+};
+
+// Local request handler
+// - pipes the request directly to the remote namespace
+BridgeServer.prototype.handleLocalWebRequest = function(request, response) {
+	// Build message
+	var sid = this.sidCounter++;
+	var msg = {
+		sid: sid,
+		method: request.method,
+		path: request.path,
+		headers: request.headers
+	};
+
+	// Store response stream in anticipation of the response messages
+	this.incomingStreams[-msg.sid] = response;
+
+	// Send over the channel
+	this.channelSendMsgWhenReady(JSON.stringify(msg));
+	if (!msg.end) {
+		// Wire up request stream events
+		var this2 = this;
+		request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, body: data })); });
+		request.on('close', function()     { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, end: true })); });
+	}
+};
+
+// HTTPL implementation for incoming messages
+// - should be called by subclasses on incoming messages
+BridgeServer.prototype.onChannelMessage = function(msg) {
+	// Validate and parse JSON
+	if (typeof msg == 'string') {
+		if (!validateJson(msg)) {
+			console.warn('Dropping malformed HTTPL message', { channel: chan, msg: msg });
+			return;
+		}
+		msg = JSON.parse(msg);
+	}
+	if (!validateHttplMessage(msg)) {
+		console.warn('Dropping malformed HTTPL message', { channel: chan, msg: msg });
+		return;
+	}
+
+	// Get/create stream
+	var stream = this.incomingStreams[msg.sid];
+	if (!stream) {
+		// Incoming requests have a positive sid
+		if (msg.sid > 0) {
+			// Create request & response
+			var request = new local.web.Request({
+				method: msg.method,
+				path: msg.path,
+				headers: msg.headers
+			});
+			var response = new local.web.Response();
+
+			// Wire response into the stream
+			var this2 = this;
+			var resSid = -(msg.sid);
+			response.on('headers', function() {
+				this2.channelSendMsg({
+					sid: resSid,
+					status: response.status,
+					reason: response.reason,
+					headers: response.headers
+				});
+			});
+			response.on('data',  function(data) { this2.channelSendMsg(JSON.stringify({ sid: resSid, body: data })); });
+			response.on('close', function()     { this2.channelSendMsg(JSON.stringify({ sid: resSid, end: true })); });
+
+			// Pass on to the request handler
+			this.handleRemoteWebRequest(request, response);
+		}
+		// Incoming responses have a negative sid
+		else {
+			// There should have been an incoming stream
+			// (incoming response streams are created locally on remote request dispatches)
+			console.warn('Dropping unexpected HTTPL response message', { channel: chan, msg: msg });
+			return;
+		}
+	}
+
+	// {status: [int]} -> write head
+	if (msg.sid < 0 && typeof msg.status != 'undefined') {
+		stream.writeHead(msg.status, msg.reason, msg.headers);
+	}
+
+	// {body: [String]} -> write to stream body
+	if (msg.body) {
+		stream.write(msg.body);
+	}
+
+	// {end: true} -> close stream
+	if (msg.end) {
+		stream.end();
+		stream.close();
+		delete this.incomingStreams[msg.sid];
+	}
+};
+
+// This validator is faster than doing a try/catch block
+// http://jsperf.com/check-json-validity-try-catch-vs-regex
+function validateJson(str) {
+	if (str === '') {
+		return false;
+	}
+	str = str.replace(/\\./g, '@').replace(/"[^"\\\n\r]*"/g, '');
+	return (/^[,:{}\[\]0-9.\-+Eaeflnr-u \n\r\t]*$/).test(str);
+}
+
+function validateHttplMessage(parsedmsg) {
+	if (!parsedmsg)
+		return false;
+	if (isNaN(parsedmsg.sid))
+		return false;
+	return true;
+}(function () {
+
+	// WorkerServer
+	// ============
+	// EXPORTED
+	// wrapper for servers run within workers
+	// - `config.src`: required URL
+	// - `config.shared`: boolean, should the workerserver be shared?
+	// - `config.namespace`: optional string, what should the shared worker be named?
+	//   - defaults to `config.src` if undefined
+	// - `config.bootstrapUrl`: optional string, specifies the URL of the worker bootstrap script
+	// - `config.log`: optional bool, enables logging of all message traffic
+	// - `loadCb`: optional function(message)
+	function WorkerServer(config, loadCb) {
+		if (!config || !config.src)
+			throw "WorkerServer requires config with `src` attribute.";
+		local.web.BridgeServer.call(this, config);
+		this.isUserScriptActive = false; // when true, ready for activity
+		this.hasHostPrivileges = true; // do we have full control over the worker?
+		// ^ set to false by the ready message of a shared worker (if we're not the first page to connect)
+		this.loadCb = loadCb;
+
+		// Prep config
+		if (!this.config.domain) { // assign a temporary label for logging if no domain is given yet
+			this.config.domain = '<'+this.config.src.slice(0,40)+'>';
+		}
+		this.config.environmentHost = window.location.host; // :TODO: needed? I think workers can access this directly
+
+		// Initialize the worker
+		if (this.config.shared) {
+			this.worker = new SharedWorker(config.bootstrapUrl || local.workerBootstrapUrl, config.namespace);
+			this.worker.port.start();
+		} else {
+			this.worker = new Worker(config.bootstrapUrl || local.workerBootstrapUrl);
+		}
+
+		// Setup the incoming message handler
+		this.getPort().addEventListener('message', (function(event) {
+			var message = event.data;
+			if (!message)
+				return console.error('Invalid message from worker: Payload missing', this, event);
+			if (this.config.log) { console.debug('WORKER received', message); }
+
+			// Handle messages with an `op` field as worker-control packets rather than HTTPL messages
+			switch (message.op) {
+				case 'ready':
+					// Bootstrap script can now accept commands
+					this.onWorkerReady(message.body);
+					break;
+				case 'loaded':
+					// User script has loaded
+					this.onWorkerUserScriptLoaded(message.body);
+					break;
+				case 'log':
+					this.onWorkerLog(message.body);
+					break;
+				case 'terminate':
+					this.terminate();
+					break;
+				default:
+					// If no 'op' field is given, treat it as an HTTPL request and pass onto our BridgeServer parent method
+					this.onChannelMessage(message);
+					break;
+			}
+		}).bind(this));
+	}
+	WorkerServer.prototype = Object.create(local.web.BridgeServer.prototype);
+	local.web.WorkerServer = WorkerServer;
+
+	// Returns the worker's messaging interface
+	// - varies between shared and normal workers
+	WorkerServer.prototype.getPort = function() {
+		return this.worker.port ? this.worker.port : this.worker;
+	};
+
+	WorkerServer.prototype.terminate = function() {
+		this.worker.terminate();
+		this.worker = null;
+		this.isUserScriptActive = false;
+	};
+
+	// Instructs the worker to set the given name to null
+	// - eg worker.nullify('XMLHttpRequest'); // no ajax
+	WorkerServer.prototype.nullify = function(name) {
+		this.channelSendMsg({ op: 'nullify', body: name });
+	};
+
+	// Instructs the WorkerServer to import the JS given by the URL
+	// - eg worker.importScripts('/my/script.js');
+	// - `urls`: required string|[string]
+	WorkerServer.prototype.importScripts = function(urls) {
+		this.channelSendMsg({ op: 'importScripts', body: urls });
+	};
+
+	// Returns true if the channel is ready for activity
+	// - returns boolean
+	WorkerServer.prototype.isChannelActive = function() {
+		return this.isUserScriptActive;
+	};
+
+	// Sends a single message across the channel
+	// - `msg`: required string
+	WorkerServer.prototype.channelSendMsg = function(msg) {
+		if (this.config.log) { console.debug('WORKER sending', msg); }
+		this.getPort().postMessage(msg);
+	};
+
+	// Remote request handler
+	WorkerServer.prototype.handleRemoteWebRequest = function(request, response) {
+		// :TODO: proxyyy
+		console.warn('WORKER handleRemoteWebRequest not defined', this);
+		response.writeHead(500, 'server not implemented');
+		response.end();
+	};
+
+	// Sends initialization commands
+	// - called when the bootstrap signals that it has finished loading
+	WorkerServer.prototype.onWorkerReady = function(message) {
+		this.hasHostPrivileges = message.hostPrivileges;
+		if (this.hasHostPrivileges) {
+			// Disable undesirable APIs
+			this.nullify('XMLHttpRequest');
+			this.nullify('Worker');
+
+			// Load user script
+			var src = this.config.src;
+			if (src.indexOf('data:application/javascript,') === 0)
+				src = 'data:application/javacsript;base64,'+btoa(src.slice(28));
+			this.channelSendMsg({ op: 'configure', body: this.config });
+			this.importScripts(src);
+		} else {
+			this.onWorkerUserScriptLoaded();
+		}
+	};
+
+	// Logs message data from the worker
+	WorkerServer.prototype.onWorkerLog = function(message) {
+		if (!message)
+			return;
+		if (!Array.isArray(message))
+			return console.error('Received invalid "log" operation: Payload must be an array', message);
+
+		var type = message.shift();
+		var args = ['['+this.config.domain+']'].concat(message);
+		switch (type) {
+			case 'error':
+				console.error.apply(console, args);
+				break;
+			case 'warn':
+				console.warn.apply(console, args);
+				break;
+			default:
+				console.log.apply(console, args);
+				break;
+		}
+	};
+
+	// Starts normal operation
+	// - called when the user script has finished loading
+	WorkerServer.prototype.onWorkerUserScriptLoaded = function(message) {
+		if (this.loadCb && typeof this.loadCb == 'function')
+			this.loadCb(message);
+		if (message && message.error) {
+			console.error('Failed to load user script in worker, terminating', message, this);
+			this.terminate();
+		}
+		else {
+			this.isUserScriptActive = true;
+			this.flushBufferedMessages();
+		}
+	};
+
+})();// WebRTC Peer Server
+// ==================
+
+(function() {
+
+  var peerConstraints = {
+    optional: [{ RtpDataChannels: true }]
+  };
+  var mediaConstraints = {
+    optional: [],
+    mandatory: { OfferToReceiveAudio: false, OfferToReceiveVideo: false }
+  };
+  var defaultIceServers = { iceServers: [{ url: 'stun:stun.l.google.com:19302' }] };
+
+  // RTCPeerServer
+  // =============
+  // EXPORTED
+  // server wrapper for WebRTC connections
+  // - currently only supports Chrome
+  // - `config.sigRelay`: a URI or navigator instance for a grimwire.com/rel/sse/relay
+  // - `config.initiate`: should this peer send the offer? If false, will wait for one
+  // - `chanOpenCb`: function, called when request channel is available
+  function RTCPeerServer(config, chanOpenCb) {
+    var self = this;
+    if (!config) config = {};
+    if (!config.sigRelay) throw "`config.sigRelay` is required";
+    local.web.Server.call(this);
+
+    // :DEBUG:
+    this.debugname = config.initiate ? 'A' : 'B';
+
+    // hook up to sse relay
+    var signalHandler = onSigRelayMessage.bind(this);
+    this.sigRelay = local.web.navigator(config.sigRelay);
+    this.sigRelay.subscribe({ headers: { 'last-event-id': -1 } })
+      .then(function(stream) {
+        self.state.signaling = true;
+        self.sigRelayStream = stream;
+        stream.on('message', signalHandler);
+      });
+    this.sigRelayStream = null;
+
+    // create peer connection
+    var servers = defaultIceServers;
+    if (config.iceServers)
+      servers = config.iceServers.concat(servers); // :TODO: is concat what we want?
+    this.peerConn = new webkitRTCPeerConnection(servers, peerConstraints);
+    this.peerConn.onicecandidate = onIceCandidate.bind(this);
+
+    // create request data channel
+    this.reqChannel = this.peerConn.createDataChannel('requestChannel', { reliable: false });
+    setupRequestChannel.call(this);
+    this.chanOpenCb = chanOpenCb;
+
+    // internal state
+    this.__offerOnReady = !!config.initiate;
+    this.__isOfferExchanged = false;
+    this.__candidateQueue = []; // cant add candidates till we get the offer
+    this.__ridcounter = 1; // current request id
+    this.__incomingRequests = {}; // only includes requests currently being received
+    this.__incomingResponses = {}; // only includes responses currently being received
+    this.__reqChannelBuffer = {}; // used to buffer messages that arrive out of order
+
+    // state flags (for external reflection)
+    this.state = {
+      alive: true,
+      signaling: false,
+      connected: false
+    };
+
+    this.signal({ type: 'ready' });
+  }
+  local.web.RTCPeerServer = RTCPeerServer;
+  RTCPeerServer.prototype = Object.create(local.web.Server.prototype);
+
+  // :DEBUG:
+  RTCPeerServer.prototype.debugLog = function() {
+    var args = [this.debugname].concat([].slice.call(arguments));
+    console.debug.apply(console, args);
+  };
+
+
+  // server behaviors
+  // -
+
+  // request handler
+  RTCPeerServer.prototype.handleLocalWebRequest = function(request, response) {
+    this.debugLog('HANDLING REQUEST', request);
+
+    if (request.path == '/') {
+      // Self resource
+      response.setHeader('link', [
+        { href: '/', rel: 'self service via' },
+        { href: '/{id}', rel: 'http://grimwire.com/rel/proxy' }
+        // :TODO: any links shared by the peer
+      ]);
+      if (request.method == 'GET') response.writeHead(200, 'ok', { 'content-type': 'application/json' }).end(this.state);
+      else if (request.method == 'HEAD') response.writeHead(200, 'ok').end();
+      else response.writeHead(405, 'bad method').end();
+    }
+    else {
+      // Proxy resource
+      proxyRequestToPeer.call(this, request, response);
+    }
+  };
+
+  // sends a received request to the peer to be dispatched
+  function proxyRequestToPeer(request, response) {
+    var self = this;
+    var via = getViaDesc.call(this);
+    var myHost = 'httpl://'+self.config.domain+'/';
+
+    var targetUrl = decodeURIComponent(request.path.slice(1));
+    var targetUrld = local.web.parseUri(targetUrl);
+    var theirHost = targetUrld.authority ? (targetUrld.protocol + '://' + targetUrld.authority) : myHost;
+
+    // gen subsequent request
+    var req2 = new local.web.Request(request);
+    req2.url = targetUrl;
+    // add via
+    req2.headers.via = (req2.headers.via) ? req2.headers.via.concat(via) : [via];
+
+    // dispatch the request in the peer namespace
+    req2.stream = true;
+    this.peerDispatch(req2).always(function(res2) {
+
+      // update response links to include the proxy
+      if (res2.headers.link) {
+        res2.headers.link.forEach(function(link) {
+          var urld = local.web.parseUri(link.href);
+          if (!urld.host)
+            link.href = theirHost + link.href; // prepend their host if they gave relative links
+          link.href = myHost + link.href; // now prepend our host
+        });
+      }
+      // add via
+      res2.headers.via = (res2.headers.via) ? res2.headers.via.concat(via) : [via];
+
+      // pipe back
+      response.writeHead(res2.status, res2.reason, res2.headers);
+      res2.on('data', response.write.bind(response));
+      res2.on('end', response.end.bind(response));
+    });
+
+    // pipe out
+    request.on('data', req2.write.bind(req2));
+    request.on('end', req2.end.bind(req2));
+  }
+
+  // helper, used to gen the via header during proxying
+  function getViaDesc() {
+    return {
+      protocol: { name: 'httpl', version: '0.4' },
+      host: this.config.domain,
+      comment: 'Grimwire/0.2'
+    };
+  }
+
+  RTCPeerServer.prototype.terminate = function() {
+    closePeer.call(this);
+  };
+
+
+  // request channel behaviors
+  // -
+
+  // sends a request to the peer to dispatch in their namespace
+  // - `request`: local.web.Request
+  // - only behaves as if request.stream == true (no response buffering)
+  RTCPeerServer.prototype.peerDispatch = function(request) {
+    // generate ids
+    var reqid = this.__ridcounter++;
+    var resid = -reqid;
+
+    // track the response
+    var response_ = local.promise();
+    var response = new local.web.Response();
+    response.on('headers', function(response) {
+      local.web.fulfillResponsePromise(response_, response);
+    });
+    this.__incomingResponses[resid] = response;
+
+    if (this.state.connected) {
+      var reqmid = 0; // message counter in the request stream
+      var chan = this.reqChannelReliable;
+      chan.send(reqid+':'+(reqmid++)+':h:'+JSON.stringify(request));
+      // wire up the request to pipe over
+      request.on('data',  function(data) { chan.send(reqid+':'+(reqmid++)+':d:'+data); });
+      request.on('end',   function()     { chan.send(reqid+':'+(reqmid++)+':e'); });
+      request.on('close', function()     { chan.send(reqid+':'+(reqmid++)+':c'); });
+    } else {
+      // not connected, send a 504
+      setTimeout(function() { response.writeHead(504, 'gateway timeout').end(); }, 0);
+      // ^ wait till next tick, as the dispatch is expected to be async
+    }
+
+    return response_;
+  };
+
+  // request channel incoming traffic handling
+  // - message format: <rid>:<mid>:<message type>[:<message data>]
+  //   - rid: request/response id, used to group together messages
+  //   - mid: message id, used to guarantee arrival ordering
+  //   - message type: indicates message content
+  //   - message data: optional, the message content
+  // - message types:
+  //   - 'h': headers* (new request)
+  //   - 'd': data* (request content, may be sent multiple times)
+  //   - 'e': end (request finished)
+  //   - 'c': close (request closed)
+  //   - *includes a message body
+  // - responses use the negated rid (request=5 -> response=-5)
+  function handleReqChannelIncomingMessage(msg) {
+    this.debugLog('REQ CHANNEL RELIABLE MSG', msg);
+
+    var parsedmsg = parseReqChannelMessage(msg);
+    if (!parsedmsg) return;
+
+    ensureReqChannelOrder.call(this, parsedmsg, function() {
+      if (parsedmsg[0] > 0)
+        // received a request to be dispatched within our namespace
+        handlePeerRequest.apply(this, parsedmsg);
+      else
+        // received a response to a previous request of ours
+        handlePeerResponse.apply(this, parsedmsg);
+    });
+  }
+
+  // handles incoming request messages from the peer
+  function handlePeerRequest(reqid, mid, mtype, mdata) {
+    var chan = this.reqChannelReliable;
+    var request;
+    if (mtype == 'h') {
+      try { request = JSON.parse(mdata); }
+      catch (e) { return console.warn('RTCPeerServer - Unparseable request headers message from peer', reqid, mtype, mdata); }
+
+      // new request from the peer, redispatch it on their behalf
+      request.stream = true;
+      request = new local.web.Request(request);
+      local.web.dispatch(request, this).always(function(response) {
+        var resid = -reqid; // indicate response with negated request id
+        var resmid = 0; // message counter in the response stream
+        chan.send(resid+':'+(resmid++)+':h:'+JSON.stringify(response));
+        // wire up the response to pipe back
+        response.on('data', function(data) { chan.send(resid+':'+(resmid++)+':d:'+data); });
+        response.on('end', function() { chan.send(resid+':'+(resmid++)+':e'); });
+        response.on('close', function() { chan.send(resid+':'+(resmid++)+':c'); });
+      });
+
+      this.__incomingRequests[reqid] = request; // start tracking
+    } else {
+      request = this.__incomingRequests[reqid];
+      if (!request) { return console.warn('RTCPeerServer - Invalid request id', reqid, mtype, mdata); }
+      // pass on additional messages in the request stream as they come
+      switch (mtype) {
+        case 'd': request.write(mdata); break;
+        case 'e': request.end(); break;
+        case 'c':
+          // request stream closed, shut it down
+          request.close();
+          delete this.__incomingRequests[reqid];
+          delete this.__reqChannelBuffer[reqid];
+          break;
+        default: console.warn('RTCPeerServer - Unrecognized message from peer', reqid, mtype, mdata);
+      }
+    }
+  }
+
+  // handles response messages from a previous request made to the peer
+  function handlePeerResponse(resid, mid, mtype, mdata) {
+    var response = this.__incomingResponses[resid];
+    if (!response)
+      return console.warn('RTCPeerServer - Invalid response id', resid, mtype, mdata);
+    // pass on messages in the response stream as they come
+    switch (mtype) {
+      case 'h':
+        try { mdata = JSON.parse(mdata); }
+        catch (e) { return console.warn('RTCPeerServer - Unparseable response headers message from peer', resid, mtype, mdata); }
+        response.writeHead(mdata.status, mdata.reason, mdata.headers);
+        break;
+      case 'd': response.write(mdata); break;
+      case 'e': response.end(); break;
+      case 'c':
+        // response stream closed, shut it down
+        response.close();
+        delete this.__incomingResponses[resid];
+        delete this.__reqChannelBuffer[resid];
+        break;
+      default: console.warn('RTCPeerServer - Unrecognized message from peer', resid, mtype, mdata);
+    }
+  }
+
+  // splits a request-channel message into its parts
+  // - format: <rid>:<message type>[:<message>]
+  var reqChannelMessageRE = /([\-\d]+):([\-\d]+):(.)(:.*)?/;
+  function parseReqChannelMessage(msg) {
+    var match = reqChannelMessageRE.exec(msg);
+    if (!match) { console.warn('RTCPeerServer - Unparseable message from peer', msg); return null; }
+    var parsedmsg = [parseInt(match[1], 10), parseInt(match[2], 10), match[3]];
+    if (match[4])
+      parsedmsg.push(match[4].slice(1));
+    return parsedmsg;
+  }
+
+  // tracks messages received in the request channel and delays processing if received out of order
+  function ensureReqChannelOrder(parsedmsg, cb) {
+    var rid = parsedmsg[0];
+    var mid = parsedmsg[1];
+
+    var buffer = this.__reqChannelBuffer[rid];
+    if (!buffer)
+      buffer = this.__reqChannelBuffer[rid] = { nextmid: 0, cbs: {} };
+
+    if (mid > buffer.nextmid) { // not the next message?
+      buffer.cbs[mid] = cb; // hold onto that callback
+      this.debugLog('REQ CHANNEL MSG OoO, BUFFERING', parsedmsg);
+    } else {
+      cb.call(this);
+      buffer.nextmid++;
+      while (buffer.cbs[buffer.nextmid]) { // burn through the queue
+        this.debugLog('REQ CHANNEL DRAINING OoO MSG', buffer.nextmid);
+        buffer.cbs[buffer.nextmid].call(this);
+        delete buffer.cbs[buffer.nextmid];
+        buffer.nextmid++;
+      }
+    }
+  }
+
+  function setupRequestChannel() {
+    this.reqChannelReliable = new Reliable(this.reqChannel); // :DEBUG: remove when reliable: true is supported
+    this.reqChannel.onopen = onReqChannelOpen.bind(this);
+    this.reqChannel.onclose = onReqChannelClose.bind(this);
+    this.reqChannel.onerror = onReqChannelError.bind(this);
+    // this.reqChannel.onmessage = handleReqChannelMessage.bind(this);
+    this.reqChannelReliable.onmessage = handleReqChannelIncomingMessage.bind(this);
+  }
+
+  function onReqChannelOpen(e) {
+    this.debugLog('REQ CHANNEL OPEN', e);
+    this.state.connected = true;
+    if (typeof this.chanOpenCb == 'function')
+      this.chanOpenCb();
+  }
+
+  function onReqChannelClose(e) {
+    // :TODO: anything?
+    this.debugLog('REQ CHANNEL CLOSE', e);
+  }
+
+  function onReqChannelError(e) {
+    // :TODO: anything?
+    this.debugLog('REQ CHANNEL ERR', e);
+  }
+
+
+  // signal relay behaviors
+  // -
+
+  // called when we receive a message from the relay
+  function onSigRelayMessage(m) {
+    var self = this;
+    var from = m.event, data = m.data;
+
+    if (data && typeof data != 'object') {
+      console.warn('RTCPeerServer - Unparseable signal message from'+from, m);
+      return;
+    }
+
+    // this.debugLog('SIG', m, from, data.type, data);
+    switch (data.type) {
+      case 'ready':
+        // peer's ready to start
+        if (this.__offerOnReady)
+          sendOffer.call(this);
+        break;
+
+      case 'closed':
+        // peer's dead, shut it down
+        closePeer.call(this);
+        break;
+
+      case 'candidate':
+        this.debugLog('GOT CANDIDATE', data.candidate);
+        // received address info from the peer
+        if (!this.__isOfferExchanged) this.__candidateQueue.push(data.candidate);
+        else this.peerConn.addIceCandidate(new RTCIceCandidate({ candidate: data.candidate }));
+        break;
+
+      case 'offer':
+        this.debugLog('GOT OFFER', data);
+        // received a session offer from the peer
+        this.peerConn.setRemoteDescription(new RTCSessionDescription(data));
+        handleOfferExchanged.call(self);
+        this.peerConn.createAnswer(
+          function(desc) {
+            self.debugLog('CREATED ANSWER', desc);
+            desc.sdp = Reliable.higherBandwidthSDP(desc.sdp); // :DEBUG: remove when reliable: true is supported
+            self.peerConn.setLocalDescription(desc);
+            self.signal({
+              type: 'answer',
+              sdp: desc.sdp
+            });
+          },
+          null,
+          mediaConstraints
+        );
+        break;
+
+      case 'answer':
+        this.debugLog('GOT ANSWER', data);
+        // received session confirmation from the peer
+        this.peerConn.setRemoteDescription(new RTCSessionDescription(data));
+        handleOfferExchanged.call(self);
+        break;
+
+      default:
+        console.warn('RTCPeerServer - Unrecognized signal message from'+from, m);
+    }
+  }
+
+  // helper to send a message to peers on the relay
+  RTCPeerServer.prototype.signal = function(data) {
+    this.sigRelay.dispatch({
+      method: 'notify',
+      headers: {
+        authorization: this.sigRelay.authHeader,
+        'content-type': 'application/json'
+      },
+      body: data
+    }).then(null, function(res) {
+      console.warn('RTCPeerServer - Failed to send signal message to relay', res);
+    });
+  };
+
+  // helper initiates a session with peers on the relay
+  function sendOffer() {
+    var self = this;
+    this.peerConn.createOffer(
+      function(desc) {
+        self.debugLog('CREATED OFFER', desc);
+        desc.sdp = Reliable.higherBandwidthSDP(desc.sdp); // :DEBUG: remove when reliable: true is supported
+        self.peerConn.setLocalDescription(desc);
+        self.signal({
+          type: 'offer',
+          sdp: desc.sdp
+        });
+      },
+      null,
+      mediaConstraints
+    );
+  }
+
+  // helper shuts down session
+  function closePeer() {
+    this.signal({ type: 'closed' });
+    this.state.alive = false;
+    this.state.signaling = false;
+    this.state.connected = false;
+
+    if (this.sigRelayStream)
+      this.sigRelayStream.close();
+    if (this.peerConn)
+      this.peerConn.close();
+  }
+
+  // helper called whenever we have a remote session description
+  // (candidates cant be added before then, so they're queued in case they come first)
+  function handleOfferExchanged() {
+    var self = this;
+    this.__isOfferExchanged = true;
+    this.__candidateQueue.forEach(function(candidate) {
+      self.peerConn.addIceCandidate(new RTCIceCandidate({ candidate: candidate }));
+    });
+    this.__candidateQueue.length = 0;
+  }
+
+  // called by the RTCPeerConnection when we get a possible connection path
+  function onIceCandidate(e) {
+    if (e && e.candidate) {
+      this.debugLog('FOUND ICE CANDIDATE', e.candidate);
+      // send connection info to peers on the relay
+      this.signal({
+        type: 'candidate',
+        candidate: e.candidate.candidate
+      });
+    }
+  }
+})();// schemes
 // =======
 // EXPORTED
 // dispatch() handlers, matched to the scheme in the request URIs
@@ -1205,7 +2461,7 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 	}
 
 	// assemble the final url
-	var url = ((urld.protocol) ? (urld.protocol + '://') : '') + urld.authority + urld.relative;
+	var url = ((urld.protocol) ? (urld.protocol + '://') : '//') + urld.authority + urld.relative;
 
 	// create the request
 	var xhrRequest = new XMLHttpRequest();
@@ -1337,28 +2593,19 @@ var localNotFoundServer = {
 	context: null
 };
 local.web.schemes.register('httpl', function(request, response) {
-	var urld = local.web.parseUri(request.url);
-
 	// need additional time to get the worker wired up
 	request.suspendEvents();
 	response.suspendEvents();
 
 	// find the local server
-	var server = local.web.getLocal(urld.host);
+	var server = local.web.getLocal(request.urld.host);
 	if (!server)
 		server = localNotFoundServer;
 
 	// pull out and standardize the path
-	request.path = urld.path;
+	request.path = request.urld.path;
 	if (!request.path) request.path = '/'; // no path, give a '/'
 	else request.path = request.path.replace(/(.)\/$/, '$1'); // otherwise, never end with a '/'
-
-	// if the urld has query parameters, mix them into the request's query object
-	if (urld.query) {
-		var q = local.web.contentTypes.deserialize(urld.query, 'application/x-www-form-urlencoded');
-		for (var k in q)
-			request.query[k] = q[k];
-	}
 
 	// support warnings
 	if (request.binary)
@@ -1409,31 +2656,27 @@ var __httpl_registry = {};
 
 // EXPORTED
 local.web.registerLocal = function registerLocal(domain, server, serverContext) {
-	var urld = local.web.parseUri(domain);
-	if (urld.protocol && urld.protocol !== 'httpl') throw "registerLocal can only add servers to the httpl protocol";
-	if (!urld.host) throw "invalid domain provided to registerLocal";
-	if (__httpl_registry[urld.host]) throw "server already registered at domain given to registerLocal";
-	__httpl_registry[urld.host] = { fn: server, context: serverContext };
+	if (__httpl_registry[domain]) throw "server already registered at domain given to registerLocal";
+
+	var isServerObj = (server instanceof local.web.Server);
+	if (isServerObj) {
+		serverContext = server;
+		server = server.handleLocalWebRequest;
+	}
+
+	__httpl_registry[domain] = { fn: server, context: serverContext };
 };
 
 // EXPORTED
 local.web.unregisterLocal = function unregisterLocal(domain) {
-	var urld = local.web.parseUri(domain);
-	if (!urld.host) {
-		throw "invalid domain provided toun registerLocal";
-	}
-	if (__httpl_registry[urld.host]) {
-		delete __httpl_registry[urld.host];
+	if (__httpl_registry[domain]) {
+		delete __httpl_registry[domain];
 	}
 };
 
 // EXPORTED
 local.web.getLocal = function getLocal(domain) {
-	var urld = local.web.parseUri(domain);
-	if (!urld.host) {
-		throw "invalid domain provided toun registerLocal";
-	}
-	return __httpl_registry[urld.host];
+	return __httpl_registry[domain];
 };
 
 // EXPORTED
@@ -1453,8 +2696,8 @@ var webDispatchWrapper;
 // - `request.query`: optional object, additional query params
 // - `request.headers`: optional object
 // - `request.body`: optional request body
-// - `request.stream`: boolean, stream the response? If falsey, will buffer and deserialize the response
-// - `request.binary`: boolean, receive a binary arraybuffer response? Only applies to HTTP/S
+// - `request.stream`: optional boolean, stream the response? If falsey, will buffer and deserialize the response
+// - `request.binary`: optional boolean, receive a binary arraybuffer response? Only applies to HTTP/S
 // - returns a `Promise` object
 //   - on success (status code 2xx), the promise is fulfilled with a `ClientResponse` object
 //   - on failure (status code 4xx,5xx), the promise is rejected with a `ClientResponse` object
@@ -1465,32 +2708,36 @@ local.web.dispatch = function dispatch(request) {
 		request = { url: request };
 	if (!request.url)
 		throw "no url on request";
-	var response = new local.web.Response();
 
-	// if not given a local.web.Request, make one and remember to end the request ourselves
-	var body = null, selfEnd = false;
+	// If given a rel: scheme, spawn a navigator to handle it
+	var scheme = parseScheme(request.url);
+	if (scheme == 'rel') {
+		var url = request.url;
+		delete request.url;
+		return local.web.navigator(url).dispatch(request);
+	}
+
+	// Prepare the request
+	var body = null, shouldAutoSendRequestBody = false;
 	if (!(request instanceof local.web.Request)) {
 		body = request.body;
 		request = new local.web.Request(request);
-		selfEnd = true; // we're going to end()
+		shouldAutoSendRequestBody = true; // we're going to end()
+	}
+	request.urld = local.web.parseUri(request.url); // (urld = url description)
+	if (request.urld.query) {
+		// Extract URL query parameters into the request's query object
+		var q = local.web.contentTypes.deserialize(request.urld.query, 'application/x-www-form-urlencoded');
+		for (var k in q)
+			request.query[k] = q[k];
+		request.urld.relative = request.urld.path + ((request.urld.anchor) ? ('#'+request.urld.anchor) : '');
+		request.url = request.urld.protocol+'://'+request.urld.authority+request.urld.relative;
 	}
 
-	// parse the url scheme
-	var scheme, firstColonIndex = request.url.indexOf(':');
-	if (firstColonIndex === -1)
-		scheme = 'http'; // default for relative paths
-	else
-		scheme = request.url.slice(0, firstColonIndex);
-
-	// if given a proxy: scheme, that's not something we can handle
-	if (scheme == 'proxy')
-		scheme = convertToProxyRequest(request); // so convert the request to something we can do
-
-	// update link headers to be absolute
-	response.on('headers', function() { processResponseHeaders(request, response); });
-
-	// wire up the response with the promise
+	// Generate response
+	var response = new local.web.Response();
 	var response_ = local.promise();
+	response.on('headers', function() { processResponseHeaders(request, response); });
 	if (request.stream) {
 		// streaming, fulfill on 'headers'
 		response.on('headers', function(response) {
@@ -1503,12 +2750,12 @@ local.web.dispatch = function dispatch(request) {
 		});
 	}
 
-	// just until the scheme handler gets a chance to wire up
+	// Suspend events until the scheme handler gets a chance to wire up
 	// (allows async to occur in the webDispatchWrapper)
 	request.suspendEvents();
 	response.suspendEvents();
 
-	// pull any extra arguments that may have been passed
+	// Pull any extra arguments that may have been passed
 	// form the paramlist: (request, response, dispatch, args...)
 	var args = Array.prototype.slice.call(arguments, 1);
 	args.unshift(function(request, response, schemeHandler) {
@@ -1524,14 +2771,14 @@ local.web.dispatch = function dispatch(request) {
 			request.resumeEvents();
 			response.resumeEvents();
 			// autosend request body if not given a local.web.Request `request`
-			if (selfEnd) request.end(body);
+			if (shouldAutoSendRequestBody) request.end(body);
 		}
 		return response_;
 	});
 	args.unshift(response);
 	args.unshift(request);
 
-	// allow the wrapper to audit the packet
+	// Allow the wrapper to audit the message
 	webDispatchWrapper.apply(null, args);
 
 	response_.request = request;
@@ -1560,7 +2807,7 @@ local.web.setDispatchWrapper(function(request, response, dispatch) {
 });
 
 // INTERNAL
-// Helper to massage response values
+// Makes sure response header links are absolute
 var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
 function processResponseHeaders(request, response) {
 	if (response.headers.link) {
@@ -1572,48 +2819,18 @@ function processResponseHeaders(request, response) {
 }
 
 // INTERNAL
-// Helper to convert a request using a proxy: scheme url into a proxy request using http/s/l
-// - returns the new scheme of the request
-function convertToProxyRequest(request) {
-	// split into url list
-	var urls, firstColonIndex;
-	try {
-		firstColonIndex = request.url.indexOf(':');
-		urls = request.url.slice(firstColonIndex+1).split('|');
-	} catch(e) {
-		console.warn('Failed to parse proxy URL', request.url, e);
-		return response.writeHead(0, 'invalid proxy URL').end();
+function parseScheme(url) {
+	var schemeMatch = /^([^.^:]*):/.exec(url);
+	if (!schemeMatch) {
+		// shorthand/default schemes
+		if (url.indexOf('//') === 0)
+			return 'http';
+		else if (url.indexOf('||') === 0)
+			return 'rel';
+		else
+			return 'httpl';
 	}
-
-	// update request to instruct proxy
-	var proxyUrl = urls.shift();
-	var destUrl = null;
-	if (!urls[0]) {
-		// only one url in the proxy string, just un-proxyify the url
-		// eg proxy:http://grimwire.com -> http://grimwire.com
-		request.url = proxyUrl;
-	} else {
-		if (!urls[1]) {
-			// two urls in the proxy string
-			// eg proxy:httpl://myproxy.grim|http://grimwire.com -> [httpl://myproxy.grim, http://grimwire.com]
-			destUrl = urls[0];
-		} else {
-			// multiple urls in the proxy string, reform destination as a smaller proxy url
-			// eg proxy:httpl://myproxy.grim|httpl://myproxy2.grim|http://grimwire.com
-			//     -> [httpl://myproxy.grim, proxy:httpl://myproxy2.grim|http://grimwire.com]
-			destUrl = 'proxy:'+urls.join('|');
-		}
-
-		// reform request as a proxy request
-		request.url = proxyUrl;
-		request.headers['proxy-to'] = destUrl;
-		request.headers['proxy-method'] = request.method;
-		request.method = 'PROXY';
-	}
-
-	// return new scheme
-	firstColonIndex = request.url.indexOf(':');
-	return request.url.slice(0, firstColonIndex);
+	return schemeMatch[1];
 }// Events
 // ======
 
@@ -1654,16 +2871,22 @@ local.web.EventStream = EventStream;
 EventStream.prototype = Object.create(local.util.EventEmitter.prototype);
 EventStream.prototype.connect = function(response_) {
 	var self = this;
+	var buffer = '', eventDelimIndex;
 	response_.then(
 		function(response) {
 			self.isConnOpen = true;
 			self.response = response;
 			response.on('data', function(payload) {
-				var events = payload.split("\r\n\r\n");
-				events.forEach(function(event) {
-					if (/^[\s]*$/.test(event)) return; // skip all whitespace
+				// Add any data we've buffered from past events
+				payload = buffer + payload;
+				// Step through each event, as its been given
+				while ((eventDelimIndex = payload.indexOf('\r\n\r\n')) !== -1) {
+					var event = payload.slice(0, eventDelimIndex);
 					emitEvent.call(self, event);
-				});
+					payload = payload.slice(eventDelimIndex+4);
+				}
+				// Hold onto any lefovers
+				buffer = payload;
 			});
 			response.on('end', function() { self.close(); });
 			response.on('close', function() { if (self.isConnOpen) { self.isConnOpen = false; self.reconnect(); } });
@@ -2628,330 +3851,437 @@ function getEnvironmentHost() {
 	return '';
 }
 
-// navigator sugar functions
-// =========================
-// these constants specify which sugars to add to the navigator
-var NAV_REQUEST_FNS = ['head',/*'get',*/'post','put','patch','delete']; // get is added separately
-var NAV_GET_TYPES = {
-	'Json':'application/json','Html':'text/html','Xml':'text/xml',
-	'Events':'text/event-stream','Eventstream':'text/event-stream',
-	'Plain':'text/plain', 'Text':'text/plain'
-};
-// http://www.iana.org/assignments/link-relations/link-relations.xml
-// (I've commented out the relations which are probably not useful enough to make sugars for)
-var NAV_RELATION_FNS = [
-	'alternate', /*'appendix', 'archives',*/ 'author', /*'bookmark', 'canonical', 'chapter',*/ 'collection',
-	/*'contents', 'copyright',*/ 'current', 'describedby', /*'disclosure', 'duplicate', 'edit', 'edit-media',
-	'enclosure',*/ 'first', /*'glossary', 'help', 'hosts', 'hub', 'icon',*/ 'index', 'item', 'last',
-	'latest-version', /*'license', 'lrdd',*/ 'monitor', 'monitor-group', 'next', 'next-archive', /*'nofollow',
-	'noreferrer',*/ 'payment', 'predecessor-version', /*'prefetch',*/ 'prev', /*'previous',*/ 'prev-archive',
-	'related', 'replies', 'search',	/*'section',*/ 'self', 'service', /*'start', 'stylesheet', 'subsection',*/
-	'successor-version', /*'tag',*/ 'up', 'version-history', 'via', 'working-copy', 'working-copy-of'
-];
-
 // NavigatorContext
 // ================
 // INTERNAL
 // information about the resource that a navigator targets
-//  - may exist in an "unresolved" state until the URI is confirmed by a response from the server
-//  - may exist in a "bad" state if an attempt to resolve the link failed
-//  - may be "relative" if described by a relation from another context
-//  - may be "absolute" if described by a URI
+//  - exists in an "unresolved" state until the URI is confirmed by a response from the server
+//  - enters a "bad" state if an attempt to resolve the link failed
+//  - may be "relative" if described by a relation from another context (eg a query or a relative URI)
+//  - may be "absolute" if described by an absolute URI
 // :NOTE: absolute contexts may have a URI without being resolved, so don't take the presence of a URI as a sign that the resource exists
-function NavigatorContext(rel, relparams, url) {
-	this.rel          = rel;
-	this.relparams    = relparams;
-	this.url          = url;
-
+function NavigatorContext(query) {
+	this.query = query;
 	this.resolveState = NavigatorContext.UNRESOLVED;
-	this.error        = null;
+	this.error = null;
+	this.queryIsAbsolute = (typeof query == 'string' && local.web.isAbsUri(query));
+	if (this.queryIsAbsolute) {
+		this.url  = query;
+		this.urld = local.web.parseUri(this.url);
+	} else {
+		this.url = null;
+		this.urld = null;
+	}
 }
 NavigatorContext.UNRESOLVED = 0;
 NavigatorContext.RESOLVED   = 1;
 NavigatorContext.FAILED     = 2;
 NavigatorContext.prototype.isResolved = function() { return this.resolveState === NavigatorContext.RESOLVED; };
-NavigatorContext.prototype.isBad      = function() { return this.resolveState > 1; };
-NavigatorContext.prototype.isRelative = function() { return (!this.url && !!this.rel); };
-NavigatorContext.prototype.isAbsolute = function() { return (!!this.url); };
+NavigatorContext.prototype.isBad      = function() { return this.resolveState === NavigatorContext.FAILED; };
+NavigatorContext.prototype.isRelative = function() { return (!this.queryIsAbsolute); };
+NavigatorContext.prototype.isAbsolute = function() { return this.queryIsAbsolute; };
 NavigatorContext.prototype.getUrl     = function() { return this.url; };
 NavigatorContext.prototype.getError   = function() { return this.error; };
-NavigatorContext.prototype.getHost    = function() {
-	if (!this.host) {
-		if (!this.url) { return null; }
-		var urld  = local.web.parseUri(this.url);
-		this.host = (urld.protocol || 'http') + '://' + (urld.authority || getEnvironmentHost());
-	}
-	return this.host;
-};
 NavigatorContext.prototype.resetResolvedState = function() {
 	this.resolveState = NavigatorContext.UNRESOLVED;
 	this.error = null;
 };
-NavigatorContext.prototype.resolve    = function(url) {
+NavigatorContext.prototype.setResolved = function(url) {
 	this.error        = null;
 	this.resolveState = NavigatorContext.RESOLVED;
-	this.url          = url;
-	var urld          = local.web.parseUri(this.url);
-	this.host         = (urld.protocol || 'http') + '://' + urld.authority;
+	if (url) {
+		this.url          = url;
+		this.urld         = local.web.parseUri(this.url);
+	}
+};
+NavigatorContext.prototype.setFailed = function(error) {
+	this.error        = error;
+	this.resolveState = NavigatorContext.FAILED;
 };
 
 // Navigator
 // =========
 // EXPORTED
 // API to follow resource links (as specified by the response Link header)
-//  - uses the rel attribute to type its navigations
+//  - uses the rel attribute as the primary link label
 //  - uses URI templates to generate URIs
-//  - queues link navigations until a request is made, to decrease on the amount of async calls required
-//
-// example usage:
+//  - queues link navigations until a request is made
 /*
-var github = new Navigator('https://api.github.com');
-var me = github.collection('users').item('pfraze');
 
-me.getJson()
-	// -> HEAD https://api.github.com
-	// -> HEAD https://api.github.com/users
-	// -> GET  https://api.github.com/users/pfraze
-	.then(function(myData, headers, status) {
-		myData.email = 'pfrazee@gmail.com';
-		me.put(myData);
-		// -> PUT https://api.github.com/users/pfraze { email:'pfrazee@gmail.com', ...}
+// EXAMPLE 1. Get Bob from Foobar.com
+// - basic navigation
+// - requests
+var foobarService = local.web.navigator('https://foobar.com');
+var bob = foobarService.follow('rel:||collection=users||item=bob');
+// ^ or foobarService.follow([{ rel: 'collection', id: 'users' }, { rel: 'item', id:'bob' }]);
+// ^ or foobarService.follow({ rel: 'collection', id: 'users' }).follow({ rel: 'item', id:'bob' });
+bob.get()
+	// -> HEAD https://foobar.com
+	// -> HEAD https://foobar.com/users
+	// -> GET  https://foobar.com/users/bob (Accept: application/json)
+	.then(function(response) {
+		var bobsProfile = response.body;
 
-		github.collection('users', { since:profile.id }).getJson(function(usersData) {
-			// -> GET https://api.github.com/users?since=123
-			//...
-		});
+		// Update Bob's email
+		bobsProfile.email = 'bob@gmail.com';
+		bob.put(bobsProfile);
+		// -> PUT https://foobar.com/users/bob { email:'bob@gmail.com', ...} (Content-Type: application/json)
+	});
+
+// EXAMPLE 2. Get all users who joined after 2013, in pages of 150
+// - additional navigation query parameters
+// - server-driven batching
+var pageCursor = foobarService.follow('rel:||collection=users,since=2013-01-01,limit=150');
+pageCursor.get()
+	// -> GET https://foobar.com/users?since=2013-01-01&limit=150 (Accept: application/json)
+	.then(function readNextPage(response) {
+		// Send the emails
+		emailNewbieGreetings(response.body); // -- emailNewbieGreetings is a fake utility function
+
+		// Go to the 'next page' link, as supplied by the response
+		pageCursor = pageCursor.follow('rel:||next');
+		return pageCursor.get().then(readNextPage);
+		// -> GET https://foobar.com/users?since=2013-01-01&limit=150&offset=150 (Accept: application/json)
+	})
+	.fail(function(response, request) {
+		// Not finding a 'rel=next' link means the server didn't give us one.
+		if (response.status == local.web.LINK_NOT_FOUND) { // 001 Local: Link not found - termination condition
+			// Tell Bob his greeting was sent
+			bob.follow('rel:||grimwire.com/-mail/inbox').post({
+				title: '2013 Welcome Emails Sent',
+				body: 'Good work, Bob.'
+			});
+			// -> POST https://foobar.com/mail/users/bob/inbox (Content-Type: application/json)
+		} else {
+			// Tell Bob something went wrong
+			bob.follow('rel:||grimwire.com/-mail/inbox').post({
+				title: 'ERROR! 2013 Welcome Emails Failed!',
+				body: 'Way to blow it, Bob.',
+				attachments: {
+					'dump.json': {
+						context: pageCursor.getContext(),
+						request: request,
+						response: response
+					}
+				}
+			});
+			// -> POST https://foobar.com/mail/users/bob/inbox (Content-Type: application/json)
+		}
 	});
 */
 function Navigator(context, parentNavigator) {
 	this.context         = context         || null;
 	this.parentNavigator = parentNavigator || null;
 	this.links           = null;
-	this.authHeader      = null;
+	this.requestDefaults = null;
 
-	// were we passed a url?
-	if (typeof this.context == 'string') {
-		// absolute context
-		this.context = new NavigatorContext(null, null, context);
-	} else {
-		// relative context
-		if (!parentNavigator)
-			throw "parentNavigator is required for navigators with relative contexts";
-	}
+	if (this.context.isRelative() && !parentNavigator)
+		throw new Error("A parentNavigator is required for navigators with relative contexts");
 }
 local.web.Navigator = Navigator;
 
-// sets an auth header value to be used in all requests (when no auth is given in the request)
-Navigator.prototype.setAuthHeader = function(v) {
-	this.authHeader = v;
+// Sets defaults to be used in all requests
+// - eg nav.setRequestDefaults({ method: 'GET', headers: { authorization: 'bob:pass', accept: 'text/html' }})
+// - eg nav.setRequestDefaults({ proxy: 'httpl://myproxy.app' })
+Navigator.prototype.setRequestDefaults = function(v) {
+	this.requestDefaults = v;
 };
 
-// executes an HTTP request to our context
+// Helper to copy over request defaults
+function copyDefaults(target, defaults) {
+	for (var k in defaults) {
+		if (k == 'headers' || !!target[k])
+			continue;
+		// ^ headers should be copied per-attribute
+		if (typeof defaults[k] == 'object')
+			target[k] = local.util.deepClone(defaults[k]);
+		else
+			target[k] = defaults[k];
+	}
+	if (defaults.headers) {
+		if (!target.headers)
+			target.headers = {};
+		copyDefaults(target.headers, defaults.headers);
+	}
+}
+
+// Executes an HTTP request to our context
 //  - uses additional parameters on the request options:
 //    - retry: bool, should the url resolve be tried if it previously failed?
-//    - noresolve: bool, should we use the url we have and not try to resolve one from our parent's links?
-Navigator.prototype.dispatch = function Navigator__dispatch(req) {
-	if (!req || !req.method) { throw "request options not provided"; }
+Navigator.prototype.dispatch = function(req) {
+	if (!req) req = {};
 	if (!req.headers) req.headers = {};
 	var self = this;
 
-	if (!req.headers.authorization && this.authHeader)
-		req.headers.authorization = this.authHeader;
+	if (this.requestDefaults)
+		copyDefaults(req, this.requestDefaults);
 
-	var response = local.promise();
-	((req.noresolve) ? local.promise(this.context.getUrl()) : this.resolve({ retry:req.retry, nohead:true }))
+	// Resolve our target URL
+	return ((req.url) ? local.promise(req.url) : this.resolve({ retry: req.retry, nohead: true }))
 		.succeed(function(url) {
 			req.url = url;
 			return local.web.dispatch(req);
 		})
 		.succeed(function(res) {
-			self.context.error = null;
-			self.context.resolveState = NavigatorContext.RESOLVED;
-			if (res.headers.link)
-				self.links = res.headers.link;
-			else
-				self.links = self.links || []; // cache an empty link list so we dont keep trying during resolution
+			// After every successful request, update our links and mark our context as good (in case it had been bad)
+			self.context.setResolved();
+			if (res.headers.link) self.links = res.headers.link;
+			else self.links = self.links || []; // cache an empty link list so we dont keep trying during resolution
 			return res;
 		})
 		.fail(function(res) {
-			if (res.status === 404) {
-				self.context.error = res;
-				self.context.resolveState = NavigatorContext.FAILED;
-			}
+			// Let a 1 or 404 indicate a bad context (as opposed to some non-navigational error like a bad request body)
+			if (res.status === local.web.LINK_NOT_FOUND || res.status === 404)
+				self.context.setFailed(res);
 			throw res;
-		})
-		.chain(response);
-	return response;
-};
-
-// executes a GET text/event-stream request to our context
-Navigator.prototype.subscribe = function Navigator__subscribe(opts) {
-	var self = this;
-	if (!opts) opts = {};
-	if (!opts.headers) opts.headers = {};
-	return this.resolve()
-		.succeed(function(url) {
-			opts.url = url;
-			if (!opts.headers.authorization && self.authHeader)
-				opts.headers.authorization = self.authHeader;
-			return local.web.subscribe(opts);
 		});
 };
 
-// follows a link relation from our context, generating a new navigator
-//  - uses URI Templates to generate links
-//  - first looks for a matching rel and id
-//    eg relation('item', 'foobar'), Link: <http://example.com/some/foobar>; rel="item"; id="foobar" -> http://example.com/some/foobar
-//  - then looks for a matching rel with no id and uses that to generate the link
-//    eg relation('item', 'foobar'), Link: <http://example.com/some/{id}>; rel="item" -> http://example.com/some/foobar
-//  - `extraParams` are any other URI template substitutions which should occur
-//    eg relation('item', 'foobar', { limit:5 }), Link: <http://example.com/some/{id}{?limit}>; rel="item" -> http://example.com/some/foobar?limit=5
-Navigator.prototype.relation = function Navigator__relation(rel, id, extraParams) {
-	var params = extraParams || {};
-	params.id = (id || '').toLowerCase();
+// Executes a GET text/event-stream request to our context
+Navigator.prototype.subscribe = function(req) {
+	var self = this;
+	if (!req) req = {};
+	return this.resolve().succeed(function(url) {
+		req.url = url;
 
-	var child = new Navigator(new NavigatorContext(rel, params), this);
-	if (this.authHeader)
-		child.setAuthHeader(this.authHeader);
-	return child;
+		if (self.requestDefaults)
+			copyDefaults(req, self.requestDefaults);
+
+		return local.web.subscribe(req);
+	});
 };
 
-// resolves the navigator's URL, reporting failure if a link or resource is unfound
+// Follows a link relation from our context, generating a new navigator
+// - `query` may be:
+//   - an object in the same form of a `local.web.queryLink()` parameter
+//   - an array of link query objects (to be followed sequentially)
+//   - a URI string
+//     - if using the 'rel:' scheme, will convert the URI into a link query object
+//     - if a relative URI using the HTTP/S/L scheme, will follow the relation relative to the current context
+//     - if an absolute URI using the HTTP/S/L scheme, will go to that URI
+// - uses URI Templates to generate URLs
+// - when querying, only the `rel` and `id` (if specified) attributes must match
+//   - the exception to this is: `rel` matches and the HREF has an {id} token
+//   - all other attributes are used to fill URI Template tokens and are not required to match
+Navigator.prototype.follow = function(query) {
+	// convert rel: uri to a query array
+	if (typeof query == 'string' && local.web.isRelSchemeUri(query))
+		query = local.web.parseRelUri(query);
+
+	// make sure we always have an array
+	if (!Array.isArray(query))
+		query = [query];
+
+	// build a full follow() chain
+	var nav = this;
+	do {
+		nav = new Navigator(new NavigatorContext(query.shift()), nav);
+		if (this.requestDefaults)
+			nav.setRequestDefaults(this.requestDefaults);
+	} while (query[0]);
+
+	return nav;
+};
+
+// Resolves the navigator's URL, reporting failure if a link or resource is unfound
 //  - also ensures the links have been retrieved from the context
 //  - may trigger resolution of parent contexts
 //  - options is optional and may include:
 //    - retry: bool, should the resolve be tried if it previously failed?
 //    - nohead: bool, should we issue a HEAD request once we have a URL? (not favorable if planning to dispatch something else)
 //  - returns a promise
-Navigator.prototype.resolve = function Navigator__resolve(options) {
+Navigator.prototype.resolve = function(options) {
 	var self = this;
 	options = options || {};
 
 	var nohead = options.nohead;
-	delete options.nohead; // pull it out so that parent resolves do their head requests
+	delete options.nohead;
+	// ^ pull `nohead` out so that parent resolves are `nohead: false` - we do want them to dispatch HEAD requests to resolve us
 
 	var resolvePromise = local.promise();
-	if (this.links !== null && (this.context.isResolved() || (this.context.isAbsolute() && this.context.isBad() === false)))
+	if (this.links !== null && (this.context.isResolved() || (this.context.isAbsolute() && this.context.isBad() === false))) {
+		// We have links and we were previously resolved (or we're absolute so there's no need)
 		resolvePromise.fulfill(this.context.getUrl());
-	else if (this.context.isBad() === false || (this.context.isBad() && options.retry)) {
+	} else if (this.context.isBad() === false || (this.context.isBad() && options.retry)) {
+		// We don't have links, and we haven't previously failed (or we want to try again)
 		this.context.resetResolvedState();
-		if (this.parentNavigator)
-			this.parentNavigator.__resolveChild(this, options)// lookup link in parent navigator
-				.succeed(function(url) {
-					if (nohead)
-						return true;
-					// send HEAD request for links
-					return self.head(null, null, null, { noresolve:true });
+
+		if (this.context.isRelative()) {
+			if (!this.parentNavigator)
+				throw new Error("Relative navigator has no parent");
+
+			// Up the chain we go
+			resolvePromise = this.parentNavigator.resolve(options)
+				.succeed(function() {
+					// Parent resolved, query its links
+					var childUrl = self.parentNavigator.lookupLink(self.context);
+					if (childUrl) {
+						// We have a pope! I mean, link.
+						self.context.setResolved(childUrl);
+
+						// Send a HEAD request to get our links
+						if (nohead) // unless dont
+							return childUrl;
+						return self.dispatch({ method: 'HEAD', url: childUrl })
+							.succeed(function() { return childUrl; }); // fulfill resolvePromise afterward
+					}
+
+					// Error - Link not found
+					var response = new local.web.Response();
+					response.writeHead(local.web.LINK_NOT_FOUND, 'link query failed to match').end();
+					throw response;
 				})
-				.succeed(function(res) { return self.context.getUrl(); })
-				.chain(resolvePromise);
-		else
-			((nohead) ? local.promise(true) : this.head(null, null, null, { noresolve:true })) // head request to our absolute url to confirm it
-				.succeed(function(res) { return self.context.getUrl(); })
-				.chain(resolvePromise);
-	} else
+				.fail(function(error) {
+					self.context.setFailed(error);
+					throw error;
+				});
+		} else {
+			// At the top of the chain already
+			if (nohead)
+				resolvePromise.fulfill(self.context.getUrl());
+			else {
+				resolvePromise = this.dispatch({ method: 'HEAD', url: self.context.getUrl() })
+					.succeed(function(res) { return self.context.getUrl(); });
+			}
+		}
+	} else {
+		// We failed in the past and we don't want to try again
 		resolvePromise.reject(this.context.getError());
+	}
 	return resolvePromise;
 };
 
-// resolves a child navigator's context relative to our own
-//  - may trigger resolution of parent contexts
-//  - options is optional and may include:
-//    - retry: bool, should the resolve be tried if it previously failed?
-//  - returns a promise
-Navigator.prototype.__resolveChild = function Navigator__resolveChild(childNav, options) {
-	var self = this;
-	var resolvedPromise = local.promise();
-
-	// resolve self before resolving child
-	this.resolve(options).then(
-		function() {
-			var childUrl = self.__lookupLink(childNav.context);
-			if (childUrl) {
-				childNav.context.resolve(childUrl);
-				resolvedPromise.fulfill(childUrl);
-			} else {
-				var response = new local.web.Response();
-				response.writeHead(404, 'link relation not found').end();
-				resolvedPromise.reject(response);
+// Looks up a link in the cache and generates the URI (the follow logic)
+Navigator.prototype.lookupLink = function(context) {
+	if (context.query) {
+		if (typeof context.query == 'object') {
+			// Try to find a link with matching rel and id
+			var link, reducedQuery = { rel: context.query.rel, id: context.query.id };
+			link = local.web.queryLinks1(this.links, reducedQuery);
+			if (!link && reducedQuery.id) {
+				// Try again without the id
+				reducedQuery.id = undefined;
+				link = local.web.queryLinks1(this.links, reducedQuery);
+				// Make sure we got a link with an id templating token
+				if (/{id}/.test(link.href) === false)
+					link = null;
 			}
-		},
-		function(error) {
-			// we're bad, and all children are bad as well
-			childNav.context.error = error;
-			childNav.context.resolveState = NavigatorContext.FAILED;
-			resolvedPromise.reject(error);
-			return error;
+
+			if (link)
+				return local.web.UriTemplate.parse(link.href).expand(context.query);
 		}
-	);
-
-	return resolvedPromise;
-};
-
-// looks up a link in the cache and generates the URI
-//  - first looks for a matching rel and id
-//    eg item('foobar') -> Link: <http://example.com/some/foobar>; rel="item"; id="foobar" -> http://example.com/some/foobar
-//  - then looks for a matching rel with no id and uses that to generate the link
-//    eg item('foobar') -> Link: <http://example.com/some/{item}>; rel="item" -> http://example.com/some/foobar
-Navigator.prototype.__lookupLink = function Navigator__lookupLink(context) {
-	// try to find the link with a id equal to the param we were given
-	var href = local.web.lookupLink(this.links, context.rel, context.relparams.id);
-	if (href)
-		return local.web.UriTemplate.parse(href).expand(context.relparams);
-	console.log('Failed to find a link to resolve context. Target link:', context.rel, context.relparams, 'Navigator:', this);
+		else if (typeof context.query == 'string') {
+			// A URL
+			if (!local.web.isAbsUrl(context.query))
+				return local.web.joinRelPath(this.context.urld, context.query);
+			return context.query;
+		}
+	}
+	console.log('Failed to find a link to resolve context. Link query:', context.query, 'Navigator:', this);
 	return null;
 };
 
-// add navigator dispatch sugars
-NAV_REQUEST_FNS.forEach(function (m) {
-	Navigator.prototype[m] = function(body, type, headers, options) {
+// Dispatch Sugars
+// ===============
+function makeDispSugar(method) {
+	return function(headers, options) {
 		var req = options || {};
 		req.headers = headers || {};
-		req.method = m;
-		if (body !== null && typeof body != 'null' && /head/i.test(m) === false)
-			req.headers['content-type'] = type || (typeof body == 'object' ? 'application/json' : 'text/plain');
+		req.method = method;
+		return this.dispatch(req);
+	};
+}
+function makeDispWBodySugar(method) {
+	return function(body, headers, options) {
+		var req = options || {};
+		req.headers = headers || {};
+		req.method = method;
 		req.body = body;
 		return this.dispatch(req);
 	};
-});
-
-// add get sugar
-Navigator.prototype.get = function(type, headers, options) {
-	var req = options || {};
-	req.headers = headers || {};
-	req.method = 'get';
-	req.headers.accept = type;
-	return this.dispatch(req);
-};
-
-// add get* request sugars
-for (var t in NAV_GET_TYPES) {
-	(function(t, mimetype) {
-		Navigator.prototype['get'+t] = function(headers, options) {
-			return this.get(mimetype, headers, options);
-		};
-	})(t, NAV_GET_TYPES[t]);
 }
+Navigator.prototype.head   = makeDispSugar('HEAD');
+Navigator.prototype.get    = makeDispSugar('GET');
+Navigator.prototype.delete = makeDispSugar('DELETE');
+Navigator.prototype.post   = makeDispWBodySugar('POST');
+Navigator.prototype.put    = makeDispWBodySugar('PUT');
+Navigator.prototype.patch  = makeDispWBodySugar('PATCH');
+Navigator.prototype.notify = makeDispWBodySugar('NOTIFY');
 
-// add navigator relation sugars
-NAV_RELATION_FNS.forEach(function (r) {
-	var safe_r = r.replace(/-/g, '_');
-	Navigator.prototype[safe_r] = function(param, extra) {
-		return this.relation(r, param, extra);
-	};
-});
+// Builder
+// =======
+local.web.navigator = function(queryOrNav) {
+	if (queryOrNav instanceof Navigator)
+		return queryOrNav;
 
-// builder fn
-local.web.navigator = function(urlOrNavOrLinks, optRel, optId) {
-	if (urlOrNavOrLinks instanceof Navigator)
-		return urlOrNavOrLinks;
-	var url;
-	if (Array.isArray(urlOrNavOrLinks))
-		url = local.web.lookupLink(urlOrNavOrLinks, optRel, optId);
-	else
-		url = urlOrNavOrLinks;
-	return new Navigator(url);
-};})();// Local Worker Tools
+	// convert rel: uri to a query array
+	if (typeof queryOrNav == 'string' && local.web.isRelSchemeUri(queryOrNav))
+		queryOrNav = local.web.parseRelUri(queryOrNav);
+
+	// make sure we always have an array
+	if (!Array.isArray(queryOrNav))
+		queryOrNav = [queryOrNav];
+
+	// build a full follow() chain
+	var nav = new Navigator(new NavigatorContext(queryOrNav.shift()));
+	while (queryOrNav[0]) {
+		nav = new Navigator(new NavigatorContext(queryOrNav.shift()), nav);
+	}
+
+	return nav;
+};// Local Registry Host
+local.web.registerLocal('hosts', function(req, res) {
+	var localHosts = local.web.getLocalRegistry();
+
+	if (!(req.method == 'HEAD' || req.method == 'GET'))
+		return res.writeHead(405, 'bad method').end();
+
+	if (req.method == 'GET' && !local.web.preferredType(req, 'application/json'))
+		return res.writeHead(406, 'bad accept - only provides application/json').end();
+
+	var hostResponses_ = [], i=0;
+	for (var domain in localHosts) {
+		if (domain == 'hosts')
+			continue;
+		hostResponses_.push(local.dispatch({ method: 'HEAD', url: 'httpl://'+domain }));
+		hostResponses_[i++].domain = domain;
+	}
+
+	local.promise.bundle(hostResponses_)
+		.then(function(hostResponses) {
+			var domains = [], links = [];
+
+			hostResponses.forEach(function(hostResponse, i) {
+				var domain = hostResponses_[i].domain;
+				var selfLink = local.web.queryLinks1(hostResponse, { rel: 'self' });
+				if (!selfLink) {
+					selfLink = {};
+				}
+				selfLink.href = 'httpl://'+domain;
+				selfLink.id = domain;
+				if (!selfLink.rel) {
+					selfLink.rel = '';
+				}
+
+				// Strip standard rel values
+				var relUrlRegex = /((\S*\/\/)?(\S*\.\S*))/ig, relUrlMatches, relUrls = '';
+				while ((relUrlMatches = relUrlRegex.exec(selfLink.rel))) {
+					relUrls += relUrlMatches[1] + ' ';
+				}
+				selfLink.rel = relUrls + 'service item';
+				links.push(selfLink);
+				domains.push(domain);
+			});
+			res.setHeader('link', links);
+
+			if (req.method == 'HEAD')
+				return res.writeHead(204, 'ok, no content').end();
+			res.writeHead(200, 'ok', { 'content-type': 'application/json' });
+			res.end({ host_names: domains });
+		});
+
+
+});})();// Local Worker Tools
 // ==================
 // pfraze 2013
 
@@ -2960,484 +4290,121 @@ if (typeof this.local == 'undefined')
 if (typeof this.local.worker == 'undefined')
 	this.local.worker = {};
 
-(function() {// Worker Named Messaging
-// ======================
+(function() {(function() {
 
-(function() {
-	var __cur_cid = 1;
-	function gen_cid() { return __cur_cid++; }
-	var __cur_mid = 1;
-	function gen_mid() { return __cur_mid++; }
-
-	// PageConnection
-	// ==============
+	// PageServer
+	// ==========
 	// EXPORTED
 	// wraps the comm interface to a page for messaging
 	// - `id`: required number, should be the index of the connection in the list
 	// - `port`: required object, either `self` (for non-shared workers) or a port from `onconnect`
 	// - `isHost`: boolean, should connection get host privileges?
-	function PageConnection(id, port, isHost) {
+	function PageServer(id, port, isHost) {
+		local.web.BridgeServer.call(this);
 		this.id = id;
 		this.port = port;
-		this.isHostConnection = isHost;
+		this.isHostPage = isHost;
 
-		this.exchanges = {};
-		this.exchangeListeners = {};
-
-		// operations stream - open by default on both ends
-		this.ops = 0;
-		this.exchanges[this.ops] = { topic: null, messageListeners: {} };
-
-		setupMessagingHandlers.call(this);
-		if (isHost)
-			setupHostOpsHandlers.call(this);
-	}
-	local.worker.PageConnection = PageConnection;
-
-
-	// messaging api
-	// -
-
-	// INTERNAL
-	// registers listeners required for messaging
-	function setupMessagingHandlers() {
-		// native message handler
+		// Setup the incoming message handler
 		this.port.addEventListener('message', (function(event) {
 			var message = event.data;
 			if (!message)
-				return console.error('Invalid message from page: Payload missing', message);
-			if (typeof message.id == 'undefined')
-				return console.error('Invalid message from page: `id` missing', message);
-			if (typeof message.exchange == 'undefined')
-				return console.error('Invalid message from page: `exchange` missing', message);
-			if (!message.label)
-				return console.error('Invalid message from page: `label` missing', message);
+				return console.error('Invalid message from page: Payload missing', event);
 
-			// exchanges from the page use negative IDs (to avoid collisions)
-			message.exchange = parseInt(message.exchange, 10);
-			if (message.exchange !== this.ops) // (except the ops channel)
-				message.exchange = -message.exchange;
-
-			// notify onMessage listeners
-			emitOnMessage.call(this, message);
-		}).bind(this));
-
-		// new exchange handler
-		this.onMessage(this.ops, 'open_exchange', (function(message) {
-			if (!message.data)
-				return console.error('Invalid ops-exchange "open_exchange" message from page: Payload missing', message);
-			if (!message.data.topic)
-				return console.error('Invalid ops-exchange "open_exchange" message from page: `topic` missing', message);
-			if (typeof message.data.exchange == 'undefined')
-				return console.error('Invalid ops-exchange "open_exchange" message from page: `exchange` missing', message);
-
-			// exchanges from the page use negative IDs (to avoid collisions)
-			message.data.exchange = -parseInt(message.data.exchange, 10);
-			this.exchanges[message.data.exchange] = { topic: message.data.topic, messageListeners: {}, metaData: {} };
-
-			// notify onExchange listeners
-			emitOnExchange.call(this, message.data.topic, message.data.exchange);
-		}).bind(this));
-
-		// end exchange handler
-		this.onMessage(this.ops, 'close_exchange', (function(message) {
-			var exchange = -parseInt(message.data, 10);
-			if (exchange === 0)
-				return console.error('Invalid ops-exchange "close_exchange" message from page: Cannot close "ops" exchange', message);
-			else if (!exchange)
-				return console.error('Invalid ops-exchange "close_exchange" message from page: Payload missing', message);
-			if (!(exchange in this.exchanges))
-				return console.error('Invalid ops-exchange "close_exchange" message from page: Invalid exchange id', message);
-
-			this.removeAllMessageListeners(exchange);
-			delete this.exchanges[exchange];
-		}).bind(this));
-	}
-
-	// INTERNAL
-	// registers listeners for host-privileged ops messages
-	function setupHostOpsHandlers() {
-		var conn = this;
-		conn.onMessage(conn.ops, 'configure', function(message) {
-			local.worker.config = message.data;
-		});
-
-		conn.onMessage(conn.ops, 'nullify', function(message) {
-			console.log('nullifying: ' + message.data);
-			if (typeof message.data === 'string')
-				self[message.data] = null; // destroy the top-level reference
-			else
-				throw "'nullify' message must include a valid string";
-		});
-
-		conn.onExchange('importScripts', function(exchange) {
-			conn.onMessage(exchange, 'urls', function(message) {
-				console.log('importingScripts: ' + message.data);
-				if (message && message.data) {
-					try {
-						closureImportScripts(message.data);
-					} catch(e) {
-						console.error((e ? e.toString() : e), (e ? e.stack : e));
-						conn.sendMessage(message.exchange, 'done', { error: true, reason: (e ? e.toString() : e) });
-						conn.endExchange(message.exchange);
-						return;
-					}
-				} else {
-					console.error("'importScripts' message must include a valid array/string");
-					conn.sendMessage(message.exchange, 'done', { error: true, reason: (e ? e.toString() : e) });
-					conn.endExchange(message.exchange);
-					return;
-				}
-				conn.sendMessage(message.exchange, 'done', { error: false });
-				conn.endExchange(message.exchange);
-			});
-		});
-	}
-
-	// EXPORTED
-	// starts a new bidirectional message stream
-	// - sends the 'open_exchange' message on the operations exchange
-	// - `topic`: required string, a label for the exchange
-	PageConnection.prototype.startExchange = function(topic) {
-		var exchange = gen_cid();
-		this.exchanges[exchange] = { topic: topic, messageListeners: {}, metaData: {} };
-		this.sendMessage(this.ops, 'open_exchange', { exchange: exchange, topic: topic });
-		return exchange;
-	};
-
-	// EXPORTED
-	// ends the message stream, signaling the close on the other end
-	// - sends the 'close_exchange' message on the operations exchange
-	//   and 'close' on the given exchange, and broadcasts the 'close' message
-	//   on the local exchange listeners
-	// - `exchange`: required number, an ID given by `startExchange()` or `onExchange()`
-	PageConnection.prototype.endExchange = function(exchange) {
-		if (!(exchange in this.exchanges))
-			return;
-
-		// broadcast 'close' locally
-		emitOnMessage.call(this, {
-			id       : gen_mid(),
-			exchange : exchange,
-			label    : 'close'
-		});
-
-		this.sendMessage(exchange, 'close');
-		this.sendMessage(this.ops, 'close_exchange', exchange);
-
-		this.removeAllMessageListeners(exchange);
-		delete this.exchanges[exchange];
-	};
-
-	// EXPORTED
-	// adds data to the exchange to be used in callbacks
-	// - `exchange`: required number
-	// - `k`: required string
-	// - `v`: required mixed
-	PageConnection.prototype.setExchangeMeta = function(exchange, k, v) {
-		if (exchange in this.exchanges)
-			this.exchanges[exchange].metaData[k] = v;
-	};
-
-	// EXPORTED
-	// gets data from the exchange
-	// - `exchange`: required number
-	// - `k`: required string
-	PageConnection.prototype.getExchangeMeta = function(exchange, k, v) {
-		if (exchange in this.exchanges)
-			return this.exchanges[exchange].metaData[k];
-		return null;
-	};
-
-	// EXPORTED
-	// sends a message on an established exchange stream
-	// - `exchange`: required number, an ID given by `startExchange()` or `onExchange()`
-	// - `label`: required string, identifies the message type
-	// - `data`: optional mixed, the content of the message
-	PageConnection.prototype.sendMessage = function(exchange, label, data) {
-		var message;
-		if (typeof exchange == 'object')
-			message = exchange;
-		else {
-			message = {
-				id       : gen_mid(),
-				exchange : exchange,
-				label    : label,
-				data     : data
-			};
-		}
-		this.port.postMessage(message);
-		return message.id;
-	};
-
-	// EXPORTED
-	// registers a callback for handling new exchanges from the worker
-	// - `topic`: required string, the exchange label
-	// - `handler`: required function(exchange:number)
-	PageConnection.prototype.onExchange = function(topic, handler) {
-		if (!(topic in this.exchangeListeners))
-			this.exchangeListeners[topic] = [];
-		this.exchangeListeners[topic].push(handler);
-	};
-
-	// INTERNAL
-	// calls 'new exchange' listeners
-	function emitOnExchange(topic, exchange) {
-		var listeners = this.exchangeListeners[topic];
-		if (listeners) {
-			listeners.forEach(function(listener) {
-				listener(exchange);
-			});
-		}
-	}
-
-	// EXPORTED
-	// removes a callback from the converation topic
-	// - `topic`: required string, the exchange label
-	// - `handler`: required function, the callback to remove
-	PageConnection.prototype.removeExchangeListener = function(topic, handler) {
-		if (topic in this.exchangeListeners) {
-			var filterFn = function(listener) { return listener != handler; };
-			this.exchangeListeners[topic] = this.exchangeListeners[topic].filter(filterFn);
-			if (this.exchangeListeners[topic].length === 0)
-				delete this.exchangeListeners[topic];
-		}
-	};
-
-	// EXPORTED
-	// removes all callbacks from the exchange topic
-	// - `topic`: required string, the exchange label
-	PageConnection.prototype.removeAllExchangeListeners = function(topic) {
-		if (topic in this.exchangeListeners)
-			delete this.exchangeListeners[topic];
-	};
-
-	// EXPORTED
-	// signals a new message on an established exchange stream
-	// - `exchange`: required number, an ID given by `startExchange()` or `onExchange()`
-	// - `label`: required string, identifies the message type
-	// - `handler`: required function(message:object, exchangeData:object)
-	PageConnection.prototype.onMessage = function(exchange, label, handler) {
-		var exchangeData = this.exchanges[exchange];
-		if (!exchangeData)
-			return console.error('Invalid `exchange` in onMessage() call: Not a valid ID', exchange);
-
-		if (!(label in exchangeData.messageListeners))
-			exchangeData.messageListeners[label] = [];
-		exchangeData.messageListeners[label].push(handler);
-	};
-
-	// INTERNAL
-	// calls 'on message' listeners
-	function emitOnMessage(message) {
-		if (message.exchange in this.exchanges) {
-			var listeners = this.exchanges[message.exchange].messageListeners;
-			if (message.label in listeners) {
-				listeners[message.label].forEach(function(listener) {
-					listener(message);
-				});
+			// Handle messages with an `op` field as worker-control packets rather than HTTPL messages
+			switch (message.op) {
+				case 'configure':
+					this.onPageConfigure(message.body);
+					break;
+				case 'nullify':
+					this.onPageNullify(message.body);
+					break;
+				case 'importScripts':
+					this.onPageImportScripts(message.body);
+					break;
+				case 'terminate':
+					this.terminate();
+					break;
+				default:
+					// If no 'op' field is given, treat it as an HTTPL request and pass onto our BridgeServer parent method
+					this.onChannelMessage(message);
+					break;
 			}
-		}
+		}).bind(this));
 	}
+	PageServer.prototype = Object.create(local.web.BridgeServer.prototype);
+	local.worker.PageServer = PageServer;
 
-	// EXPORTED
-	// removes a callback from a exchange's message listeners
-	// - `exchange`: required number
-	// - `label`: required string
-	// - `handler`: required function
-	PageConnection.prototype.removeMessageListener = function(exchange, label, handler) {
-		var exchangeData = this.exchanges[exchange];
-		if (!exchangeData)
-			return console.warn('Invalid `exchange` in removeMessageListener() call: Not a valid ID', exchange);
-
-		if (label in exchangeData.messageListeners) {
-			var filterFn = function(listener) { return listener != handler; };
-			exchangeData.messageListeners[label] = exchangeData.messageListeners[label].filter(filterFn);
-			if (exchangeData.messageListeners[label].length === 0)
-				delete exchangeData.messageListeners[label];
-		}
+	// Returns true if the channel is ready for activity
+	// - returns boolean
+	PageServer.prototype.isChannelActive = function() {
+		return true;
 	};
 
-	// EXPORTED
-	// - `exchange`: required number
-	// - `label`: optional string
-	// - if `label` is not given, removes all message listeners on the exchange
-	PageConnection.prototype.removeAllMessageListeners = function(exchange, label) {
-		var exchangeData = this.exchanges[exchange];
-		if (!exchangeData)
-			return console.warn('Invalid `exchange` in removeMessageListener() call: Not a valid ID', exchange);
-
-		if (label) {
-			if (label in exchangeData.messageListeners)
-				delete exchangeData.messageListeners[label];
-		} else
-			exchangeData.messageListeners = {};
+	// Sends a single message across the channel
+	// - `msg`: required string
+	PageServer.prototype.channelSendMsg = function(msg) {
+		this.port.postMessage(msg);
 	};
 
-})();// Worker HTTP
-// ===========
-
-(function() {
-	// override dispatch() behavior to post it to the host document
-	// - `conn`: optional PageConnection, to specify the target page of the request
-	// - `conn` defaults to the host page
-	local.web.setDispatchWrapper(function(request, response, dispatch, conn) {
-		if (!conn)
-			conn = local.worker.hostConnection;
-
-		// setup exchange and exchange handlers
-		var exchange = conn.startExchange('web_request');
-		conn.setExchangeMeta(exchange, 'request', request);
-		conn.setExchangeMeta(exchange, 'response', response);
-		conn.onMessage(exchange, 'response_headers', onWebResponseHeaders.bind(conn));
-		conn.onMessage(exchange, 'response_data', onWebResponseData.bind(conn));
-		conn.onMessage(exchange, 'response_end', onWebResponseEnd.bind(conn));
-		conn.onMessage(exchange, 'close', onWebClose.bind(conn));
-
-		// wire request into the exchange
-		conn.sendMessage(exchange, 'request_headers', request);
-		request.on('data', function(data) { conn.sendMessage(exchange, 'request_data', data); });
-		request.on('end', function() { conn.sendMessage(exchange, 'request_end'); });
-
-		dispatch(request, response, function() { }); // send noop scheme handler
-	});
-
-	// EXPORTED
-	// adds the web_request exchange protocol to the page connection
-	function startWebExchange(pageConn) {
-		pageConn.onExchange('web_request', onWebRequestExchange.bind(pageConn));
-	}
-	local.worker.startWebExchange = startWebExchange;
-
-	// INTERNAL
-	// handles incoming requests from the page
-	function onWebRequestExchange(exchange) {
-		this.onMessage(exchange, 'request_headers', onWebRequestHeaders.bind(this));
-		this.onMessage(exchange, 'request_data', onWebRequestData.bind(this));
-		this.onMessage(exchange, 'request_end', onWebRequestEnd.bind(this));
-		this.onMessage(exchange, 'close', onWebClose.bind(this));
-	}
-
-	function onWebRequestHeaders(message) {
-		if (!message.data) {
-			console.error('Invalid "request_headers" message from page: Payload missing', message);
-			this.endExchange(message.exchange);
-			return;
-		}
-
-		var self = this;
+	// Remote request handler
+	PageServer.prototype.handleRemoteWebRequest = function(request, response) {
 		if (main) {
-			// create request & response
-			var request = new local.web.Request(message.data);
-			var response = new local.web.Response();
-			this.setExchangeMeta(message.exchange, 'request', request);
-			this.setExchangeMeta(message.exchange, 'response', response);
-			request.path = message.data.path; // copy this over for main()'s benefit
-
-			// wire response into the exchange
-			response.on('headers', function() { self.sendMessage(message.exchange, 'response_headers', response); });
-			response.on('data', function(data) { self.sendMessage(message.exchange, 'response_data', data); });
-			response.on('end', function() { self.sendMessage(message.exchange, 'response_end'); });
-			response.on('close', function() { self.endExchange(message.exchange); });
-
-			// pass on to the request handler
 			main(request, response, this);
 		} else {
-			this.sendMessage(message.exchange, 'response_headers', { status: 500, reason: 'server not loaded' });
-			this.sendMessage(message.exchange, 'response_end');
-			this.endExchange(message.exchange);
+			response.writeHead(500, 'worker main() not implemented');
+			response.end();
 		}
-	}
+	};
 
-	function onWebRequestData(message) {
-		if (typeof message.data != 'string') {
-			console.error('Invalid "request_data" message from worker: Payload must be a string', message);
-			this.endExchange(message.exchange);
+	// Stores configuration sent by the page
+	PageServer.prototype.onPageConfigure = function(message) {
+		if (!this.isHostPage) {
+			console.log('rejected "configure" from non-host connection');
 			return;
 		}
+		self.config = local.worker.config = message;
+	};
 
-		var request = this.getExchangeMeta(message.exchange, 'request');
-		if (!request) {
-			console.error('Invalid "request_data" message from worker: Request headers not previously received', message);
-			this.endExchange(message.exchange);
+	// Nullifies a global
+	PageServer.prototype.onPageNullify = function(message) {
+		if (!this.isHostPage) {
+			console.log('rejected "nullify" from non-host connection');
 			return;
 		}
+		console.log('nullifying: ' + message);
+		if (typeof message === 'string') {
+			self[message] = null; // destroy the top-level reference
+		} else {
+			throw "'nullify' message must include a valid string";
+		}
+	};
 
-		request.write(message.data);
-	}
-
-	function onWebRequestEnd(message) {
-		var request = this.getExchangeMeta(message.exchange, 'request');
-		if (!request) {
-			console.error('Invalid "request_end" message from worker: Request headers not previously received', message);
-			this.endExchange(message.exchange);
+	// Imports a user-script
+	PageServer.prototype.onPageImportScripts = function(message) {
+		if (!this.isHostPage) {
+			console.log('rejected "importScripts" from non-host connection');
 			return;
 		}
-
-		request.end();
-	}
-
-	function onWebResponseHeaders(message) {
-		if (!message.data) {
-			console.error('Invalid "response_headers" message from worker: Payload missing', message);
-			this.endExchange(message.exchange);
+		if (message) {
+			try {
+				closureImportScripts(message);
+			} catch(e) {
+				console.error((e ? e.toString() : e), (e ? e.stack : e));
+				this.channelSendMsg({ op: 'loaded', body: { error: true, reason: (e ? e.toString() : e) }});
+				return;
+			}
+		} else {
+			console.error("'importScripts' message must include a valid array/string");
+			this.channelSendMsg({ op: 'loaded', body: { error: true, reason: 'No script URI provided' }});
 			return;
 		}
+		this.channelSendMsg({ op: 'loaded', body: { error: false }});
+	};
 
-		var response = this.getExchangeMeta(message.exchange, 'response');
-		if (!response) {
-			console.error('Internal error when receiving "response_headers" message from worker: Response promise not present', message);
-			this.endExchange(message.exchange);
-			return;
-		}
-
-		response.writeHead(message.data.status, message.data.reason, message.data.headers);
-	}
-
-	function onWebResponseData(message) {
-		if (typeof message.data != 'string') {
-			console.error('Invalid "response_data" message from worker: Payload must be a string', message);
-			this.endExchange(message.exchange);
-			return;
-		}
-
-		var response = this.getExchangeMeta(message.exchange, 'response');
-		if (!response) {
-			console.error('Internal error when receiving "response_data" message from worker: Response object not present', message);
-			this.endExchange(message.exchange);
-			return;
-		}
-
-		response.write(message.data);
-	}
-
-	function onWebResponseEnd(message) {
-		var response = this.getExchangeMeta(message.exchange, 'response');
-		if (!response) {
-			console.error('Internal error when receiving "response_end" message from worker: Response object not present', message);
-			this.endExchange(message.exchange);
-			return;
-		}
-
-		response.end();
-	}
-
-	// closes the request/response, caused by a close of the exchange
-	// - could happen because the response has ended
-	// - could also happen because the request aborted
-	// - could also happen due to a bad message
-	function onWebClose(message) {
-		var request = this.getExchangeMeta(message.exchange, 'request');
-		var response = this.getExchangeMeta(message.exchange, 'response');
-		if (request) request.close();
-		if (response) response.close();
-	}
 })();// Setup
 // =====
 var closureImportScripts = importScripts; // self.importScripts will be nullified later (and we're in a closure right now)
-
-// apis
-// -
 
 // EXPORTED
 // console.* replacements
@@ -3464,11 +4431,11 @@ self.console = {
 	}
 };
 function doLog(type, args) {
-	var hostConn = local.worker.hostConnection;
-	try { hostConn.sendMessage(hostConn.ops, 'log', [type].concat(args)); }
+	var hostPage = local.worker.hostPage;
+	try { hostPage.channelSendMsg({ op: 'log', body: [type].concat(args) }); }
 	catch (e) {
 		// this is usually caused by trying to log information that cant be serialized
-		hostConn.sendMessage(hostConn.ops, 'log', [type].concat(args.map(JSONifyMessage)));
+		hostPage.channelSendMsg({ op: 'log', body: [type].concat(args.map(JSONifyMessage)) });
 	}
 }
 
@@ -3530,28 +4497,31 @@ if (!self.btoa) {
 	};
 }
 
-local.worker.pageConnections = [];
+local.worker.pages = [];
 function addConnection(port) {
-	var isHost = (!local.worker.hostConnection);
-	var conn = new local.worker.PageConnection(local.worker.pageConnections.length, port, isHost);
-	local.worker.startWebExchange(conn);
+	// Create new page server
+	var isHost = (!local.worker.hostPage); // First to add = host page
+	var page = new local.worker.PageServer(local.worker.pages.length, port, isHost);
 
-	if (isHost)
-		local.worker.hostConnection = conn;
-	local.worker.pageConnections.push(conn);
+	// Track new connection
+	if (isHost) {
+		local.worker.hostPage = page;
+	}
+	local.worker.pages.push(page);
+	local.web.registerLocal(page.id+'.page', page);
 
-	// let the document know we're active
-	if (port.start)
+	// Let the document know we're active
+	if (port.start) {
 		port.start();
-	conn.sendMessage(conn.ops, 'ready', { hostPrivileges: isHost });
+	}
+	page.channelSendMsg({ op: 'ready', body: { hostPrivileges: isHost } });
 }
 
-// setup for future connections (shared worker)
+// Setup for future connections (shared worker)
 addEventListener('connect', function(e) {
 	addConnection(e.ports[0]);
 });
-
-// create connection to host page (regular worker)
-if (self.postMessage)
+// Create connection to host page (regular worker)
+if (self.postMessage) {
 	addConnection(self);
-})();
+}})();
