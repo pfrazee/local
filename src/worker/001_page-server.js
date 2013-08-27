@@ -84,7 +84,7 @@
 		if (typeof message === 'string') {
 			self[message] = null; // destroy the top-level reference
 		} else {
-			throw "'nullify' message must include a valid string";
+			throw new Error("'nullify' message must include a valid string");
 		}
 	};
 

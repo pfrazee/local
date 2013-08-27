@@ -11,9 +11,15 @@ function Request(options) {
 
 	this.method = options.method ? options.method.toUpperCase() : 'GET';
 	this.url = options.url || null;
+	this.path = options.path || null;
 	this.query = options.query || {};
 	this.headers = options.headers || {};
 	this.body = '';
+
+	// Guess the content-type if a full body is included in the message
+	if (options.body && !this.headers['content-type']) {
+		this.headers['content-type'] = (typeof options.body == 'string') ? 'text/plain' : 'application/json';
+	}
 
 	// non-enumerables (dont include in request messages)
 	Object.defineProperty(this, 'body', {
@@ -78,7 +84,7 @@ Request.prototype.setTimeout = function(ms) {
 // - used on remote connections
 Request.prototype.serializeHeaders = function(headers) {
 	if (this.headers.authorization && typeof this.headers.authorization == 'object') {
-		if (!this.headers.authorization.scheme) { throw "`scheme` required for auth headers"; }
+		if (!this.headers.authorization.scheme) { throw new Error("`scheme` required for auth headers"); }
 		var auth;
 		switch (this.headers.authorization.scheme.toLowerCase()) {
 			case 'basic':
@@ -88,7 +94,7 @@ Request.prototype.serializeHeaders = function(headers) {
 				auth = 'Persona name='+this.headers.authorization.name+' assertion='+this.headers.authorization.assertion;
 				break;
 			default:
-				throw "unknown auth sceme: "+this.headers.authorization.scheme;
+				throw new Error("unknown auth sceme: "+this.headers.authorization.scheme);
 		}
 		this.headers.authorization = auth;
 	}

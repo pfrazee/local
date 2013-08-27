@@ -154,12 +154,10 @@ success
   body: "",
   headers: {
     link: [
-      {href: "httpl://_worker.js", id: "_worker.js", rel: "service item"},
-      {
-        href: "httpl://test.com",
-        id: "test.com",
-        rel: "http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com service item"
-      }
+      {href: "httpl://hosts/", id: "hosts", rel: "self service via"},
+      {href: "httpl://relay", id: "relay", rel: "service"},
+      {href: "httpl://_worker.js", id: "_worker.js", rel: "service"},
+      {href: "httpl://test.com", id: "test.com", rel: "service"}
     ]
   },
   reason: "ok, no content",

@@ -243,12 +243,13 @@ var __httpl_registry = {};
 
 // EXPORTED
 local.web.registerLocal = function registerLocal(domain, server, serverContext) {
-	if (__httpl_registry[domain]) throw "server already registered at domain given to registerLocal";
+	if (__httpl_registry[domain]) throw new Error("server already registered at domain given to registerLocal");
 
 	var isServerObj = (server instanceof local.web.Server);
 	if (isServerObj) {
 		serverContext = server;
 		server = server.handleLocalWebRequest;
+		serverContext.config.domain = domain;
 	}
 
 	__httpl_registry[domain] = { fn: server, context: serverContext };

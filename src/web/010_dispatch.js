@@ -18,11 +18,11 @@ var webDispatchWrapper;
 //   - on failure (status code 4xx,5xx), the promise is rejected with a `ClientResponse` object
 //   - all protocol (status code 1xx,3xx) is handled internally
 local.web.dispatch = function dispatch(request) {
-	if (!request) { throw "no request param provided to request"; }
+	if (!request) { throw new Error("no request param provided to request"); }
 	if (typeof request == 'string')
 		request = { url: request };
 	if (!request.url)
-		throw "no url on request";
+		throw new Error("no url on request");
 
 	// If given a rel: scheme, spawn a navigator to handle it
 	var scheme = parseScheme(request.url);

@@ -114,7 +114,7 @@ BridgeServer.prototype.handleLocalWebRequest = function(request, response) {
 		// Wire up request stream events
 		var this2 = this;
 		request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, body: data })); });
-		request.on('close', function()     { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, end: true })); });
+		request.on('end', function()       { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, end: true })); });
 	}
 };
 
@@ -124,13 +124,13 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 	// Validate and parse JSON
 	if (typeof msg == 'string') {
 		if (!validateJson(msg)) {
-			console.warn('Dropping malformed HTTPL message', { channel: chan, msg: msg });
+			console.warn('Dropping malformed HTTPL message', msg, this);
 			return;
 		}
 		msg = JSON.parse(msg);
 	}
 	if (!validateHttplMessage(msg)) {
-		console.warn('Dropping malformed HTTPL message', { channel: chan, msg: msg });
+		console.warn('Dropping malformed HTTPL message', msg, this);
 		return;
 	}
 
@@ -151,24 +151,27 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 			var this2 = this;
 			var resSid = -(msg.sid);
 			response.on('headers', function() {
-				this2.channelSendMsg({
+				this2.channelSendMsg(JSON.stringify({
 					sid: resSid,
 					status: response.status,
 					reason: response.reason,
 					headers: response.headers
-				});
+				}));
 			});
 			response.on('data',  function(data) { this2.channelSendMsg(JSON.stringify({ sid: resSid, body: data })); });
 			response.on('close', function()     { this2.channelSendMsg(JSON.stringify({ sid: resSid, end: true })); });
 
 			// Pass on to the request handler
 			this.handleRemoteWebRequest(request, response);
+
+			// Hold onto the stream
+			stream = this.incomingStreams[msg.sid] = request;
 		}
 		// Incoming responses have a negative sid
 		else {
 			// There should have been an incoming stream
 			// (incoming response streams are created locally on remote request dispatches)
-			console.warn('Dropping unexpected HTTPL response message', { channel: chan, msg: msg });
+			console.warn('Dropping unexpected HTTPL response message', msg, this);
 			return;
 		}
 	}

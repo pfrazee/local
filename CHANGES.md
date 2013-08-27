@@ -2,6 +2,13 @@ Changes
 =======
 0.4.0
 
+2013/08/27 pfraze
+
+ - Added {exclude:} option to broadcaster.emit()
+ - Added EventSource.getUrl()
+ - Added httpl://relay service
+
+
 2013/08/22 pfraze
 
  - Added local.* aliases (dispatch, subscribe, navigator, etc)

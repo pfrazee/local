@@ -23,6 +23,7 @@ src-web-files =\
 	${src}web/012_uri-template.js\
 	${src}web/013_navigator.js\
 	${src}web/014_hosts-service.js\
+	${src}web/015_relay-service.js\
 	${src}module_footer.js
 src-toplevel-files =\
 	${src}000_header.js\
