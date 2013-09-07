@@ -4,9 +4,13 @@ Changes
 
 2013/08/27 pfraze
 
- - Added {exclude:} option to broadcaster.emit()
- - Added EventSource.getUrl()
- - Added httpl://relay service
+ - Added local.web.BridgeServer
+ - Added local.web.PeerWebRelay
+ - Added local.joinPeerWeb
+ - Added local.web.Server.getUrl()
+ - Added {exclude:} option to local.web.Broadcaster.emit()
+ - Added local.web.EventSource.getUrl()
+ - Added local.util.mixinEventEmitter
 
 
 2013/08/22 pfraze

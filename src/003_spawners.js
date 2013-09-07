@@ -23,23 +23,14 @@ local.spawnWorkerServer = function(src, opts) {
 	return server;
 };
 
-// - `peer`: required object, who we are connecting to (should be supplied by the peer relay)
-//   - `peer.stream`: required string, the peer's stream ID
-//   - `peer.user`: required string, the peer's user ID
-//   - `peer.app`: required string, the peer's app domain
-// - `signalStream`: required EventSource
-// - `opts.initiateAs`: optional object, if specified will initiate the connection using the object given
-//   - if given, should match the schema of `peer`
-local.spawnRTCPeerServer = function(peer, signalStream, opts) {
-	if (!opts) {
-		opts = {};
-	}
-	opts.peer = peer;
-	opts.signalStream = signalStream;
-	var server = new local.web.RTCPeerServer(opts);
-	var domain = getAvailableLocalDomain(peer.app.toLowerCase() + '{n}.' + peer.user.toLowerCase());
-	local.web.registerLocal(domain, server);
-	return server;
+// - `providerUrl`: required string, the relay provider
+// - `serverFn`: required function, the function for peerservers' handleRemoteWebRequest
+// - `config.app`: optional string, the app to join as (defaults to window.location.host)
+local.joinPeerWeb = function(providerUrl, serverFn, config) {
+	if (!config) config = {};
+	config.provider = providerUrl;
+	config.serverFn = serverFn;
+	return new local.web.PeerWebRelay(config);
 };
 
 function getAvailableLocalDomain(base) {

@@ -123,3 +123,12 @@ EventEmitter.prototype.listeners = function(type) {
 };
 
 local.util.EventEmitter = EventEmitter;
+
+// Adds event-emitter behaviors to the given object
+// - should be used on instantiated objects, not prototypes
+local.util.mixinEventEmitter = function(obj) {
+	EventEmitter.call(obj);
+	for (var k in EventEmitter.prototype) {
+		obj[k] = EventEmitter.prototype[k];
+	}
+};

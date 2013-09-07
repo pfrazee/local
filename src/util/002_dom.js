@@ -248,8 +248,9 @@ function extractRequestPayload(targetElem, form, opts) {
 		var elem = form[i];
 
 		// skip if it doesnt have a name
-		if (!elem.name)
+		if (!elem.name) {
 			continue;
+		}
 
 		// skip if not a child of the target element
 		if (targetElem && !findParentNode.byElement(elem, targetElem))

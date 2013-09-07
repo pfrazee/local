@@ -245,7 +245,7 @@ Navigator.prototype.follow = function(query) {
 //  - options is optional and may include:
 //    - retry: bool, should the resolve be tried if it previously failed?
 //    - nohead: bool, should we issue a HEAD request once we have a URL? (not favorable if planning to dispatch something else)
-//  - returns a promise
+//  - returns a promise which will fulfill with the resolved url
 Navigator.prototype.resolve = function(options) {
 	var self = this;
 	options = options || {};
@@ -311,15 +311,21 @@ Navigator.prototype.resolve = function(options) {
 Navigator.prototype.lookupLink = function(context) {
 	if (context.query) {
 		if (typeof context.query == 'object') {
-			// Try to find a link with matching rel and id
-			var link, reducedQuery = { rel: context.query.rel, id: context.query.id };
-			link = local.web.queryLinks1(this.links, reducedQuery);
+			// Search only by rel and ID
+			var reducedQuery = {};
+			if (typeof context.query.rel != 'undefined')
+				reducedQuery.rel = context.query.rel;
+			if (typeof context.query.id != 'undefined')
+				reducedQuery.id = context.query.id;
+
+			// Try to find a link that matches
+			var link = local.web.queryLinks1(this.links, reducedQuery);
 			if (!link && reducedQuery.id) {
 				// Try again without the id
 				reducedQuery.id = undefined;
 				link = local.web.queryLinks1(this.links, reducedQuery);
 				// Make sure we got a link with an id templating token
-				if (/{id}/.test(link.href) === false)
+				if (!link || /{id}/.test(link.href) === false)
 					link = null;
 			}
 

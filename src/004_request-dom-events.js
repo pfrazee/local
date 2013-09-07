@@ -17,12 +17,12 @@ function bindRequestEvents(container, options) {
 	var handler;
 	if (options.links !== false) {
 		handler = { name: 'click', handleEvent: Local__clickHandler, container: container };
-		container.addEventListener('click', handler, true);
+		container.addEventListener('click', handler, false);
 		container.__localEventHandlers.push(handler);
 	}
 	if (options.forms !== false) {
 		handler = { name: 'submit', handleEvent: Local__submitHandler, container: container };
-		container.addEventListener('submit', handler, true);
+		container.addEventListener('submit', handler, false);
 	}
 }
 

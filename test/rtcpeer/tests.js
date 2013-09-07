@@ -2,68 +2,77 @@
 done = false;
 startTime = Date.now();
 
-var peer1, peer2;
-var peer1Server, peer2Server;
-var peer1API, peer2API;
-var relayStream1 = local.subscribe('httpl://relay');
-var relayStream2 = local.subscribe('httpl://relay');
-relayStream1.on('ident', function(e) { peer1 = e.data; });
-relayStream1.on('join', function(e) {
-	peer2 = e.data;
-	peer2Server = local.spawnRTCPeerServer(peer2, relayStream1, { initiateAs: peer1 });
-	setupPeer2Server(peer2Server);
-	peer2API = local.navigator('httpl://'+peer2Server.config.domain);
+var pfrazeWeb = local.joinPeerWeb('//grimwire.net:8000', pfrazeServerFn, { app: 'testapp.grimwire.com' });
+var bobWeb    = local.joinPeerWeb('//grimwire.net:8000', bobServerFn, { app: 'testapp.grimwire.com' });
+
+pfrazeWeb.setAccessToken('pfraze:e6f2131a-e678-4f9c-8155-56918abfac1d');
+bobWeb.setAccessToken('bob:aee615f1-04bc-417a-96c0-b409a0b6dd62 ');
+
+pfrazeWeb.connect('bob', { app: 'testapp.grimwire.com' });
+
+var pfrazeAPI;
+var bobAPI;
+bobWeb.on('connected', function(data) {
+	pfrazeAPI = local.navigator(data.server.getUrl());
+	checkReady();
 });
-relayStream2.on('initiate', function(e) {
-	// e.data == peer1
-	peer1Server = local.spawnRTCPeerServer(e.data, relayStream2);
-	setupPeer1Server(peer1Server);
-	peer1API = local.navigator('httpl://'+peer1Server.config.domain);
+pfrazeWeb.on('connected', function(data) {
+	bobAPI = local.navigator(data.server.getUrl());
+	print(data.user);
+	print(data.app);
+	print(data.domain);
+	print(typeof data.server);
+	checkReady();
+});
+function checkReady() {
+	if (!pfrazeAPI || !bobAPI)
+		return;
 	print('ready');
 	finishTest();
-});
-
-function setupPeer1Server(s) {
-	var counter = 0;
-	s.handleRemoteWebRequest = function(req, res) {
-		if (req.path == '/' && req.method == 'GET') {
-			res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
-			res.end(counter++);
-			return;
-		}
-		if (req.path == '/' && req.method == 'POST') {
-			req.finishStream().then(function(body) {
-				res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
-				res.end(body.toUpperCase());
-			});
-			return;
-		}
-		res.writeHead(404, 'not found').end();
-	};
 }
 
-function setupPeer2Server(s) {
-	var counter = 100;
-	s.handleRemoteWebRequest = function(req, res) {
-		if (req.path == '/' && req.method == 'GET') {
+var counter1 = 0;
+function pfrazeServerFn(req, res) {
+	if (req.path == '/' && req.method == 'GET') {
+		res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
+		res.end(counter1++);
+		return;
+	}
+	if (req.path == '/' && req.method == 'POST') {
+		req.finishStream().then(function(body) {
 			res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
-			res.end(counter--);
-			return;
-		}
-		if (req.path == '/' && req.method == 'POST') {
-			req.finishStream().then(function(body) {
-				res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
-				res.end(body.toLowerCase());
-			});
-			return;
-		}
-		res.writeHead(404, 'not found').end();
-	};
+			res.end(body.toUpperCase());
+		});
+		return;
+	}
+	res.writeHead(404, 'not found').end();
+}
+
+var counter2 = 100;
+function bobServerFn(req, res) {
+	if (req.path == '/' && req.method == 'GET') {
+		res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
+		res.end(counter2--);
+		return;
+	}
+	if (req.path == '/' && req.method == 'POST') {
+		req.finishStream().then(function(body) {
+			res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
+			res.end(body.toLowerCase());
+		});
+		return;
+	}
+	res.writeHead(404, 'not found').end();
 }
 
 wait(function () { return done; });
-// => ready
-
+/* =>
+bob
+testapp.grimwire.com
+testapp.grimwire.com_.bob_.grimwire.net.8000
+object
+ready
+*/
 
 // Test: GET traffic
 
@@ -71,8 +80,8 @@ done = false;
 startTime = Date.now();
 var responses_ = [];
 for (var i = 0; i < 10; i++) {
-	responses_.push(peer2API.dispatch());
-	responses_.push(peer1API.dispatch());
+	responses_.push(pfrazeAPI.dispatch());
+	responses_.push(bobAPI.dispatch());
 }
 
 local.promise.bundle(responses_)
@@ -112,8 +121,8 @@ done = false;
 startTime = Date.now();
 var responses_ = [];
 for (var i = 0; i < 10; i++) {
-	responses_.push(peer2API.post('FooBar'));
-	responses_.push(peer1API.post('FooBar'));
+	responses_.push(pfrazeAPI.post('FooBar'));
+	responses_.push(bobAPI.post('FooBar'));
 }
 
 local.promise.bundle(responses_)

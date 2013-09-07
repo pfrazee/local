@@ -12,6 +12,10 @@ function Server(config) {
 }
 local.web.Server = Server;
 
+Server.prototype.getUrl = function() {
+	return 'httpl://' + this.config.domain;
+};
+
 // Local request handler
 // - should be overridden
 Server.prototype.handleLocalWebRequest = function(request, response) {
