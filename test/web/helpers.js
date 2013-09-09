@@ -46,6 +46,8 @@ print(local.web.parseLinkHeader('</foo>; id=foo'));
 // => [{href: "/foo", id: "foo"}]
 print(local.web.parseLinkHeader('</foo>; foobar; foobaz'));
 // => [{foobar: true, foobaz: true, href: "/foo"}]
+print(local.web.parseLinkHeader('</foo{?bar,baz}>; id="foo"; rel="what ever"'));
+// => [{href: "/foo{?bar,baz}", id: "foo", rel: "what ever"}]
 finishTest();
 
 
@@ -155,7 +157,6 @@ success
   headers: {
     link: [
       {href: "httpl://hosts/", id: "hosts", rel: "self service via"},
-      {href: "httpl://relay", id: "relay", rel: "service"},
       {href: "httpl://_worker.js", id: "_worker.js", rel: "service"},
       {href: "httpl://test.com", id: "test.com", rel: "service"}
     ]

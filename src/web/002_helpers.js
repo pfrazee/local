@@ -3,36 +3,25 @@
 
 // EXPORTED
 // breaks a link header into a javascript object
+var linkHeaderRE1 = /<(.*?)>(?:;[\s]*([^,]*))/g;
+var linkHeaderRE2 = /([\-a-z0-9\.]+)=?(?:(?:"([^"]+)")|([^;\s]+))?/g;
 local.web.parseLinkHeader = function parseLinkHeader(headerStr) {
 	if (typeof headerStr !== 'string') {
 		return headerStr;
 	}
+	var links = [], linkParse1, linkParse2, link;
 	// '</foo/bar>; rel="baz"; id="blah", </foo/bar>; rel="baz"; id="blah", </foo/bar>; rel="baz"; id="blah"'
-	return headerStr.split(/,[\s]*/g).map(function(linkStr) {
-		// ['</foo/bar>; rel="baz"; id="blah"', '</foo/bar>; rel="baz"; id="blah"']
-		var link = {};
-		linkStr.split(/\s*;\s*/g).forEach(function(attrStr) {
-			// ['</foo/bar>', 'rel="baz"', 'id="blah"']
-			if (!attrStr) { return; }
-			if (attrStr.charAt(0) === '<') {
-				// '</foo/bar>'
-				link.href = attrStr.trim().slice(1, -1);
-			} else {
-				var attrParts = attrStr.split(/\s*=\s*/g);
-				if (attrParts[1]) {
-					// ['rel', '"baz"'] or ['rel', 'baz']
-					var k = attrParts[0];
-					var v = attrParts[1].replace(/^"|"$/g, '');
-					link[k] = v;
-				} else {
-					// ['attr']
-					var k = attrParts[0];
-					link[k] = true;
-				}
-			}
-		});
-		return link;
-	});
+	// Extract individual links
+	while ((linkParse1 = linkHeaderRE1.exec(headerStr))) { // Splits into href [1] and params [2]
+		link = { href: linkParse1[1] };
+		// 'rel="baz"; id="blah"'
+		// Extract individual params
+		while ((linkParse2 = linkHeaderRE2.exec(linkParse1[2]))) { // Splits into key [1] and value [2]/[3]
+			link[linkParse2[1]] = linkParse2[2] || linkParse2[3] || true; // if no parameter value is given, just set to true
+		}
+		links.push(link);
+	}
+	return links;
 };
 
 // EXPORTED
