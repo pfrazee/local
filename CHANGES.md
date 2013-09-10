@@ -2,6 +2,12 @@ Changes
 =======
 0.4.0
 
+2013/09/09 pfraze
+
+ - Added stream support to local.web.PeerWebRelay
+ - Added 'listening' event and .startListening() to local.web.PeerWebRelay
+
+
 2013/08/27 pfraze
 
  - Added local.web.BridgeServer

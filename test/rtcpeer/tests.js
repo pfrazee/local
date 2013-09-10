@@ -2,37 +2,54 @@
 done = false;
 startTime = Date.now();
 
-var pfrazeWeb = local.joinPeerWeb('//grimwire.net:8000', pfrazeServerFn, { app: 'testapp.grimwire.com' });
-var bobWeb    = local.joinPeerWeb('//grimwire.net:8000', bobServerFn, { app: 'testapp.grimwire.com' });
+// Create peerweb relay streams
+var peerWeb1 = local.joinPeerWeb('//grimwire.net:8000', peer1ServerFn, { stream: 0 });
+var peerWeb2 = local.joinPeerWeb('//grimwire.net:8000', peer2ServerFn, { stream: 1 });
 
-pfrazeWeb.setAccessToken('pfraze:e6f2131a-e678-4f9c-8155-56918abfac1d');
-bobWeb.setAccessToken('bob:aee615f1-04bc-417a-96c0-b409a0b6dd62 ');
+// Get access token if we need one
+if (!sessionStorage.getItem('access-token')) {
+	peerWeb1.on('accessGranted', function() {
+		sessionStorage.setItem('access-token', peerWeb1.getAccessToken());
+		window.location.reload();
+	});
+	peerWeb1.requestAccessToken();
+} else {
+	// Pull access token from storage
+	peerWeb1.setAccessToken(sessionStorage.getItem('access-token'));
+	peerWeb2.setAccessToken(sessionStorage.getItem('access-token'));
 
-pfrazeWeb.connect('bob', { app: 'testapp.grimwire.com' });
+	// Start listening
+	peerWeb1.startListening();
+	peerWeb2.startListening();
 
-var pfrazeAPI;
-var bobAPI;
-bobWeb.on('connected', function(data) {
-	pfrazeAPI = local.navigator(data.server.getUrl());
+	// Connect to self on second stream
+	peerWeb1.connect(peerWeb1.getUserId(), { stream: 1 });
+}
+
+var peer1API;
+var peer2API;
+peerWeb2.on('connected', function(data) {
+	peer1API = local.navigator(data.server.getUrl());
 	checkReady();
 });
-pfrazeWeb.on('connected', function(data) {
-	bobAPI = local.navigator(data.server.getUrl());
+peerWeb1.on('connected', function(data) {
+	peer2API = local.navigator(data.server.getUrl());
 	print(data.user);
 	print(data.app);
 	print(data.domain);
+	print(data.stream);
 	print(typeof data.server);
 	checkReady();
 });
 function checkReady() {
-	if (!pfrazeAPI || !bobAPI)
+	if (!peer1API || !peer2API)
 		return;
 	print('ready');
 	finishTest();
 }
 
 var counter1 = 0;
-function pfrazeServerFn(req, res) {
+function peer1ServerFn(req, res) {
 	if (req.path == '/' && req.method == 'GET') {
 		res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
 		res.end(counter1++);
@@ -49,7 +66,7 @@ function pfrazeServerFn(req, res) {
 }
 
 var counter2 = 100;
-function bobServerFn(req, res) {
+function peer2ServerFn(req, res) {
 	if (req.path == '/' && req.method == 'GET') {
 		res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
 		res.end(counter2--);
@@ -67,9 +84,10 @@ function bobServerFn(req, res) {
 
 wait(function () { return done; });
 /* =>
-bob
-testapp.grimwire.com
-testapp.grimwire.com_.bob_.grimwire.net.8000
+pfraze
+dev.grimwire.com
+dev.grimwire.com1_.pfraze_.grimwire.net.8000
+1
 object
 ready
 */
@@ -80,8 +98,8 @@ done = false;
 startTime = Date.now();
 var responses_ = [];
 for (var i = 0; i < 10; i++) {
-	responses_.push(pfrazeAPI.dispatch());
-	responses_.push(bobAPI.dispatch());
+	responses_.push(peer1API.dispatch());
+	responses_.push(peer2API.dispatch());
 }
 
 local.promise.bundle(responses_)
@@ -121,8 +139,8 @@ done = false;
 startTime = Date.now();
 var responses_ = [];
 for (var i = 0; i < 10; i++) {
-	responses_.push(pfrazeAPI.post('FooBar'));
-	responses_.push(bobAPI.post('FooBar'));
+	responses_.push(peer1API.post('FooBar'));
+	responses_.push(peer2API.post('FooBar'));
 }
 
 local.promise.bundle(responses_)

@@ -29,6 +29,7 @@ function EventStream(request, response_) {
 	local.util.EventEmitter.call(this);
 	this.request = request;
 	this.response = null;
+	this.response_ = null;
 	this.lastEventId = -1;
 	this.isConnOpen = true;
 
@@ -40,6 +41,7 @@ EventStream.prototype.getUrl = function() { return this.request.url; };
 EventStream.prototype.connect = function(response_) {
 	var self = this;
 	var buffer = '', eventDelimIndex;
+	this.response_ = response_;
 	response_.then(
 		function(response) {
 			self.isConnOpen = true;
@@ -60,11 +62,13 @@ EventStream.prototype.connect = function(response_) {
 			response.on('close', function() { if (self.isConnOpen) { self.isConnOpen = false; self.reconnect(); } });
 			// ^ a close event should be predicated by an end(), giving us time to close ourselves
 			//   if we get a close from the other side without an end message, we assume connection fault
+			return response;
 		},
 		function(response) {
 			self.response = response;
 			emitError.call(self, { event: 'error', data: response });
 			self.close();
+			throw response;
 		}
 	);
 };

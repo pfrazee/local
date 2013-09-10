@@ -20,6 +20,7 @@
 	// - `config.peer`: required object, who we are connecting to (should be supplied by the peer relay)
 	//   - `config.peer.user`: required string, the peer's user ID
 	//   - `config.peer.app`: required string, the peer's app domain
+	//   - `config.peer.stream`: optional number, the stream id of the peer to connect to (defaults to 0)
 	// - `config.relay`: required PeerWebRelay
 	// - `config.initiate`: optional bool, if true will initiate the connection processes
 	// - `config.serverFn`: optional function, the handleRemoteWebRequest function
@@ -30,6 +31,7 @@
 		if (!config.peer) throw new Error("`config.peer` is required");
 		if (typeof config.peer.user == 'undefined') throw new Error("`config.peer.user` is required");
 		if (typeof config.peer.app == 'undefined') throw new Error("`config.peer.app` is required");
+		if (typeof config.peer.stream == 'undefined') config.peer.stream = 0;
 		if (!config.relay) throw new Error("`config.relay` is required");
 		local.web.BridgeServer.call(this, config);
 		local.util.mixinEventEmitter(this);
@@ -76,7 +78,7 @@
 				this.signal({ type: 'disconnect' });
 			}
 			var config = this.config;
-			this.emit('disconnected', { user: config.peer.user, app: config.peer.app, domain: config.domain, server: this });
+			this.emit('disconnected', { user: config.peer.user, app: config.peer.app, stream: config.peer.stream, domain: config.domain, server: this });
 
 			if (this.peerConn) {
 				this.peerConn.close();
@@ -122,7 +124,7 @@
 
 		// Emit event
 		var config = this.config;
-		this.emit('connected', { user: config.peer.user, app: config.peer.app, domain: config.domain, server: this });
+		this.emit('connected', { user: config.peer.user, app: config.peer.app, stream: config.peer.stream, domain: config.domain, server: this });
 	}
 
 	function onHttplChannelClose(e) {
@@ -131,7 +133,7 @@
 		if (this.isConnected) {
 			// Emit event to warn that this happened - may not have been on purpose
 			// var config = this.config;
-			// this.emit('drop', { user: config.peer.user, app: config.peer.app, domain: config.domain });
+			// this.emit('drop', { user: config.peer.user, app: config.peer.app, stream: config.peer.stream, domain: config.domain });
 			// :TODO: smart autoreconnect behavior, I'm thinking
 		}
 
@@ -143,7 +145,7 @@
 		// :TODO: anything?
 		this.debugLog('HTTPL CHANNEL ERR', e);
 		var config = this.config;
-		this.emit('error', { user: config.peer.user, app: config.peer.app, domain: config.domain, server: this, err: e });
+		this.emit('error', { user: config.peer.user, app: config.peer.app, stream: config.peer.stream, domain: config.domain, server: this, err: e });
 	}
 
 	// Signal relay behaviors
@@ -316,11 +318,13 @@
 	// - `config.provider`: required string, the relay provider
 	// - `config.serverFn`: required function, the function for peerservers' handleRemoteWebRequest
 	// - `config.app`: optional string, the app to join as (defaults to window.location.host)
+	// - `config.stream`: optional number, the stream id (defaults to 0)
 	function PeerWebRelay(config) {
 		if (!config) throw new Error("PeerWebRelay requires the `config` parameter");
 		if (!config.provider) throw new Error("PeerWebRelay requires `config.provider`");
 		if (!config.serverFn) throw new Error("PeerWebRelay requires `config.serverFn`");
 		if (!config.app) config.app = window.location.host;
+		if (!config.stream) config.stream = 0;
 		this.config = config;
 		local.util.mixinEventEmitter(this);
 
@@ -341,9 +345,6 @@
 		this.p2pwUsersAPI = this.p2pwServiceAPI.follow({ rel: 'grimwire.com/-user collection' });
 		this.p2pwRelayAPI = null;
 		this.relayStream = null;
-
-		// Event-handlers
-		this.on('accessGranted', this.onAccessGranted.bind(this));
 	}
 	local.web.PeerWebRelay = PeerWebRelay;
 
@@ -361,8 +362,8 @@
 			// Store
 			this.userId = tokenParts[0];
 			this.accessToken = token;
-			this.srcObj = { user: this.getUserId(), app: this.config.app };
 			this.p2pwServiceAPI.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
+			this.p2pwUsersAPI.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
 
 			// Emit an event
 			this.emit('accessGranted');
@@ -375,6 +376,12 @@
 	};
 	PeerWebRelay.prototype.getUserId = function() {
 		return this.userId;
+	};
+	PeerWebRelay.prototype.getStreamId = function() {
+		return this.config.stream;
+	};
+	PeerWebRelay.prototype.setStreamId = function(stream) {
+		this.config.stream = stream;
 	};
 	PeerWebRelay.prototype.getAccessToken = function() {
 		return this.accessToken;
@@ -389,7 +396,10 @@
 				console.debug('Message (from ' + e.origin + '): ' + e.data);
 
 				// Make sure this is from our popup
-				if (e.origin !== this.config.provider) {
+				var originUrld = local.web.parseUri(e.origin);
+				var providerUrld = local.web.parseUri(this.config.provider);
+
+				if (originUrld.authority !== providerUrld.authority) {
 					return;
 				}
 
@@ -411,8 +421,8 @@
 
 	// Spawns an RTCPeerServer and starts the connection process with the given peer
 	// - `user`: required String, the id of the target user
-	// - `config.app`: optional String, the app of the peer to connect to
-	//   - defaults to window.location.host
+	// - `config.app`: optional String, the app of the peer to connect to (defaults to window.location.host)
+	// - `config.stream`: optional number, the stream id of the peer to connect to (defaults to 0)
 	// - `config.initiate`: optional Boolean, should the server initiate the connection?
 	//   - defaults to true
 	//   - should only be false if the connection was already initiated by the opposite end
@@ -423,7 +433,7 @@
 
 		// Spawn new server
 		var server = new local.web.RTCPeerServer({
-			peer: { user: user, app: config.app },
+			peer: { user: user, app: config.app, stream: config.stream },
 			initiate: config.initiate,
 			relay: this,
 			serverFn: this.config.serverFn
@@ -436,7 +446,7 @@
 		server.on('error', this.emit.bind(this, 'error'));
 
 		// Add to hostmap
-		var domain = this.makeDomain(config.app, user, this.providerDomain);
+		var domain = this.makeDomain(config.app, config.stream, user, this.providerDomain);
 		this.bridges[domain] = server;
 		local.web.registerLocal(domain, server);
 		return server;
@@ -454,17 +464,23 @@
 		return api.get({ accept: 'application/json' });
 	};
 
-	PeerWebRelay.prototype.onAccessGranted = function() {
+	PeerWebRelay.prototype.startListening = function() {
 		var self = this;
+		// Update "src" object, for use in signal messages
+		this.srcObj = { user: this.getUserId(), app: this.config.app, stream: this.config.stream };
 		// Connect to the relay stream
-		this.p2pwRelayAPI = this.p2pwServiceAPI.follow({ rel: 'item grimwire.com/-p2pw/relay', id: this.getUserId() });
+		this.p2pwRelayAPI = this.p2pwServiceAPI.follow({ rel: 'item grimwire.com/-p2pw/relay', id: this.getUserId(), stream: this.getStreamId() });
 		this.p2pwRelayAPI.subscribe()
 			.then(function(stream) {
 				self.relayStream = stream;
+				stream.response_.then(function(response) {
+					self.emit('listening');
+					return response;
+				});
 				stream.on('signal', self.onSignal.bind(self));
+				stream.on('error', self.onRelayError.bind(self));
 			}, function(err) {
-				console.warn('Failed to establish p2pw relay stream');
-				self.emit('error', { err: err });
+				self.onRelayError({ event: 'error', data: err });
 			});
 	};
 
@@ -483,7 +499,7 @@
 
 		// Find bridge that represents this origin
 		var src = e.data.src;
-		var domain = this.makeDomain(src.app, src.user, this.providerDomain);
+		var domain = this.makeDomain(src.app, src.stream, src.user, this.providerDomain);
 		var bridgeServer = this.bridges[domain];
 
 		// Does bridge exist?
@@ -492,8 +508,16 @@
 			bridgeServer.onSignal(e.data.msg);
 		} else {
 			// Create a server to handle the signal
-			bridgeServer = this.connect(src.user, { app: src.app, initiate: false });
+			bridgeServer = this.connect(src.user, { app: src.app, stream: src.stream, initiate: false });
 			bridgeServer.onSignal(e.data.msg);
+		}
+	};
+
+	PeerWebRelay.prototype.onRelayError = function(e) {
+		if (e.data && e.data.status == 423) { // locked
+			this.emit('streamTaken', e);
+		} else {
+			this.emit('error', e);
 		}
 	};
 
@@ -506,8 +530,8 @@
 		}
 	};
 
-	PeerWebRelay.prototype.makeDomain = function(app, user, provider) {
-		return app+'_.'+user+'_.'+provider;
+	PeerWebRelay.prototype.makeDomain = function(app, stream, user, provider) {
+		return app+(typeof stream != 'undefined'?stream:'')+'_.'+user+'_.'+provider;
 	};
 
 })();
