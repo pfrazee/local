@@ -46,11 +46,16 @@
 		this.signalBacklog = []; // holds signal messages that have backed up due to an unavailable remote
 		this.retrySignalTimeout = null;
 
-		// Create the peer connection and HTTPL data channel
+		// Create the peer connection
 		var servers = config.iceServers || defaultIceServers;
 		this.peerConn = new webkitRTCPeerConnection(servers, peerConstraints);
+		this.peerConn.onicecandidate             = onIceCandidate.bind(this);
+        this.peerConn.onicechange                = onIceConnectionStateChange.bind(this);
+		this.peerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
+		this.peerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
+
+		// Create the HTTPL data channel
 		this.httplChannel = this.peerConn.createDataChannel('httpl', { ordered: true, reliable: true });
-		this.peerConn.onicecandidate = onIceCandidate.bind(this);
 		this.httplChannel.onopen     = onHttplChannelOpen.bind(this);
 		this.httplChannel.onclose    = onHttplChannelClose.bind(this);
 		this.httplChannel.onerror    = onHttplChannelError.bind(this);
@@ -71,7 +76,7 @@
 		console.debug.apply(console, args);
 	};
 
-	RTCPeerServer.prototype.terminate = function(ops) {
+	RTCPeerServer.prototype.terminate = function(opts) {
 		if (this.isConnected) {
 			this.isConnected = false;
 			if (!(opts && opts.noSignal)) {
@@ -129,16 +134,7 @@
 
 	function onHttplChannelClose(e) {
 		this.debugLog('HTTPL CHANNEL CLOSE', e);
-
-		if (this.isConnected) {
-			// Emit event to warn that this happened - may not have been on purpose
-			// var config = this.config;
-			// this.emit('drop', { user: config.peer.user, app: config.peer.app, stream: config.peer.stream, domain: config.domain });
-			// :TODO: smart autoreconnect behavior, I'm thinking
-		}
-
-		// Update state
-		this.isConnected = false;
+		this.terminate({ noSignal: true });
 	}
 
 	function onHttplChannelError(e) {
@@ -300,6 +296,22 @@
 			this.debugLog('FOUND ICE CANDIDATE', e.candidate);
 			// send connection info to peers on the relay
 			this.signal({ type: 'candidate', candidate: e.candidate.candidate });
+		}
+	}
+
+	// Called by the RTCPeerConnection on connectivity events
+	function onIceConnectionStateChange(e) {
+		if (!!e.target && e.target.iceConnectionState === 'disconnected') {
+			this.debugLog('ICE CONNECTION STATE CHANGE: DISCONNECTED', e);
+			this.terminate({ noSignal: true });
+		}
+	}
+
+	// Called by the RTCPeerConnection on connectivity events
+	function onSignalingStateChange(e) {
+		if(e.target && e.target.signalingState == "closed"){
+			this.debugLog('SIGNALING STATE CHANGE: DISCONNECTED', e);
+			this.terminate({ noSignal: true });
 		}
 	}
 
@@ -521,12 +533,12 @@
 		}
 	};
 
-	PeerWebRelay.prototype.onBridgeDisconnected = function(e) {
+	PeerWebRelay.prototype.onBridgeDisconnected = function(data) {
 		// Stop tracking bridges that close
-		var bridge = this.bridges[e.data.domain];
+		var bridge = this.bridges[data.domain];
 		if (bridge) {
-			delete this.bridges[e.data.domain];
-			local.web.unregisterLocal(e.data.domain);
+			delete this.bridges[data.domain];
+			local.web.unregisterLocal(data.domain);
 		}
 	};
 
