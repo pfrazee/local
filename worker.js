@@ -2470,8 +2470,11 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 	};
 
 	PeerWebRelay.prototype.onRelayError = function(e) {
+		console.debug('relay error', e);
 		if (e.data && e.data.status == 423) { // locked
-			this.emit('streamTaken', e);
+			this.emit('streamTaken');
+		} else if (e.data && e.data.status == 401) { // unauthorized
+			this.emit('accessInvalid');
 		} else {
 			this.emit('error', e);
 		}

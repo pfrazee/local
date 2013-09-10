@@ -14,6 +14,11 @@ if (!sessionStorage.getItem('access-token')) {
 	});
 	peerWeb1.requestAccessToken();
 } else {
+	// Handle auth failures
+	peerWeb1.on('accessInvalid', function() {
+		peerWeb1.requestAccessToken();
+	});
+
 	// Pull access token from storage
 	peerWeb1.setAccessToken(sessionStorage.getItem('access-token'));
 	peerWeb2.setAccessToken(sessionStorage.getItem('access-token'));
