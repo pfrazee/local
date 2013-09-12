@@ -417,9 +417,6 @@
 	};
 	PeerWebRelay.prototype.setStreamId = function(stream) {
 		this.config.stream = stream;
-
-		// Rebuild endpoint
-		this.p2pwRelayAPI = this.p2pwServiceAPI.follow({ rel: 'item grimwire.com/-p2pw/relay', id: this.getUserId(), stream: this.getStreamId(), nc: Date.now() });
 	};
 	PeerWebRelay.prototype.getAccessToken = function() {
 		return this.accessToken;
@@ -511,6 +508,7 @@
 		// Update "src" object, for use in signal messages
 		this.srcObj = { user: this.getUserId(), app: this.config.app, stream: this.config.stream };
 		// Connect to the relay stream
+		this.p2pwRelayAPI = this.p2pwServiceAPI.follow({ rel: 'item grimwire.com/-p2pw/relay', id: this.getUserId(), stream: this.getStreamId(), nc: Date.now() });
 		this.p2pwRelayAPI.subscribe({ method: 'subscribe' })
 			.then(function(stream) {
 				self.relayStream = stream;
