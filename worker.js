@@ -1947,6 +1947,10 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 	};
 	var defaultIceServers = { iceServers: [{ url: 'stun:stun.l.google.com:19302' }] };
 
+	function randomStreamId() {
+		return Math.random()*100000;
+	}
+
 	// RTCPeerServer
 	// =============
 	// EXPORTED
@@ -1955,7 +1959,7 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 	// - `config.peer`: required object, who we are connecting to (should be supplied by the peer relay)
 	//   - `config.peer.user`: required string, the peer's user ID
 	//   - `config.peer.app`: required string, the peer's app domain
-	//   - `config.peer.stream`: optional number, the stream id of the peer to connect to (defaults to 0)
+	//   - `config.peer.stream`: optional number, the stream id of the peer to connect to (defaults to pseudo-random)
 	// - `config.relay`: required PeerWebRelay
 	// - `config.initiate`: optional bool, if true will initiate the connection processes
 	// - `config.serverFn`: optional function, the handleRemoteWebRequest function
@@ -1966,7 +1970,7 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 		if (!config.peer) throw new Error("`config.peer` is required");
 		if (typeof config.peer.user == 'undefined') throw new Error("`config.peer.user` is required");
 		if (typeof config.peer.app == 'undefined') throw new Error("`config.peer.app` is required");
-		if (typeof config.peer.stream == 'undefined') config.peer.stream = 0;
+		if (typeof config.peer.stream == 'undefined') config.peer.stream = randomStreamId();
 		if (!config.relay) throw new Error("`config.relay` is required");
 		local.web.BridgeServer.call(this, config);
 		local.util.mixinEventEmitter(this);
@@ -2274,13 +2278,13 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 	// - `config.provider`: required string, the relay provider
 	// - `config.serverFn`: required function, the function for peerservers' handleRemoteWebRequest
 	// - `config.app`: optional string, the app to join as (defaults to window.location.host)
-	// - `config.stream`: optional number, the stream id (defaults to 0)
+	// - `config.stream`: optional number, the stream id (defaults to pseudo-random)
 	function PeerWebRelay(config) {
 		if (!config) throw new Error("PeerWebRelay requires the `config` parameter");
 		if (!config.provider) throw new Error("PeerWebRelay requires `config.provider`");
 		if (!config.serverFn) throw new Error("PeerWebRelay requires `config.serverFn`");
 		if (!config.app) config.app = window.location.host;
-		if (!config.stream) config.stream = 0;
+		if (!config.stream) config.stream = randomStreamId();
 		this.config = config;
 		local.util.mixinEventEmitter(this);
 
@@ -2395,7 +2399,7 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 	// Spawns an RTCPeerServer and starts the connection process with the given peer
 	// - `user`: required String, the id of the target user
 	// - `config.app`: optional String, the app of the peer to connect to (defaults to window.location.host)
-	// - `config.stream`: optional number, the stream id of the peer to connect to (defaults to 0)
+	// - `config.stream`: optional number, the stream id of the peer to connect to (defaults to pseudo-random)
 	// - `config.initiate`: optional Boolean, should the server initiate the connection?
 	//   - defaults to true
 	//   - should only be false if the connection was already initiated by the opposite end
