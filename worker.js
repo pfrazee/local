@@ -984,11 +984,23 @@ local.web.isRelSchemeUri = function(v) {
 // takes a context url and a relative path and forms a new valid url
 // eg joinRelPath('http://grimwire.com/foo/bar', '../fuz/bar') -> 'http://grimwire.com/foo/fuz/bar'
 local.web.joinRelPath = function(urld, relpath) {
-	if (typeof urld == 'string')
+	if (typeof urld == 'string') {
 		urld = local.web.parseUri(urld);
-	if (relpath.charAt(0) == '/')
+	}
+	var protocol = (urld.protocol) ? urld.protocol + '://' : false;
+	if (!protocol) {
+		if (urld.source.indexOf('//') === 0) {
+			protocol = '//';
+		} else if (urld.source.indexOf('||') === 0) {
+			protocol = '||';
+		} else {
+			protocol = 'httpl://';
+		}
+	}
+	if (relpath.charAt(0) == '/') {
 		// "absolute" relative, easy stuff
-		return urld.protocol + '://' + urld.authority + relpath;
+		return protocol + urld.authority + relpath;
+	}
 	// totally relative, oh god
 	// (thanks to geoff parker for this)
 	var hostpath = urld.path;
@@ -1002,7 +1014,7 @@ local.web.joinRelPath = function(urld, relpath) {
 		else
 			hostpathParts.push(relpathParts[i]);
 	}
-	return local.web.joinUrl(urld.protocol + '://' + urld.authority, hostpathParts.join('/'));
+	return local.web.joinUrl(protocol + urld.authority, hostpathParts.join('/'));
 };
 
 // EXPORTED
@@ -2880,6 +2892,8 @@ local.web.dispatch = function dispatch(request) {
 		if (!schemeHandler) {
 			response.writeHead(0, 'unsupported scheme "'+scheme+'"');
 			response.end();
+			request.resumeEvents();
+			response.resumeEvents();
 		} else {
 			// dispatch according to scheme
 			schemeHandler(request, response);

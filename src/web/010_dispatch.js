@@ -79,6 +79,8 @@ local.web.dispatch = function dispatch(request) {
 		if (!schemeHandler) {
 			response.writeHead(0, 'unsupported scheme "'+scheme+'"');
 			response.end();
+			request.resumeEvents();
+			response.resumeEvents();
 		} else {
 			// dispatch according to scheme
 			schemeHandler(request, response);
