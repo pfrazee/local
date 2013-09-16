@@ -239,6 +239,25 @@ Navigator.prototype.follow = function(query) {
 	return nav;
 };
 
+// Resets the navigator's resolution state, causing it to reissue HEAD requests (relative to any parent navigators)
+Navigator.prototype.unresolve = function() {
+	this.context.resetResolvedState();
+	this.links = null;
+	return this;
+};
+
+// Reassigns the navigator to a new absolute URL
+// - `url`: required string, the URL to rebase the navigator to
+// - resets the resolved state
+Navigator.prototype.rebase = function(url) {
+	this.unresolve();
+	this.context.query = url;
+	this.context.queryIsAbsolute = true;
+	this.context.url  = url;
+	this.context.urld = local.web.parseUri(url);
+	return this;
+};
+
 // Resolves the navigator's URL, reporting failure if a link or resource is unfound
 //  - also ensures the links have been retrieved from the context
 //  - may trigger resolution of parent contexts

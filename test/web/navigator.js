@@ -180,6 +180,96 @@ success
   status: 200
 }*/
 
+// rebase() and unresolve()
+
+var testRebase = new local.web.navigator('httpl://test.com');
+var testRebaseCollection = testRebase.follow({ rel: 'collection', id: 'foo' });
+var testRebaseItem = testRebaseCollection.follow({ rel: 'item', id: 'baz' });
+
+done = false;
+startTime = Date.now();
+testRebaseCollection.get()
+  .then(printSuccess, printErrorAndFinish)
+  .then(function() { return testRebaseItem.get(); })
+  .then(printSuccess, printErrorAndFinish)
+  .then(function() {
+    testRebase.rebase('httpl://_worker.js');
+    testRebaseCollection.unresolve();
+    testRebaseItem.unresolve();
+    return testRebaseCollection.get();
+  })
+  .then(printSuccess, printErrorAndFinish)
+  .then(function() { return testRebaseItem.get(); })
+  .then(printSuccessAndFinish, printErrorAndFinish);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: ["bar", "baz", "blah"],
+  headers: {
+    "content-type": "application/json",
+    link: [
+      {href: "httpl://test.com/", rel: "up via service"},
+      {href: "httpl://test.com/foo", rel: "self current"},
+      {href: "httpl://test.com/foo/{id}", rel: "item"}
+    ]
+  },
+  reason: "ok",
+  status: 200
+}
+success
+{
+  body: "baz",
+  headers: {
+    "content-type": "application/json",
+    link: [
+      {href: "httpl://test.com/", rel: "via service"},
+      {href: "httpl://test.com/foo", rel: "up collection index"},
+      {href: "httpl://test.com/foo/baz", rel: "self current"},
+      {href: "httpl://test.com/foo/bar", rel: "first"},
+      {href: "httpl://test.com/foo/blah", rel: "last"},
+      {href: "httpl://test.com/foo/bar", rel: "prev"},
+      {href: "httpl://test.com/foo/blah", rel: "next"}
+    ]
+  },
+  reason: "ok",
+  status: 200
+}
+success
+{
+  body: ["bar", "baz", "blah"],
+  headers: {
+    "content-type": "application/json",
+    link: [
+      {href: "httpl://_worker.js/", rel: "up via service"},
+      {href: "httpl://_worker.js/foo", rel: "self current"},
+      {href: "httpl://_worker.js/foo/{id}", rel: "item"}
+    ]
+  },
+  reason: "ok",
+  status: 200
+}
+success
+{
+  body: "baz",
+  headers: {
+    "content-type": "application/json",
+    link: [
+      {href: "httpl://_worker.js/", rel: "via service"},
+      {href: "httpl://_worker.js/foo", rel: "up collection index"},
+      {href: "httpl://_worker.js/foo/baz", rel: "self current"},
+      {href: "httpl://_worker.js/foo/bar", rel: "first"},
+      {href: "httpl://_worker.js/foo/blah", rel: "last"},
+      {href: "httpl://_worker.js/foo/bar", rel: "prev"},
+      {href: "httpl://_worker.js/foo/blah", rel: "next"}
+    ]
+  },
+  reason: "ok",
+  status: 200
+}*/
+
+
 // array of queries navigation
 
 done = false;

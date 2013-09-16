@@ -2,6 +2,11 @@ Changes
 =======
 0.4.0
 
+2013/09/16 pfraze
+
+ - Added navigator.rebase() and navigator.unresolve()
+
+
 2013/09/09 pfraze
 
  - Added stream support to local.web.PeerWebRelay
