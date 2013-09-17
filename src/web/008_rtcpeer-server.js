@@ -177,6 +177,9 @@
 			case 'offer':
 				this.debugLog('GOT OFFER', msg);
 				// Received a session offer from the peer
+				// Emit event
+				var config = this.config;
+				this.emit('connecting', { user: config.peer.user, app: config.peer.app, stream: config.peer.stream, domain: config.domain, server: this });
 				// Update the peer connection
 				var desc = new RTCSessionDescription({ type: 'offer', sdp: msg.sdp });
 				this.peerConn.setRemoteDescription(desc);
@@ -290,6 +293,12 @@
 			null,
 			mediaConstraints
 		);
+		// Emit 'connecting' on next tick
+		// (next tick to make sure objects creating us get a chance to wire up the event)
+		setTimeout(function() {
+			var config = self.config;
+			self.emit('connecting', { user: config.peer.user, app: config.peer.app, stream: config.peer.stream, domain: config.domain, server: self });
+		}, 0);
 	};
 
 	// Helper called whenever we have a remote session description
@@ -357,7 +366,7 @@
 		this.connectedToRelay = false;
 		this.userId = null;
 		this.accessToken = null;
-		this.bridges = [];
+		this.bridges = {};
 
 		// :TEMP: Extract provider domain for use in HTTPL domain assignment
 		// when multiple providers are supported, the signal should include this info
@@ -374,6 +383,9 @@
 		this.p2pwUsersAPI = this.p2pwServiceAPI.follow({ rel: 'grimwire.com/-user collection' });
 		this.p2pwRelayAPI = null;
 		this.relayStream = null;
+
+		// Bind window close behavior
+		window.addEventListener('beforeunload', this.onPageClose.bind(this));
 	}
 	local.web.PeerWebRelay = PeerWebRelay;
 
@@ -409,15 +421,22 @@
 			);
 		} else {
 			// Update state and emit event
+			var hadToken = !!this.accessToken;
 			this.userId = null;
 			this.accessToken = null;
+			if (hadToken) {
+				this.emit('accessRemoved');
+			}
 		}
 	};
 	PeerWebRelay.prototype.isListening    = function() { return this.connectedToRelay; };
 	PeerWebRelay.prototype.getUserId      = function() { return this.userId; };
+	PeerWebRelay.prototype.getPeer        = function(domain) { return this.bridges[domain]; };
+	PeerWebRelay.prototype.getApp         = function() { return this.config.app; };
 	PeerWebRelay.prototype.getStreamId    = function() { return this.config.stream; };
 	PeerWebRelay.prototype.setStreamId    = function(stream) { this.config.stream = stream; };
 	PeerWebRelay.prototype.getAccessToken = function() { return this.accessToken; };
+	PeerWebRelay.prototype.getProvider    = function() { return this.config.provider; };
 	PeerWebRelay.prototype.setProvider = function(providerUrl) {
 		// Abort if already connected
 		if (this.connectedToRelay) {
@@ -490,6 +509,7 @@
 		});
 
 		// Bind events
+		server.on('connecting', this.emit.bind(this, 'connecting'));
 		server.on('connected', this.emit.bind(this, 'connected'));
 		server.on('disconnected', this.onBridgeDisconnected.bind(this));
 		server.on('disconnected', this.emit.bind(this, 'disconnected'));
@@ -499,6 +519,7 @@
 		var domain = this.makeDomain(config.app, config.stream, user, this.providerDomain);
 		this.bridges[domain] = server;
 		local.web.registerLocal(domain, server);
+
 		return server;
 	};
 
@@ -533,6 +554,18 @@
 			}, function(err) {
 				self.onRelayError({ event: 'error', data: err });
 			});
+	};
+
+	PeerWebRelay.prototype.stopListening = function() {
+		if (this.connectedToRelay) {
+			// Update state
+			this.relayStream.close();
+			this.relayStream = null;
+			this.connectedToRelay = false;
+
+			// Fire event
+			this.emit('relayDown');
+		}
 	};
 
 	PeerWebRelay.prototype.signal = function(dst, msg) {
@@ -597,6 +630,24 @@
 		if (bridge) {
 			delete this.bridges[data.domain];
 			local.web.unregisterLocal(data.domain);
+		}
+	};
+
+	PeerWebRelay.prototype.onPageClose = function() {
+		var bridgeDomains = Object.keys(this.bridges);
+		if (this.connectedToRelay && bridgeDomains.length !== 0) {
+			// Collect connected peer destination info
+			var dst = [];
+			for (var i=0; i < bridgeDomains.length; i++) {
+				dst.push(this.bridges[bridgeDomains[i]].config.peer);
+			}
+
+			// Send a synchronous disconnect signal to all connected peers
+			var req = new XMLHttpRequest();
+			req.open('POST', this.p2pwRelayAPI.context.url, false);
+			req.setRequestHeader('Authorization', 'Bearer '+this.accessToken);
+			req.setRequestHeader('Content-type', 'application/json');
+			req.send(JSON.stringify({ src: this.srcObj, dst: dst, msg: { type: 'disconnect' } }));
 		}
 	};
 
