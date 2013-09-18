@@ -3,8 +3,8 @@ done = false;
 startTime = Date.now();
 
 // Create peerweb relay streams
-var peerWeb1 = local.joinPeerWeb('//grimwire.net:8000', peer1ServerFn, { stream: 0 });
-var peerWeb2 = local.joinPeerWeb('//grimwire.net:8000', peer2ServerFn, { stream: 1 });
+var peerWeb1 = local.joinPeerWeb('https://grimwire.net', peer1ServerFn, { stream: 0 });
+var peerWeb2 = local.joinPeerWeb('https://grimwire.net', peer2ServerFn, { stream: 1 });
 
 // Get access token if we need one
 if (!sessionStorage.getItem('access-token')) {
@@ -27,8 +27,10 @@ if (!sessionStorage.getItem('access-token')) {
 	peerWeb1.startListening();
 	peerWeb2.startListening();
 
-	// Connect to self on second stream
-	peerWeb1.connect(peerWeb1.getUserId(), { stream: 1 });
+	peerWeb2.on('listening', function() {
+		// Connect to self on second stream
+		peerWeb1.connect(peerWeb1.getUserId(), { stream: 1 });
+	});
 }
 
 var peer1API;
@@ -91,7 +93,7 @@ wait(function () { return done; });
 /* =>
 pfraze
 dev.grimwire.com
-dev.grimwire.com1_.pfraze_.grimwire.net.8000
+dev.grimwire.com1_.pfraze_.grimwire.net
 1
 object
 ready

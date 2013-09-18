@@ -358,7 +358,7 @@
 		if (!config.provider) throw new Error("PeerWebRelay requires `config.provider`");
 		if (!config.serverFn) throw new Error("PeerWebRelay requires `config.serverFn`");
 		if (!config.app) config.app = window.location.host;
-		if (!config.stream) config.stream = randomStreamId();
+		if (typeof config.stream == 'undefined') config.stream = randomStreamId();
 		this.config = config;
 		local.util.mixinEventEmitter(this);
 
