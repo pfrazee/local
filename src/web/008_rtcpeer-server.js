@@ -564,7 +564,7 @@
 			this.connectedToRelay = false;
 
 			// Fire event
-			this.emit('relayDown');
+			this.emit('notlistening');
 		}
 	};
 
@@ -610,7 +610,7 @@
 			this.connectedToRelay = false;
 
 			// Fire event
-			this.emit('relayDown');
+			this.emit('notlistening');
 
 			var self = this;
 			// Attempt to reconnect in 2 seconds
@@ -638,8 +638,8 @@
 		if (this.connectedToRelay && bridgeDomains.length !== 0) {
 			// Collect connected peer destination info
 			var dst = [];
-			for (var i=0; i < bridgeDomains.length; i++) {
-				dst.push(this.bridges[bridgeDomains[i]].config.peer);
+			for (var domain in this.bridges) {
+				dst.push(this.bridges[domain].config.peer);
 			}
 
 			// Send a synchronous disconnect signal to all connected peers
