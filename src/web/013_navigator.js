@@ -197,7 +197,7 @@ Navigator.prototype.dispatch = function(req) {
 Navigator.prototype.subscribe = function(req) {
 	var self = this;
 	if (!req) req = {};
-	return this.resolve().succeed(function(url) {
+	return this.resolve({ nohead: true }).succeed(function(url) {
 		req.url = url;
 
 		if (self.requestDefaults)

@@ -2456,19 +2456,22 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 		// Connect to the relay stream
 		this.p2pwRelayAPI = this.p2pwServiceAPI.follow({ rel: 'item grimwire.com/-p2pw/relay', id: this.getUserId(), stream: this.getStreamId(), nc: Date.now() });
 		this.p2pwRelayAPI.subscribe({ method: 'subscribe' })
-			.then(function(stream) {
-				self.relayStream = stream;
-				self.connectedToRelay = true;
-				stream.response_.then(function(response) {
-					self.emit('listening');
-					return response;
-				});
-				stream.on('signal', self.onSignal.bind(self));
-				stream.on('error', self.onRelayError.bind(self));
-				stream.on('close', self.onRelayClose.bind(self));
-			}, function(err) {
-				self.onRelayError({ event: 'error', data: err });
-			});
+			.then(
+				function(stream) {
+					self.relayStream = stream;
+					self.connectedToRelay = true;
+					stream.response_.then(function(response) {
+						self.emit('listening');
+						return response;
+					});
+					stream.on('signal', self.onSignal.bind(self));
+					stream.on('error', self.onRelayError.bind(self));
+					stream.on('close', self.onRelayClose.bind(self));
+				},
+				function(err) {
+					self.onRelayError({ event: 'error', data: err });
+				}
+			);
 	};
 
 	// Disconnects from the relay
@@ -2548,21 +2551,22 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 
 	PeerWebRelay.prototype.onRelayError = function(e) {
 		if (e.data && e.data.status == 423) { // locked
-			// Fire event
-			this.emit('streamTaken');
-		} else if (e.data && e.data.status == 401) { // unauthorized
-			// Fire event
-			this.emit('accessInvalid');
-		} else if (e.data && (e.data.status === 0 || e.data.status == 404 || e.data.status >= 500)) { // connection lost
 			// Update state
 			this.relayStream = null;
 			this.connectedToRelay = false;
 
 			// Fire event
-			this.emit('notlistening');
+			this.emit('streamTaken');
+		} else if (e.data && e.data.status == 401) { // unauthorized
+			// Fire event
+			this.emit('accessInvalid');
+		} else if (e.data && (e.data.status == 404 || e.data.status >= 500)) { // connection lost
+			// Update state
+			this.relayStream = null;
+			this.connectedToRelay = false;
 
-			var self = this;
 			// Attempt to reconnect in 2 seconds
+			var self = this;
 			setTimeout(function() {
 				self.startListening();
 				// Note - if this fails, an error will be rethrown and take us back here
@@ -4289,7 +4293,7 @@ Navigator.prototype.dispatch = function(req) {
 Navigator.prototype.subscribe = function(req) {
 	var self = this;
 	if (!req) req = {};
-	return this.resolve().succeed(function(url) {
+	return this.resolve({ nohead: true }).succeed(function(url) {
 		req.url = url;
 
 		if (self.requestDefaults)
