@@ -44,6 +44,7 @@
 		}
 
 		// Internal state
+		this.isConnecting = true;
 		this.isOfferExchanged = false;
 		this.isConnected = false;
 		this.candidateQueue = []; // cant add candidates till we get the offer
@@ -82,11 +83,12 @@
 	};
 
 	RTCPeerServer.prototype.terminate = function(opts) {
-		if (this.isConnected) {
-			this.isConnected = false;
+		if (this.isConnecting || this.isConnected) {
 			if (!(opts && opts.noSignal)) {
 				this.signal({ type: 'disconnect' });
 			}
+			this.isConnecting = false;
+			this.isConnected = false;
 			var config = this.config;
 			this.emit('disconnected', { user: config.peer.user, app: config.peer.app, stream: config.peer.stream, domain: config.domain, server: this });
 
@@ -129,6 +131,7 @@
 		this.debugLog('HTTPL CHANNEL OPEN', e);
 
 		// Update state
+		this.isConnecting = false;
 		this.isConnected = true;
 		this.flushBufferedMessages();
 
@@ -304,6 +307,7 @@
 	// Helper called whenever we have a remote session description
 	// (candidates cant be added before then, so they're queued in case they come first)
 	function handleOfferExchanged() {
+		console.log(this.isConnecting, this.isConnected)
 		var self = this;
 		this.isOfferExchanged = true;
 		this.candidateQueue.forEach(function(candidate) {
@@ -596,9 +600,11 @@
 			// Let bridge handle it
 			bridgeServer.onSignal(e.data.msg);
 		} else {
-			// Create a server to handle the signal
-			bridgeServer = this.connect(src.user, { app: src.app, stream: src.stream, initiate: false });
-			bridgeServer.onSignal(e.data.msg);
+			if (e.data.msg.type == 'offer') {
+				// Create a server to handle the signal
+				bridgeServer = this.connect(src.user, { app: src.app, stream: src.stream, initiate: false });
+				bridgeServer.onSignal(e.data.msg);
+			}
 		}
 	};
 
