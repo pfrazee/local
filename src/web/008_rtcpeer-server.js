@@ -478,8 +478,8 @@
 					this.emit('accessDenied');
 				}
 			}).bind(this);
-			window.addEventListener('message', this.messageFromAuthPopupHandler);
 		}
+		window.addEventListener('message', this.messageFromAuthPopupHandler);
 
 		// Resolve the URL for getting access tokens
 		this.accessTokenAPI.resolve({ nohead: true }).then(function(url) {
