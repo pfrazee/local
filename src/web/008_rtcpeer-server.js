@@ -679,7 +679,7 @@
 	};
 
 	PeerWebRelay.prototype.makeDomain = function(app, stream, user, provider) {
-		return app+(typeof stream != 'undefined'?stream:'')+'_.'+user+'_.'+provider;
+		return user+'@'+provider+'!'+app+':'+(stream||'0');
 	};
 
 })();

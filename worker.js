@@ -2626,7 +2626,7 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 	};
 
 	PeerWebRelay.prototype.makeDomain = function(app, stream, user, provider) {
-		return app+(typeof stream != 'undefined'?stream:'')+'_.'+user+'_.'+provider;
+		return user+'@'+provider+'!'+app+':'+(stream||'0');
 	};
 
 })();// schemes
@@ -2816,7 +2816,8 @@ local.web.schemes.register('httpl', function(request, response) {
 	response.suspendEvents();
 
 	// find the local server
-	var server = local.web.getLocal(request.urld.host);
+	// console.log(request.urld, Object.keys(local.web.getLocalRegistry()))
+	var server = local.web.getLocal(request.urld.authority);
 	if (!server)
 		server = localNotFoundServer;
 

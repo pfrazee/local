@@ -29,7 +29,9 @@ if (!sessionStorage.getItem('access-token')) {
 
 	peerWeb2.on('listening', function() {
 		// Connect to self on second stream
-		peerWeb1.connect(peerWeb1.getUserId(), { stream: 1 });
+		if (!peer1API) {
+			peerWeb1.connect(peerWeb1.getUserId(), { stream: 1 });
+		}
 	});
 }
 
@@ -93,7 +95,7 @@ wait(function () { return done; });
 /* =>
 pfraze
 dev.grimwire.com
-dev.grimwire.com1_.pfraze_.grimwire.net
+pfraze@grimwire.net!dev.grimwire.com:1
 1
 object
 ready

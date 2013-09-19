@@ -185,7 +185,8 @@ local.web.schemes.register('httpl', function(request, response) {
 	response.suspendEvents();
 
 	// find the local server
-	var server = local.web.getLocal(request.urld.host);
+	// console.log(request.urld, Object.keys(local.web.getLocalRegistry()))
+	var server = local.web.getLocal(request.urld.authority);
 	if (!server)
 		server = localNotFoundServer;
 
