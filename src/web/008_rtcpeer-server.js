@@ -380,7 +380,7 @@
 		// :TEMP: Extract provider domain for use in HTTPL domain assignment
 		// when multiple providers are supported, the signal should include this info
 		var providerUrld = local.web.parseUri(config.provider);
-		this.providerDomain = providerUrld.authority.replace(/\:/g, '.');
+		this.providerDomain = providerUrld.host;
 
 		// Internal helpers
 		this.messageFromAuthPopupHandler = null;
@@ -453,7 +453,7 @@
 		}
 		// Update config and APIs
 		this.config.provider = providerUrl;
-		this.providerDomain = local.web.parseUri(providerUrl).authority.replace(/\:/g, '.');
+		this.providerDomain = local.web.parseUri(providerUrl).host;
 		this.p2pwServiceAPI.rebase(providerUrl);
 		this.accessTokenAPI.unresolve();
 		this.p2pwUsersAPI.unresolve();
