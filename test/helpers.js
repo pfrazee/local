@@ -14,7 +14,7 @@ function printError(res) {
 	throw res;
 }
 function finishTest() {
-	console.log(Date.now() - startTime, 'ms');
+	console.log('Test Duration:', Date.now() - startTime, 'ms');
 	done = true;
 }
 function printSuccessAndFinish(res) { printSuccess(res); finishTest(); }

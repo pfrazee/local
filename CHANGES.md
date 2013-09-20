@@ -2,6 +2,12 @@ Changes
 =======
 0.4.0
 
+2013/09/20 pfraze
+
+ - Added local.logAllExceptions config flag
+ - Added response.latency
+
+
 2013/09/16 pfraze
 
  - Added navigator.rebase() and navigator.unresolve()

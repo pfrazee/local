@@ -18,6 +18,7 @@ local.promise.bundle(responses_)
 	.always(function(responses) {
 		responses.forEach(function(res) {
 			print(res.body);
+			console.log(res.latency+' ms');
 		});
 		finishTest();
 	});
@@ -59,6 +60,7 @@ local.promise.bundle(responses_)
 	.always(function(responses) {
 		responses.forEach(function(res) {
 			print(res.body);
+			console.log(res.latency+' ms');
 		});
 		finishTest();
 	});

@@ -18,6 +18,12 @@ function Response() {
 		enumerable: false,
 		writable: true
 	});
+	Object.defineProperty(this, 'latency', {
+		value: undefined,
+		configurable: true,
+		enumerable: false,
+		writable: true
+	});
 
 	// response buffering
 	Object.defineProperty(this, 'body_', {

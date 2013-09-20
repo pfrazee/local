@@ -50,7 +50,7 @@
 			var newValue;
 			try { newValue = fn(parentPromise.value); }
 			catch (e) {
-				if (e instanceof Error) {
+				if (local.logAllExceptions || e instanceof Error) {
 					if (console.error)
 						console.error(e, e.stack);
 					else console.log("Promise exception thrown", e, e.stack);
@@ -1476,6 +1476,12 @@ function Response() {
 	// non-enumerables (dont include in response messages)
 	Object.defineProperty(this, 'isConnOpen', {
 		value: true,
+		configurable: true,
+		enumerable: false,
+		writable: true
+	});
+	Object.defineProperty(this, 'latency', {
+		value: undefined,
 		configurable: true,
 		enumerable: false,
 		writable: true
@@ -2973,10 +2979,12 @@ local.web.dispatch = function dispatch(request) {
 		request.url = request.urld.protocol+'://'+request.urld.authority+request.urld.relative;
 	}
 
-	// Generate response
+	// Setup response object
+	var requestStartTime;
 	var response = new local.web.Response();
 	var response_ = local.promise();
 	response.on('headers', function() { processResponseHeaders(request, response); });
+	response.on('close', function() { response.latency = Date.now() - requestStartTime; });
 	if (request.stream) {
 		// streaming, fulfill on 'headers'
 		response.on('headers', function(response) {
@@ -2999,6 +3007,7 @@ local.web.dispatch = function dispatch(request) {
 	var args = Array.prototype.slice.call(arguments, 1);
 	args.unshift(function(request, response, schemeHandler) {
 		// execute by scheme
+		requestStartTime = Date.now();
 		schemeHandler = schemeHandler || local.web.schemes.get(scheme);
 		if (!schemeHandler) {
 			response.writeHead(0, 'unsupported scheme "'+scheme+'"');
