@@ -172,13 +172,13 @@ success
 }
 */
 
-// == SECTION core - rel-uri requests
+// == SECTION core - nav-uri requests
 
 // successful local requests
 
 done = false;
 startTime = Date.now();
-var res = local.web.dispatch({ method:'get', url:'rel:httpl://test.com||collection=foo||item=baz' });
+var res = local.web.dispatch({ method:'get', url:'nav:||httpl://test.com|collection=foo|item=baz' });
 res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
@@ -207,7 +207,7 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.web.dispatch({ method:'get', url:'rel:httpl://test.com||collection=lolno||item=baz' });
+var res = local.web.dispatch({ method:'get', url:'nav:||httpl://test.com|collection=lolno|item=baz' });
 res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
@@ -220,7 +220,7 @@ error
 
 done = false;
 startTime = Date.now();
-var res = local.web.dispatch({ method:'get', url:'rel:httpl://test.com||collection=foo||item=blammo' });
+var res = local.web.dispatch({ method:'get', url:'nav:||httpl://test.com|collection=foo|item=blammo' });
 res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 

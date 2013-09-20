@@ -635,7 +635,7 @@
 			this.setAccessToken(null);
 			// Fire event
 			this.emit('accessInvalid');
-		} else if (e.data && (e.data.status == 404 || e.data.status >= 500)) { // connection lost
+		} else if (e.data && (e.data.status === 0 || e.data.status == 404 || e.data.status >= 500)) { // connection lost
 			// Update state
 			this.relayStream = null;
 			this.connectedToRelay = false;

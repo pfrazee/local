@@ -44,13 +44,13 @@ Changes
 
 2013/08/09 pfraze
 
- - Removed the "proxy" URI scheme (supplanted by the "rel" scheme)
+ - Removed the "proxy" URI scheme (supplanted by the "nav" scheme)
  - Updated local.env.addServer to accept functions as well as local.env.Server objects
 
 
 2013/08/08 pfraze
 
- - Added support for the "rel" URI scheme
+ - Added support for the "nav" URI scheme
  - Refactored local.web.Navigator
    - Replaced `relation()` with `follow()`, which uses link queries in the form of `local.web.queryLink()`
    - Removed all `relation()` sugars (eg `collection()`, `item()`, etc)

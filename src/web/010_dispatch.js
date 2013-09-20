@@ -24,9 +24,9 @@ local.web.dispatch = function dispatch(request) {
 	if (!request.url)
 		throw new Error("no url on request");
 
-	// If given a rel: scheme, spawn a navigator to handle it
+	// If given a nav: scheme, spawn a navigator to handle it
 	var scheme = parseScheme(request.url);
-	if (scheme == 'rel') {
+	if (scheme == 'nav') {
 		var url = request.url;
 		delete request.url;
 		return local.web.navigator(url).dispatch(request);

@@ -327,14 +327,14 @@ success
 }
 */
 
-// rel: navigation
+// nav:|| navigation
 
 done = false;
 startTime = Date.now();
-local.web.navigator('rel:httpl://test.com||collection=foo||item=baz').get()
+local.web.navigator('nav:||httpl://test.com|collection=foo|item=baz').get()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
-    testLocal.follow('||collection=foo||item=baz').get().then(printSuccessAndFinish, printErrorAndFinish);
+    testLocal.follow('|collection=foo|item=baz').get().then(printSuccessAndFinish, printErrorAndFinish);
   });
 wait(function () { return done; });
 

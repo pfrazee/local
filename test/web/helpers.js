@@ -110,34 +110,36 @@ print(local.web.joinRelPath('http://grimwire.com/bar/bar', '../../foo'));
 finishTest();
 
 
-// parseRelUri
+// parseNavUri
 
 startTime = Date.now();
-print(local.web.parseRelUri());
+print(local.web.parseNavUri());
 // => []
-print(local.web.parseRelUri('rel:'));
+print(local.web.parseNavUri('nav:||'));
 // => []
-print(local.web.parseRelUri('rel:http://foo.com'));
+print(local.web.parseNavUri('nav:||http://foo.com'));
 // => ["http://foo.com"]
-print(local.web.parseRelUri('rel:http://foo.com||bar'));
+print(local.web.parseNavUri('nav:||http://foo.com|bar'));
 // => ["http://foo.com", {rel: "bar"}]
-print(local.web.parseRelUri('||bar'));
+print(local.web.parseNavUri('||http://foo.com|bar'));
+// => ["http://foo.com", {rel: "bar"}]
+print(local.web.parseNavUri('|bar'));
 // => [{rel: "bar"}]
-print(local.web.parseRelUri('rel:http://foo.com||bar=baz'));
+print(local.web.parseNavUri('nav:||http://foo.com|bar=baz'));
 // => ["http://foo.com", {id: "baz", rel: "bar"}]
-print(local.web.parseRelUri('rel:http://foo.com||bar+bum'));
+print(local.web.parseNavUri('nav:||http://foo.com|bar+bum'));
 // => ["http://foo.com", {rel: "bar bum"}]
-print(local.web.parseRelUri('rel:http://foo.com||bar+!bum'));
+print(local.web.parseNavUri('nav:||http://foo.com|bar+!bum'));
 // => ["http://foo.com", {rel: "bar !bum"}]
-print(local.web.parseRelUri('rel:http://foo.com||bar+bum=baz'));
+print(local.web.parseNavUri('nav:||http://foo.com|bar+bum=baz'));
 // => ["http://foo.com", {id: "baz", rel: "bar bum"}]
-print(local.web.parseRelUri('rel:http://foo.com||bar=baz,a=b'));
+print(local.web.parseNavUri('nav:||http://foo.com|bar=baz,a=b'));
 // => ["http://foo.com", {a: "b", id: "baz", rel: "bar"}]
-print(local.web.parseRelUri('rel:http://foo.com||bar=baz,a=b,c=f+g'));
+print(local.web.parseNavUri('nav:||http://foo.com|bar=baz,a=b,c=f+g'));
 // => ["http://foo.com", {a: "b", c: "f g", id: "baz", rel: "bar"}]
-print(local.web.parseRelUri('rel:http://foo.com||bar=baz,a=b,c=f%20g'));
+print(local.web.parseNavUri('nav:||http://foo.com|bar=baz,a=b,c=f%20g'));
 // => ["http://foo.com", {a: "b", c: "f g", id: "baz", rel: "bar"}]
-print(local.web.parseRelUri('rel:http://foo.com||bar=baz||faa=feh'));
+print(local.web.parseNavUri('nav:||http://foo.com|bar=baz|faa=feh'));
 // => ["http://foo.com", {id: "baz", rel: "bar"}, {id: "feh", rel: "faa"}]
 finishTest();
 

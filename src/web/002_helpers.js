@@ -193,16 +193,16 @@ local.web.joinUrl = function joinUrl() {
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
 // - eg http://foo.com, //foo.com, httpl://bar.app, rel:http://foo.com, rel:foo.com
-var isAbsUriRE = /^(http(s|l)?:)|(rel:[^|])|(\/\/)/;
+var isAbsUriRE = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)/;
 local.web.isAbsUri = function(v) {
 	return isAbsUriRE.test(v);
 };
 
 // EXPORTED
-// tests to see if a URL is using the rel scheme
-var isRelSchemeUriRE = /\|\||rel:/;
-local.web.isRelSchemeUri = function(v) {
-	return isRelSchemeUriRE.test(v);
+// tests to see if a URL is using the nav scheme
+var isNavSchemeUriRE = /^(nav:)?\|?\|/i;
+local.web.isNavSchemeUri = function(v) {
+	return isNavSchemeUriRE.test(v);
 };
 
 
@@ -285,23 +285,21 @@ local.web.parseUri.options = {
 };
 
 // EXPORTED
-// Converts a 'rel:' URI into an array of http/s/l URIs and link query objects
-local.web.parseRelUri = function(str) {
+// Converts a 'nav:' URI into an array of http/s/l URIs and link query objects
+local.web.parseNavUri = function(str) {
 	if (!str) return [];
 
-	// Split into navigations
-	var parts = str.split('||');
-
-	// First entry - starting URL
-	// eg rel:http://foo.com||...
-	if (parts[0]) {
-		// Drop the scheme
-		if (parts[0].indexOf('rel:') === 0)
-			parts[0] = parts[0].slice(4);
+	// Check (and strip out) scheme
+	var schemeIndex = str.indexOf('||');
+	if (schemeIndex !== -1) {
+		str = str.slice(schemeIndex+2);
 	}
 
-	// Remaining entries - queries
-	// eg ...||rel=id,attr1=value1,attr2=value2||...
+	// Split into navigations
+	var parts = str.split('|');
+
+	// Parse queries
+	// eg ...|rel=id,attr1=value1,attr2=value2|...
 	for (var i=1; i < parts.length; i++) {
 		var query = {};
 		var attrs = parts[i].split(',');
@@ -317,7 +315,7 @@ local.web.parseRelUri = function(str) {
 		parts[i] = query;
 	}
 
-	// Drop first entry if empty
+	// Drop first entry if empty (a relative nav uri)
 	if (!parts[0])
 		parts.shift();
 

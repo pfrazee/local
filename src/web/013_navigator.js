@@ -68,7 +68,8 @@ NavigatorContext.prototype.setFailed = function(error) {
 // - basic navigation
 // - requests
 var foobarService = local.web.navigator('https://foobar.com');
-var bob = foobarService.follow('rel:||collection=users||item=bob');
+var bob = foobarService.follow('|collection=users|item=bob');
+// ^ or local.web.navigator('nav:||https://foobar.com|collection=users|item=bob')
 // ^ or foobarService.follow([{ rel: 'collection', id: 'users' }, { rel: 'item', id:'bob' }]);
 // ^ or foobarService.follow({ rel: 'collection', id: 'users' }).follow({ rel: 'item', id:'bob' });
 bob.get()
@@ -87,7 +88,7 @@ bob.get()
 // EXAMPLE 2. Get all users who joined after 2013, in pages of 150
 // - additional navigation query parameters
 // - server-driven batching
-var pageCursor = foobarService.follow('rel:||collection=users,since=2013-01-01,limit=150');
+var pageCursor = foobarService.follow('|collection=users,since=2013-01-01,limit=150');
 pageCursor.get()
 	// -> GET https://foobar.com/users?since=2013-01-01&limit=150 (Accept: application/json)
 	.then(function readNextPage(response) {
@@ -95,7 +96,7 @@ pageCursor.get()
 		emailNewbieGreetings(response.body); // -- emailNewbieGreetings is a fake utility function
 
 		// Go to the 'next page' link, as supplied by the response
-		pageCursor = pageCursor.follow('rel:||next');
+		pageCursor = pageCursor.follow('|next');
 		return pageCursor.get().then(readNextPage);
 		// -> GET https://foobar.com/users?since=2013-01-01&limit=150&offset=150 (Accept: application/json)
 	})
@@ -103,14 +104,14 @@ pageCursor.get()
 		// Not finding a 'rel=next' link means the server didn't give us one.
 		if (response.status == local.web.LINK_NOT_FOUND) { // 001 Local: Link not found - termination condition
 			// Tell Bob his greeting was sent
-			bob.follow('rel:||grimwire.com/-mail/inbox').post({
+			bob.follow('|grimwire.com/-mail/inbox').post({
 				title: '2013 Welcome Emails Sent',
 				body: 'Good work, Bob.'
 			});
 			// -> POST https://foobar.com/mail/users/bob/inbox (Content-Type: application/json)
 		} else {
 			// Tell Bob something went wrong
-			bob.follow('rel:||grimwire.com/-mail/inbox').post({
+			bob.follow('|grimwire.com/-mail/inbox').post({
 				title: 'ERROR! 2013 Welcome Emails Failed!',
 				body: 'Way to blow it, Bob.',
 				attachments: {
@@ -212,7 +213,7 @@ Navigator.prototype.subscribe = function(req) {
 //   - an object in the same form of a `local.web.queryLink()` parameter
 //   - an array of link query objects (to be followed sequentially)
 //   - a URI string
-//     - if using the 'rel:' scheme, will convert the URI into a link query object
+//     - if using the 'nav:' scheme, will convert the URI into a link query object
 //     - if a relative URI using the HTTP/S/L scheme, will follow the relation relative to the current context
 //     - if an absolute URI using the HTTP/S/L scheme, will go to that URI
 // - uses URI Templates to generate URLs
@@ -220,9 +221,9 @@ Navigator.prototype.subscribe = function(req) {
 //   - the exception to this is: `rel` matches and the HREF has an {id} token
 //   - all other attributes are used to fill URI Template tokens and are not required to match
 Navigator.prototype.follow = function(query) {
-	// convert rel: uri to a query array
-	if (typeof query == 'string' && local.web.isRelSchemeUri(query))
-		query = local.web.parseRelUri(query);
+	// convert nav: uri to a query array
+	if (typeof query == 'string' && local.web.isNavSchemeUri(query))
+		query = local.web.parseNavUri(query);
 
 	// make sure we always have an array
 	if (!Array.isArray(query))
@@ -395,9 +396,9 @@ local.web.navigator = function(queryOrNav) {
 	if (queryOrNav instanceof Navigator)
 		return queryOrNav;
 
-	// convert rel: uri to a query array
-	if (typeof queryOrNav == 'string' && local.web.isRelSchemeUri(queryOrNav))
-		queryOrNav = local.web.parseRelUri(queryOrNav);
+	// convert nav: uri to a query array
+	if (typeof queryOrNav == 'string' && local.web.isNavSchemeUri(queryOrNav))
+		queryOrNav = local.web.parseNavUri(queryOrNav);
 
 	// make sure we always have an array
 	if (!Array.isArray(queryOrNav))
