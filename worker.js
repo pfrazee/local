@@ -1329,6 +1329,10 @@ function Request(options) {
 	if (options.body && !this.headers['content-type']) {
 		this.headers['content-type'] = (typeof options.body == 'string') ? 'text/plain' : 'application/json';
 	}
+	// Make sure we have an accept header
+	if (!this.headers['accept']) {
+		this.headers['accept'] = '*/*';
+	}
 
 	// non-enumerables (dont include in request messages)
 	Object.defineProperty(this, 'body', {
