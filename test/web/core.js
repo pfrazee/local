@@ -24,7 +24,6 @@ success
   reason: "Ok",
   status: 200
 }
-
 */
 
 // unsuccessful remote requests
@@ -43,6 +42,20 @@ error
   reason: "Not Found",
   status: 404
 }
+*/
+
+// aborted remote requests
+
+done = false;
+startTime = Date.now();
+var request = new local.web.Request({ method:'get', url:'http://grimwire.com:8080', headers: { accept: 'application/json' } });
+var res = local.web.dispatch(request);
+res.then(printSuccess, printError).always(finishTest);
+request.end();
+request.close();
+wait(function () { return done; });
+/* => error
+{body: "", headers: {}, reason: null, status: 0}
 */
 
 // == SECTION core - document local requests

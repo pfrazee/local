@@ -180,12 +180,7 @@ var localNotFoundServer = {
 	context: null
 };
 local.web.schemes.register('httpl', function(request, response) {
-	// need additional time to get the worker wired up
-	request.suspendEvents();
-	response.suspendEvents();
-
 	// find the local server
-	// console.log(request.urld, Object.keys(local.web.getLocalRegistry()))
 	var server = local.web.getLocal(request.urld.authority);
 	if (!server)
 		server = localNotFoundServer;
@@ -199,12 +194,8 @@ local.web.schemes.register('httpl', function(request, response) {
 	if (request.binary)
 		console.warn('Got HTTPL request with binary=true - sorry, not currently supported', request);
 
-	// pass on to the server (async)
-	setTimeout(function() {
-		server.fn.call(server.context, request, response);
-		request.resumeEvents();
-		response.resumeEvents();
-	}, 0);
+	// pass on to the server
+	server.fn.call(server.context, request, response);
 });
 
 

@@ -56,6 +56,8 @@ Response.prototype.removeHeader = function(k) { delete this.headers[k]; };
 // writes the header to the response
 // - emits the 'headers' event
 Response.prototype.writeHead = function(status, reason, headers) {
+	if (!this.isConnOpen)
+		return;
 	this.status = status;
 	this.reason = reason;
 	if (headers) {

@@ -21,8 +21,7 @@ local.web.dispatch = function dispatch(request) {
 	if (!request) { throw new Error("no request param provided to request"); }
 	if (typeof request == 'string')
 		request = { url: request };
-	if (!request.url)
-		throw new Error("no url on request");
+	if (!request.url) { throw new Error("no url on request"); }
 
 	// If given a nav: scheme, spawn a navigator to handle it
 	var scheme = parseScheme(request.url);
@@ -39,7 +38,7 @@ local.web.dispatch = function dispatch(request) {
 		request = new local.web.Request(request);
 		shouldAutoSendRequestBody = true; // we're going to end()
 	}
-	request.urld = local.web.parseUri(request.url); // (urld = url description)
+	Object.defineProperty(request, 'urld', { value: local.web.parseUri(request.url), configurable: true, enumerable: false, writable: true }); // (urld = url description)
 	if (request.urld.query) {
 		// Extract URL query parameters into the request's query object
 		var q = local.web.contentTypes.deserialize(request.urld.query, 'application/x-www-form-urlencoded');
@@ -53,8 +52,14 @@ local.web.dispatch = function dispatch(request) {
 	var requestStartTime;
 	var response = new local.web.Response();
 	var response_ = local.promise();
+	request.on('close', function() { response.close(); });
 	response.on('headers', function() { processResponseHeaders(request, response); });
-	response.on('close', function() { response.latency = Date.now() - requestStartTime; });
+	response.on('close', function() {
+		// Track latency
+		response.latency = Date.now() - requestStartTime;
+		// Close the request
+		request.close();
+	});
 	if (request.stream) {
 		// streaming, fulfill on 'headers'
 		response.on('headers', function(response) {
@@ -72,10 +77,8 @@ local.web.dispatch = function dispatch(request) {
 	request.suspendEvents();
 	response.suspendEvents();
 
-	// Pull any extra arguments that may have been passed
-	// form the paramlist: (request, response, dispatch, args...)
-	var args = Array.prototype.slice.call(arguments, 1);
-	args.unshift(function(request, response, schemeHandler) {
+	// Create function to be called by the dispatch wrapper
+	var dispatchFn = function(request, response, schemeHandler) {
 		// execute by scheme
 		requestStartTime = Date.now();
 		schemeHandler = schemeHandler || local.web.schemes.get(scheme);
@@ -91,15 +94,24 @@ local.web.dispatch = function dispatch(request) {
 			request.resumeEvents();
 			response.resumeEvents();
 			// autosend request body if not given a local.web.Request `request`
-			if (shouldAutoSendRequestBody) request.end(body);
+			if (shouldAutoSendRequestBody) { request.end(body); }
 		}
 		return response_;
-	});
+	};
+
+	// Setup the arguments list for the dispatch wrapper to include any additional params passed to dispatch()
+	// aka (request, response, dispatch, args...)
+	// this allows apps to do something like local.dispatch(request, extraParam1, extraParam2) and have the dispatch wrapper use those params
+	var args = Array.prototype.slice.call(arguments, 1);
+	args.unshift(dispatchFn);
 	args.unshift(response);
 	args.unshift(request);
 
-	// Allow the wrapper to audit the message
-	webDispatchWrapper.apply(null, args);
+	// Wait until next tick, to make sure dispatch() is always async
+	setTimeout(function() {
+		// Allow the wrapper to audit the message
+		webDispatchWrapper.apply(null, args);
+	}, 0);
 
 	response_.request = request;
 	return response_;
