@@ -16,16 +16,15 @@
 		return Math.round(Math.random()*10000);
 	}
 
-	// RTCPeerServer
-	// =============
+	// RTCBridgeServer
+	// ===============
 	// EXPORTED
 	// server wrapper for WebRTC connections
 	// - currently only supports Chrome
 	// - `config.peer`: required string, who we are connecting to (a valid peer domain)
 	// - `config.relay`: required PeerWebRelay
 	// - `config.initiate`: optional bool, if true will initiate the connection processes
-	// - `config.serverFn`: optional function, the handleRemoteWebRequest function
-	function RTCPeerServer(config) {
+	function RTCBridgeServer(config) {
 		// Config
 		var self = this;
 		if (!config) config = {};
@@ -33,9 +32,6 @@
 		if (!config.relay) throw new Error("`config.relay` is required");
 		local.web.BridgeServer.call(this, config);
 		local.util.mixinEventEmitter(this);
-		if (config.serverFn) {
-			this.handleRemoteWebRequest = config.serverFn;
-		}
 
 		// Parse config.peer
 		var peerParsed = peerDomainRE.exec(config.peer);
@@ -60,18 +56,18 @@
 
 		// Create the peer connection
 		var servers = config.iceServers || defaultIceServers;
-		this.peerConn = new webkitRTCPeerConnection(servers, peerConstraints);
-		this.peerConn.onicecandidate             = onIceCandidate.bind(this);
-        this.peerConn.onicechange                = onIceConnectionStateChange.bind(this);
-		this.peerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
-		this.peerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
+		this.rtcPeerConn = new webkitRTCPeerConnection(servers, peerConstraints);
+		this.rtcPeerConn.onicecandidate             = onIceCandidate.bind(this);
+		this.rtcPeerConn.onicechange                = onIceConnectionStateChange.bind(this);
+		this.rtcPeerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
+		this.rtcPeerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
 
 		// Create the HTTPL data channel
-		this.httplChannel = this.peerConn.createDataChannel('httpl', { ordered: true, reliable: true });
-		this.httplChannel.onopen     = onHttplChannelOpen.bind(this);
-		this.httplChannel.onclose    = onHttplChannelClose.bind(this);
-		this.httplChannel.onerror    = onHttplChannelError.bind(this);
-		this.httplChannel.onmessage  = onHttplChannelMessage.bind(this);
+		this.rtcDataChannel = this.rtcPeerConn.createDataChannel('httpl', { ordered: true, reliable: true });
+		this.rtcDataChannel.onopen     = onHttplChannelOpen.bind(this);
+		this.rtcDataChannel.onclose    = onHttplChannelClose.bind(this);
+		this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
+		this.rtcDataChannel.onmessage  = onHttplChannelMessage.bind(this);
 
 		if (this.config.initiate) {
 			// Initiate event will be picked up by the peer
@@ -79,20 +75,20 @@
 			this.sendOffer();
 		}
 	}
-	RTCPeerServer.prototype = Object.create(local.web.BridgeServer.prototype);
-	local.web.RTCPeerServer = RTCPeerServer;
+	RTCBridgeServer.prototype = Object.create(local.web.BridgeServer.prototype);
+	local.web.RTCBridgeServer = RTCBridgeServer;
 
-	RTCPeerServer.prototype.getPeerInfo = function() {
+	RTCBridgeServer.prototype.getPeerInfo = function() {
 		return this.peerInfo;
 	};
 
 	// :DEBUG:
-	RTCPeerServer.prototype.debugLog = function() {
+	RTCBridgeServer.prototype.debugLog = function() {
 		var args = [this.config.domain].concat([].slice.call(arguments));
 		console.debug.apply(console, args);
 	};
 
-	RTCPeerServer.prototype.terminate = function(opts) {
+	RTCBridgeServer.prototype.terminate = function(opts) {
 		if (this.isConnecting || this.isConnected) {
 			if (!(opts && opts.noSignal)) {
 				this.signal({ type: 'disconnect' });
@@ -101,27 +97,27 @@
 			this.isConnected = false;
 			this.emit('disconnected', { peer: this.peerInfo, domain: this.config.domain, server: this });
 
-			if (this.peerConn) {
-				this.peerConn.close();
-				this.peerConn = null;
+			if (this.rtcPeerConn) {
+				this.rtcPeerConn.close();
+				this.rtcPeerConn = null;
 			}
 		}
 	};
 
 	// Returns true if the channel is ready for activity
 	// - returns boolean
-	RTCPeerServer.prototype.isChannelActive = function() {
+	RTCBridgeServer.prototype.isChannelActive = function() {
 		return this.isConnected;
 	};
 
 	// Sends a single message across the channel
 	// - `msg`: required string
-	RTCPeerServer.prototype.channelSendMsg = function(msg) {
-		this.httplChannel.send(msg);
+	RTCBridgeServer.prototype.channelSendMsg = function(msg) {
+		this.rtcDataChannel.send(msg);
 	};
 
 	// Remote request handler
-	RTCPeerServer.prototype.handleRemoteWebRequest = function(request, response) {
+	RTCBridgeServer.prototype.handleRemoteWebRequest = function(request, response) {
 		response.writeHead(500, 'not implemented');
 		response.end();
 	};
@@ -162,7 +158,7 @@
 	// Signal relay behaviors
 	// -
 
-	RTCPeerServer.prototype.onSignal = function(msg) {
+	RTCBridgeServer.prototype.onSignal = function(msg) {
 		var self = this;
 
 		this.debugLog('SIG', msg);
@@ -180,7 +176,7 @@
 					this.candidateQueue.push(msg.candidate);
 				} else {
 					// Pass into the peer connection
-					this.peerConn.addIceCandidate(new RTCIceCandidate({ candidate: msg.candidate }));
+					this.rtcPeerConn.addIceCandidate(new RTCIceCandidate({ candidate: msg.candidate }));
 				}
 				break;
 
@@ -191,17 +187,17 @@
 				this.emit('connecting', { peer: this.peerInfo, domain: this.config.domain, server: this });
 				// Update the peer connection
 				var desc = new RTCSessionDescription({ type: 'offer', sdp: msg.sdp });
-				this.peerConn.setRemoteDescription(desc);
+				this.rtcPeerConn.setRemoteDescription(desc);
 				// Burn the ICE candidate queue
 				handleOfferExchanged.call(self);
 				// Send an answer
-				this.peerConn.createAnswer(
+				this.rtcPeerConn.createAnswer(
 					function(desc) {
 						self.debugLog('CREATED ANSWER', desc);
 
 						// Store the SDP
 						desc.sdp = increaseSDP_MTU(desc.sdp);
-						self.peerConn.setLocalDescription(desc);
+						self.rtcPeerConn.setLocalDescription(desc);
 
 						// Send answer msg
 						self.signal({ type: 'answer', sdp: desc.sdp });
@@ -215,18 +211,18 @@
 				this.debugLog('GOT ANSWER', msg);
 				// Received session confirmation from the peer
 				// Update the peer connection
-				this.peerConn.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
+				this.rtcPeerConn.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
 				// Burn the ICE candidate queue
 				handleOfferExchanged.call(self);
 				break;
 
 			default:
-				console.warn('RTCPeerServer - Unrecognized signal message from relay', msg);
+				console.warn('RTCBridgeServer - Unrecognized signal message from relay', msg);
 		}
 	};
 
 	// Helper to send a message to peers on the relay
-	RTCPeerServer.prototype.signal = function(msg) {
+	RTCBridgeServer.prototype.signal = function(msg) {
 		// Are there signal messages awaiting delivery?
 		if (this.retrySignalTimeout) {
 			// Add to the queue and wait for the line to open up again
@@ -248,7 +244,7 @@
 	};
 
 	// Helper to send a message to peers on the relay
-	RTCPeerServer.prototype.retrySignal = function(msg) {
+	RTCBridgeServer.prototype.retrySignal = function(msg) {
 		this.retrySignalTimeout = null;
 		// Are there signal messages awaiting delivery?
 		if (this.signalBacklog.length === 0) {
@@ -285,16 +281,16 @@
 	};
 
 	// Helper initiates a session with peers on the relay
-	RTCPeerServer.prototype.sendOffer = function() {
+	RTCBridgeServer.prototype.sendOffer = function() {
 		var self = this;
 		// Generate offer
-		this.peerConn.createOffer(
+		this.rtcPeerConn.createOffer(
 			function(desc) {
 				self.debugLog('CREATED OFFER', desc);
 
 				// store the SDP
 				desc.sdp = increaseSDP_MTU(desc.sdp);
-				self.peerConn.setLocalDescription(desc);
+				self.rtcPeerConn.setLocalDescription(desc);
 
 				// Send offer msg
 				self.signal({ type: 'offer', sdp: desc.sdp });
@@ -312,11 +308,10 @@
 	// Helper called whenever we have a remote session description
 	// (candidates cant be added before then, so they're queued in case they come first)
 	function handleOfferExchanged() {
-		console.log(this.isConnecting, this.isConnected)
 		var self = this;
 		this.isOfferExchanged = true;
 		this.candidateQueue.forEach(function(candidate) {
-			self.peerConn.addIceCandidate(new RTCIceCandidate({ candidate: candidate }));
+			self.rtcPeerConn.addIceCandidate(new RTCIceCandidate({ candidate: candidate }));
 		});
 		this.candidateQueue.length = 0;
 	}
@@ -553,7 +548,7 @@
 		}
 	};
 
-	// Spawns an RTCPeerServer and starts the connection process with the given peer
+	// Spawns an RTCBridgeServer and starts the connection process with the given peer
 	// - `peerUrl`: required String, the domain/url of the target peer
 	// - `config.initiate`: optional Boolean, should the server initiate the connection?
 	//   - defaults to true
@@ -571,12 +566,12 @@
 		}
 
 		// Spawn new server
-		var server = new local.web.RTCPeerServer({
+		var server = new local.web.RTCBridgeServer({
 			peer: peerUrl,
 			initiate: config.initiate,
-			relay: this,
-			serverFn: this.config.serverFn
+			relay: this
 		});
+		server.handleRemoteWebRequest = this.config.serverFn;
 
 		// Bind events
 		server.on('connecting', this.emit.bind(this, 'connecting'));

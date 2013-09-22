@@ -34,7 +34,7 @@ Server.prototype.terminate = function() {
 // BridgeServer
 // ============
 // EXPORTED
-// Core type for all servers which pipe requests between separated namespaces (eg WorkerServer, RTCPeerServer)
+// Core type for all servers which pipe requests between separated namespaces (eg WorkerBridgeServer, RTCBridgeServer)
 // - Should be used as a prototype
 // - Provides HTTPL implementation using the channel methods (which should be overridden by the subclasses)
 // - Underlying channel must be:
@@ -42,7 +42,7 @@ Server.prototype.terminate = function() {
 //   - order-guaranteed
 // - Underlying channel is assumed not to be:
 //   - multiplexed
-// - :NOTE: WebRTC's SCTP should eventually support multiplexing, in which case RTCPeerServer should
+// - :NOTE: WebRTC's SCTP should eventually support multiplexing, in which case RTCBridgeServer should
 //   abstract multiple streams into the one "channel" to prevent head-of-line blocking
 function BridgeServer(config) {
 	Server.call(this, config);
@@ -106,6 +106,7 @@ BridgeServer.prototype.handleLocalWebRequest = function(request, response) {
 		sid: sid,
 		method: request.method,
 		path: request.path,
+		query: request.query,
 		headers: request.headers
 	};
 
@@ -114,12 +115,11 @@ BridgeServer.prototype.handleLocalWebRequest = function(request, response) {
 
 	// Send over the channel
 	this.channelSendMsgWhenReady(JSON.stringify(msg));
-	if (!msg.end) {
-		// Wire up request stream events
-		var this2 = this;
-		request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, body: data })); });
-		request.on('end', function()       { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, end: true })); });
-	}
+
+	// Wire up request stream events
+	var this2 = this;
+	request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, body: data })); });
+	request.on('end', function()       { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, end: true })); });
 };
 
 // HTTPL implementation for incoming messages
@@ -147,6 +147,7 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 			var request = new local.web.Request({
 				method: msg.method,
 				path: msg.path,
+				query: msg.query,
 				headers: msg.headers
 			});
 			var response = new local.web.Response();

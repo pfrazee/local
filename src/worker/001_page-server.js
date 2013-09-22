@@ -71,7 +71,7 @@
 			console.log('rejected "configure" from non-host connection');
 			return;
 		}
-		self.config = local.worker.config = message;
+		local.worker.config = message;
 	};
 
 	// Nullifies a global

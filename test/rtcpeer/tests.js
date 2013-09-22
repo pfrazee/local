@@ -3,37 +3,36 @@ done = false;
 startTime = Date.now();
 
 // Create peerweb relay streams
-var peerWeb1 = local.joinPeerWeb('https://grimwire.net', peer1ServerFn, { stream: 0 });
-var peerWeb2 = local.joinPeerWeb('https://grimwire.net', peer2ServerFn, { stream: 1 });
+var peerWeb1 = local.joinPeerRelay('https://grimwire.net', peer1ServerFn, { stream: 0 });
+var peerWeb2 = local.joinPeerRelay('https://grimwire.net', peer2ServerFn, { stream: 1 });
 
-// Get access token if we need one
-if (!sessionStorage.getItem('access-token')) {
-	peerWeb1.on('accessGranted', function() {
-		sessionStorage.setItem('access-token', peerWeb1.getAccessToken());
-		window.location.reload();
-	});
-	peerWeb1.requestAccessToken();
-} else {
-	// Handle auth failures
-	peerWeb1.on('accessInvalid', function() {
-		peerWeb1.requestAccessToken();
-	});
-
-	// Pull access token from storage
-	peerWeb1.setAccessToken(sessionStorage.getItem('access-token'));
-	peerWeb2.setAccessToken(sessionStorage.getItem('access-token'));
-
+peerWeb1.on('accessGranted', function() {
+	sessionStorage.setItem('access-token', peerWeb1.getAccessToken());
 	// Start listening
 	peerWeb1.startListening();
 	peerWeb2.startListening();
+});
 
-	peerWeb2.on('listening', function() {
-		// Connect to self on second stream
-		if (!peer1API) {
-			peerWeb1.connect(peerWeb1.getUserId()+'@grimwire.net!'+window.location.host+':1');
-		}
-	});
+// Handle auth failures
+peerWeb1.on('accessInvalid', function() {
+	peerWeb1.requestAccessToken();
+});
+
+// Get access token if we need one
+if (!sessionStorage.getItem('access-token')) {
+	peerWeb1.requestAccessToken();
+} else {
+	// Pull access token from storage
+	peerWeb1.setAccessToken(sessionStorage.getItem('access-token'));
+	peerWeb2.setAccessToken(sessionStorage.getItem('access-token'));
 }
+
+peerWeb2.on('listening', function() {
+	// Connect to self on second stream
+	if (!peer1API) {
+		peerWeb1.connect(peerWeb1.getUserId()+'@grimwire.net!'+window.location.host+':1');
+	}
+});
 
 var peer1API;
 var peer2API;

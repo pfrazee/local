@@ -1,7 +1,11 @@
 // load worker
 local.workerBootstrapUrl = '../worker.js';
-local.spawnWorkerServer('test/worker/worker1.js');
-local.spawnWorkerServer('test/worker/worker2.js');
+local.spawnWorkerServer('test/worker/worker1.js', function(req, res) {
+	res.writeHead(200, 'ok', { 'content-type': 'text/plain' }).end('yes, hello '+req.query.foo+' '+req.query.bar);
+}, { myname: 'alice' });
+local.spawnWorkerServer('test/worker/worker2.js', function(req, res) {
+	res.writeHead(200, 'ok', { 'content-type': 'text/plain' }).end('no, bye '+req.query.foo+' '+req.query.bar);
+}, { myname: 'bob' });
 
 // GET tests
 done = false;
@@ -87,4 +91,28 @@ FOOBAR
 foobar
 FOOBAR
 foobar
+*/
+
+done = false;
+startTime = Date.now();
+var worker1API = local.navigator('httpl://worker1.js');
+var worker2API = local.navigator('httpl://worker2.js');
+var responses_ = [
+	worker1API.dispatch({ method: 'bounce' }),
+	worker2API.dispatch({ method: 'bounce' })
+];
+
+local.promise.bundle(responses_)
+	.always(function(responses) {
+		responses.forEach(function(res) {
+			print(res.body);
+			console.log(res.latency+' ms');
+		});
+		finishTest();
+	});
+wait(function () { return done; });
+
+/* =>
+yes, hello alice bazz
+no, bye bob buzz
 */

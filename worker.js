@@ -1606,7 +1606,7 @@ Server.prototype.terminate = function() {
 // BridgeServer
 // ============
 // EXPORTED
-// Core type for all servers which pipe requests between separated namespaces (eg WorkerServer, RTCPeerServer)
+// Core type for all servers which pipe requests between separated namespaces (eg WorkerBridgeServer, RTCBridgeServer)
 // - Should be used as a prototype
 // - Provides HTTPL implementation using the channel methods (which should be overridden by the subclasses)
 // - Underlying channel must be:
@@ -1614,7 +1614,7 @@ Server.prototype.terminate = function() {
 //   - order-guaranteed
 // - Underlying channel is assumed not to be:
 //   - multiplexed
-// - :NOTE: WebRTC's SCTP should eventually support multiplexing, in which case RTCPeerServer should
+// - :NOTE: WebRTC's SCTP should eventually support multiplexing, in which case RTCBridgeServer should
 //   abstract multiple streams into the one "channel" to prevent head-of-line blocking
 function BridgeServer(config) {
 	Server.call(this, config);
@@ -1678,6 +1678,7 @@ BridgeServer.prototype.handleLocalWebRequest = function(request, response) {
 		sid: sid,
 		method: request.method,
 		path: request.path,
+		query: request.query,
 		headers: request.headers
 	};
 
@@ -1686,12 +1687,11 @@ BridgeServer.prototype.handleLocalWebRequest = function(request, response) {
 
 	// Send over the channel
 	this.channelSendMsgWhenReady(JSON.stringify(msg));
-	if (!msg.end) {
-		// Wire up request stream events
-		var this2 = this;
-		request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, body: data })); });
-		request.on('end', function()       { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, end: true })); });
-	}
+
+	// Wire up request stream events
+	var this2 = this;
+	request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, body: data })); });
+	request.on('end', function()       { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, end: true })); });
 };
 
 // HTTPL implementation for incoming messages
@@ -1719,6 +1719,7 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 			var request = new local.web.Request({
 				method: msg.method,
 				path: msg.path,
+				query: msg.query,
 				headers: msg.headers
 			});
 			var response = new local.web.Response();
@@ -1786,7 +1787,7 @@ function validateHttplMessage(parsedmsg) {
 	if (isNaN(parsedmsg.sid))
 		return false;
 	return true;
-}// WorkerServer
+}// WorkerBridgeServer
 // ============
 // EXPORTED
 // wrapper for servers run within workers
@@ -1794,12 +1795,14 @@ function validateHttplMessage(parsedmsg) {
 // - `config.shared`: boolean, should the workerserver be shared?
 // - `config.namespace`: optional string, what should the shared worker be named?
 //   - defaults to `config.src` if undefined
+// - `config.nullify`: optional [string], a list of objects to nullify when the worker loads
+//   - defaults to ['XMLHttpRequest', 'Worker', 'WebSocket', 'EventSource']
 // - `config.bootstrapUrl`: optional string, specifies the URL of the worker bootstrap script
 // - `config.log`: optional bool, enables logging of all message traffic
 // - `loadCb`: optional function(message)
-function WorkerServer(config, loadCb) {
+function WorkerBridgeServer(config, loadCb) {
 	if (!config || !config.src)
-		throw new Error("WorkerServer requires config with `src` attribute.");
+		throw new Error("WorkerBridgeServer requires config with `src` attribute.");
 	local.web.BridgeServer.call(this, config);
 	this.isUserScriptActive = false; // when true, ready for activity
 	this.hasHostPrivileges = true; // do we have full control over the worker?
@@ -1809,6 +1812,9 @@ function WorkerServer(config, loadCb) {
 	// Prep config
 	if (!this.config.domain) { // assign a temporary label for logging if no domain is given yet
 		this.config.domain = '<'+this.config.src.slice(0,40)+'>';
+	}
+	if (!this.config.nullify) {
+		this.config.nullify = ['XMLHttpRequest', 'Worker', 'WebSocket', 'EventSource'];
 	}
 	this.config.environmentHost = window.location.host; // :TODO: needed? I think workers can access this directly
 
@@ -1850,16 +1856,16 @@ function WorkerServer(config, loadCb) {
 		}
 	}).bind(this));
 }
-WorkerServer.prototype = Object.create(local.web.BridgeServer.prototype);
-local.web.WorkerServer = WorkerServer;
+WorkerBridgeServer.prototype = Object.create(local.web.BridgeServer.prototype);
+local.web.WorkerBridgeServer = WorkerBridgeServer;
 
 // Returns the worker's messaging interface
 // - varies between shared and normal workers
-WorkerServer.prototype.getPort = function() {
+WorkerBridgeServer.prototype.getPort = function() {
 	return this.worker.port ? this.worker.port : this.worker;
 };
 
-WorkerServer.prototype.terminate = function() {
+WorkerBridgeServer.prototype.terminate = function() {
 	this.worker.terminate();
 	this.worker = null;
 	this.isUserScriptActive = false;
@@ -1867,46 +1873,39 @@ WorkerServer.prototype.terminate = function() {
 
 // Instructs the worker to set the given name to null
 // - eg worker.nullify('XMLHttpRequest'); // no ajax
-WorkerServer.prototype.nullify = function(name) {
+WorkerBridgeServer.prototype.nullify = function(name) {
 	this.channelSendMsg({ op: 'nullify', body: name });
 };
 
-// Instructs the WorkerServer to import the JS given by the URL
+// Instructs the WorkerBridgeServer to import the JS given by the URL
 // - eg worker.importScripts('/my/script.js');
 // - `urls`: required string|[string]
-WorkerServer.prototype.importScripts = function(urls) {
+WorkerBridgeServer.prototype.importScripts = function(urls) {
 	this.channelSendMsg({ op: 'importScripts', body: urls });
 };
 
 // Returns true if the channel is ready for activity
 // - returns boolean
-WorkerServer.prototype.isChannelActive = function() {
+WorkerBridgeServer.prototype.isChannelActive = function() {
 	return this.isUserScriptActive;
 };
 
 // Sends a single message across the channel
 // - `msg`: required string
-WorkerServer.prototype.channelSendMsg = function(msg) {
+WorkerBridgeServer.prototype.channelSendMsg = function(msg) {
 	if (this.config.log) { console.debug('WORKER sending', msg); }
 	this.getPort().postMessage(msg);
 };
 
-// Remote request handler
-WorkerServer.prototype.handleRemoteWebRequest = function(request, response) {
-	// :TODO: proxyyy
-	console.warn('WORKER handleRemoteWebRequest not defined', this);
-	response.writeHead(500, 'server not implemented');
-	response.end();
-};
-
 // Sends initialization commands
 // - called when the bootstrap signals that it has finished loading
-WorkerServer.prototype.onWorkerReady = function(message) {
+WorkerBridgeServer.prototype.onWorkerReady = function(message) {
 	this.hasHostPrivileges = message.hostPrivileges;
 	if (this.hasHostPrivileges) {
 		// Disable undesirable APIs
-		this.nullify('XMLHttpRequest');
-		this.nullify('Worker');
+		this.config.nullify.forEach(function(api) {
+			this.nullify(api);
+		}, this);
 
 		// Load user script
 		var src = this.config.src;
@@ -1921,7 +1920,7 @@ WorkerServer.prototype.onWorkerReady = function(message) {
 
 // Starts normal operation
 // - called when the user script has finished loading
-WorkerServer.prototype.onWorkerUserScriptLoaded = function(message) {
+WorkerBridgeServer.prototype.onWorkerUserScriptLoaded = function(message) {
 	if (this.loadCb && typeof this.loadCb == 'function') {
 		this.loadCb(message);
 	}
@@ -1936,7 +1935,7 @@ WorkerServer.prototype.onWorkerUserScriptLoaded = function(message) {
 };
 
 // Logs message data from the worker
-WorkerServer.prototype.onWorkerLog = function(message) {
+WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	if (!message)
 		return;
 	if (!Array.isArray(message))
@@ -1973,16 +1972,15 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 		return Math.round(Math.random()*10000);
 	}
 
-	// RTCPeerServer
-	// =============
+	// RTCBridgeServer
+	// ===============
 	// EXPORTED
 	// server wrapper for WebRTC connections
 	// - currently only supports Chrome
 	// - `config.peer`: required string, who we are connecting to (a valid peer domain)
 	// - `config.relay`: required PeerWebRelay
 	// - `config.initiate`: optional bool, if true will initiate the connection processes
-	// - `config.serverFn`: optional function, the handleRemoteWebRequest function
-	function RTCPeerServer(config) {
+	function RTCBridgeServer(config) {
 		// Config
 		var self = this;
 		if (!config) config = {};
@@ -1990,9 +1988,6 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 		if (!config.relay) throw new Error("`config.relay` is required");
 		local.web.BridgeServer.call(this, config);
 		local.util.mixinEventEmitter(this);
-		if (config.serverFn) {
-			this.handleRemoteWebRequest = config.serverFn;
-		}
 
 		// Parse config.peer
 		var peerParsed = peerDomainRE.exec(config.peer);
@@ -2017,18 +2012,18 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 
 		// Create the peer connection
 		var servers = config.iceServers || defaultIceServers;
-		this.peerConn = new webkitRTCPeerConnection(servers, peerConstraints);
-		this.peerConn.onicecandidate             = onIceCandidate.bind(this);
-        this.peerConn.onicechange                = onIceConnectionStateChange.bind(this);
-		this.peerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
-		this.peerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
+		this.rtcPeerConn = new webkitRTCPeerConnection(servers, peerConstraints);
+		this.rtcPeerConn.onicecandidate             = onIceCandidate.bind(this);
+        this.rtcPeerConn.onicechange                = onIceConnectionStateChange.bind(this);
+		this.rtcPeerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
+		this.rtcPeerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
 
 		// Create the HTTPL data channel
-		this.httplChannel = this.peerConn.createDataChannel('httpl', { ordered: true, reliable: true });
-		this.httplChannel.onopen     = onHttplChannelOpen.bind(this);
-		this.httplChannel.onclose    = onHttplChannelClose.bind(this);
-		this.httplChannel.onerror    = onHttplChannelError.bind(this);
-		this.httplChannel.onmessage  = onHttplChannelMessage.bind(this);
+		this.rtcDataChannel = this.rtcPeerConn.createDataChannel('httpl', { ordered: true, reliable: true });
+		this.rtcDataChannel.onopen     = onHttplChannelOpen.bind(this);
+		this.rtcDataChannel.onclose    = onHttplChannelClose.bind(this);
+		this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
+		this.rtcDataChannel.onmessage  = onHttplChannelMessage.bind(this);
 
 		if (this.config.initiate) {
 			// Initiate event will be picked up by the peer
@@ -2036,20 +2031,20 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 			this.sendOffer();
 		}
 	}
-	RTCPeerServer.prototype = Object.create(local.web.BridgeServer.prototype);
-	local.web.RTCPeerServer = RTCPeerServer;
+	RTCBridgeServer.prototype = Object.create(local.web.BridgeServer.prototype);
+	local.web.RTCBridgeServer = RTCBridgeServer;
 
-	RTCPeerServer.prototype.getPeerInfo = function() {
+	RTCBridgeServer.prototype.getPeerInfo = function() {
 		return this.peerInfo;
 	};
 
 	// :DEBUG:
-	RTCPeerServer.prototype.debugLog = function() {
+	RTCBridgeServer.prototype.debugLog = function() {
 		var args = [this.config.domain].concat([].slice.call(arguments));
 		console.debug.apply(console, args);
 	};
 
-	RTCPeerServer.prototype.terminate = function(opts) {
+	RTCBridgeServer.prototype.terminate = function(opts) {
 		if (this.isConnecting || this.isConnected) {
 			if (!(opts && opts.noSignal)) {
 				this.signal({ type: 'disconnect' });
@@ -2058,27 +2053,27 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 			this.isConnected = false;
 			this.emit('disconnected', { peer: this.peerInfo, domain: this.config.domain, server: this });
 
-			if (this.peerConn) {
-				this.peerConn.close();
-				this.peerConn = null;
+			if (this.rtcPeerConn) {
+				this.rtcPeerConn.close();
+				this.rtcPeerConn = null;
 			}
 		}
 	};
 
 	// Returns true if the channel is ready for activity
 	// - returns boolean
-	RTCPeerServer.prototype.isChannelActive = function() {
+	RTCBridgeServer.prototype.isChannelActive = function() {
 		return this.isConnected;
 	};
 
 	// Sends a single message across the channel
 	// - `msg`: required string
-	RTCPeerServer.prototype.channelSendMsg = function(msg) {
-		this.httplChannel.send(msg);
+	RTCBridgeServer.prototype.channelSendMsg = function(msg) {
+		this.rtcDataChannel.send(msg);
 	};
 
 	// Remote request handler
-	RTCPeerServer.prototype.handleRemoteWebRequest = function(request, response) {
+	RTCBridgeServer.prototype.handleRemoteWebRequest = function(request, response) {
 		response.writeHead(500, 'not implemented');
 		response.end();
 	};
@@ -2119,7 +2114,7 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 	// Signal relay behaviors
 	// -
 
-	RTCPeerServer.prototype.onSignal = function(msg) {
+	RTCBridgeServer.prototype.onSignal = function(msg) {
 		var self = this;
 
 		this.debugLog('SIG', msg);
@@ -2137,7 +2132,7 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 					this.candidateQueue.push(msg.candidate);
 				} else {
 					// Pass into the peer connection
-					this.peerConn.addIceCandidate(new RTCIceCandidate({ candidate: msg.candidate }));
+					this.rtcPeerConn.addIceCandidate(new RTCIceCandidate({ candidate: msg.candidate }));
 				}
 				break;
 
@@ -2148,17 +2143,17 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 				this.emit('connecting', { peer: this.peerInfo, domain: this.config.domain, server: this });
 				// Update the peer connection
 				var desc = new RTCSessionDescription({ type: 'offer', sdp: msg.sdp });
-				this.peerConn.setRemoteDescription(desc);
+				this.rtcPeerConn.setRemoteDescription(desc);
 				// Burn the ICE candidate queue
 				handleOfferExchanged.call(self);
 				// Send an answer
-				this.peerConn.createAnswer(
+				this.rtcPeerConn.createAnswer(
 					function(desc) {
 						self.debugLog('CREATED ANSWER', desc);
 
 						// Store the SDP
 						desc.sdp = increaseSDP_MTU(desc.sdp);
-						self.peerConn.setLocalDescription(desc);
+						self.rtcPeerConn.setLocalDescription(desc);
 
 						// Send answer msg
 						self.signal({ type: 'answer', sdp: desc.sdp });
@@ -2172,18 +2167,18 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 				this.debugLog('GOT ANSWER', msg);
 				// Received session confirmation from the peer
 				// Update the peer connection
-				this.peerConn.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
+				this.rtcPeerConn.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
 				// Burn the ICE candidate queue
 				handleOfferExchanged.call(self);
 				break;
 
 			default:
-				console.warn('RTCPeerServer - Unrecognized signal message from relay', msg);
+				console.warn('RTCBridgeServer - Unrecognized signal message from relay', msg);
 		}
 	};
 
 	// Helper to send a message to peers on the relay
-	RTCPeerServer.prototype.signal = function(msg) {
+	RTCBridgeServer.prototype.signal = function(msg) {
 		// Are there signal messages awaiting delivery?
 		if (this.retrySignalTimeout) {
 			// Add to the queue and wait for the line to open up again
@@ -2205,7 +2200,7 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 	};
 
 	// Helper to send a message to peers on the relay
-	RTCPeerServer.prototype.retrySignal = function(msg) {
+	RTCBridgeServer.prototype.retrySignal = function(msg) {
 		this.retrySignalTimeout = null;
 		// Are there signal messages awaiting delivery?
 		if (this.signalBacklog.length === 0) {
@@ -2242,16 +2237,16 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 	};
 
 	// Helper initiates a session with peers on the relay
-	RTCPeerServer.prototype.sendOffer = function() {
+	RTCBridgeServer.prototype.sendOffer = function() {
 		var self = this;
 		// Generate offer
-		this.peerConn.createOffer(
+		this.rtcPeerConn.createOffer(
 			function(desc) {
 				self.debugLog('CREATED OFFER', desc);
 
 				// store the SDP
 				desc.sdp = increaseSDP_MTU(desc.sdp);
-				self.peerConn.setLocalDescription(desc);
+				self.rtcPeerConn.setLocalDescription(desc);
 
 				// Send offer msg
 				self.signal({ type: 'offer', sdp: desc.sdp });
@@ -2269,11 +2264,10 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 	// Helper called whenever we have a remote session description
 	// (candidates cant be added before then, so they're queued in case they come first)
 	function handleOfferExchanged() {
-		console.log(this.isConnecting, this.isConnected)
 		var self = this;
 		this.isOfferExchanged = true;
 		this.candidateQueue.forEach(function(candidate) {
-			self.peerConn.addIceCandidate(new RTCIceCandidate({ candidate: candidate }));
+			self.rtcPeerConn.addIceCandidate(new RTCIceCandidate({ candidate: candidate }));
 		});
 		this.candidateQueue.length = 0;
 	}
@@ -2510,7 +2504,7 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 		}
 	};
 
-	// Spawns an RTCPeerServer and starts the connection process with the given peer
+	// Spawns an RTCBridgeServer and starts the connection process with the given peer
 	// - `peerUrl`: required String, the domain/url of the target peer
 	// - `config.initiate`: optional Boolean, should the server initiate the connection?
 	//   - defaults to true
@@ -2528,12 +2522,12 @@ WorkerServer.prototype.onWorkerLog = function(message) {
 		}
 
 		// Spawn new server
-		var server = new local.web.RTCPeerServer({
+		var server = new local.web.RTCBridgeServer({
 			peer: peerUrl,
 			initiate: config.initiate,
-			relay: this,
-			serverFn: this.config.serverFn
+			relay: this
 		});
+		server.handleRemoteWebRequest = this.config.serverFn;
 
 		// Bind events
 		server.on('connecting', this.emit.bind(this, 'connecting'));
@@ -2838,21 +2832,30 @@ var localNotFoundServer = {
 	context: null
 };
 local.web.schemes.register('httpl', function(request, response) {
-	// find the local server
+	// Find the local server
 	var server = local.web.getLocal(request.urld.authority);
 	if (!server)
 		server = localNotFoundServer;
 
-	// pull out and standardize the path
+	// Pull out and standardize the path
 	request.path = request.urld.path;
 	if (!request.path) request.path = '/'; // no path, give a '/'
 	else request.path = request.path.replace(/(.)\/$/, '$1'); // otherwise, never end with a '/'
 
-	// support warnings
+	// Pull out any query params in the path
+	if (request.urld.query) {
+		var query = local.web.contentTypes.deserialize(request.urld.query, 'application/x-www-form-urlencoded');
+		if (!request.query) { request.query = {}; }
+		for (var k in query) {
+			request.query[k] = query[k];
+		}
+	}
+
+	// Support warnings
 	if (request.binary)
 		console.warn('Got HTTPL request with binary=true - sorry, not currently supported', request);
 
-	// pass on to the server
+	// Pass on to the server
 	server.fn.call(server.context, request, response);
 });
 
@@ -4653,7 +4656,7 @@ if (typeof this.local.worker == 'undefined')
 			console.log('rejected "configure" from non-host connection');
 			return;
 		}
-		self.config = local.worker.config = message;
+		local.worker.config = message;
 	};
 
 	// Nullifies a global
@@ -4694,7 +4697,8 @@ if (typeof this.local.worker == 'undefined')
 
 })();// Setup
 // =====
-var closureImportScripts = importScripts; // self.importScripts will be nullified later (and we're in a closure right now)
+local.util.mixinEventEmitter(local.worker);
+var closureImportScripts = importScripts; // self.importScripts may be nullified later (and we're in a closure right now)
 
 // EXPORTED
 // console.* replacements
@@ -4805,6 +4809,9 @@ function addConnection(port) {
 		port.start();
 	}
 	page.channelSendMsg({ op: 'ready', body: { hostPrivileges: isHost } });
+
+	// Fire even
+	local.worker.emit('connect', { page: page });
 }
 
 // Setup for future connections (shared worker)

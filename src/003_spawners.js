@@ -1,46 +1,67 @@
 // Helpers to create servers
+// -
 
+// EXPORTED
+// Creates a local server with the given constructor function
+// eg `local.spawnAppServer(MyServerConstructor, { myOption: 'foobar' });`
 // - `ServerConstructor`: required function
-// - `opts`: optional object, additional config to mix into the new server
-local.spawnAppServer = function(ServerConstructor, opts) {
-	var server = new ServerConstructor(opts);
-	var domain = getAvailableLocalDomain(ServerConstructor.name.toLowerCase() + '{n}');
+// - `config`: optional object, config options to pass to the constructor
+// - `config.domain`: optional string, overrides the automatic domain generation
+local.spawnAppServer = function(ServerConstructor, config) {
+	if (!config) { config = {}; }
+	var server = new ServerConstructor(config);
+	var domain = config.domain || getAvailableLocalDomain(ServerConstructor.name.toLowerCase() + '{n}');
 	local.web.registerLocal(domain, server);
 	return server;
 };
 
-// - `src`: required string
-// - `opts`: optional object, additional config to mix into the new server
-local.spawnWorkerServer = function(src, opts) {
-	if (!opts) {
-		opts = {};
+// EXPORTED
+// Creates a Web Worker and a bridge server to the worker
+// eg `local.spawnWorkerServer('http://foo.com/myworker.js', localServerFn, )
+// - `src`: required string, the URI to load into the worker
+// - `serverFn`: required function, a response generator for requests from the worker
+// - `config`: optional object, additional config options to pass to the worker
+// - `config.domain`: optional string, overrides the automatic domain generation
+local.spawnWorkerServer = function(src, serverFn, config) {
+	if (!config) { config = {}; }
+	config.src = src;
+
+	// Create the server
+	var server = new local.web.WorkerBridgeServer(config);
+	server.handleRemoteWebRequest = serverFn;
+
+	// Find an open domain and register
+	var domain = config.domain;
+	if (!domain) {
+		if (src.indexOf('data:') === 0) {
+			domain = getAvailableLocalDomain('worker{n}');
+		} else {
+			domain = getAvailableLocalDomain(src.split('/').pop().toLowerCase() + '{n}');
+		}
 	}
-	opts.src = src;
-	var server = new local.web.WorkerServer(opts);
-	// :TODO: data-uris
-	var domain = getAvailableLocalDomain(src.split('/').pop().toLowerCase() + '{n}');
 	local.web.registerLocal(domain, server);
+
 	return server;
 };
 
+// EXPORTED
+// Opens a stream to a peer relay
 // - `providerUrl`: required string, the relay provider
-// - `serverFn`: required function, the function for peerservers' handleRemoteWebRequest
+// - `serverFn`: required function, a response generator for requests from connected peers
 // - `config.app`: optional string, the app to join as (defaults to window.location.host)
-local.joinPeerWeb = function(providerUrl, serverFn, config) {
+local.joinPeerRelay = function(providerUrl, serverFn, config) {
 	if (!config) config = {};
 	config.provider = providerUrl;
 	config.serverFn = serverFn;
 	return new local.web.PeerWebRelay(config);
 };
 
+// helper for name assignment
 function getAvailableLocalDomain(base) {
 	var i = '', str;
 	do {
 		str = base.replace('{n}', i);
-		if (!i)
-			i = 2;
-		else
-			i++;
+		i = (!i) ? 2 : i + 1;
 	} while (local.web.getLocal(str));
 	return str;
 }

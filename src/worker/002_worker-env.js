@@ -1,6 +1,7 @@
 // Setup
 // =====
-var closureImportScripts = importScripts; // self.importScripts will be nullified later (and we're in a closure right now)
+local.util.mixinEventEmitter(local.worker);
+var closureImportScripts = importScripts; // self.importScripts may be nullified later (and we're in a closure right now)
 
 // EXPORTED
 // console.* replacements
@@ -111,6 +112,9 @@ function addConnection(port) {
 		port.start();
 	}
 	page.channelSendMsg({ op: 'ready', body: { hostPrivileges: isHost } });
+
+	// Fire even
+	local.worker.emit('connect', { page: page });
 }
 
 // Setup for future connections (shared worker)

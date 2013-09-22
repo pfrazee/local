@@ -180,21 +180,30 @@ var localNotFoundServer = {
 	context: null
 };
 local.web.schemes.register('httpl', function(request, response) {
-	// find the local server
+	// Find the local server
 	var server = local.web.getLocal(request.urld.authority);
 	if (!server)
 		server = localNotFoundServer;
 
-	// pull out and standardize the path
+	// Pull out and standardize the path
 	request.path = request.urld.path;
 	if (!request.path) request.path = '/'; // no path, give a '/'
 	else request.path = request.path.replace(/(.)\/$/, '$1'); // otherwise, never end with a '/'
 
-	// support warnings
+	// Pull out any query params in the path
+	if (request.urld.query) {
+		var query = local.web.contentTypes.deserialize(request.urld.query, 'application/x-www-form-urlencoded');
+		if (!request.query) { request.query = {}; }
+		for (var k in query) {
+			request.query[k] = query[k];
+		}
+	}
+
+	// Support warnings
 	if (request.binary)
 		console.warn('Got HTTPL request with binary=true - sorry, not currently supported', request);
 
-	// pass on to the server
+	// Pass on to the server
 	server.fn.call(server.context, request, response);
 });
 

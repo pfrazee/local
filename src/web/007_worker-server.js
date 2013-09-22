@@ -1,4 +1,4 @@
-// WorkerServer
+// WorkerBridgeServer
 // ============
 // EXPORTED
 // wrapper for servers run within workers
@@ -6,12 +6,14 @@
 // - `config.shared`: boolean, should the workerserver be shared?
 // - `config.namespace`: optional string, what should the shared worker be named?
 //   - defaults to `config.src` if undefined
+// - `config.nullify`: optional [string], a list of objects to nullify when the worker loads
+//   - defaults to ['XMLHttpRequest', 'Worker', 'WebSocket', 'EventSource']
 // - `config.bootstrapUrl`: optional string, specifies the URL of the worker bootstrap script
 // - `config.log`: optional bool, enables logging of all message traffic
 // - `loadCb`: optional function(message)
-function WorkerServer(config, loadCb) {
+function WorkerBridgeServer(config, loadCb) {
 	if (!config || !config.src)
-		throw new Error("WorkerServer requires config with `src` attribute.");
+		throw new Error("WorkerBridgeServer requires config with `src` attribute.");
 	local.web.BridgeServer.call(this, config);
 	this.isUserScriptActive = false; // when true, ready for activity
 	this.hasHostPrivileges = true; // do we have full control over the worker?
@@ -21,6 +23,9 @@ function WorkerServer(config, loadCb) {
 	// Prep config
 	if (!this.config.domain) { // assign a temporary label for logging if no domain is given yet
 		this.config.domain = '<'+this.config.src.slice(0,40)+'>';
+	}
+	if (!this.config.nullify) {
+		this.config.nullify = ['XMLHttpRequest', 'Worker', 'WebSocket', 'EventSource'];
 	}
 	this.config.environmentHost = window.location.host; // :TODO: needed? I think workers can access this directly
 
@@ -62,16 +67,16 @@ function WorkerServer(config, loadCb) {
 		}
 	}).bind(this));
 }
-WorkerServer.prototype = Object.create(local.web.BridgeServer.prototype);
-local.web.WorkerServer = WorkerServer;
+WorkerBridgeServer.prototype = Object.create(local.web.BridgeServer.prototype);
+local.web.WorkerBridgeServer = WorkerBridgeServer;
 
 // Returns the worker's messaging interface
 // - varies between shared and normal workers
-WorkerServer.prototype.getPort = function() {
+WorkerBridgeServer.prototype.getPort = function() {
 	return this.worker.port ? this.worker.port : this.worker;
 };
 
-WorkerServer.prototype.terminate = function() {
+WorkerBridgeServer.prototype.terminate = function() {
 	this.worker.terminate();
 	this.worker = null;
 	this.isUserScriptActive = false;
@@ -79,46 +84,39 @@ WorkerServer.prototype.terminate = function() {
 
 // Instructs the worker to set the given name to null
 // - eg worker.nullify('XMLHttpRequest'); // no ajax
-WorkerServer.prototype.nullify = function(name) {
+WorkerBridgeServer.prototype.nullify = function(name) {
 	this.channelSendMsg({ op: 'nullify', body: name });
 };
 
-// Instructs the WorkerServer to import the JS given by the URL
+// Instructs the WorkerBridgeServer to import the JS given by the URL
 // - eg worker.importScripts('/my/script.js');
 // - `urls`: required string|[string]
-WorkerServer.prototype.importScripts = function(urls) {
+WorkerBridgeServer.prototype.importScripts = function(urls) {
 	this.channelSendMsg({ op: 'importScripts', body: urls });
 };
 
 // Returns true if the channel is ready for activity
 // - returns boolean
-WorkerServer.prototype.isChannelActive = function() {
+WorkerBridgeServer.prototype.isChannelActive = function() {
 	return this.isUserScriptActive;
 };
 
 // Sends a single message across the channel
 // - `msg`: required string
-WorkerServer.prototype.channelSendMsg = function(msg) {
+WorkerBridgeServer.prototype.channelSendMsg = function(msg) {
 	if (this.config.log) { console.debug('WORKER sending', msg); }
 	this.getPort().postMessage(msg);
 };
 
-// Remote request handler
-WorkerServer.prototype.handleRemoteWebRequest = function(request, response) {
-	// :TODO: proxyyy
-	console.warn('WORKER handleRemoteWebRequest not defined', this);
-	response.writeHead(500, 'server not implemented');
-	response.end();
-};
-
 // Sends initialization commands
 // - called when the bootstrap signals that it has finished loading
-WorkerServer.prototype.onWorkerReady = function(message) {
+WorkerBridgeServer.prototype.onWorkerReady = function(message) {
 	this.hasHostPrivileges = message.hostPrivileges;
 	if (this.hasHostPrivileges) {
 		// Disable undesirable APIs
-		this.nullify('XMLHttpRequest');
-		this.nullify('Worker');
+		this.config.nullify.forEach(function(api) {
+			this.nullify(api);
+		}, this);
 
 		// Load user script
 		var src = this.config.src;
@@ -133,7 +131,7 @@ WorkerServer.prototype.onWorkerReady = function(message) {
 
 // Starts normal operation
 // - called when the user script has finished loading
-WorkerServer.prototype.onWorkerUserScriptLoaded = function(message) {
+WorkerBridgeServer.prototype.onWorkerUserScriptLoaded = function(message) {
 	if (this.loadCb && typeof this.loadCb == 'function') {
 		this.loadCb(message);
 	}
@@ -148,7 +146,7 @@ WorkerServer.prototype.onWorkerUserScriptLoaded = function(message) {
 };
 
 // Logs message data from the worker
-WorkerServer.prototype.onWorkerLog = function(message) {
+WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	if (!message)
 		return;
 	if (!Array.isArray(message))

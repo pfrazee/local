@@ -2,6 +2,11 @@ Changes
 =======
 0.4.0
 
+2013/09/22 pfraze
+
+ - Added local.worker "connect" event for pages
+
+
 2013/09/20 pfraze
 
  - Added local.logAllExceptions config flag
@@ -23,7 +28,7 @@ Changes
 
  - Added local.web.BridgeServer
  - Added local.web.PeerWebRelay
- - Added local.joinPeerWeb
+ - Added local.joinPeerRelay
  - Added local.web.Server.getUrl()
  - Added {exclude:} option to local.web.Broadcaster.emit()
  - Added local.web.EventSource.getUrl()
