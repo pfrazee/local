@@ -2,6 +2,11 @@ Changes
 =======
 0.4.0
 
+2013/09/23 pfraze
+
+ - Added ping config to PeerWebRelay to keep streams alive
+
+
 2013/09/22 pfraze
 
  - Added local.worker "connect" event for pages

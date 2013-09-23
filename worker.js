@@ -2014,7 +2014,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		var servers = config.iceServers || defaultIceServers;
 		this.rtcPeerConn = new webkitRTCPeerConnection(servers, peerConstraints);
 		this.rtcPeerConn.onicecandidate             = onIceCandidate.bind(this);
-        this.rtcPeerConn.onicechange                = onIceConnectionStateChange.bind(this);
+		this.rtcPeerConn.onicechange                = onIceConnectionStateChange.bind(this);
 		this.rtcPeerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
 		this.rtcPeerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
 
@@ -2313,20 +2313,26 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// - `config.serverFn`: required function, the function for peerservers' handleRemoteWebRequest
 	// - `config.app`: optional string, the app to join as (defaults to window.location.host)
 	// - `config.stream`: optional number, the stream id (defaults to pseudo-random)
+	// - `config.ping`: optional number, sends a ping to self via the relay at the given interval (in ms) to keep the stream alive
+	//   - set to false to disable keepalive pings
+	//   - defaults to 45000
 	function PeerWebRelay(config) {
 		if (!config) throw new Error("PeerWebRelay requires the `config` parameter");
 		if (!config.provider) throw new Error("PeerWebRelay requires `config.provider`");
 		if (!config.serverFn) throw new Error("PeerWebRelay requires `config.serverFn`");
 		if (!config.app) config.app = window.location.host;
 		if (typeof config.stream == 'undefined') config.stream = randomStreamId();
+		if (typeof config.ping == 'undefined') { config.ping = 45000; }
 		this.config = config;
 		local.util.mixinEventEmitter(this);
 
 		// State
+		this.myPeerDomain = null;
 		this.connectedToRelay = false;
 		this.userId = null;
 		this.accessToken = null;
 		this.bridges = {};
+		this.pingInterval = null;
 
 		// :TEMP: Extract provider domain for use in HTTPL domain assignment
 		// when multiple providers are supported, the signal should include this info
@@ -2335,11 +2341,11 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 		// Internal helpers
 		this.messageFromAuthPopupHandler = null;
-		this.myUrl = null; // cached for use in outbound signal messages
 
 		// APIs
 		this.p2pwServiceAPI = local.navigator(config.provider);
 		this.accessTokenAPI = this.p2pwServiceAPI.follow({ rel: 'grimwire.com/-access-token', app: config.app });
+		this.accessTokenAPI.resolve({ nohead: true }); // immediately resolve so requestAccessToken() can use it
 		this.p2pwUsersAPI = this.p2pwServiceAPI.follow({ rel: 'grimwire.com/-user collection' });
 		this.p2pwRelayAPI = null;
 		this.relayStream = null;
@@ -2390,6 +2396,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		}
 	};
 	PeerWebRelay.prototype.isListening    = function() { return this.connectedToRelay; };
+	PeerWebRelay.prototype.getDomain      = function() { return this.myPeerDomain; };
 	PeerWebRelay.prototype.getUserId      = function() { return this.userId; };
 	PeerWebRelay.prototype.getPeer        = function(domain) { return this.bridges[domain]; };
 	PeerWebRelay.prototype.getApp         = function() { return this.config.app; };
@@ -2406,7 +2413,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		this.config.provider = providerUrl;
 		this.providerDomain = local.web.parseUri(providerUrl).host;
 		this.p2pwServiceAPI.rebase(providerUrl);
-		this.accessTokenAPI.unresolve();
+		this.accessTokenAPI.unresolve().resolve({ nohead: true }); // immediately resolve so requestAccessToken() can use it
 		this.p2pwUsersAPI.unresolve();
 		if (this.p2pwRelayAPI) {
 			this.p2pwRelayAPI.unresolve();
@@ -2415,6 +2422,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 	// Gets an access token from the provider & user using a popup
 	// - Best if called within a DOM click handler, as that will avoid popup-blocking
+	//   (note, however, if the accessTokenAPI hasnt resolved its api yet, there will be an async callback that breaks that)
 	PeerWebRelay.prototype.requestAccessToken = function() {
 		// Start listening for messages from the popup
 		if (!this.messageFromAuthPopupHandler) {
@@ -2442,12 +2450,16 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		}
 		window.addEventListener('message', this.messageFromAuthPopupHandler);
 
-		// Resolve the URL for getting access tokens
-		// :TODO: I think this resolve call is causing the popup blocker to hit
-		this.accessTokenAPI.resolve({ nohead: true }).then(function(url) {
-			// Open interface in a popup
-			window.open(url);
-		});
+		// Open interface in a popup
+		if (this.accessTokenAPI.context.url) {
+			// Try to open immediately, to avoid popup blocking
+			window.open(this.accessTokenAPI.context.url);
+		} else {
+			// access token URI hasnt resolved yet, we have to wait for that
+			this.accessTokenAPI.resolve({ nohead: true }).always(function(url) {
+				window.open(url);
+			});
+		}
 	};
 
 	// Fetches users from p2pw service
@@ -2471,21 +2483,32 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			return;
 		}
 		// Update "src" object, for use in signal messages
-		this.myUrl = this.makeDomain(this.getUserId(), this.config.app, this.config.stream);
+		this.myPeerDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.stream);
 		// Connect to the relay stream
 		this.p2pwRelayAPI = this.p2pwServiceAPI.follow({ rel: 'item grimwire.com/-p2pw/relay', id: this.getUserId(), stream: this.getStreamId(), nc: Date.now() });
 		this.p2pwRelayAPI.subscribe({ method: 'subscribe' })
 			.then(
 				function(stream) {
+					// Update state
 					self.relayStream = stream;
 					self.connectedToRelay = true;
 					stream.response_.then(function(response) {
 						self.emit('listening');
 						return response;
 					});
+
+					// Setup handlers
 					stream.on('signal', self.onSignal.bind(self));
 					stream.on('error', self.onRelayError.bind(self));
 					stream.on('close', self.onRelayClose.bind(self));
+
+					// Initiate the ping interval
+					if (self.pingInterval) { clearInterval(self.pingInterval); }
+					if (self.config.ping) {
+						self.pingInterval = setInterval(function() {
+							self.signal(self.getDomain(), { type: 'noop' });
+						}, self.config.ping);
+					}
 				},
 				function(err) {
 					self.onRelayError({ event: 'error', data: err });
@@ -2512,6 +2535,11 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	PeerWebRelay.prototype.connect = function(peerUrl, config) {
 		if (!config) config = {};
 		if (typeof config.initiate == 'undefined') config.initiate = true;
+
+		// Make sure we're not already connected
+		if (peerUrl in this.bridges) {
+			return this.bridges[peerUrl];
+		}
 
 		// Parse the url
 		var peerUrld = local.web.parseUri(peerUrl);
@@ -2548,13 +2576,14 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			console.warn('PeerWebRelay - signal() called before relay is connected');
 			return;
 		}
-		return this.p2pwRelayAPI.post({ src: this.myUrl, dst: dst, msg: msg });
+		return this.p2pwRelayAPI.post({ src: this.myPeerDomain, dst: dst, msg: msg });
 	};
 
 	PeerWebRelay.prototype.onSignal = function(e) {
 		if (!e.data || !e.data.src || !e.data.msg) {
 			console.warn('discarding faulty signal message', err);
 		}
+		if (e.data.msg.type == 'noop') { return; } // used for heartbeats to keep the stream alive
 
 		// Find bridge that represents this origin
 		var domain = e.data.src;
@@ -2607,6 +2636,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		// Update state
 		var wasConnected = this.connectedToRelay;
 		this.connectedToRelay = false;
+		if (self.pingInterval) { clearInterval(self.pingInterval); }
 
 		// Fire event
 		this.emit('notlistening');
@@ -2641,7 +2671,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			req.open('POST', this.p2pwRelayAPI.context.url, false);
 			req.setRequestHeader('Authorization', 'Bearer '+this.accessToken);
 			req.setRequestHeader('Content-type', 'application/json');
-			req.send(JSON.stringify({ src: this.myUrl, dst: dst, msg: { type: 'disconnect' } }));
+			req.send(JSON.stringify({ src: this.myPeerDomain, dst: dst, msg: { type: 'disconnect' } }));
 		}
 	};
 
