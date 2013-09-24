@@ -57,10 +57,21 @@ startTime = Date.now();
 var links = [
   { rel: 'foo service via', href: 'http://whatever.com', id: 'whatever', title: 'Whatever' },
   { rel: 'foo collection whatever.com/rel/collection', href: 'http://whatever.com/stuff', id: 'stuff', title: 'Whatever Stuff' },
-  { rel: 'foo item http://whatever.com/rel/item other.com/-item', href: 'http://whatever.com/stuff/{id}', title: 'Whatever Item' }
+  { rel: 'foo item http://whatever.com/rel/item other.com/-item', href: 'http://whatever.com/stuff/{id}', title: 'Whatever Item' },
+  { rel: 'foo item other.com/-item', href: 'http://whatever.com/stuff/{id}', title: 'Whatever Item', user: 'bob' },
 ];
+print(local.web.queryLink(links[0], { rel: 'foo' }));
+// => true
+print(local.web.queryLink(links[0], { rel: 'foobar' }));
+// => false
+print(local.web.queryLink(links[0], { rel: 'foo', id: 'bar' }));
+// => false
+print(local.web.queryLink(links[0], { rel: 'foo', title: 'Whatever' }));
+// => true
+print(local.web.queryLink(links[3], { rel: 'item other.com/-item', id: 'foobar', user: 'bob' }));
+// => true
 print(local.web.queryLinks(links, { rel: 'foo' }).length);
-// => 3
+// => 4
 print(local.web.queryLinks(links, { rel: 'foo service' }).length);
 // => 1
 print(local.web.queryLinks(links, { rel: 'whatever.com/rel/collection' }).length);
@@ -68,16 +79,18 @@ print(local.web.queryLinks(links, { rel: 'whatever.com/rel/collection' }).length
 print(local.web.queryLinks(links, { rel: 'http://whatever.com/rel/collection' }).length);
 // => 0
 print(local.web.queryLinks(links, { rel: 'foo', id: 'whatever' }).length);
-// => 1
+// => 3
 print(local.web.queryLinks(links, { rel: 'other.com/-item' }).length);
-// => 1
+// => 2
 print(local.web.queryLinks(links, { rel: '!foo' }).length);
 // => 0
 print(local.web.queryLinks(links, { rel: '!whatever.com/rel/collection' }).length);
-// => 2
+// => 3
 print(local.web.queryLinks(links, { rel: 'item !whatever.com/rel/collection' }).length);
-// => 1
+// => 2
 print(local.web.queryLinks(links, { rel: '!whatever.com/rel/collection item' }).length);
+// => 2
+print(local.web.queryLinks(links, { rel: 'other.com/-item', user: 'bob' }).length);
 // => 1
 finishTest();
 

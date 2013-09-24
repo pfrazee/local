@@ -331,24 +331,9 @@ Navigator.prototype.resolve = function(options) {
 Navigator.prototype.lookupLink = function(context) {
 	if (context.query) {
 		if (typeof context.query == 'object') {
-			// Search only by rel and ID
-			var reducedQuery = {};
-			if (typeof context.query.rel != 'undefined')
-				reducedQuery.rel = context.query.rel;
-			if (typeof context.query.id != 'undefined')
-				reducedQuery.id = context.query.id;
 
 			// Try to find a link that matches
-			var link = local.web.queryLinks1(this.links, reducedQuery);
-			if (!link && reducedQuery.id) {
-				// Try again without the id
-				reducedQuery.id = undefined;
-				link = local.web.queryLinks1(this.links, reducedQuery);
-				// Make sure we got a link with an id templating token
-				if (!link || /{id}/.test(link.href) === false)
-					link = null;
-			}
-
+			var link = local.web.queryLinks1(this.links, context.query);
 			if (link)
 				return local.web.UriTemplate.parse(link.href).expand(context.query);
 		}
