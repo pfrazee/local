@@ -90,6 +90,36 @@ success
 
 */
 
+// local requests without the scheme
+
+done = false;
+startTime = Date.now();
+var res = local.dispatch({ method:'get', url:'test.com' });
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "service resource",
+  headers: {
+    "content-type": "text/plain",
+    link: [
+      {
+        href: "httpl://test.com/",
+        rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
+      },
+      {href: "httpl://test.com/events", id: "events", rel: "collection"},
+      {href: "httpl://test.com/foo", id: "foo", rel: "collection"},
+      {href: "httpl://test.com/{id}", rel: "collection"}
+    ]
+  },
+  reason: "ok",
+  status: 200
+}
+
+*/
+
 // unsuccessful local requests
 
 done = false;

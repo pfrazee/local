@@ -1,11 +1,11 @@
 // load worker
 local.workerBootstrapUrl = '../worker.js';
-local.spawnWorkerServer('test/worker/worker1.js', function(req, res) {
+local.spawnWorkerServer('test/worker/worker1.js', { myname: 'alice' }, function(req, res) {
 	res.writeHead(200, 'ok', { 'content-type': 'text/plain' }).end('yes, hello '+req.query.foo+' '+req.query.bar);
-}, { myname: 'alice' });
-local.spawnWorkerServer('test/worker/worker2.js', function(req, res) {
+});
+local.spawnWorkerServer('test/worker/worker2.js', { myname: 'bob' }, function(req, res) {
 	res.writeHead(200, 'ok', { 'content-type': 'text/plain' }).end('no, bye '+req.query.foo+' '+req.query.bar);
-}, { myname: 'bob' });
+});
 
 // GET tests
 done = false;

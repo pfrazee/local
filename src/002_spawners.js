@@ -2,24 +2,9 @@
 // -
 
 // EXPORTED
-// Creates a local server with the given constructor function
-// eg `local.spawnAppServer(MyServerConstructor, { myOption: 'foobar' });`
-// - `ServerConstructor`: required function
-// - `config`: optional object, config options to pass to the constructor
-// - `config.domain`: optional string, overrides the automatic domain generation
-local.spawnAppServer = function(ServerConstructor, config) {
-	if (!config) { config = {}; }
-	var server = new ServerConstructor(config);
-	var domain = config.domain || getAvailableLocalDomain(ServerConstructor.name.toLowerCase() + '{n}');
-	local.registerLocal(domain, server);
-	return server;
-};
-
-// EXPORTED
 // Creates a Web Worker and a bridge server to the worker
 // eg `local.spawnWorkerServer('http://foo.com/myworker.js', localServerFn, )
 // - `src`: required string, the URI to load into the worker
-// - `serverFn`: required function, a response generator for requests from the worker
 // - `config`: optional object, additional config options to pass to the worker
 // - `config.domain`: optional string, overrides the automatic domain generation
 // - `config.shared`: boolean, should the workerserver be shared?
@@ -28,13 +13,15 @@ local.spawnAppServer = function(ServerConstructor, config) {
 // - `config.nullify`: optional [string], a list of objects to nullify when the worker loads
 //   - defaults to ['XMLHttpRequest', 'Worker', 'WebSocket', 'EventSource']
 // - `config.bootstrapUrl`: optional string, specifies the URL of the worker bootstrap script
-local.spawnWorkerServer = function(src, serverFn, config) {
+// - `serverFn`: optional function, a response generator for requests from the worker
+local.spawnWorkerServer = function(src, config, serverFn) {
+	if (typeof config == 'function') { serverFn = config; config = null; }
 	if (!config) { config = {}; }
 	config.src = src;
+	config.serverFn = serverFn;
 
 	// Create the server
 	var server = new local.WorkerBridgeServer(config);
-	server.handleRemoteWebRequest = serverFn;
 
 	// Find an open domain and register
 	var domain = config.domain;
@@ -53,9 +40,10 @@ local.spawnWorkerServer = function(src, serverFn, config) {
 // EXPORTED
 // Opens a stream to a peer relay
 // - `providerUrl`: required string, the relay provider
-// - `serverFn`: required function, a response generator for requests from connected peers
 // - `config.app`: optional string, the app to join as (defaults to window.location.host)
-local.joinPeerRelay = function(providerUrl, serverFn, config) {
+// - `serverFn`: optional function, a response generator for requests from connected peers
+local.joinPeerRelay = function(providerUrl, config, serverFn) {
+	if (typeof config == 'function') { serverFn = config; config = null; }
 	if (!config) config = {};
 	config.provider = providerUrl;
 	config.serverFn = serverFn;
