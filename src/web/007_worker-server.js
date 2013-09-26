@@ -8,7 +8,6 @@
 // - `config.namespace`: optional string, what should the shared worker be named?
 //   - defaults to `config.src` if undefined
 // - `config.nullify`: optional [string], a list of objects to nullify when the worker loads
-//   - defaults to ['XMLHttpRequest', 'Worker', 'WebSocket', 'EventSource']
 // - `config.bootstrapUrl`: optional string, specifies the URL of the worker bootstrap script
 // - `config.log`: optional bool, enables logging of all message traffic
 // - `loadCb`: optional function(message)
@@ -28,9 +27,6 @@ function WorkerBridgeServer(config, loadCb) {
 	// Prep config
 	if (!this.config.domain) { // assign a temporary label for logging if no domain is given yet
 		this.config.domain = '<'+this.config.src.slice(0,40)+'>';
-	}
-	if (!this.config.nullify) {
-		this.config.nullify = ['XMLHttpRequest', 'Worker', 'WebSocket', 'EventSource'];
 	}
 	this.config.environmentHost = window.location.host; // :TODO: needed? I think workers can access this directly
 
@@ -119,9 +115,11 @@ WorkerBridgeServer.prototype.onWorkerReady = function(message) {
 	this.hasHostPrivileges = message.hostPrivileges;
 	if (this.hasHostPrivileges) {
 		// Disable undesirable APIs
-		this.config.nullify.forEach(function(api) {
-			this.nullify(api);
-		}, this);
+		if (this.config.nullify) {
+			this.config.nullify.forEach(function(api) {
+				this.nullify(api);
+			}, this);
+		}
 
 		// Load user script
 		var src = this.config.src;
