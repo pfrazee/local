@@ -2446,7 +2446,10 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// Gets an access token from the provider & user using a popup
 	// - Best if called within a DOM click handler, as that will avoid popup-blocking
 	//   (note, however, if the accessTokenAPI hasnt resolved its api yet, there will be an async callback that breaks that)
+	// - returns promise(string), fulfills with token on success and rejects with null on failure
 	PeerWebRelay.prototype.requestAccessToken = function() {
+		var token_ = local.promise();
+
 		// Start listening for messages from the popup
 		if (!this.messageFromAuthPopupHandler) {
 			this.messageFromAuthPopupHandler = (function(e) {
@@ -2468,6 +2471,9 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 				// If given a null, emit denial event
 				if (!e.data) {
 					this.emit('accessDenied');
+					token_.reject(null);
+				} else {
+					token_.fulfill(e.data);
 				}
 			}).bind(this);
 		}
@@ -2483,6 +2489,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 				window.open(url);
 			});
 		}
+
+		return token_;
 	};
 
 	// Fetches users from p2pw service

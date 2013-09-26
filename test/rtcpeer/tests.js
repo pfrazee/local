@@ -7,7 +7,6 @@ var peerWeb1 = local.joinPeerRelay('https://grimwire.net', { stream: 0 }, peer1S
 var peerWeb2 = local.joinPeerRelay('https://grimwire.net', { stream: 1 }, peer2ServerFn);
 
 peerWeb1.on('accessGranted', function() {
-	sessionStorage.setItem('access-token', peerWeb1.getAccessToken());
 	// Start listening
 	peerWeb1.startListening();
 	peerWeb2.startListening();
@@ -15,12 +14,18 @@ peerWeb1.on('accessGranted', function() {
 
 // Handle auth failures
 peerWeb1.on('accessInvalid', function() {
-	peerWeb1.requestAccessToken();
+	peerWeb1.requestAccessToken().then(function() {
+		sessionStorage.setItem('access-token', peerWeb1.getAccessToken());
+		window.location.reload();
+	});
 });
 
 // Get access token if we need one
 if (!sessionStorage.getItem('access-token')) {
-	peerWeb1.requestAccessToken();
+	peerWeb1.requestAccessToken().then(function() {
+		sessionStorage.setItem('access-token', peerWeb1.getAccessToken());
+		window.location.reload();
+	});
 } else {
 	// Pull access token from storage
 	peerWeb1.setAccessToken(sessionStorage.getItem('access-token'));
