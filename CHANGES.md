@@ -2,6 +2,11 @@ Changes
 =======
 0.4.0
 
+2013/09/25 pfraze
+
+ - Moved everything from the local.web.* namespace to local.*
+
+
 2013/09/23 pfraze
 
  - Added ping config to PeerWebRelay to keep streams alive

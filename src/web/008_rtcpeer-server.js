@@ -30,7 +30,7 @@
 		if (!config) config = {};
 		if (!config.peer) throw new Error("`config.peer` is required");
 		if (!config.relay) throw new Error("`config.relay` is required");
-		local.web.BridgeServer.call(this, config);
+		local.BridgeServer.call(this, config);
 		local.util.mixinEventEmitter(this);
 
 		// Parse config.peer
@@ -75,8 +75,8 @@
 			this.sendOffer();
 		}
 	}
-	RTCBridgeServer.prototype = Object.create(local.web.BridgeServer.prototype);
-	local.web.RTCBridgeServer = RTCBridgeServer;
+	RTCBridgeServer.prototype = Object.create(local.BridgeServer.prototype);
+	local.RTCBridgeServer = RTCBridgeServer;
 
 	RTCBridgeServer.prototype.getPeerInfo = function() {
 		return this.peerInfo;
@@ -380,7 +380,7 @@
 
 		// :TEMP: Extract provider domain for use in HTTPL domain assignment
 		// when multiple providers are supported, the signal should include this info
-		var providerUrld = local.web.parseUri(config.provider);
+		var providerUrld = local.parseUri(config.provider);
 		this.providerDomain = providerUrld.host;
 
 		// Internal helpers
@@ -397,7 +397,7 @@
 		// Bind window close behavior
 		window.addEventListener('beforeunload', this.onPageClose.bind(this));
 	}
-	local.web.PeerWebRelay = PeerWebRelay;
+	local.PeerWebRelay = PeerWebRelay;
 
 	// Sets the access token and triggers a connect flow
 	// - `token`: required String?, the access token (null if denied access)
@@ -455,7 +455,7 @@
 		}
 		// Update config and APIs
 		this.config.provider = providerUrl;
-		this.providerDomain = local.web.parseUri(providerUrl).host;
+		this.providerDomain = local.parseUri(providerUrl).host;
 		this.p2pwServiceAPI.rebase(providerUrl);
 		this.accessTokenAPI.unresolve().resolve({ nohead: true }); // immediately resolve so requestAccessToken() can use it
 		this.p2pwUsersAPI.unresolve();
@@ -474,8 +474,8 @@
 				console.debug('Message (from ' + e.origin + '): ' + e.data);
 
 				// Make sure this is from our popup
-				var originUrld = local.web.parseUri(e.origin);
-				var providerUrld = local.web.parseUri(this.config.provider);
+				var originUrld = local.parseUri(e.origin);
+				var providerUrld = local.parseUri(this.config.provider);
 				if (originUrld.authority !== providerUrld.authority) {
 					return;
 				}
@@ -586,7 +586,7 @@
 		}
 
 		// Parse the url
-		var peerUrld = local.web.parseUri(peerUrl);
+		var peerUrld = local.parseUri(peerUrl);
 		var hostParts = peerUrld.host.split('!');
 		var provider = hostParts[0], app = hostParts[1];
 		if (!peerUrld.user || !provider || !app || !peerUrld.port) {
@@ -594,7 +594,7 @@
 		}
 
 		// Spawn new server
-		var server = new local.web.RTCBridgeServer({
+		var server = new local.RTCBridgeServer({
 			peer: peerUrl,
 			initiate: config.initiate,
 			relay: this
@@ -610,7 +610,7 @@
 
 		// Add to hostmap
 		this.bridges[peerUrld.authority] = server;
-		local.web.registerLocal(peerUrld.authority, server);
+		local.registerLocal(peerUrld.authority, server);
 
 		return server;
 	};
@@ -697,7 +697,7 @@
 		var bridge = this.bridges[data.domain];
 		if (bridge) {
 			delete this.bridges[data.domain];
-			local.web.unregisterLocal(data.domain);
+			local.unregisterLocal(data.domain);
 		}
 	};
 

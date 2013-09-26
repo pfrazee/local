@@ -10,7 +10,7 @@ function Server(config) {
 			this.config[k] = config[k];
 	}
 }
-local.web.Server = Server;
+local.Server = Server;
 
 Server.prototype.getUrl = function() {
 	return 'httpl://' + this.config.domain;
@@ -53,7 +53,7 @@ function BridgeServer(config) {
 	this.msgBuffer = []; // buffer of messages kept until channel is active
 }
 BridgeServer.prototype = Object.create(Server.prototype);
-local.web.BridgeServer = BridgeServer;
+local.BridgeServer = BridgeServer;
 
 // Returns true if the channel is ready for activity
 // - should be overridden
@@ -144,13 +144,13 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 		// Incoming requests have a positive sid
 		if (msg.sid > 0) {
 			// Create request & response
-			var request = new local.web.Request({
+			var request = new local.Request({
 				method: msg.method,
 				path: msg.path,
 				query: msg.query,
 				headers: msg.headers
 			});
-			var response = new local.web.Response();
+			var response = new local.Response();
 
 			// Wire response into the stream
 			var this2 = this;

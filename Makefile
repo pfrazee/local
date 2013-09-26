@@ -27,9 +27,8 @@ src-web-files =\
 src-toplevel-files =\
 	${src}000_header.js\
 	${src}001_config.js\
-	${src}002_aliases.js\
-	${src}003_spawners.js\
-	${src}004_request-dom-events.js\
+	${src}002_spawners.js\
+	${src}003_request-dom-events.js\
 	${src}module_footer.js
 src-worker-files =\
 	${lib-local-files}\

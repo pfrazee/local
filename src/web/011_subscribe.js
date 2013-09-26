@@ -8,7 +8,7 @@
 // - sends a GET request with 'text/event-stream' as the Accept header
 // - `request`: request object, formed as in `dispatch()`
 // - returns a `EventStream` object
-local.web.subscribe = function subscribe(request) {
+local.subscribe = function subscribe(request) {
 	if (typeof request == 'string')
 		request = { url: request };
 	request.stream = true; // stream the response
@@ -16,7 +16,7 @@ local.web.subscribe = function subscribe(request) {
 	if (!request.headers) request.headers = { accept : 'text/event-stream' };
 	if (!request.headers.accept) request.headers.accept = 'text/event-stream';
 
-	var response_ = local.web.dispatch(request);
+	var response_ = local.dispatch(request);
 	return new EventStream(response_.request, response_);
 };
 
@@ -35,7 +35,7 @@ function EventStream(request, response_) {
 
 	this.connect(response_);
 }
-local.web.EventStream = EventStream;
+local.EventStream = EventStream;
 EventStream.prototype = Object.create(local.util.EventEmitter.prototype);
 EventStream.prototype.getUrl = function() { return this.request.url; };
 EventStream.prototype.connect = function(response_) {
@@ -80,10 +80,10 @@ EventStream.prototype.reconnect = function() {
 	}
 
 	// Re-establish the connection
-	this.request = new local.web.Request(this.request);
+	this.request = new local.Request(this.request);
 	if (!this.request.headers) this.request.headers = {};
 	if (this.lastEventId) this.request.headers['last-event-id'] = this.lastEventId;
-	this.connect(local.web.dispatch(this.request));
+	this.connect(local.dispatch(this.request));
 	this.request.end();
 };
 EventStream.prototype.close = function() {
@@ -98,7 +98,7 @@ function emitError(e) {
 	this.emit('error', e);
 }
 function emitEvent(e) {
-	e = local.web.contentTypes.deserialize(e, 'text/event-stream');
+	e = local.contentTypes.deserialize(e, 'text/event-stream');
 	var id = parseInt(e.id, 10);
 	if (typeof id != 'undefined' && id > this.lastEventId)
 		this.lastEventId = id;
@@ -114,7 +114,7 @@ function emitEvent(e) {
 function Broadcaster() {
 	this.streams = [];
 }
-local.web.Broadcaster = Broadcaster;
+local.Broadcaster = Broadcaster;
 
 // listener management
 Broadcaster.prototype.addStream = function(responseStream) {
@@ -148,7 +148,7 @@ Broadcaster.prototype.emit = function(eventName, data, opts) {
 		}
 		// Convert to ids
 		opts.exclude = opts.exclude.map(function(v) {
-			if (v instanceof local.web.Response) {
+			if (v instanceof local.Response) {
 				return v.broadcastStreamId;
 			}
 			return v;
@@ -171,6 +171,6 @@ Broadcaster.prototype.emitTo = function(responseStream, eventName, data) {
 };
 
 // wrap helper
-local.web.broadcaster = function() {
+local.broadcaster = function() {
 	return new Broadcaster();
 };

@@ -14,7 +14,7 @@
 function WorkerBridgeServer(config, loadCb) {
 	if (!config || !config.src)
 		throw new Error("WorkerBridgeServer requires config with `src` attribute.");
-	local.web.BridgeServer.call(this, config);
+	local.BridgeServer.call(this, config);
 	this.isUserScriptActive = false; // when true, ready for activity
 	this.hasHostPrivileges = true; // do we have full control over the worker?
 	// ^ set to false by the ready message of a shared worker (if we're not the first page to connect)
@@ -67,8 +67,8 @@ function WorkerBridgeServer(config, loadCb) {
 		}
 	}).bind(this));
 }
-WorkerBridgeServer.prototype = Object.create(local.web.BridgeServer.prototype);
-local.web.WorkerBridgeServer = WorkerBridgeServer;
+WorkerBridgeServer.prototype = Object.create(local.BridgeServer.prototype);
+local.WorkerBridgeServer = WorkerBridgeServer;
 
 // Returns the worker's messaging interface
 // - varies between shared and normal workers

@@ -1,3 +1,10 @@
+// request latency logging
+local.setDispatchWrapper(function(request, response, dispatch) {
+	response.on('close', function() { console.log(response.latency+'ms'); });
+	dispatch(request, response);
+});
+
+
 // worker local scaffold server
 
 local.workerBootstrapUrl = '../worker.js';
@@ -5,7 +12,7 @@ local.spawnWorkerServer('test/web/_worker.js');
 
 // document local scaffold server
 
-local.web.registerLocal('test.com', function(request, response) {
+local.registerLocal('test.com', function(request, response) {
 	var foos = ['bar', 'baz', 'blah'];
 	var payload = null, linkHeader;
 	if (request.path == '/') {
@@ -93,7 +100,7 @@ local.web.registerLocal('test.com', function(request, response) {
 		var bodyUpdate = function(body) {
 			return body.toUpperCase();
 		};
-		local.web.pipe(response, local.web.dispatch({ method:'get', url:'httpl://test.com/' }), headerUpdate, bodyUpdate);
+		local.pipe(response, local.dispatch({ method:'get', url:'httpl://test.com/' }), headerUpdate, bodyUpdate);
 	}
 	else {
 		response.writeHead(404, 'not found');

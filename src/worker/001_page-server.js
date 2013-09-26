@@ -8,7 +8,7 @@
 	// - `port`: required object, either `self` (for non-shared workers) or a port from `onconnect`
 	// - `isHost`: boolean, should connection get host privileges?
 	function PageServer(id, port, isHost) {
-		local.web.BridgeServer.call(this);
+		local.BridgeServer.call(this);
 		this.id = id;
 		this.port = port;
 		this.isHostPage = isHost;
@@ -40,7 +40,7 @@
 			}
 		}).bind(this));
 	}
-	PageServer.prototype = Object.create(local.web.BridgeServer.prototype);
+	PageServer.prototype = Object.create(local.BridgeServer.prototype);
 	local.worker.PageServer = PageServer;
 
 	// Returns true if the channel is ready for activity

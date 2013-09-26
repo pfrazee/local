@@ -8,7 +8,7 @@ var contentTypes = {
 	register    : contentTypes__register
 };
 var contentTypes__registry = {};
-local.web.contentTypes = contentTypes;
+local.contentTypes = contentTypes;
 
 // EXPORTED
 // serializes an object into a string
@@ -79,7 +79,7 @@ function contentTypes__find(type, fn) {
 
 // Default Types
 // =============
-local.web.contentTypes.register('application/json',
+local.contentTypes.register('application/json',
 	function (obj) {
 		try {
 			return JSON.stringify(obj);
@@ -95,7 +95,7 @@ local.web.contentTypes.register('application/json',
 		}
 	}
 );
-local.web.contentTypes.register('application/x-www-form-urlencoded',
+local.contentTypes.register('application/x-www-form-urlencoded',
 	function (obj) {
 		var enc = encodeURIComponent;
 		var str = [];
@@ -147,7 +147,7 @@ local.web.contentTypes.register('application/x-www-form-urlencoded',
 		return result;
 	}
 );
-local.web.contentTypes.register('text/event-stream',
+local.contentTypes.register('text/event-stream',
 	function (obj) {
 		if (typeof obj.data != 'undefined')
 			return "event: "+obj.event+"\r\ndata: "+JSON.stringify(obj.data)+"\r\n\r\n";

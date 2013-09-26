@@ -4,7 +4,7 @@
 
 done = false;
 startTime = Date.now();
-var res = local.web.dispatch({ method:'get', url:'httpl://test.com/pipe' });
+var res = local.dispatch({ method:'get', url:'httpl://test.com/pipe' });
 res.then(printSuccess, printError).then(finishTest);
 wait(function () { return done; });
 
@@ -33,20 +33,20 @@ success
 // parseLinkHeader
 
 startTime = Date.now();
-print(local.web.parseLinkHeader('</foo>; id="foo"; rel="what ever"'));
+print(local.parseLinkHeader('</foo>; id="foo"; rel="what ever"'));
 // => [{href: "/foo", id: "foo", rel: "what ever"}]
-print(local.web.parseLinkHeader('</foo>; id="foo"; rel="what ever", </bar>; id="bar"; rel="what ever"'));
+print(local.parseLinkHeader('</foo>; id="foo"; rel="what ever", </bar>; id="bar"; rel="what ever"'));
 /* =>
 [
   {href: "/foo", id: "foo", rel: "what ever"},
   {href: "/bar", id: "bar", rel: "what ever"}
 ]
 */
-print(local.web.parseLinkHeader('</foo>; id=foo'));
+print(local.parseLinkHeader('</foo>; id=foo'));
 // => [{href: "/foo", id: "foo"}]
-print(local.web.parseLinkHeader('</foo>; foobar; foobaz'));
+print(local.parseLinkHeader('</foo>; foobar; foobaz'));
 // => [{foobar: true, foobaz: true, href: "/foo"}]
-print(local.web.parseLinkHeader('</foo{?bar,baz}>; id="foo"; rel="what ever"'));
+print(local.parseLinkHeader('</foo{?bar,baz}>; id="foo"; rel="what ever"'));
 // => [{href: "/foo{?bar,baz}", id: "foo", rel: "what ever"}]
 finishTest();
 
@@ -60,37 +60,37 @@ var links = [
   { rel: 'foo item http://whatever.com/rel/item other.com/-item', href: 'http://whatever.com/stuff/{id}', title: 'Whatever Item' },
   { rel: 'foo item other.com/-item', href: 'http://whatever.com/stuff/{id}', title: 'Whatever Item', user: 'bob' },
 ];
-print(local.web.queryLink(links[0], { rel: 'foo' }));
+print(local.queryLink(links[0], { rel: 'foo' }));
 // => true
-print(local.web.queryLink(links[0], { rel: 'foobar' }));
+print(local.queryLink(links[0], { rel: 'foobar' }));
 // => false
-print(local.web.queryLink(links[0], { rel: 'foo', id: 'bar' }));
+print(local.queryLink(links[0], { rel: 'foo', id: 'bar' }));
 // => false
-print(local.web.queryLink(links[0], { rel: 'foo', title: 'Whatever' }));
+print(local.queryLink(links[0], { rel: 'foo', title: 'Whatever' }));
 // => true
-print(local.web.queryLink(links[3], { rel: 'item other.com/-item', id: 'foobar', user: 'bob' }));
+print(local.queryLink(links[3], { rel: 'item other.com/-item', id: 'foobar', user: 'bob' }));
 // => true
-print(local.web.queryLinks(links, { rel: 'foo' }).length);
+print(local.queryLinks(links, { rel: 'foo' }).length);
 // => 4
-print(local.web.queryLinks(links, { rel: 'foo service' }).length);
+print(local.queryLinks(links, { rel: 'foo service' }).length);
 // => 1
-print(local.web.queryLinks(links, { rel: 'whatever.com/rel/collection' }).length);
+print(local.queryLinks(links, { rel: 'whatever.com/rel/collection' }).length);
 // => 1
-print(local.web.queryLinks(links, { rel: 'http://whatever.com/rel/collection' }).length);
+print(local.queryLinks(links, { rel: 'http://whatever.com/rel/collection' }).length);
 // => 0
-print(local.web.queryLinks(links, { rel: 'foo', id: 'whatever' }).length);
+print(local.queryLinks(links, { rel: 'foo', id: 'whatever' }).length);
 // => 3
-print(local.web.queryLinks(links, { rel: 'other.com/-item' }).length);
+print(local.queryLinks(links, { rel: 'other.com/-item' }).length);
 // => 2
-print(local.web.queryLinks(links, { rel: '!foo' }).length);
+print(local.queryLinks(links, { rel: '!foo' }).length);
 // => 0
-print(local.web.queryLinks(links, { rel: '!whatever.com/rel/collection' }).length);
+print(local.queryLinks(links, { rel: '!whatever.com/rel/collection' }).length);
 // => 3
-print(local.web.queryLinks(links, { rel: 'item !whatever.com/rel/collection' }).length);
+print(local.queryLinks(links, { rel: 'item !whatever.com/rel/collection' }).length);
 // => 2
-print(local.web.queryLinks(links, { rel: '!whatever.com/rel/collection item' }).length);
+print(local.queryLinks(links, { rel: '!whatever.com/rel/collection item' }).length);
 // => 2
-print(local.web.queryLinks(links, { rel: 'other.com/-item', user: 'bob' }).length);
+print(local.queryLinks(links, { rel: 'other.com/-item', user: 'bob' }).length);
 // => 1
 finishTest();
 
@@ -98,11 +98,11 @@ finishTest();
 // preferredType(s)
 
 startTime = Date.now();
-print(local.web.preferredTypes('text/html, application/*;q=0.2, image/jpeg;q=0.8'));
+print(local.preferredTypes('text/html, application/*;q=0.2, image/jpeg;q=0.8'));
 // => ['text/html', 'application/*', 'image/jpeg']
-print(local.web.preferredTypes('text/html, application/*;q=0.2, image/jpeg;q=0.8', ['text/html', 'text/plain', 'application/json']));
+print(local.preferredTypes('text/html, application/*;q=0.2, image/jpeg;q=0.8', ['text/html', 'text/plain', 'application/json']));
 // => ['text/html', 'application/json']
-print(local.web.preferredType('text/html, application/*;q=0.2, image/jpeg;q=0.8', ['text/html', 'text/plain', 'application/json']));
+print(local.preferredType('text/html, application/*;q=0.2, image/jpeg;q=0.8', ['text/html', 'text/plain', 'application/json']));
 // => text/html
 finishTest();
 
@@ -110,15 +110,15 @@ finishTest();
 // joinRelPath
 
 startTime = Date.now();
-print(local.web.joinRelPath('http://grimwire.com', '/foo'));
+print(local.joinRelPath('http://grimwire.com', '/foo'));
 // => http://grimwire.com/foo
-print(local.web.joinRelPath('http://grimwire.com/bar', '/foo'));
+print(local.joinRelPath('http://grimwire.com/bar', '/foo'));
 // => http://grimwire.com/foo
-print(local.web.joinRelPath('http://grimwire.com/bar', 'foo'));
+print(local.joinRelPath('http://grimwire.com/bar', 'foo'));
 // => http://grimwire.com/bar/foo
-print(local.web.joinRelPath('http://grimwire.com/bar/bar', '../foo'));
+print(local.joinRelPath('http://grimwire.com/bar/bar', '../foo'));
 // => http://grimwire.com/bar/foo
-print(local.web.joinRelPath('http://grimwire.com/bar/bar', '../../foo'));
+print(local.joinRelPath('http://grimwire.com/bar/bar', '../../foo'));
 // => http://grimwire.com/foo
 finishTest();
 
@@ -126,33 +126,33 @@ finishTest();
 // parseNavUri
 
 startTime = Date.now();
-print(local.web.parseNavUri());
+print(local.parseNavUri());
 // => []
-print(local.web.parseNavUri('nav:||'));
+print(local.parseNavUri('nav:||'));
 // => []
-print(local.web.parseNavUri('nav:||http://foo.com'));
+print(local.parseNavUri('nav:||http://foo.com'));
 // => ["http://foo.com"]
-print(local.web.parseNavUri('nav:||http://foo.com|bar'));
+print(local.parseNavUri('nav:||http://foo.com|bar'));
 // => ["http://foo.com", {rel: "bar"}]
-print(local.web.parseNavUri('||http://foo.com|bar'));
+print(local.parseNavUri('||http://foo.com|bar'));
 // => ["http://foo.com", {rel: "bar"}]
-print(local.web.parseNavUri('|bar'));
+print(local.parseNavUri('|bar'));
 // => [{rel: "bar"}]
-print(local.web.parseNavUri('nav:||http://foo.com|bar=baz'));
+print(local.parseNavUri('nav:||http://foo.com|bar=baz'));
 // => ["http://foo.com", {id: "baz", rel: "bar"}]
-print(local.web.parseNavUri('nav:||http://foo.com|bar+bum'));
+print(local.parseNavUri('nav:||http://foo.com|bar+bum'));
 // => ["http://foo.com", {rel: "bar bum"}]
-print(local.web.parseNavUri('nav:||http://foo.com|bar+!bum'));
+print(local.parseNavUri('nav:||http://foo.com|bar+!bum'));
 // => ["http://foo.com", {rel: "bar !bum"}]
-print(local.web.parseNavUri('nav:||http://foo.com|bar+bum=baz'));
+print(local.parseNavUri('nav:||http://foo.com|bar+bum=baz'));
 // => ["http://foo.com", {id: "baz", rel: "bar bum"}]
-print(local.web.parseNavUri('nav:||http://foo.com|bar=baz,a=b'));
+print(local.parseNavUri('nav:||http://foo.com|bar=baz,a=b'));
 // => ["http://foo.com", {a: "b", id: "baz", rel: "bar"}]
-print(local.web.parseNavUri('nav:||http://foo.com|bar=baz,a=b,c=f+g'));
+print(local.parseNavUri('nav:||http://foo.com|bar=baz,a=b,c=f+g'));
 // => ["http://foo.com", {a: "b", c: "f g", id: "baz", rel: "bar"}]
-print(local.web.parseNavUri('nav:||http://foo.com|bar=baz,a=b,c=f%20g'));
+print(local.parseNavUri('nav:||http://foo.com|bar=baz,a=b,c=f%20g'));
 // => ["http://foo.com", {a: "b", c: "f g", id: "baz", rel: "bar"}]
-print(local.web.parseNavUri('nav:||http://foo.com|bar=baz|faa=feh'));
+print(local.parseNavUri('nav:||http://foo.com|bar=baz|faa=feh'));
 // => ["http://foo.com", {id: "baz", rel: "bar"}, {id: "feh", rel: "faa"}]
 finishTest();
 

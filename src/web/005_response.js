@@ -41,12 +41,12 @@ function Response() {
 		});
 		self.on('end', function() {
 			if (self.headers['content-type'])
-				self.body = local.web.contentTypes.deserialize(self.body, self.headers['content-type']);
+				self.body = local.contentTypes.deserialize(self.body, self.headers['content-type']);
 			self.body_.fulfill(self.body);
 		});
 	})(this);
 }
-local.web.Response = Response;
+local.Response = Response;
 Response.prototype = Object.create(local.util.EventEmitter.prototype);
 
 Response.prototype.setHeader    = function(k, v) { this.headers[k] = v; };
@@ -77,7 +77,7 @@ Response.prototype.write = function(data) {
 	if (!this.isConnOpen)
 		return;
 	if (typeof data != 'string') {
-		data = local.web.contentTypes.serialize(data, this.headers['content-type']);
+		data = local.contentTypes.serialize(data, this.headers['content-type']);
 	}
 	this.emit('data', data);
 };

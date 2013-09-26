@@ -1,6 +1,6 @@
 // Local Echo Host
-var relayBroadcast = local.web.broadcaster();
-local.web.registerLocal('relay', function(req, res) {
+var relayBroadcast = local.broadcaster();
+local.registerLocal('relay', function(req, res) {
 
 	// Fake user info (local relay is just for debugging)
 	var authUserId = 'local';
@@ -16,7 +16,7 @@ local.web.registerLocal('relay', function(req, res) {
 			return res.writeHead(204, 'ok, no content').end();
 		}
 		if (req.method == 'GET') {
-			if (!local.web.preferredType(req, 'text/event-stream')) {
+			if (!local.preferredType(req, 'text/event-stream')) {
 				return res.writeHead(406, 'bad accept - only provides text/event-stream').end();
 			}
 			var streamId = relayBroadcast.addStream(res);

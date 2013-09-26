@@ -20,10 +20,10 @@ function NavigatorContext(query) {
 	this.query = query;
 	this.resolveState = NavigatorContext.UNRESOLVED;
 	this.error = null;
-	this.queryIsAbsolute = (typeof query == 'string' && local.web.isAbsUri(query));
+	this.queryIsAbsolute = (typeof query == 'string' && local.isAbsUri(query));
 	if (this.queryIsAbsolute) {
 		this.url  = query;
-		this.urld = local.web.parseUri(this.url);
+		this.urld = local.parseUri(this.url);
 	} else {
 		this.url = null;
 		this.urld = null;
@@ -47,7 +47,7 @@ NavigatorContext.prototype.setResolved = function(url) {
 	this.resolveState = NavigatorContext.RESOLVED;
 	if (url) {
 		this.url          = url;
-		this.urld         = local.web.parseUri(this.url);
+		this.urld         = local.parseUri(this.url);
 	}
 };
 NavigatorContext.prototype.setFailed = function(error) {
@@ -67,9 +67,9 @@ NavigatorContext.prototype.setFailed = function(error) {
 // EXAMPLE 1. Get Bob from Foobar.com
 // - basic navigation
 // - requests
-var foobarService = local.web.navigator('https://foobar.com');
+var foobarService = local.navigator('https://foobar.com');
 var bob = foobarService.follow('|collection=users|item=bob');
-// ^ or local.web.navigator('nav:||https://foobar.com|collection=users|item=bob')
+// ^ or local.navigator('nav:||https://foobar.com|collection=users|item=bob')
 // ^ or foobarService.follow([{ rel: 'collection', id: 'users' }, { rel: 'item', id:'bob' }]);
 // ^ or foobarService.follow({ rel: 'collection', id: 'users' }).follow({ rel: 'item', id:'bob' });
 bob.get()
@@ -102,7 +102,7 @@ pageCursor.get()
 	})
 	.fail(function(response, request) {
 		// Not finding a 'rel=next' link means the server didn't give us one.
-		if (response.status == local.web.LINK_NOT_FOUND) { // 001 Local: Link not found - termination condition
+		if (response.status == local.LINK_NOT_FOUND) { // 001 Local: Link not found - termination condition
 			// Tell Bob his greeting was sent
 			bob.follow('|grimwire.com/-mail/inbox').post({
 				title: '2013 Welcome Emails Sent',
@@ -135,7 +135,7 @@ function Navigator(context, parentNavigator) {
 	if (this.context.isRelative() && !parentNavigator)
 		throw new Error("A parentNavigator is required for navigators with relative contexts");
 }
-local.web.Navigator = Navigator;
+local.Navigator = Navigator;
 
 // Sets defaults to be used in all requests
 // - eg nav.setRequestDefaults({ method: 'GET', headers: { authorization: 'bob:pass', accept: 'text/html' }})
@@ -177,7 +177,7 @@ Navigator.prototype.dispatch = function(req) {
 	return ((req.url) ? local.promise(req.url) : this.resolve({ retry: req.retry, nohead: true }))
 		.succeed(function(url) {
 			req.url = url;
-			return local.web.dispatch(req);
+			return local.dispatch(req);
 		})
 		.succeed(function(res) {
 			// After every successful request, update our links and mark our context as good (in case it had been bad)
@@ -188,7 +188,7 @@ Navigator.prototype.dispatch = function(req) {
 		})
 		.fail(function(res) {
 			// Let a 1 or 404 indicate a bad context (as opposed to some non-navigational error like a bad request body)
-			if (res.status === local.web.LINK_NOT_FOUND || res.status === 404)
+			if (res.status === local.LINK_NOT_FOUND || res.status === 404)
 				self.context.setFailed(res);
 			throw res;
 		});
@@ -204,13 +204,13 @@ Navigator.prototype.subscribe = function(req) {
 		if (self.requestDefaults)
 			copyDefaults(req, self.requestDefaults);
 
-		return local.web.subscribe(req);
+		return local.subscribe(req);
 	});
 };
 
 // Follows a link relation from our context, generating a new navigator
 // - `query` may be:
-//   - an object in the same form of a `local.web.queryLink()` parameter
+//   - an object in the same form of a `local.queryLink()` parameter
 //   - an array of link query objects (to be followed sequentially)
 //   - a URI string
 //     - if using the 'nav:' scheme, will convert the URI into a link query object
@@ -222,8 +222,8 @@ Navigator.prototype.subscribe = function(req) {
 //   - all other attributes are used to fill URI Template tokens and are not required to match
 Navigator.prototype.follow = function(query) {
 	// convert nav: uri to a query array
-	if (typeof query == 'string' && local.web.isNavSchemeUri(query))
-		query = local.web.parseNavUri(query);
+	if (typeof query == 'string' && local.isNavSchemeUri(query))
+		query = local.parseNavUri(query);
 
 	// make sure we always have an array
 	if (!Array.isArray(query))
@@ -255,7 +255,7 @@ Navigator.prototype.rebase = function(url) {
 	this.context.query = url;
 	this.context.queryIsAbsolute = true;
 	this.context.url  = url;
-	this.context.urld = local.web.parseUri(url);
+	this.context.urld = local.parseUri(url);
 	return this;
 };
 
@@ -303,8 +303,8 @@ Navigator.prototype.resolve = function(options) {
 					}
 
 					// Error - Link not found
-					var response = new local.web.Response();
-					response.writeHead(local.web.LINK_NOT_FOUND, 'link query failed to match').end();
+					var response = new local.Response();
+					response.writeHead(local.LINK_NOT_FOUND, 'link query failed to match').end();
 					throw response;
 				})
 				.fail(function(error) {
@@ -331,16 +331,15 @@ Navigator.prototype.resolve = function(options) {
 Navigator.prototype.lookupLink = function(context) {
 	if (context.query) {
 		if (typeof context.query == 'object') {
-
 			// Try to find a link that matches
-			var link = local.web.queryLinks1(this.links, context.query);
+			var link = local.queryLinks1(this.links, context.query);
 			if (link)
-				return local.web.UriTemplate.parse(link.href).expand(context.query);
+				return local.UriTemplate.parse(link.href).expand(context.query);
 		}
 		else if (typeof context.query == 'string') {
 			// A URL
-			if (!local.web.isAbsUrl(context.query))
-				return local.web.joinRelPath(this.context.urld, context.query);
+			if (!local.isAbsUrl(context.query))
+				return local.joinRelPath(this.context.urld, context.query);
 			return context.query;
 		}
 	}
@@ -377,13 +376,13 @@ Navigator.prototype.notify = makeDispWBodySugar('NOTIFY');
 
 // Builder
 // =======
-local.web.navigator = function(queryOrNav) {
+local.navigator = function(queryOrNav) {
 	if (queryOrNav instanceof Navigator)
 		return queryOrNav;
 
 	// convert nav: uri to a query array
-	if (typeof queryOrNav == 'string' && local.web.isNavSchemeUri(queryOrNav))
-		queryOrNav = local.web.parseNavUri(queryOrNav);
+	if (typeof queryOrNav == 'string' && local.isNavSchemeUri(queryOrNav))
+		queryOrNav = local.parseNavUri(queryOrNav);
 
 	// make sure we always have an array
 	if (!Array.isArray(queryOrNav))

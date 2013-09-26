@@ -5,7 +5,7 @@
 
 done = false;
 startTime = Date.now();
-var stream = local.web.subscribe({ url:'httpl://test.com/events' });
+var stream = local.subscribe({ url:'httpl://test.com/events' });
 stream.on('message', function(m) { print(m); });
 stream.on('foo', function(m) { print('foo', m.data); });
 stream.on('bar', function(m) { print('bar', m.data); });
@@ -34,7 +34,7 @@ close
 
 done = false;
 startTime = Date.now();
-var stream = local.web.subscribe({ url:'httpl://_worker.js/events' });
+var stream = local.subscribe({ url:'httpl://_worker.js/events' });
 stream.on('message', function(m) { print(m); });
 stream.on('foo', function(m) { print('foo', m.data); });
 stream.on('bar', function(m) { print('bar', m.data); });
@@ -63,7 +63,7 @@ close
 
 done = false;
 startTime = Date.now();
-var stream2 = local.web.subscribe({ url:'http://grimwire.com:8080/events' });
+var stream2 = local.subscribe({ url:'http://grimwire.com:8080/events' });
 stream2.on('message', function(m) { print(m); });
 stream2.on('foo', function(m) { print('foo', m.data); });
 stream2.on('bar', function(m) { print('bar', m.data); });

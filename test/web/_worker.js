@@ -79,7 +79,7 @@ function main(request, response) {
 		var bodyUpdate = function(body) {
 			return body.toUpperCase();
 		};
-		local.web.pipe(response, local.web.dispatch({ method:'get', url:'httpl://test.com/' }), headerUpdate, bodyUpdate);
+		local.pipe(response, local.dispatch({ method:'get', url:'httpl://test.com/' }), headerUpdate, bodyUpdate);
 	}
 	else if (request.path == '/unserializable-response') {
 		response.writeHead(200, 'ok', { 'content-type':'text/faketype' });

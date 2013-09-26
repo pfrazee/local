@@ -8,7 +8,7 @@ var schemes = {
 	get: schemes__get
 };
 var schemes__registry = {};
-local.web.schemes = schemes;
+local.schemes = schemes;
 
 function schemes__register(scheme, handler) {
 	if (scheme && Array.isArray(scheme)) {
@@ -29,13 +29,13 @@ function schemes__get(scheme) {
 
 // HTTP
 // ====
-local.web.schemes.register(['http', 'https'], function(request, response) {
+local.schemes.register(['http', 'https'], function(request, response) {
 	// parse URL
-	var urld = local.web.parseUri(request.url);
+	var urld = local.parseUri(request.url);
 
 	// if a query was given in the options, mix it into the urld
 	if (request.query) {
-		var q = local.web.contentTypes.serialize(request.query, 'application/x-www-form-urlencoded');
+		var q = local.contentTypes.serialize(request.query, 'application/x-www-form-urlencoded');
 		if (q) {
 			if (urld.query) {
 				urld.query    += '&' + q;
@@ -134,7 +134,7 @@ local.web.schemes.register(['http', 'https'], function(request, response) {
 
 				// parse any headers we use often
 				if (headers.link)
-					headers.link = local.web.parseLinkHeader(headers.link);
+					headers.link = local.parseLinkHeader(headers.link);
 			}
 
 			response.writeHead(xhrRequest.status, xhrRequest.statusText, headers);
@@ -179,9 +179,9 @@ var localNotFoundServer = {
 	},
 	context: null
 };
-local.web.schemes.register('httpl', function(request, response) {
+local.schemes.register('httpl', function(request, response) {
 	// Find the local server
-	var server = local.web.getLocal(request.urld.authority);
+	var server = local.getLocal(request.urld.authority);
 	if (!server)
 		server = localNotFoundServer;
 
@@ -192,7 +192,7 @@ local.web.schemes.register('httpl', function(request, response) {
 
 	// Pull out any query params in the path
 	if (request.urld.query) {
-		var query = local.web.contentTypes.deserialize(request.urld.query, 'application/x-www-form-urlencoded');
+		var query = local.contentTypes.deserialize(request.urld.query, 'application/x-www-form-urlencoded');
 		if (!request.query) { request.query = {}; }
 		for (var k in query) {
 			request.query[k] = query[k];
@@ -210,7 +210,7 @@ local.web.schemes.register('httpl', function(request, response) {
 
 // Data
 // ====
-local.web.schemes.register('data', function(request, response) {
+local.schemes.register('data', function(request, response) {
 	var firstColonIndex = request.url.indexOf(':');
 	var firstCommaIndex = request.url.indexOf(',');
 
@@ -243,10 +243,10 @@ local.web.schemes.register('data', function(request, response) {
 var __httpl_registry = {};
 
 // EXPORTED
-local.web.registerLocal = function registerLocal(domain, server, serverContext) {
+local.registerLocal = function registerLocal(domain, server, serverContext) {
 	if (__httpl_registry[domain]) throw new Error("server already registered at domain given to registerLocal");
 
-	var isServerObj = (server instanceof local.web.Server);
+	var isServerObj = (server instanceof local.Server);
 	if (isServerObj) {
 		serverContext = server;
 		server = server.handleLocalWebRequest;
@@ -257,18 +257,18 @@ local.web.registerLocal = function registerLocal(domain, server, serverContext) 
 };
 
 // EXPORTED
-local.web.unregisterLocal = function unregisterLocal(domain) {
+local.unregisterLocal = function unregisterLocal(domain) {
 	if (__httpl_registry[domain]) {
 		delete __httpl_registry[domain];
 	}
 };
 
 // EXPORTED
-local.web.getLocal = function getLocal(domain) {
+local.getLocal = function getLocal(domain) {
 	return __httpl_registry[domain];
 };
 
 // EXPORTED
-local.web.getLocalRegistry = function getLocalRegistry() {
+local.getLocalRegistry = function getLocalRegistry() {
 	return __httpl_registry;
 };

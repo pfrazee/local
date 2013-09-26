@@ -13,7 +13,7 @@ function main(req, res, page) {
 		return;
 	}
 	if (req.path == '/' && req.method == 'BOUNCE') {
-		local.web.dispatch({ method: 'GET', url: 'httpl://0.page?foo='+local.worker.config.myname, query: { bar: 'bazz' } })
+		local.dispatch({ method: 'GET', url: 'httpl://0.page?foo='+local.worker.config.myname, query: { bar: 'bazz' } })
 			.always(function(res2) {
 				res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
 				res.end(res2.body);

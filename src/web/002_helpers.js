@@ -5,7 +5,7 @@
 // breaks a link header into a javascript object
 var linkHeaderRE1 = /<(.*?)>(?:;[\s]*([^,]*))/g;
 var linkHeaderRE2 = /([\-a-z0-9\.]+)=?(?:(?:"([^"]+)")|([^;\s]+))?/g;
-local.web.parseLinkHeader = function parseLinkHeader(headerStr) {
+local.parseLinkHeader = function parseLinkHeader(headerStr) {
 	if (typeof headerStr !== 'string') {
 		return headerStr;
 	}
@@ -27,17 +27,17 @@ local.web.parseLinkHeader = function parseLinkHeader(headerStr) {
 // EXPORTED
 // takes parsed a link header and a query object, produces an array of matching links
 // - `links`: [object]/object, either the parsed array of links or the request/response object
-local.web.queryLinks = function queryLinks(links, query) {
+local.queryLinks = function queryLinks(links, query) {
 	if (!links) return [];
 	if (links.headers) links = links.headers.link; // actually a request or response object
 	if (!Array.isArray(links)) return [];
-	return links.filter(function(link) { return local.web.queryLink(link, query) > 0; });
+	return links.filter(function(link) { return local.queryLink(link, query) > 0; });
 };
 
 // EXPORTED
 // gives the first result from queryLinks
-local.web.queryLinks1 = function queryLinks1(links, query) {
-	var matches = local.web.queryLinks(links, query);
+local.queryLinks1 = function queryLinks1(links, query) {
+	var matches = local.queryLinks(links, query);
 	return matches[0];
 };
 
@@ -52,7 +52,7 @@ local.web.queryLinks1 = function queryLinks1(links, query) {
 //   - rel: can take multiple values, space-separated, which are ANDed logically
 //   - rel: will ignore the preceding scheme and trailing slash on URI values
 //   - rel: items preceded by an exclamation-point will invert (logical NOT)
-local.web.queryLink = function queryLink(link, query) {
+local.queryLink = function queryLink(link, query) {
 	for (var attr in query) {
 		if (attr == 'rel') {
 			var terms = query.rel.split(/\s+/);
@@ -84,7 +84,7 @@ local.web.queryLink = function queryLink(link, query) {
 // EXPORTED
 // breaks an accept header into a javascript object
 // - `accept`: string, the accept header
-local.web.parseAcceptHeader = function parseAcceptHeader(accept) {
+local.parseAcceptHeader = function parseAcceptHeader(accept) {
 	return accept.split(',')
 		.map(function(e) { return parseMediaType(e.trim()); })
 		.filter(function(e) { return e && e.q > 0; });
@@ -154,11 +154,11 @@ function specify(type, spec) {
 // returns an array of preferred media types ordered by priority from a list of available media types
 // - `accept`: string/object, given accept header or request object
 // - `provided`: optional [string], allowed media types
-local.web.preferredTypes = function preferredTypes(accept, provided) {
+local.preferredTypes = function preferredTypes(accept, provided) {
 	if (typeof accept == 'object') {
 		accept = accept.headers.accept;
 	}
-	accept = local.web.parseAcceptHeader(accept || '');
+	accept = local.parseAcceptHeader(accept || '');
 	if (provided) {
 		if (!Array.isArray(provided)) {
 			provided = [provided];
@@ -176,15 +176,15 @@ local.web.preferredTypes = function preferredTypes(accept, provided) {
 // returns the top preferred media type from a list of available media types
 // - `accept`: string/object, given accept header or request object
 // - `provided`: optional [string], allowed media types
-local.web.preferredType = function preferredType(accept, provided) {
-	return local.web.preferredTypes(accept, provided)[0];
+local.preferredType = function preferredType(accept, provided) {
+	return local.preferredTypes(accept, provided)[0];
 };
 // </https://github.com/federomero/negotiator>
 
 // EXPORTED
 // correctly joins together all url segments given in the arguments
 // eg joinUrl('/foo/', '/bar', '/baz/') -> '/foo/bar/baz/'
-local.web.joinUrl = function joinUrl() {
+local.joinUrl = function joinUrl() {
 	var parts = Array.prototype.map.call(arguments, function(arg, i) {
 		arg = ''+arg;
 		var lo = 0, hi = arg.length;
@@ -201,14 +201,14 @@ local.web.joinUrl = function joinUrl() {
 // - "absolute" means that the URL can reach something without additional context
 // - eg http://foo.com, //foo.com, httpl://bar.app, rel:http://foo.com, rel:foo.com
 var isAbsUriRE = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)/;
-local.web.isAbsUri = function(v) {
+local.isAbsUri = function(v) {
 	return isAbsUriRE.test(v);
 };
 
 // EXPORTED
 // tests to see if a URL is using the nav scheme
 var isNavSchemeUriRE = /^(nav:)?\|?\|/i;
-local.web.isNavSchemeUri = function(v) {
+local.isNavSchemeUri = function(v) {
 	return isNavSchemeUriRE.test(v);
 };
 
@@ -216,9 +216,9 @@ local.web.isNavSchemeUri = function(v) {
 // EXPORTED
 // takes a context url and a relative path and forms a new valid url
 // eg joinRelPath('http://grimwire.com/foo/bar', '../fuz/bar') -> 'http://grimwire.com/foo/fuz/bar'
-local.web.joinRelPath = function(urld, relpath) {
+local.joinRelPath = function(urld, relpath) {
 	if (typeof urld == 'string') {
-		urld = local.web.parseUri(urld);
+		urld = local.parseUri(urld);
 	}
 	var protocol = (urld.protocol) ? urld.protocol + '://' : false;
 	if (!protocol) {
@@ -247,15 +247,15 @@ local.web.joinRelPath = function(urld, relpath) {
 		else
 			hostpathParts.push(relpathParts[i]);
 	}
-	return local.web.joinUrl(protocol + urld.authority, hostpathParts.join('/'));
+	return local.joinUrl(protocol + urld.authority, hostpathParts.join('/'));
 };
 
 // EXPORTED
 // parseUri 1.2.2, (c) Steven Levithan <stevenlevithan.com>, MIT License
-local.web.parseUri = function parseUri(str) {
+local.parseUri = function parseUri(str) {
 	if (typeof str === 'object') {
 		if (str.url) { str = str.url; }
-		else if (str.host || str.path) { str = local.web.joinUrl(req.host, req.path); }
+		else if (str.host || str.path) { str = local.joinUrl(req.host, req.path); }
 	}
 
 	// handle data-uris specially - performance characteristics are much different
@@ -263,7 +263,7 @@ local.web.parseUri = function parseUri(str) {
 		return { protocol: 'data', source: str };
 	}
 
-	var	o   = local.web.parseUri.options,
+	var	o   = local.parseUri.options,
 		m   = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
 		uri = {},
 		i   = 14;
@@ -278,7 +278,7 @@ local.web.parseUri = function parseUri(str) {
 	return uri;
 };
 
-local.web.parseUri.options = {
+local.parseUri.options = {
 	strictMode: false,
 	key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
 	q:   {
@@ -293,7 +293,7 @@ local.web.parseUri.options = {
 
 // EXPORTED
 // Converts a 'nav:' URI into an array of http/s/l URIs and link query objects
-local.web.parseNavUri = function(str) {
+local.parseNavUri = function(str) {
 	if (!str) return [];
 
 	// Check (and strip out) scheme
@@ -336,7 +336,7 @@ local.web.parseNavUri = function(str) {
 //   - `source`: the response to pull data from
 //   - `headersCb`: (optional) takes `(headers)` from source and responds updated headers for target
 //   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for target
-local.web.pipe = function(target, source, headersCB, bodyCb) {
+local.pipe = function(target, source, headersCB, bodyCb) {
 	headersCB = headersCB || function(v) { return v; };
 	bodyCb = bodyCb || function(v) { return v; };
 	return local.promise(source)

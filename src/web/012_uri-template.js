@@ -32,15 +32,15 @@ var objectHelper = (function () {
     function isString (value) {
         return Object.prototype.toString.apply(value) === '[object String]';
     }
-    
+
     function isNumber (value) {
         return Object.prototype.toString.apply(value) === '[object Number]';
     }
-    
+
     function isBoolean (value) {
         return Object.prototype.toString.apply(value) === '[object Boolean]';
     }
-    
+
     function join (arr, separator) {
         var
             result = '',
@@ -869,5 +869,5 @@ var UriTemplate = (function () {
 
 }(function (UriTemplate) {
         "use strict";
-        local.web.UriTemplate = UriTemplate;
+        local.UriTemplate = UriTemplate;
 }));

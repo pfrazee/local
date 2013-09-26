@@ -62,12 +62,12 @@ function Request(options) {
 		self.on('data', function(data) { self.body += data; });
 		self.on('end', function() {
 			if (self.headers['content-type'])
-				self.body = local.web.contentTypes.deserialize(self.body, self.headers['content-type']);
+				self.body = local.contentTypes.deserialize(self.body, self.headers['content-type']);
 			self.body_.fulfill(self.body);
 		});
 	})(this);
 }
-local.web.Request = Request;
+local.Request = Request;
 Request.prototype = Object.create(local.util.EventEmitter.prototype);
 
 Request.prototype.setHeader    = function(k, v) { this.headers[k] = v; };
@@ -121,7 +121,7 @@ Request.prototype.write = function(data) {
 	if (!this.isConnOpen)
 		return;
 	if (typeof data != 'string')
-		data = local.web.contentTypes.serialize(data, this.headers['content-type']);
+		data = local.contentTypes.serialize(data, this.headers['content-type']);
 	this.emit('data', data);
 };
 

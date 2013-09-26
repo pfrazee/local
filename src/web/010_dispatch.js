@@ -17,7 +17,7 @@ var webDispatchWrapper;
 //   - on success (status code 2xx), the promise is fulfilled with a `ClientResponse` object
 //   - on failure (status code 4xx,5xx), the promise is rejected with a `ClientResponse` object
 //   - all protocol (status code 1xx,3xx) is handled internally
-local.web.dispatch = function dispatch(request) {
+local.dispatch = function dispatch(request) {
 	if (!request) { throw new Error("no request param provided to request"); }
 	if (typeof request == 'string')
 		request = { url: request };
@@ -28,20 +28,20 @@ local.web.dispatch = function dispatch(request) {
 	if (scheme == 'nav') {
 		var url = request.url;
 		delete request.url;
-		return local.web.navigator(url).dispatch(request);
+		return local.navigator(url).dispatch(request);
 	}
 
 	// Prepare the request
 	var body = null, shouldAutoSendRequestBody = false;
-	if (!(request instanceof local.web.Request)) {
+	if (!(request instanceof local.Request)) {
 		body = request.body;
-		request = new local.web.Request(request);
+		request = new local.Request(request);
 		shouldAutoSendRequestBody = true; // we're going to end()
 	}
-	Object.defineProperty(request, 'urld', { value: local.web.parseUri(request.url), configurable: true, enumerable: false, writable: true }); // (urld = url description)
+	Object.defineProperty(request, 'urld', { value: local.parseUri(request.url), configurable: true, enumerable: false, writable: true }); // (urld = url description)
 	if (request.urld.query) {
 		// Extract URL query parameters into the request's query object
-		var q = local.web.contentTypes.deserialize(request.urld.query, 'application/x-www-form-urlencoded');
+		var q = local.contentTypes.deserialize(request.urld.query, 'application/x-www-form-urlencoded');
 		for (var k in q)
 			request.query[k] = q[k];
 		request.urld.relative = request.urld.path + ((request.urld.anchor) ? ('#'+request.urld.anchor) : '');
@@ -50,7 +50,7 @@ local.web.dispatch = function dispatch(request) {
 
 	// Setup response object
 	var requestStartTime;
-	var response = new local.web.Response();
+	var response = new local.Response();
 	var response_ = local.promise();
 	request.on('close', function() { response.close(); });
 	response.on('headers', function() { processResponseHeaders(request, response); });
@@ -63,12 +63,12 @@ local.web.dispatch = function dispatch(request) {
 	if (request.stream) {
 		// streaming, fulfill on 'headers'
 		response.on('headers', function(response) {
-			local.web.fulfillResponsePromise(response_, response);
+			local.fulfillResponsePromise(response_, response);
 		});
 	} else {
 		// buffering, fulfill on 'close'
 		response.on('close', function() {
-			local.web.fulfillResponsePromise(response_, response);
+			local.fulfillResponsePromise(response_, response);
 		});
 	}
 
@@ -81,7 +81,7 @@ local.web.dispatch = function dispatch(request) {
 	var dispatchFn = function(request, response, schemeHandler) {
 		// execute by scheme
 		requestStartTime = Date.now();
-		schemeHandler = schemeHandler || local.web.schemes.get(scheme);
+		schemeHandler = schemeHandler || local.schemes.get(scheme);
 		if (!schemeHandler) {
 			response.writeHead(0, 'unsupported scheme "'+scheme+'"');
 			response.end();
@@ -93,7 +93,7 @@ local.web.dispatch = function dispatch(request) {
 			// now that the scheme handler has wired up, the spice must flow
 			request.resumeEvents();
 			response.resumeEvents();
-			// autosend request body if not given a local.web.Request `request`
+			// autosend request body if not given a local.Request `request`
 			if (shouldAutoSendRequestBody) { request.end(body); }
 		}
 		return response_;
@@ -120,7 +120,7 @@ local.web.dispatch = function dispatch(request) {
 // EXPORTED
 // fulfills/reject a promise for a response with the given response
 // - exported because its pretty useful
-local.web.fulfillResponsePromise = function(promise, response) {
+local.fulfillResponsePromise = function(promise, response) {
 	// wasnt streaming, fulfill now that full response is collected
 	if (response.status >= 200 && response.status < 400)
 		promise.fulfill(response);
@@ -130,11 +130,11 @@ local.web.fulfillResponsePromise = function(promise, response) {
 		promise.fulfill(response); // :TODO: 1xx protocol handling
 };
 
-local.web.setDispatchWrapper = function(wrapperFn) {
+local.setDispatchWrapper = function(wrapperFn) {
 	webDispatchWrapper = wrapperFn;
 };
 
-local.web.setDispatchWrapper(function(request, response, dispatch) {
+local.setDispatchWrapper(function(request, response, dispatch) {
 	dispatch(request, response);
 });
 
@@ -145,7 +145,7 @@ function processResponseHeaders(request, response) {
 	if (response.headers.link) {
 		response.headers.link.forEach(function(link) {
 			if (isUrlAbsoluteRE.test(link.href) === false)
-				link.href = local.web.joinRelPath(request.urld, link.href);
+				link.href = local.joinRelPath(request.urld, link.href);
 		});
 	}
 }
