@@ -1,9 +1,11 @@
 // load worker
 local.workerBootstrapUrl = '../worker.js';
-local.spawnWorkerServer('test/worker/worker1.js', { myname: 'alice' }, function(req, res) {
+local.spawnWorkerServer('test/worker/worker1.js', { myname: 'alice' }, function(req, res, me) {
+	print(me.config.domain);
 	res.writeHead(200, 'ok', { 'content-type': 'text/plain' }).end('yes, hello '+req.query.foo+' '+req.query.bar);
 });
-local.spawnWorkerServer('test/worker/worker2.js', { myname: 'bob' }, function(req, res) {
+local.spawnWorkerServer('test/worker/worker2.js', { myname: 'bob' }, function(req, res, me) {
+	print(me.config.domain);
 	res.writeHead(200, 'ok', { 'content-type': 'text/plain' }).end('no, bye '+req.query.foo+' '+req.query.bar);
 });
 
@@ -113,6 +115,8 @@ local.promise.bundle(responses_)
 wait(function () { return done; });
 
 /* =>
+worker1.js
+worker2.js
 yes, hello alice bazz
 no, bye bob buzz
 */

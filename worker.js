@@ -1813,7 +1813,7 @@ function WorkerBridgeServer(config, loadCb) {
 	this.hasHostPrivileges = true; // do we have full control over the worker?
 	// ^ set to false by the ready message of a shared worker (if we're not the first page to connect)
 	if (config.serverFn) {
-		this.handleRemoteWebRequest = config.serverFn;
+		this.configServerFn = config.serverFn;
 		delete this.config.serverFn; // clear out the function from config, so we dont get an error when we send config to the worker
 	}
 	this.loadCb = loadCb;
@@ -1901,6 +1901,17 @@ WorkerBridgeServer.prototype.isChannelActive = function() {
 WorkerBridgeServer.prototype.channelSendMsg = function(msg) {
 	if (this.config.log) { console.debug('WORKER sending', msg); }
 	this.getPort().postMessage(msg);
+};
+
+// Remote request handler
+// - should be overridden
+BridgeServer.prototype.handleRemoteWebRequest = function(request, response) {
+	if (this.configServerFn) {
+		this.configServerFn.call(this, request, response, this);
+	} else {
+		response.writeHead(500, 'server not implemented');
+		response.end();
+	}
 };
 
 // Sends initialization commands
@@ -2082,8 +2093,12 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 	// Remote request handler
 	RTCBridgeServer.prototype.handleRemoteWebRequest = function(request, response) {
-		response.writeHead(500, 'not implemented');
-		response.end();
+		if (this.config.serverFn) {
+			this.config.serverFn.call(this, request, response, this);
+		} else {
+			response.writeHead(500, 'not implemented');
+			response.end();
+		}
 	};
 
 	// HTTPL channel event handlers
@@ -2561,9 +2576,9 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		var server = new local.RTCBridgeServer({
 			peer: peerUrl,
 			initiate: config.initiate,
-			relay: this
+			relay: this,
+			serverFn: this.config.serverFn
 		});
-		server.handleRemoteWebRequest = this.config.serverFn;
 
 		// Bind events
 		server.on('connecting', this.emit.bind(this, 'connecting'));

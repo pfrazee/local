@@ -118,8 +118,12 @@
 
 	// Remote request handler
 	RTCBridgeServer.prototype.handleRemoteWebRequest = function(request, response) {
-		response.writeHead(500, 'not implemented');
-		response.end();
+		if (this.config.serverFn) {
+			this.config.serverFn.call(this, request, response, this);
+		} else {
+			response.writeHead(500, 'not implemented');
+			response.end();
+		}
 	};
 
 	// HTTPL channel event handlers
@@ -597,9 +601,9 @@
 		var server = new local.RTCBridgeServer({
 			peer: peerUrl,
 			initiate: config.initiate,
-			relay: this
+			relay: this,
+			serverFn: this.config.serverFn
 		});
-		server.handleRemoteWebRequest = this.config.serverFn;
 
 		// Bind events
 		server.on('connecting', this.emit.bind(this, 'connecting'));

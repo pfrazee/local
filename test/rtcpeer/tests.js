@@ -57,7 +57,7 @@ function checkReady() {
 }
 
 var counter1 = 0;
-function peer1ServerFn(req, res) {
+function peer1ServerFn(req, res, peer) {
 	if (req.path == '/' && req.method == 'GET') {
 		res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
 		res.end(counter1++);
@@ -74,7 +74,7 @@ function peer1ServerFn(req, res) {
 }
 
 var counter2 = 100;
-function peer2ServerFn(req, res) {
+function peer2ServerFn(req, res, peer) {
 	if (req.path == '/' && req.method == 'GET') {
 		res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
 		res.end(counter2--);
