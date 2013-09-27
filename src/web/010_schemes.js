@@ -175,11 +175,33 @@ var localNotFoundServer = {
 	},
 	context: null
 };
+var localRelayNotOnlineServer = {
+	fn: function(request, response) {
+		response.writeHead(407, 'peer relay not authenticated');
+		response.end();
+	},
+	context: null
+};
 local.schemes.register('httpl', function(request, response) {
 	// Find the local server
 	var server = local.getLocal(request.urld.authority);
-	if (!server)
-		server = localNotFoundServer;
+	if (!server) {
+		// Check if this is a peerweb URI
+		var peerd = local.parsePeerDomain(request.urld.authority);
+		if (peerd) {
+			if (peerd.relay in __peer_relay_registry) {
+				// Try connecting to the peer
+				// console.log(peerd,'not found, connecting');
+				__peer_relay_registry[peerd.relay].connect(request.urld.authority);
+				server = local.getLocal(request.urld.authority);
+				// console.log(server);
+			} else {
+				// We're not connected to the relay
+				server = localRelayNotOnlineServer;
+			}
+		} else
+			server = localNotFoundServer;
+	}
 
 	// Deserialize the headers
 	request.deserializeHeaders();
@@ -240,6 +262,7 @@ local.schemes.register('data', function(request, response) {
 // Local Server Registry
 // =====================
 var __httpl_registry = {};
+var __peer_relay_registry = {}; // populated by PeerWebRelay startListening() and stopListening()
 
 // EXPORTED
 local.registerLocal = function registerLocal(domain, server, serverContext) {

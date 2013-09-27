@@ -257,6 +257,33 @@ local.parseNavUri = function(str) {
 	return parts;
 };
 
+// EXPORTED
+// breaks a peer domain into its constituent parts
+// - returns { user:, relay:, provider:, app:, stream: }
+//   (relay == provider -- they are synonmyms)
+var peerDomainRE = /^(.+)@(.+)!(.+):([\d]+)$/i;
+local.parsePeerDomain = function parsePeerDomain(domain) {
+	var match = peerDomainRE.exec(domain);
+	if (match) {
+		return {
+			user: match[1],
+			relay: match[2],
+			provider: match[2],
+			app: match[3],
+			stream: match[4]
+		};
+	}
+	return null;
+};
+
+// EXPORTED
+// constructs a peer domain from its constituent parts
+// - returns string
+local.makePeerDomain = function makePeerDomain(user, relay, app, stream) {
+	return user+'@'+relay+'!'+app+':'+(stream||'0');
+};
+
+
 // sends the given response back verbatim
 // - if `writeHead` has been previously called, it will not change
 // - params:

@@ -95,7 +95,7 @@ function peer2ServerFn(req, res, peer) {
 	res.writeHead(404, 'not found').end();
 }
 
-wait(function () { return done; });
+wait(function () { return done; }, 15000);
 /* =>
 pfraze
 dev.grimwire.com

@@ -1029,6 +1029,33 @@ local.parseNavUri = function(str) {
 	return parts;
 };
 
+// EXPORTED
+// breaks a peer domain into its constituent parts
+// - returns { user:, relay:, provider:, app:, stream: }
+//   (relay == provider -- they are synonmyms)
+var peerDomainRE = /^(.+)@(.+)!(.+):([\d]+)$/i;
+local.parsePeerDomain = function parsePeerDomain(domain) {
+	var match = peerDomainRE.exec(domain);
+	if (match) {
+		return {
+			user: match[1],
+			relay: match[2],
+			provider: match[2],
+			app: match[3],
+			stream: match[4]
+		};
+	}
+	return null;
+};
+
+// EXPORTED
+// constructs a peer domain from its constituent parts
+// - returns string
+local.makePeerDomain = function makePeerDomain(user, relay, app, stream) {
+	return user+'@'+relay+'!'+app+':'+(stream||'0');
+};
+
+
 // sends the given response back verbatim
 // - if `writeHead` has been previously called, it will not change
 // - params:
@@ -2110,16 +2137,11 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		local.util.mixinEventEmitter(this);
 
 		// Parse config.peer
-		var peerParsed = peerDomainRE.exec(config.peer);
-		if (!peerParsed) {
+		var peerd = local.parsePeerDomain(config.peer);
+		if (!peerd) {
 			throw new Error("Invalid peer URL: "+config.peer);
 		}
-		this.peerInfo = {
-			user: peerParsed[1],
-			provider: peerParsed[2],
-			app: peerParsed[3],
-			stream: peerParsed[4]
-		};
+		this.peerInfo = peerd;
 
 		// Internal state
 		this.isConnecting = true;
@@ -2622,6 +2644,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			.then(
 				function(stream) {
 					// Update state
+					__peer_relay_registry[self.providerDomain] = self;
 					self.relayStream = stream;
 					self.connectedToRelay = true;
 					stream.response_.then(function(response) {
@@ -2656,6 +2679,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			this.connectedToRelay = false;
 			this.relayStream.close();
 			this.relayStream = null;
+			delete __peer_relay_registry[self.providerDomain];
 		}
 	};
 
@@ -2807,9 +2831,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		}
 	};
 
-	var peerDomainRE = /^(.+)@(.+)!(.+):([\d]+)$/i;
 	PeerWebRelay.prototype.makeDomain = function(user, app, stream) {
-		return user+'@'+this.providerDomain+'!'+app+':'+(stream||'0');
+		return local.makePeerDomain(user, this.providerDomain, app, stream);
 	};
 
 })();// schemes
@@ -2989,11 +3012,33 @@ var localNotFoundServer = {
 	},
 	context: null
 };
+var localRelayNotOnlineServer = {
+	fn: function(request, response) {
+		response.writeHead(407, 'peer relay not authenticated');
+		response.end();
+	},
+	context: null
+};
 local.schemes.register('httpl', function(request, response) {
 	// Find the local server
 	var server = local.getLocal(request.urld.authority);
-	if (!server)
-		server = localNotFoundServer;
+	if (!server) {
+		// Check if this is a peerweb URI
+		var peerd = local.parsePeerDomain(request.urld.authority);
+		if (peerd) {
+			if (peerd.relay in __peer_relay_registry) {
+				// Try connecting to the peer
+				// console.log(peerd,'not found, connecting');
+				__peer_relay_registry[peerd.relay].connect(request.urld.authority);
+				server = local.getLocal(request.urld.authority);
+				// console.log(server);
+			} else {
+				// We're not connected to the relay
+				server = localRelayNotOnlineServer;
+			}
+		} else
+			server = localNotFoundServer;
+	}
 
 	// Deserialize the headers
 	request.deserializeHeaders();
@@ -3054,6 +3099,7 @@ local.schemes.register('data', function(request, response) {
 // Local Server Registry
 // =====================
 var __httpl_registry = {};
+var __peer_relay_registry = {}; // populated by PeerWebRelay startListening() and stopListening()
 
 // EXPORTED
 local.registerLocal = function registerLocal(domain, server, serverContext) {

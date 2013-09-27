@@ -34,16 +34,11 @@
 		local.util.mixinEventEmitter(this);
 
 		// Parse config.peer
-		var peerParsed = peerDomainRE.exec(config.peer);
-		if (!peerParsed) {
+		var peerd = local.parsePeerDomain(config.peer);
+		if (!peerd) {
 			throw new Error("Invalid peer URL: "+config.peer);
 		}
-		this.peerInfo = {
-			user: peerParsed[1],
-			provider: peerParsed[2],
-			app: peerParsed[3],
-			stream: peerParsed[4]
-		};
+		this.peerInfo = peerd;
 
 		// Internal state
 		this.isConnecting = true;
@@ -546,6 +541,7 @@
 			.then(
 				function(stream) {
 					// Update state
+					__peer_relay_registry[self.providerDomain] = self;
 					self.relayStream = stream;
 					self.connectedToRelay = true;
 					stream.response_.then(function(response) {
@@ -580,6 +576,7 @@
 			this.connectedToRelay = false;
 			this.relayStream.close();
 			this.relayStream = null;
+			delete __peer_relay_registry[self.providerDomain];
 		}
 	};
 
@@ -731,9 +728,8 @@
 		}
 	};
 
-	var peerDomainRE = /^(.+)@(.+)!(.+):([\d]+)$/i;
 	PeerWebRelay.prototype.makeDomain = function(user, app, stream) {
-		return user+'@'+this.providerDomain+'!'+app+':'+(stream||'0');
+		return local.makePeerDomain(user, this.providerDomain, app, stream);
 	};
 
 })();
