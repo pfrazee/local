@@ -45,7 +45,7 @@ local.dispatch = function dispatch(request) {
 		for (var k in q)
 			request.query[k] = q[k];
 		request.urld.relative = request.urld.path + ((request.urld.anchor) ? ('#'+request.urld.anchor) : '');
-		request.url = request.urld.protocol+'://'+request.urld.authority+request.urld.relative;
+		request.url = scheme+'://'+request.urld.authority+request.urld.relative;
 	}
 	request.serializeHeaders();
 

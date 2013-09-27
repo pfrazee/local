@@ -2148,9 +2148,6 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		this.isOfferExchanged = false;
 		this.isConnected = false;
 		this.candidateQueue = []; // cant add candidates till we get the offer
-		this.signalBacklog = []; // holds signal messages that have backed up due to an unavailable remote
-		this.retrySignalTimeout = null;
-		this.retrySignalWaitDuration = 500; // ms to wait between connection failures (ramps up linearly from .5s to 30s)
 
 		// Create the peer connection
 		var servers = config.iceServers || defaultIceServers;
@@ -2325,59 +2322,23 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 	// Helper to send a message to peers on the relay
 	RTCBridgeServer.prototype.signal = function(msg) {
-		// Are there signal messages awaiting delivery?
-		if (this.retrySignalTimeout) {
-			// Add to the queue and wait for the line to open up again
-			this.signalBacklog.push(msg);
+		if (!this.isConnecting || this.isConnected) {
 			return;
 		}
 		// Send the message through our relay
 		var self = this;
 		this.config.relay.signal(this.config.peer, msg)
 			.fail(function(res) {
-				if (res.status == 504) {
-					// Upstream timeout -- the target isn't online yet, start the queue and initiate the retry process
-					self.signalBacklog.push(msg);
-					if (!self.retrySignalTimeout) {
-						self.retrySignalTimeout = setTimeout(self.retrySignal.bind(self), self.retrySignalWaitDuration);
-					}
+				if (!self.isConnecting || self.isConnected) {
+					return;
 				}
-			});
-	};
-
-	// Helper to send a message to peers on the relay
-	RTCBridgeServer.prototype.retrySignal = function(msg) {
-		this.retrySignalTimeout = null;
-		// Are there signal messages awaiting delivery?
-		if (this.signalBacklog.length === 0) {
-			// Nothing to do
-			return;
-		}
-		// Retry the first message
-		var self = this;
-		this.config.relay.signal(this.config.peer, this.signalBacklog[0])
-			.then(function() {
-				// Success
-				// Reset the wait duration
-				this.retrySignalWaitDuration = 500;
-				// Drain the queue
-				var signalBacklog = self.signalBacklog;
-				self.signalBacklog = [];
-				for (var i = 1; i < signalBacklog.length; i++) {
-					self.signal(signalBacklog[i]);
-				}
-			})
-			.fail(function(res) {
-				if (res.status == 504) {
-					// Retry again later
-					if (!self.retrySignalTimeout) {
-						// Extend the wait
-						if (self.retrySignalWaitDuration < 30000) {
-							self.retrySignalWaitDuration += 500;
-						}
-						// Queue the timeout
-						self.retrySignalTimeout = setTimeout(self.retrySignal.bind(self), self.retrySignalWaitDuration);
+				if (res.status == 404) {
+					// Peer not online
+					for (var k in self.incomingStreams) {
+						self.incomingStreams[k].writeHead(404, 'not found').end();
 					}
+					self.terminate({ noSignal: true });
+					local.unregisterLocal(self.config.domain);
 				}
 			});
 	};
@@ -2465,7 +2426,6 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	function PeerWebRelay(config) {
 		if (!config) throw new Error("PeerWebRelay requires the `config` parameter");
 		if (!config.provider) throw new Error("PeerWebRelay requires `config.provider`");
-		if (!config.serverFn) throw new Error("PeerWebRelay requires `config.serverFn`");
 		if (!config.app) config.app = window.location.host;
 		if (typeof config.stream == 'undefined') config.stream = randomStreamId();
 		if (typeof config.ping == 'undefined') { config.ping = 45000; }
@@ -2732,7 +2692,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			console.warn('PeerWebRelay - signal() called before relay is connected');
 			return;
 		}
-		return this.p2pwRelayAPI.post({ src: this.myPeerDomain, dst: dst, msg: msg });
+		return this.p2pwRelayAPI.post({ src: this.myPeerDomain, dst: dst, msg: msg }, null, { retry: true });
 	};
 
 	PeerWebRelay.prototype.onSignal = function(e) {
@@ -3178,7 +3138,7 @@ local.dispatch = function dispatch(request) {
 		for (var k in q)
 			request.query[k] = q[k];
 		request.urld.relative = request.urld.path + ((request.urld.anchor) ? ('#'+request.urld.anchor) : '');
-		request.url = request.urld.protocol+'://'+request.urld.authority+request.urld.relative;
+		request.url = scheme+'://'+request.urld.authority+request.urld.relative;
 	}
 	request.serializeHeaders();
 
