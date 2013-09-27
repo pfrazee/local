@@ -129,8 +129,11 @@ local.joinUrl = function joinUrl() {
 // - "absolute" means that the URL can reach something without additional context
 // - eg http://foo.com, //foo.com, httpl://bar.app, rel:http://foo.com, rel:foo.com
 var isAbsUriRE = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)/;
-local.isAbsUri = function(v) {
-	return isAbsUriRE.test(v);
+local.isAbsUri = function(url) {
+	if (isAbsUriRE.test(url))
+		return true;
+	var urld = local.parseUri(url);
+	return !!local.getLocal(urld.authority) || !!local.parsePeerDomain(urld.authority);
 };
 
 // EXPORTED

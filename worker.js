@@ -901,8 +901,11 @@ local.joinUrl = function joinUrl() {
 // - "absolute" means that the URL can reach something without additional context
 // - eg http://foo.com, //foo.com, httpl://bar.app, rel:http://foo.com, rel:foo.com
 var isAbsUriRE = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)/;
-local.isAbsUri = function(v) {
-	return isAbsUriRE.test(v);
+local.isAbsUri = function(url) {
+	if (isAbsUriRE.test(url))
+		return true;
+	var urld = local.parseUri(url);
+	return !!local.getLocal(urld.authority) || !!local.parsePeerDomain(urld.authority);
 };
 
 // EXPORTED
@@ -4441,9 +4444,6 @@ function Navigator(context, parentNavigator) {
 	this.parentNavigator = parentNavigator || null;
 	this.links           = null;
 	this.requestDefaults = null;
-
-	if (this.context.isRelative() && !parentNavigator)
-		throw new Error("A parentNavigator is required for navigators with relative contexts");
 }
 local.Navigator = Navigator;
 
@@ -4592,10 +4592,18 @@ Navigator.prototype.resolve = function(options) {
 		// We don't have links, and we haven't previously failed (or we want to try again)
 		this.context.resetResolvedState();
 
-		if (this.context.isRelative()) {
-			if (!this.parentNavigator)
-				throw new Error("Relative navigator has no parent");
+		if (this.context.isRelative() && !this.parentNavigator) {
+			// Scheme-less URIs can map to local URIs, so make sure the local server hasnt been added since we were created
+			if (typeof this.context.query == 'string' && !!local.getLocal(this.context.query)) {
+				self.context = new NavigatorContext(self.context.query);
+			} else {
+				self.context.setFailed({ status: 404, reason: 'not found' });
+				resolvePromise.reject(this.context.getError());
+				return resolvePromise;
+			}
+		}
 
+		if (this.context.isRelative()) {
 			// Up the chain we go
 			resolvePromise = this.parentNavigator.resolve(options)
 				.succeed(function() {
