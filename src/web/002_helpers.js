@@ -2,34 +2,11 @@
 // =======
 
 // EXPORTED
-// breaks a link header into a javascript object
-var linkHeaderRE1 = /<(.*?)>(?:;[\s]*([^,]*))/g;
-var linkHeaderRE2 = /([\-a-z0-9\.]+)=?(?:(?:"([^"]+)")|([^;\s]+))?/g;
-local.parseLinkHeader = function parseLinkHeader(headerStr) {
-	if (typeof headerStr !== 'string') {
-		return headerStr;
-	}
-	var links = [], linkParse1, linkParse2, link;
-	// '</foo/bar>; rel="baz"; id="blah", </foo/bar>; rel="baz"; id="blah", </foo/bar>; rel="baz"; id="blah"'
-	// Extract individual links
-	while ((linkParse1 = linkHeaderRE1.exec(headerStr))) { // Splits into href [1] and params [2]
-		link = { href: linkParse1[1] };
-		// 'rel="baz"; id="blah"'
-		// Extract individual params
-		while ((linkParse2 = linkHeaderRE2.exec(linkParse1[2]))) { // Splits into key [1] and value [2]/[3]
-			link[linkParse2[1]] = linkParse2[2] || linkParse2[3] || true; // if no parameter value is given, just set to true
-		}
-		links.push(link);
-	}
-	return links;
-};
-
-// EXPORTED
 // takes parsed a link header and a query object, produces an array of matching links
 // - `links`: [object]/object, either the parsed array of links or the request/response object
 local.queryLinks = function queryLinks(links, query) {
 	if (!links) return [];
-	if (links.headers) links = links.headers.link; // actually a request or response object
+	if (links.headers) links = links.parsedHeaders.link; // actually a request or response object
 	if (!Array.isArray(links)) return [];
 	return links.filter(function(link) { return local.queryLink(link, query); });
 };
@@ -72,47 +49,7 @@ local.queryLink = function queryLink(link, query) {
 };
 
 // <https://github.com/federomero/negotiator>
-// for to ^ for the content negotation helpers below
-
-// EXPORTED
-// breaks an accept header into a javascript object
-// - `accept`: string, the accept header
-local.parseAcceptHeader = function parseAcceptHeader(accept) {
-	return accept.split(',')
-		.map(function(e) { return parseMediaType(e.trim()); })
-		.filter(function(e) { return e && e.q > 0; });
-};
-
-// INTERNAL
-function parseMediaType(s) {
-	var match = s.match(/\s*(\S+)\/([^;\s]+)\s*(?:;(.*))?/);
-	if (!match) return null;
-
-	var type = match[1];
-	var subtype = match[2];
-	var full = "" + type + "/" + subtype;
-	var params = {}, q = 1;
-
-	if (match[3]) {
-		params = match[3].split(';')
-			.map(function(s) { return s.trim().split('='); })
-			.reduce(function (set, p) { set[p[0]] = p[1]; return set; }, params);
-
-		if (params.q !== null) {
-			q = parseFloat(params.q);
-			delete params.q;
-		}
-	}
-
-	return {
-		type: type,
-		subtype: subtype,
-		params: params,
-		q: q,
-		full: full
-	};
-}
-
+// thanks to ^ for the content negotation helpers below
 // INTERNAL
 function getMediaTypePriority(type, accepted) {
 	var matches = accepted
@@ -120,12 +57,10 @@ function getMediaTypePriority(type, accepted) {
 		.sort(function (a, b) { return a.q > b.q ? -1 : 1; }); // revsort
 	return matches[0] ? matches[0].q : 0;
 }
-
 // INTERNAL
 function specifies(spec, type) {
 	return spec === '*' || spec === type;
 }
-
 // INTERNAL
 function specify(type, spec) {
 	var p = parseMediaType(type);
@@ -149,9 +84,9 @@ function specify(type, spec) {
 // - `provided`: optional [string], allowed media types
 local.preferredTypes = function preferredTypes(accept, provided) {
 	if (typeof accept == 'object') {
-		accept = accept.headers.accept;
+		accept = accept.parsedHeaders.accept;
 	}
-	accept = local.parseAcceptHeader(accept || '');
+	accept = local.httpHeaders.deserialize('accept', accept || '');
 	if (provided) {
 		if (!Array.isArray(provided)) {
 			provided = [provided];

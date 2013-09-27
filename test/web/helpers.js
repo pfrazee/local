@@ -14,15 +14,7 @@ success
   body: "SERVICE RESOURCE",
   headers: {
     "content-type": "text/piped+plain",
-    link: [
-      {
-        href: "httpl://test.com/",
-        rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
-      },
-      {href: "httpl://test.com/events", id: "events", rel: "collection"},
-      {href: "httpl://test.com/foo", id: "foo", rel: "collection"},
-      {href: "httpl://test.com/{id}", rel: "collection"}
-    ]
+    link: "</>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
   },
   reason: "ok",
   status: 200
@@ -30,24 +22,92 @@ success
 */
 
 
-// parseLinkHeader
+// httpHeaders
 
 startTime = Date.now();
-print(local.parseLinkHeader('</foo>; id="foo"; rel="what ever"'));
+
+print(local.httpHeaders.deserialize('link', '</foo>; id="foo"; rel="what ever"'));
 // => [{href: "/foo", id: "foo", rel: "what ever"}]
-print(local.parseLinkHeader('</foo>; id="foo"; rel="what ever", </bar>; id="bar"; rel="what ever"'));
+print(local.httpHeaders.serialize('link', [{href: "/foo", id: "foo", rel: "what ever"}]));
+// => </foo>; id="foo"; rel="what ever"
+print(local.httpHeaders.deserialize('link', '</foo>; id="foo"; rel="what ever", </bar>; id="bar"; rel="what ever"'));
 /* =>
 [
   {href: "/foo", id: "foo", rel: "what ever"},
   {href: "/bar", id: "bar", rel: "what ever"}
 ]
 */
-print(local.parseLinkHeader('</foo>; id=foo'));
+print(local.httpHeaders.serialize('link', [
+  {href: "/foo", id: "foo", rel: "what ever"},
+  {href: "/bar", id: "bar", rel: "what ever"}
+]));
+// => </foo>; id="foo"; rel="what ever", </bar>; id="bar"; rel="what ever"
+print(local.httpHeaders.deserialize('link', '</foo>; id=foo'));
 // => [{href: "/foo", id: "foo"}]
-print(local.parseLinkHeader('</foo>; foobar; foobaz'));
+print(local.httpHeaders.serialize('link', [{href: "/foo", id: "foo"}]));
+// => </foo>; id="foo"
+print(local.httpHeaders.deserialize('link', '</foo>; foobar; foobaz'));
 // => [{foobar: true, foobaz: true, href: "/foo"}]
-print(local.parseLinkHeader('</foo{?bar,baz}>; id="foo"; rel="what ever"'));
+print(local.httpHeaders.serialize('link', [{foobar: true, foobaz: true, href: "/foo"}]));
+// => </foo>; foobar; foobaz
+print(local.httpHeaders.deserialize('link', '</foo{?bar,baz}>; id="foo"; rel="what ever"'));
 // => [{href: "/foo{?bar,baz}", id: "foo", rel: "what ever"}]
+print(local.httpHeaders.serialize('link', [{href: "/foo{?bar,baz}", id: "foo", rel: "what ever"}]));
+// => </foo{?bar,baz}>; id="foo"; rel="what ever"
+
+print(local.httpHeaders.deserialize('accept', 'text/html'));
+// => [{full: "text/html", params: {}, q: 1, subtype: "html", type: "text"}]
+print(local.httpHeaders.serialize('accept', [{full: "text/html", params: {}, q: 1, subtype: "html", type: "text"}]));
+// => text/html
+print(local.httpHeaders.deserialize('accept', 'text/html, text/plain'));
+/* =>
+[
+  {full: "text/html", params: {}, q: 1, subtype: "html", type: "text"},
+  {full: "text/plain", params: {}, q: 1, subtype: "plain", type: "text"}
+]
+*/
+print(local.httpHeaders.serialize('accept', [
+  {full: "text/html", params: {}, q: 1, subtype: "html", type: "text"},
+  {full: "text/plain", params: {}, q: 1, subtype: "plain", type: "text"}
+]));
+// => text/html, text/plain
+print(local.httpHeaders.deserialize('accept', 'text/html; q=0.5; foo=bar, application/json; q=0.2'));
+/* =>
+[
+  {
+    full: "text/html",
+    params: {foo: "bar"},
+    q: 0.5,
+    subtype: "html",
+    type: "text"
+  },
+  {
+    full: "application/json",
+    params: {},
+    q: 0.2,
+    subtype: "json",
+    type: "application"
+  }
+]
+*/
+print(local.httpHeaders.serialize('accept', [
+  {
+    full: "text/html",
+    params: {foo: "bar"},
+    q: 0.5,
+    subtype: "html",
+    type: "text"
+  },
+  {
+    full: "application/json",
+    params: {},
+    q: 0.2,
+    subtype: "json",
+    type: "application"
+  }
+]));
+// => text/html; q=0.5; foo=bar, application/json; q=0.2
+
 finishTest();
 
 
@@ -170,14 +230,7 @@ success
 {
   body: "",
   headers: {
-    link: [
-      {href: "httpl://hosts/", id: "hosts", rel: "self service via"},
-      {href: "httpl://_worker.js/", rel: "current"},
-      {
-        href: "httpl://test.com/",
-        rel: "current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
-      }
-    ]
+    link: "</>; rel=\"self service via\"; id=\"hosts\", <httpl://_worker.js/>; rel=\"current\", <httpl://test.com/>; rel=\"current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\""
   },
   reason: "ok, no content",
   status: 204

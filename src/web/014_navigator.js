@@ -182,7 +182,7 @@ Navigator.prototype.dispatch = function(req) {
 		.succeed(function(res) {
 			// After every successful request, update our links and mark our context as good (in case it had been bad)
 			self.context.setResolved();
-			if (res.headers.link) self.links = res.headers.link;
+			if (res.parsedHeaders.link) self.links = res.parsedHeaders.link;
 			else self.links = self.links || []; // cache an empty link list so we dont keep trying during resolution
 			return res;
 		})

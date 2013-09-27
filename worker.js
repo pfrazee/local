@@ -774,34 +774,11 @@ local.LINK_NOT_FOUND = 1;// Helpers
 // =======
 
 // EXPORTED
-// breaks a link header into a javascript object
-var linkHeaderRE1 = /<(.*?)>(?:;[\s]*([^,]*))/g;
-var linkHeaderRE2 = /([\-a-z0-9\.]+)=?(?:(?:"([^"]+)")|([^;\s]+))?/g;
-local.parseLinkHeader = function parseLinkHeader(headerStr) {
-	if (typeof headerStr !== 'string') {
-		return headerStr;
-	}
-	var links = [], linkParse1, linkParse2, link;
-	// '</foo/bar>; rel="baz"; id="blah", </foo/bar>; rel="baz"; id="blah", </foo/bar>; rel="baz"; id="blah"'
-	// Extract individual links
-	while ((linkParse1 = linkHeaderRE1.exec(headerStr))) { // Splits into href [1] and params [2]
-		link = { href: linkParse1[1] };
-		// 'rel="baz"; id="blah"'
-		// Extract individual params
-		while ((linkParse2 = linkHeaderRE2.exec(linkParse1[2]))) { // Splits into key [1] and value [2]/[3]
-			link[linkParse2[1]] = linkParse2[2] || linkParse2[3] || true; // if no parameter value is given, just set to true
-		}
-		links.push(link);
-	}
-	return links;
-};
-
-// EXPORTED
 // takes parsed a link header and a query object, produces an array of matching links
 // - `links`: [object]/object, either the parsed array of links or the request/response object
 local.queryLinks = function queryLinks(links, query) {
 	if (!links) return [];
-	if (links.headers) links = links.headers.link; // actually a request or response object
+	if (links.headers) links = links.parsedHeaders.link; // actually a request or response object
 	if (!Array.isArray(links)) return [];
 	return links.filter(function(link) { return local.queryLink(link, query); });
 };
@@ -844,47 +821,7 @@ local.queryLink = function queryLink(link, query) {
 };
 
 // <https://github.com/federomero/negotiator>
-// for to ^ for the content negotation helpers below
-
-// EXPORTED
-// breaks an accept header into a javascript object
-// - `accept`: string, the accept header
-local.parseAcceptHeader = function parseAcceptHeader(accept) {
-	return accept.split(',')
-		.map(function(e) { return parseMediaType(e.trim()); })
-		.filter(function(e) { return e && e.q > 0; });
-};
-
-// INTERNAL
-function parseMediaType(s) {
-	var match = s.match(/\s*(\S+)\/([^;\s]+)\s*(?:;(.*))?/);
-	if (!match) return null;
-
-	var type = match[1];
-	var subtype = match[2];
-	var full = "" + type + "/" + subtype;
-	var params = {}, q = 1;
-
-	if (match[3]) {
-		params = match[3].split(';')
-			.map(function(s) { return s.trim().split('='); })
-			.reduce(function (set, p) { set[p[0]] = p[1]; return set; }, params);
-
-		if (params.q !== null) {
-			q = parseFloat(params.q);
-			delete params.q;
-		}
-	}
-
-	return {
-		type: type,
-		subtype: subtype,
-		params: params,
-		q: q,
-		full: full
-	};
-}
-
+// thanks to ^ for the content negotation helpers below
 // INTERNAL
 function getMediaTypePriority(type, accepted) {
 	var matches = accepted
@@ -892,12 +829,10 @@ function getMediaTypePriority(type, accepted) {
 		.sort(function (a, b) { return a.q > b.q ? -1 : 1; }); // revsort
 	return matches[0] ? matches[0].q : 0;
 }
-
 // INTERNAL
 function specifies(spec, type) {
 	return spec === '*' || spec === type;
 }
-
 // INTERNAL
 function specify(type, spec) {
 	var p = parseMediaType(type);
@@ -921,9 +856,9 @@ function specify(type, spec) {
 // - `provided`: optional [string], allowed media types
 local.preferredTypes = function preferredTypes(accept, provided) {
 	if (typeof accept == 'object') {
-		accept = accept.headers.accept;
+		accept = accept.parsedHeaders.accept;
 	}
-	accept = local.parseAcceptHeader(accept || '');
+	accept = local.httpHeaders.deserialize('accept', accept || '');
 	if (provided) {
 		if (!Array.isArray(provided)) {
 			provided = [provided];
@@ -1147,7 +1082,7 @@ local.contentTypes = contentTypes;
 
 // EXPORTED
 // serializes an object into a string
-function contentTypes__serialize(obj, type) {
+function contentTypes__serialize(type, obj) {
 	if (!obj || typeof(obj) != 'object' || !type) {
 		return obj;
 	}
@@ -1160,7 +1095,7 @@ function contentTypes__serialize(obj, type) {
 
 // EXPORTED
 // deserializes a string into an object
-function contentTypes__deserialize(str, type) {
+function contentTypes__deserialize(type, str) {
 	if (!str || typeof(str) != 'string' || !type) {
 		return str;
 	}
@@ -1305,6 +1240,156 @@ local.contentTypes.register('text/event-stream',
 function splitEventstreamKV(kv) {
 	var i = kv.indexOf(':');
 	return [kv.slice(0, i).trim(), kv.slice(i+1).trim()];
+}// headers
+// =======
+// EXPORTED
+// provides serializers and deserializers for HTTP headers
+var httpHeaders = {
+	serialize   : httpheaders__serialize,
+	deserialize : httpheaders__deserialize,
+	register    : httpheaders__register
+};
+var httpheaders__registry = {};
+local.httpHeaders = httpHeaders;
+
+// EXPORTED
+// serializes an object into a string
+function httpheaders__serialize(header, obj) {
+	if (!obj || typeof(obj) != 'object' || !header) {
+		return obj;
+	}
+	var fn = httpheaders__find(header, 'serializer');
+	if (!fn) {
+		return obj;
+	}
+	return fn(obj);
+}
+
+// EXPORTED
+// deserializes a string into an object
+function httpheaders__deserialize(header, str) {
+	if (!str || typeof(str) != 'string' || !header) {
+		return str;
+	}
+	var fn = httpheaders__find(header, 'deserializer');
+	if (!fn) {
+		return str;
+	}
+	try {
+		return fn(str);
+	} catch (e) {
+		console.warn('Failed to deserialize content', header, str);
+		return str;
+	}
+}
+
+// EXPORTED
+// adds a header to the registry
+function httpheaders__register(header, serializer, deserializer) {
+	httpheaders__registry[header.toLowerCase()] = {
+		serializer   : serializer,
+		deserializer : deserializer
+	};
+}
+
+// INTERNAL
+// finds the header's de/serialization functions
+function httpheaders__find(header, fn) {
+	var headerFns = httpheaders__registry[header.toLowerCase()];
+	if (headerFns) {
+		return headerFns[fn];
+	}
+	return null;
+}
+
+// Default Headers
+// ===============
+
+var linkHeaderRE1 = /<(.*?)>(?:;[\s]*([^,]*))/g;
+var linkHeaderRE2 = /([\-a-z0-9\.]+)=?(?:(?:"([^"]+)")|([^;\s]+))?/g;
+local.httpHeaders.register('link',
+	function (obj) {
+		var links = [];
+		obj.forEach(function(link) {
+			var linkParts = ['<'+link.href+'>'];
+			for (var attr in link) {
+				if (attr == 'href') {
+					continue;
+				}
+				if (typeof link[attr] == 'boolean') {
+					linkParts.push(attr);
+				} else {
+					linkParts.push(attr+'="'+link[attr]+'"');
+				}
+			}
+			links.push(linkParts.join('; '));
+		});
+		return links.join(', ');
+	},
+	function (str) {
+		var links = [], linkParse1, linkParse2, link;
+		// '</foo/bar>; rel="baz"; id="blah", </foo/bar>; rel="baz"; id="blah", </foo/bar>; rel="baz"; id="blah"'
+		// Extract individual links
+		while ((linkParse1 = linkHeaderRE1.exec(str))) { // Splits into href [1] and params [2]
+			link = { href: linkParse1[1] };
+			// 'rel="baz"; id="blah"'
+			// Extract individual params
+			while ((linkParse2 = linkHeaderRE2.exec(linkParse1[2]))) { // Splits into key [1] and value [2]/[3]
+				link[linkParse2[1]] = linkParse2[2] || linkParse2[3] || true; // if no parameter value is given, just set to true
+			}
+			links.push(link);
+		}
+		return links;
+	}
+);
+
+local.httpHeaders.register('accept',
+	function (obj) {
+		return obj.map(function(type) {
+			var parts = [type.full];
+			if (type.q !== 1) {
+				parts.push('q='+type.q);
+			}
+			for (var k in type.params) {
+				parts.push(k+'='+type.params[k]);
+			}
+			return parts.join('; ');
+		}).join(', ');
+	},
+	function (str) {
+		return str.split(',')
+			.map(function(e) { return parseMediaType(e.trim()); })
+			.filter(function(e) { return e && e.q > 0; });
+	}
+);
+// thanks to https://github.com/federomero/negotiator
+function parseMediaType(s) {
+	var match = s.match(/\s*(\S+)\/([^;\s]+)\s*(?:;(.*))?/);
+	if (!match) return null;
+
+	var type = match[1];
+	var subtype = match[2];
+	var full = "" + type + "/" + subtype;
+	var params = {}, q = 1;
+
+	if (match[3]) {
+		params = match[3].split(';')
+			.map(function(s) { return s.trim().split('='); })
+			.reduce(function (set, p) { set[p[0]] = p[1]; return set; }, params);
+
+		if (params.q !== null) {
+			q = parseFloat(params.q);
+			delete params.q;
+		}
+	}
+
+	return {
+		type: type,
+		subtype: subtype,
+		params: params,
+		q: q,
+		full: full
+	};
 }// Request
 // =======
 // EXPORTED
@@ -1333,6 +1418,12 @@ function Request(options) {
 	}
 
 	// non-enumerables (dont include in request messages)
+	Object.defineProperty(this, 'parsedHeaders', {
+		value: {},
+		configurable: true,
+		enumerable: false,
+		writable: true
+	});
 	Object.defineProperty(this, 'body', {
 		value: '',
 		configurable: true,
@@ -1369,7 +1460,7 @@ function Request(options) {
 		self.on('data', function(data) { self.body += data; });
 		self.on('end', function() {
 			if (self.headers['content-type'])
-				self.body = local.contentTypes.deserialize(self.body, self.headers['content-type']);
+				self.body = local.contentTypes.deserialize(self.headers['content-type'], self.body);
 			self.body_.fulfill(self.body);
 		});
 	})(this);
@@ -1391,34 +1482,23 @@ Request.prototype.setTimeout = function(ms) {
 };
 
 // EXPORTED
-// converts any known header objects into their string versions
-// - used on remote connections
-Request.prototype.serializeHeaders = function(headers) {
-	if (this.headers.authorization && typeof this.headers.authorization == 'object') {
-		if (!this.headers.authorization.scheme) { throw new Error("`scheme` required for auth headers"); }
-		var auth;
-		switch (this.headers.authorization.scheme.toLowerCase()) {
-			case 'basic':
-				auth = 'Basic '+btoa(this.headers.authorization.name+':'+this.headers.authorization.password);
-				break;
-			case 'persona':
-				auth = 'Persona name='+this.headers.authorization.name+' assertion='+this.headers.authorization.assertion;
-				break;
-			default:
-				throw new Error("unknown auth sceme: "+this.headers.authorization.scheme);
-		}
-		this.headers.authorization = auth;
+// calls any registered header serialization functions
+// - enables apps to use objects during their operation, but remain conformant with specs during transfer
+Request.prototype.serializeHeaders = function() {
+	for (var k in this.headers) {
+		this.headers[k] = local.httpHeaders.serialize(k, this.headers[k]);
 	}
-	if (this.headers.via && typeof this.headers.via == 'object') {
-		var via = this.headers.via;
-		if (!Array.isArray(via)) via = [via];
-		this.headers.via = via.map(function(v) {
-			return [
-				((v.protocol.name) ? (v.protocol.name + '/') : '') + v.protocol.version,
-				v.host,
-				((v.comment) ? v.comment : '')
-			].join(' ');
-		}).join(', ');
+};
+
+// EXPORTED
+// calls any registered header deserialization functions
+// - enables apps to use objects during their operation, but remain conformant with specs during transfer
+Request.prototype.deserializeHeaders = function() {
+	for (var k in this.headers) {
+		var parsedHeader = local.httpHeaders.deserialize(k, this.headers[k]);
+		if (parsedHeader && typeof parsedHeader != 'string') {
+			this.parsedHeaders[k] = parsedHeader;
+		}
 	}
 };
 
@@ -1428,7 +1508,7 @@ Request.prototype.write = function(data) {
 	if (!this.isConnOpen)
 		return;
 	if (typeof data != 'string')
-		data = local.contentTypes.serialize(data, this.headers['content-type']);
+		data = local.contentTypes.serialize(this.headers['content-type'], data);
 	this.emit('data', data);
 };
 
@@ -1472,6 +1552,12 @@ function Response() {
 	this.body = '';
 
 	// non-enumerables (dont include in response messages)
+	Object.defineProperty(this, 'parsedHeaders', {
+		value: {},
+		configurable: true,
+		enumerable: false,
+		writable: true
+	});
 	Object.defineProperty(this, 'isConnOpen', {
 		value: true,
 		configurable: true,
@@ -1501,7 +1587,7 @@ function Response() {
 		});
 		self.on('end', function() {
 			if (self.headers['content-type'])
-				self.body = local.contentTypes.deserialize(self.body, self.headers['content-type']);
+				self.body = local.contentTypes.deserialize(self.headers['content-type'], self.body);
 			self.body_.fulfill(self.body);
 		});
 	})(this);
@@ -1512,6 +1598,27 @@ Response.prototype = Object.create(local.util.EventEmitter.prototype);
 Response.prototype.setHeader    = function(k, v) { this.headers[k] = v; };
 Response.prototype.getHeader    = function(k) { return this.headers[k]; };
 Response.prototype.removeHeader = function(k) { delete this.headers[k]; };
+
+// EXPORTED
+// calls any registered header serialization functions
+// - enables apps to use objects during their operation, but remain conformant with specs during transfer
+Response.prototype.serializeHeaders = function() {
+	for (var k in this.headers) {
+		this.headers[k] = local.httpHeaders.serialize(k, this.headers[k]);
+	}
+};
+
+// EXPORTED
+// calls any registered header deserialization functions
+// - enables apps to use objects during their operation, but remain conformant with specs during transfer
+Response.prototype.deserializeHeaders = function() {
+	for (var k in this.headers) {
+		var parsedHeader = local.httpHeaders.deserialize(k, this.headers[k]);
+		if (parsedHeader && typeof parsedHeader != 'string') {
+			this.parsedHeaders[k] = parsedHeader;
+		}
+	}
+};
 
 // writes the header to the response
 // - emits the 'headers' event
@@ -1526,6 +1633,7 @@ Response.prototype.writeHead = function(status, reason, headers) {
 				this.setHeader(k, headers[k]);
 		}
 	}
+	this.serializeHeaders();
 
 	this.emit('headers', this);
 	return this;
@@ -1537,7 +1645,7 @@ Response.prototype.write = function(data) {
 	if (!this.isConnOpen)
 		return;
 	if (typeof data != 'string') {
-		data = local.contentTypes.serialize(data, this.headers['content-type']);
+		data = local.contentTypes.serialize(this.headers['content-type'], data);
 	}
 	this.emit('data', data);
 };
@@ -2741,7 +2849,7 @@ local.schemes.register(['http', 'https'], function(request, response) {
 
 	// if a query was given in the options, mix it into the urld
 	if (request.query) {
-		var q = local.contentTypes.serialize(request.query, 'application/x-www-form-urlencoded');
+		var q = local.contentTypes.serialize('application/x-www-form-urlencoded', request.query);
 		if (q) {
 			if (urld.query) {
 				urld.query    += '&' + q;
@@ -2837,10 +2945,6 @@ local.schemes.register(['http', 'https'], function(request, response) {
 					extractHeader('Warning');
 					extractHeader('WWW-Authenticate');
 				}
-
-				// parse any headers we use often
-				if (headers.link)
-					headers.link = local.parseLinkHeader(headers.link);
 			}
 
 			response.writeHead(xhrRequest.status, xhrRequest.statusText, headers);
@@ -2891,6 +2995,9 @@ local.schemes.register('httpl', function(request, response) {
 	if (!server)
 		server = localNotFoundServer;
 
+	// Deserialize the headers
+	request.deserializeHeaders();
+
 	// Pull out and standardize the path
 	request.path = request.urld.path;
 	if (!request.path) request.path = '/'; // no path, give a '/'
@@ -2898,7 +3005,7 @@ local.schemes.register('httpl', function(request, response) {
 
 	// Pull out any query params in the path
 	if (request.urld.query) {
-		var query = local.contentTypes.deserialize(request.urld.query, 'application/x-www-form-urlencoded');
+		var query = local.contentTypes.deserialize('application/x-www-form-urlencoded', request.urld.query);
 		if (!request.query) { request.query = {}; }
 		for (var k in query) {
 			request.query[k] = query[k];
@@ -3021,19 +3128,23 @@ local.dispatch = function dispatch(request) {
 	Object.defineProperty(request, 'urld', { value: local.parseUri(request.url), configurable: true, enumerable: false, writable: true }); // (urld = url description)
 	if (request.urld.query) {
 		// Extract URL query parameters into the request's query object
-		var q = local.contentTypes.deserialize(request.urld.query, 'application/x-www-form-urlencoded');
+		var q = local.contentTypes.deserialize('application/x-www-form-urlencoded', request.urld.query);
 		for (var k in q)
 			request.query[k] = q[k];
 		request.urld.relative = request.urld.path + ((request.urld.anchor) ? ('#'+request.urld.anchor) : '');
 		request.url = request.urld.protocol+'://'+request.urld.authority+request.urld.relative;
 	}
+	request.serializeHeaders();
 
 	// Setup response object
 	var requestStartTime;
 	var response = new local.Response();
 	var response_ = local.promise();
 	request.on('close', function() { response.close(); });
-	response.on('headers', function() { processResponseHeaders(request, response); });
+	response.on('headers', function() {
+		response.deserializeHeaders();
+		processResponseHeaders(request, response);
+	});
 	response.on('close', function() {
 		// Track latency
 		response.latency = Date.now() - requestStartTime;
@@ -3122,8 +3233,8 @@ local.setDispatchWrapper(function(request, response, dispatch) {
 // Makes sure response header links are absolute
 var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
 function processResponseHeaders(request, response) {
-	if (response.headers.link) {
-		response.headers.link.forEach(function(link) {
+	if (response.parsedHeaders.link) {
+		response.parsedHeaders.link.forEach(function(link) {
 			if (isUrlAbsoluteRE.test(link.href) === false)
 				link.href = local.joinRelPath(request.urld, link.href);
 		});
@@ -3243,7 +3354,7 @@ function emitError(e) {
 	this.emit('error', e);
 }
 function emitEvent(e) {
-	e = local.contentTypes.deserialize(e, 'text/event-stream');
+	e = local.contentTypes.deserialize('text/event-stream', e);
 	var id = parseInt(e.id, 10);
 	if (typeof id != 'undefined' && id > this.lastEventId)
 		this.lastEventId = id;
@@ -4375,7 +4486,7 @@ Navigator.prototype.dispatch = function(req) {
 		.succeed(function(res) {
 			// After every successful request, update our links and mark our context as good (in case it had been bad)
 			self.context.setResolved();
-			if (res.headers.link) self.links = res.headers.link;
+			if (res.parsedHeaders.link) self.links = res.parsedHeaders.link;
 			else self.links = self.links || []; // cache an empty link list so we dont keep trying during resolution
 			return res;
 		})

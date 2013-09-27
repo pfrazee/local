@@ -41,19 +41,23 @@ local.dispatch = function dispatch(request) {
 	Object.defineProperty(request, 'urld', { value: local.parseUri(request.url), configurable: true, enumerable: false, writable: true }); // (urld = url description)
 	if (request.urld.query) {
 		// Extract URL query parameters into the request's query object
-		var q = local.contentTypes.deserialize(request.urld.query, 'application/x-www-form-urlencoded');
+		var q = local.contentTypes.deserialize('application/x-www-form-urlencoded', request.urld.query);
 		for (var k in q)
 			request.query[k] = q[k];
 		request.urld.relative = request.urld.path + ((request.urld.anchor) ? ('#'+request.urld.anchor) : '');
 		request.url = request.urld.protocol+'://'+request.urld.authority+request.urld.relative;
 	}
+	request.serializeHeaders();
 
 	// Setup response object
 	var requestStartTime;
 	var response = new local.Response();
 	var response_ = local.promise();
 	request.on('close', function() { response.close(); });
-	response.on('headers', function() { processResponseHeaders(request, response); });
+	response.on('headers', function() {
+		response.deserializeHeaders();
+		processResponseHeaders(request, response);
+	});
 	response.on('close', function() {
 		// Track latency
 		response.latency = Date.now() - requestStartTime;
@@ -142,8 +146,8 @@ local.setDispatchWrapper(function(request, response, dispatch) {
 // Makes sure response header links are absolute
 var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
 function processResponseHeaders(request, response) {
-	if (response.headers.link) {
-		response.headers.link.forEach(function(link) {
+	if (response.parsedHeaders.link) {
+		response.parsedHeaders.link.forEach(function(link) {
 			if (isUrlAbsoluteRE.test(link.href) === false)
 				link.href = local.joinRelPath(request.urld, link.href);
 		});

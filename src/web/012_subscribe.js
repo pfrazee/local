@@ -98,7 +98,7 @@ function emitError(e) {
 	this.emit('error', e);
 }
 function emitEvent(e) {
-	e = local.contentTypes.deserialize(e, 'text/event-stream');
+	e = local.contentTypes.deserialize('text/event-stream', e);
 	var id = parseInt(e.id, 10);
 	if (typeof id != 'undefined' && id > this.lastEventId)
 		this.lastEventId = id;

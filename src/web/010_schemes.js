@@ -35,7 +35,7 @@ local.schemes.register(['http', 'https'], function(request, response) {
 
 	// if a query was given in the options, mix it into the urld
 	if (request.query) {
-		var q = local.contentTypes.serialize(request.query, 'application/x-www-form-urlencoded');
+		var q = local.contentTypes.serialize('application/x-www-form-urlencoded', request.query);
 		if (q) {
 			if (urld.query) {
 				urld.query    += '&' + q;
@@ -131,10 +131,6 @@ local.schemes.register(['http', 'https'], function(request, response) {
 					extractHeader('Warning');
 					extractHeader('WWW-Authenticate');
 				}
-
-				// parse any headers we use often
-				if (headers.link)
-					headers.link = local.parseLinkHeader(headers.link);
 			}
 
 			response.writeHead(xhrRequest.status, xhrRequest.statusText, headers);
@@ -185,6 +181,9 @@ local.schemes.register('httpl', function(request, response) {
 	if (!server)
 		server = localNotFoundServer;
 
+	// Deserialize the headers
+	request.deserializeHeaders();
+
 	// Pull out and standardize the path
 	request.path = request.urld.path;
 	if (!request.path) request.path = '/'; // no path, give a '/'
@@ -192,7 +191,7 @@ local.schemes.register('httpl', function(request, response) {
 
 	// Pull out any query params in the path
 	if (request.urld.query) {
-		var query = local.contentTypes.deserialize(request.urld.query, 'application/x-www-form-urlencoded');
+		var query = local.contentTypes.deserialize('application/x-www-form-urlencoded', request.urld.query);
 		if (!request.query) { request.query = {}; }
 		for (var k in query) {
 			request.query[k] = query[k];

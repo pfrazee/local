@@ -21,11 +21,7 @@ success
   headers: {
     allow: "OPTIONS, HEAD, GET",
     "content-type": "application/json",
-    link: [
-      {href: "http://grimwire.com:8080/", rel: "up via service"},
-      {href: "http://grimwire.com:8080/foo", rel: "self current"},
-      {href: "http://grimwire.com:8080/foo/{id}", rel: "item"}
-    ]
+    link: "</>; rel=\"up via service\", </foo>; rel=\"self current\", </foo/{id}>; rel=\"item\""
   },
   reason: "Ok",
   status: 200
@@ -36,15 +32,7 @@ success
   headers: {
     allow: "OPTIONS, HEAD, GET",
     "content-type": "application/json",
-    link: [
-      {href: "http://grimwire.com:8080/", rel: "via service"},
-      {href: "http://grimwire.com:8080/foo", rel: "up collection index"},
-      {href: "http://grimwire.com:8080/foo/baz", rel: "self current"},
-      {href: "http://grimwire.com:8080/foo/bar", rel: "first"},
-      {href: "http://grimwire.com:8080/foo/blah", rel: "last"},
-      {href: "http://grimwire.com:8080/foo/bar", rel: "prev"},
-      {href: "http://grimwire.com:8080/foo/blah", rel: "next"}
-    ]
+    link: "</>; rel=\"via service\", </foo>; rel=\"up collection index\", </foo/baz>; rel=\"self current\", </foo/bar>; rel=\"first\", </foo/blah>; rel=\"last\", </foo/bar>; rel=\"prev\", </foo/blah>; rel=\"next\""
   },
   reason: "Ok",
   status: 200
@@ -72,11 +60,7 @@ success
   headers: {
     allow: "OPTIONS, HEAD, GET",
     "content-type": "application/json",
-    link: [
-      {href: "http://grimwire.com:8080/", rel: "up via service"},
-      {href: "http://grimwire.com:8080/foo", rel: "self current"},
-      {href: "http://grimwire.com:8080/foo/{id}", rel: "item"}
-    ]
+    link: "</>; rel=\"up via service\", </foo>; rel=\"self current\", </foo/{id}>; rel=\"item\""
   },
   reason: "Ok",
   status: 200
@@ -105,11 +89,7 @@ success
   body: ["bar", "baz", "blah"],
   headers: {
     "content-type": "application/json",
-    link: [
-      {href: "httpl://test.com/", rel: "up via service"},
-      {href: "httpl://test.com/foo", rel: "self current"},
-      {href: "httpl://test.com/foo/{id}", rel: "item"}
-    ]
+    link: "</>; rel=\"up via service\", </foo>; rel=\"self current\", </foo/{id}>; rel=\"item\""
   },
   reason: "ok",
   status: 200
@@ -119,19 +99,12 @@ success
   body: "baz",
   headers: {
     "content-type": "application/json",
-    link: [
-      {href: "httpl://test.com/", rel: "via service"},
-      {href: "httpl://test.com/foo", rel: "up collection index"},
-      {href: "httpl://test.com/foo/baz", rel: "self current"},
-      {href: "httpl://test.com/foo/bar", rel: "first"},
-      {href: "httpl://test.com/foo/blah", rel: "last"},
-      {href: "httpl://test.com/foo/bar", rel: "prev"},
-      {href: "httpl://test.com/foo/blah", rel: "next"}
-    ]
+    link: "</>; rel=\"via service\", </foo>; rel=\"up collection index\", </foo/baz>; rel=\"self current\", </foo/bar>; rel=\"first\", </foo/blah>; rel=\"last\", </foo/bar>; rel=\"prev\", </foo/blah>; rel=\"next\""
   },
   reason: "ok",
   status: 200
-}*/
+}
+*/
 
 // worker local server navigation
 
@@ -152,11 +125,7 @@ success
   body: ["bar", "baz", "blah"],
   headers: {
     "content-type": "application/json",
-    link: [
-      {href: "httpl://_worker.js/", rel: "up via service"},
-      {href: "httpl://_worker.js/foo", rel: "self current"},
-      {href: "httpl://_worker.js/foo/{id}", rel: "item"}
-    ]
+    link: "</>; rel=\"up via service\", </foo>; rel=\"self current\", </foo/{id}>; rel=\"item\""
   },
   reason: "ok",
   status: 200
@@ -166,19 +135,12 @@ success
   body: "baz",
   headers: {
     "content-type": "application/json",
-    link: [
-      {href: "httpl://_worker.js/", rel: "via service"},
-      {href: "httpl://_worker.js/foo", rel: "up collection index"},
-      {href: "httpl://_worker.js/foo/baz", rel: "self current"},
-      {href: "httpl://_worker.js/foo/bar", rel: "first"},
-      {href: "httpl://_worker.js/foo/blah", rel: "last"},
-      {href: "httpl://_worker.js/foo/bar", rel: "prev"},
-      {href: "httpl://_worker.js/foo/blah", rel: "next"}
-    ]
+    link: "</>; rel=\"via service\", </foo>; rel=\"up collection index\", </foo/baz>; rel=\"self current\", </foo/bar>; rel=\"first\", </foo/blah>; rel=\"last\", </foo/bar>; rel=\"prev\", </foo/blah>; rel=\"next\""
   },
   reason: "ok",
   status: 200
-}*/
+}
+*/
 
 // rebase() and unresolve()
 
@@ -209,11 +171,7 @@ success
   body: ["bar", "baz", "blah"],
   headers: {
     "content-type": "application/json",
-    link: [
-      {href: "httpl://test.com/", rel: "up via service"},
-      {href: "httpl://test.com/foo", rel: "self current"},
-      {href: "httpl://test.com/foo/{id}", rel: "item"}
-    ]
+    link: "</>; rel=\"up via service\", </foo>; rel=\"self current\", </foo/{id}>; rel=\"item\""
   },
   reason: "ok",
   status: 200
@@ -223,15 +181,7 @@ success
   body: "baz",
   headers: {
     "content-type": "application/json",
-    link: [
-      {href: "httpl://test.com/", rel: "via service"},
-      {href: "httpl://test.com/foo", rel: "up collection index"},
-      {href: "httpl://test.com/foo/baz", rel: "self current"},
-      {href: "httpl://test.com/foo/bar", rel: "first"},
-      {href: "httpl://test.com/foo/blah", rel: "last"},
-      {href: "httpl://test.com/foo/bar", rel: "prev"},
-      {href: "httpl://test.com/foo/blah", rel: "next"}
-    ]
+    link: "</>; rel=\"via service\", </foo>; rel=\"up collection index\", </foo/baz>; rel=\"self current\", </foo/bar>; rel=\"first\", </foo/blah>; rel=\"last\", </foo/bar>; rel=\"prev\", </foo/blah>; rel=\"next\""
   },
   reason: "ok",
   status: 200
@@ -241,11 +191,7 @@ success
   body: ["bar", "baz", "blah"],
   headers: {
     "content-type": "application/json",
-    link: [
-      {href: "httpl://_worker.js/", rel: "up via service"},
-      {href: "httpl://_worker.js/foo", rel: "self current"},
-      {href: "httpl://_worker.js/foo/{id}", rel: "item"}
-    ]
+    link: "</>; rel=\"up via service\", </foo>; rel=\"self current\", </foo/{id}>; rel=\"item\""
   },
   reason: "ok",
   status: 200
@@ -255,19 +201,12 @@ success
   body: "baz",
   headers: {
     "content-type": "application/json",
-    link: [
-      {href: "httpl://_worker.js/", rel: "via service"},
-      {href: "httpl://_worker.js/foo", rel: "up collection index"},
-      {href: "httpl://_worker.js/foo/baz", rel: "self current"},
-      {href: "httpl://_worker.js/foo/bar", rel: "first"},
-      {href: "httpl://_worker.js/foo/blah", rel: "last"},
-      {href: "httpl://_worker.js/foo/bar", rel: "prev"},
-      {href: "httpl://_worker.js/foo/blah", rel: "next"}
-    ]
+    link: "</>; rel=\"via service\", </foo>; rel=\"up collection index\", </foo/baz>; rel=\"self current\", </foo/bar>; rel=\"first\", </foo/blah>; rel=\"last\", </foo/bar>; rel=\"prev\", </foo/blah>; rel=\"next\""
   },
   reason: "ok",
   status: 200
-}*/
+}
+*/
 
 
 // array of queries navigation
@@ -294,15 +233,7 @@ success
   body: "baz",
   headers: {
     "content-type": "application/json",
-    link: [
-      {href: "httpl://test.com/", rel: "via service"},
-      {href: "httpl://test.com/foo", rel: "up collection index"},
-      {href: "httpl://test.com/foo/baz", rel: "self current"},
-      {href: "httpl://test.com/foo/bar", rel: "first"},
-      {href: "httpl://test.com/foo/blah", rel: "last"},
-      {href: "httpl://test.com/foo/bar", rel: "prev"},
-      {href: "httpl://test.com/foo/blah", rel: "next"}
-    ]
+    link: "</>; rel=\"via service\", </foo>; rel=\"up collection index\", </foo/baz>; rel=\"self current\", </foo/bar>; rel=\"first\", </foo/blah>; rel=\"last\", </foo/bar>; rel=\"prev\", </foo/blah>; rel=\"next\""
   },
   reason: "ok",
   status: 200
@@ -312,15 +243,7 @@ success
   body: "baz",
   headers: {
     "content-type": "application/json",
-    link: [
-      {href: "httpl://test.com/", rel: "via service"},
-      {href: "httpl://test.com/foo", rel: "up collection index"},
-      {href: "httpl://test.com/foo/baz", rel: "self current"},
-      {href: "httpl://test.com/foo/bar", rel: "first"},
-      {href: "httpl://test.com/foo/blah", rel: "last"},
-      {href: "httpl://test.com/foo/bar", rel: "prev"},
-      {href: "httpl://test.com/foo/blah", rel: "next"}
-    ]
+    link: "</>; rel=\"via service\", </foo>; rel=\"up collection index\", </foo/baz>; rel=\"self current\", </foo/bar>; rel=\"first\", </foo/blah>; rel=\"last\", </foo/bar>; rel=\"prev\", </foo/blah>; rel=\"next\""
   },
   reason: "ok",
   status: 200
@@ -344,15 +267,7 @@ success
   body: "baz",
   headers: {
     "content-type": "application/json",
-    link: [
-      {href: "httpl://test.com/", rel: "via service"},
-      {href: "httpl://test.com/foo", rel: "up collection index"},
-      {href: "httpl://test.com/foo/baz", rel: "self current"},
-      {href: "httpl://test.com/foo/bar", rel: "first"},
-      {href: "httpl://test.com/foo/blah", rel: "last"},
-      {href: "httpl://test.com/foo/bar", rel: "prev"},
-      {href: "httpl://test.com/foo/blah", rel: "next"}
-    ]
+    link: "</>; rel=\"via service\", </foo>; rel=\"up collection index\", </foo/baz>; rel=\"self current\", </foo/bar>; rel=\"first\", </foo/blah>; rel=\"last\", </foo/bar>; rel=\"prev\", </foo/blah>; rel=\"next\""
   },
   reason: "ok",
   status: 200
@@ -362,15 +277,7 @@ success
   body: "baz",
   headers: {
     "content-type": "application/json",
-    link: [
-      {href: "httpl://test.com/", rel: "via service"},
-      {href: "httpl://test.com/foo", rel: "up collection index"},
-      {href: "httpl://test.com/foo/baz", rel: "self current"},
-      {href: "httpl://test.com/foo/bar", rel: "first"},
-      {href: "httpl://test.com/foo/blah", rel: "last"},
-      {href: "httpl://test.com/foo/bar", rel: "prev"},
-      {href: "httpl://test.com/foo/blah", rel: "next"}
-    ]
+    link: "</>; rel=\"via service\", </foo>; rel=\"up collection index\", </foo/baz>; rel=\"self current\", </foo/bar>; rel=\"first\", </foo/blah>; rel=\"last\", </foo/bar>; rel=\"prev\", </foo/blah>; rel=\"next\""
   },
   reason: "ok",
   status: 200
@@ -406,11 +313,7 @@ success
   body: "",
   headers: {
     "content-type": "application/json",
-    link: [
-      {href: "httpl://test.com/", rel: "up via service"},
-      {href: "httpl://test.com/foo", rel: "self current"},
-      {href: "httpl://test.com/foo/{id}", rel: "item"}
-    ]
+    link: "</>; rel=\"up via service\", </foo>; rel=\"self current\", </foo/{id}>; rel=\"item\""
   },
   reason: "ok",
   status: 200

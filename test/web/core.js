@@ -15,11 +15,7 @@ success
   headers: {
     allow: "OPTIONS, HEAD, GET",
     "content-type": "application/json",
-    link: [
-      {href: "http://grimwire.com:8080/", rel: "self current"},
-      {href: "http://grimwire.com:8080/foo", id: "foo", rel: "collection"},
-      {href: "http://grimwire.com:8080/{id}", rel: "collection"}
-    ]
+    link: "</>; rel=\"self current\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
   },
   reason: "Ok",
   status: 200
@@ -74,20 +70,11 @@ success
   body: "service resource",
   headers: {
     "content-type": "text/plain",
-    link: [
-      {
-        href: "httpl://test.com/",
-        rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
-      },
-      {href: "httpl://test.com/events", id: "events", rel: "collection"},
-      {href: "httpl://test.com/foo", id: "foo", rel: "collection"},
-      {href: "httpl://test.com/{id}", rel: "collection"}
-    ]
+    link: "</>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
   },
   reason: "ok",
   status: 200
 }
-
 */
 
 // local requests without the scheme
@@ -104,20 +91,11 @@ success
   body: "service resource",
   headers: {
     "content-type": "text/plain",
-    link: [
-      {
-        href: "httpl://test.com/",
-        rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
-      },
-      {href: "httpl://test.com/events", id: "events", rel: "collection"},
-      {href: "httpl://test.com/foo", id: "foo", rel: "collection"},
-      {href: "httpl://test.com/{id}", rel: "collection"}
-    ]
+    link: "</>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
   },
   reason: "ok",
   status: 200
 }
-
 */
 
 // unsuccessful local requests
@@ -172,12 +150,7 @@ success
   body: "service resource",
   headers: {
     "content-type": "text/plain",
-    link: [
-      {href: "httpl://_worker.js/", rel: "self current"},
-      {href: "httpl://_worker.js/events", id: "events", rel: "collection"},
-      {href: "httpl://_worker.js/foo", id: "foo", rel: "collection"},
-      {href: "httpl://_worker.js/{id}", rel: "collection"}
-    ]
+    link: "</>; rel=\"self current\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
   },
   reason: "ok",
   status: 200
@@ -231,15 +204,7 @@ success
   body: "baz",
   headers: {
     "content-type": "application/json",
-    link: [
-      {href: "httpl://test.com/", rel: "via service"},
-      {href: "httpl://test.com/foo", rel: "up collection index"},
-      {href: "httpl://test.com/foo/baz", rel: "self current"},
-      {href: "httpl://test.com/foo/bar", rel: "first"},
-      {href: "httpl://test.com/foo/blah", rel: "last"},
-      {href: "httpl://test.com/foo/bar", rel: "prev"},
-      {href: "httpl://test.com/foo/blah", rel: "next"}
-    ]
+    link: "</>; rel=\"via service\", </foo>; rel=\"up collection index\", </foo/baz>; rel=\"self current\", </foo/bar>; rel=\"first\", </foo/blah>; rel=\"last\", </foo/bar>; rel=\"prev\", </foo/blah>; rel=\"next\""
   },
   reason: "ok",
   status: 200

@@ -12,7 +12,7 @@ local.contentTypes = contentTypes;
 
 // EXPORTED
 // serializes an object into a string
-function contentTypes__serialize(obj, type) {
+function contentTypes__serialize(type, obj) {
 	if (!obj || typeof(obj) != 'object' || !type) {
 		return obj;
 	}
@@ -25,7 +25,7 @@ function contentTypes__serialize(obj, type) {
 
 // EXPORTED
 // deserializes a string into an object
-function contentTypes__deserialize(str, type) {
+function contentTypes__deserialize(type, str) {
 	if (!str || typeof(str) != 'string' || !type) {
 		return str;
 	}

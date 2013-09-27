@@ -12,6 +12,12 @@ function Response() {
 	this.body = '';
 
 	// non-enumerables (dont include in response messages)
+	Object.defineProperty(this, 'parsedHeaders', {
+		value: {},
+		configurable: true,
+		enumerable: false,
+		writable: true
+	});
 	Object.defineProperty(this, 'isConnOpen', {
 		value: true,
 		configurable: true,
@@ -41,7 +47,7 @@ function Response() {
 		});
 		self.on('end', function() {
 			if (self.headers['content-type'])
-				self.body = local.contentTypes.deserialize(self.body, self.headers['content-type']);
+				self.body = local.contentTypes.deserialize(self.headers['content-type'], self.body);
 			self.body_.fulfill(self.body);
 		});
 	})(this);
@@ -52,6 +58,27 @@ Response.prototype = Object.create(local.util.EventEmitter.prototype);
 Response.prototype.setHeader    = function(k, v) { this.headers[k] = v; };
 Response.prototype.getHeader    = function(k) { return this.headers[k]; };
 Response.prototype.removeHeader = function(k) { delete this.headers[k]; };
+
+// EXPORTED
+// calls any registered header serialization functions
+// - enables apps to use objects during their operation, but remain conformant with specs during transfer
+Response.prototype.serializeHeaders = function() {
+	for (var k in this.headers) {
+		this.headers[k] = local.httpHeaders.serialize(k, this.headers[k]);
+	}
+};
+
+// EXPORTED
+// calls any registered header deserialization functions
+// - enables apps to use objects during their operation, but remain conformant with specs during transfer
+Response.prototype.deserializeHeaders = function() {
+	for (var k in this.headers) {
+		var parsedHeader = local.httpHeaders.deserialize(k, this.headers[k]);
+		if (parsedHeader && typeof parsedHeader != 'string') {
+			this.parsedHeaders[k] = parsedHeader;
+		}
+	}
+};
 
 // writes the header to the response
 // - emits the 'headers' event
@@ -66,6 +93,7 @@ Response.prototype.writeHead = function(status, reason, headers) {
 				this.setHeader(k, headers[k]);
 		}
 	}
+	this.serializeHeaders();
 
 	this.emit('headers', this);
 	return this;
@@ -77,7 +105,7 @@ Response.prototype.write = function(data) {
 	if (!this.isConnOpen)
 		return;
 	if (typeof data != 'string') {
-		data = local.contentTypes.serialize(data, this.headers['content-type']);
+		data = local.contentTypes.serialize(this.headers['content-type'], data);
 	}
 	this.emit('data', data);
 };

@@ -12,17 +12,18 @@ src-web-files =\
 	${src}web/001_constants.js\
 	${src}web/002_helpers.js\
 	${src}web/003_content-types.js\
-	${src}web/004_request.js\
-	${src}web/005_response.js\
-	${src}web/006_server.js\
-	${src}web/007_worker-server.js\
-	${src}web/008_rtcpeer-server.js\
-	${src}web/009_schemes.js\
-	${src}web/010_dispatch.js\
-	${src}web/011_subscribe.js\
-	${src}web/012_uri-template.js\
-	${src}web/013_navigator.js\
-	${src}web/014_hosts-service.js\
+	${src}web/004_httpheaders.js\
+	${src}web/005_request.js\
+	${src}web/006_response.js\
+	${src}web/007_server.js\
+	${src}web/008_worker-server.js\
+	${src}web/009_rtcpeer-server.js\
+	${src}web/010_schemes.js\
+	${src}web/011_dispatch.js\
+	${src}web/012_subscribe.js\
+	${src}web/013_uri-template.js\
+	${src}web/014_navigator.js\
+	${src}web/015_hosts-service.js\
 	${src}web/module_footer.js
 src-toplevel-files =\
 	${src}000_header.js\

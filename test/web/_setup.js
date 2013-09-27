@@ -8,7 +8,7 @@ local.setDispatchWrapper(function(request, response, dispatch) {
 // worker local scaffold server
 
 local.workerBootstrapUrl = '../worker.js';
-local.spawnWorkerServer('test/web/_worker.js');
+local.spawnWorkerServer('test/web/_worker.js', { log: true });
 
 // document local scaffold server
 

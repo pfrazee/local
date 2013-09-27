@@ -2,6 +2,11 @@ Changes
 =======
 0.4.0
 
+2013/09/27 pfraze
+
+ - Added local.httpHeaders for standardized header de/serialization (similar to local.contentTypes)
+ - Moved parsed headers into request/response.parsedHeaders, preserved serialized headers in .headers
+
 
 2013/09/26 pfraze
 

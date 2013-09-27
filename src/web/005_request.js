@@ -26,6 +26,12 @@ function Request(options) {
 	}
 
 	// non-enumerables (dont include in request messages)
+	Object.defineProperty(this, 'parsedHeaders', {
+		value: {},
+		configurable: true,
+		enumerable: false,
+		writable: true
+	});
 	Object.defineProperty(this, 'body', {
 		value: '',
 		configurable: true,
@@ -62,7 +68,7 @@ function Request(options) {
 		self.on('data', function(data) { self.body += data; });
 		self.on('end', function() {
 			if (self.headers['content-type'])
-				self.body = local.contentTypes.deserialize(self.body, self.headers['content-type']);
+				self.body = local.contentTypes.deserialize(self.headers['content-type'], self.body);
 			self.body_.fulfill(self.body);
 		});
 	})(this);
@@ -84,34 +90,23 @@ Request.prototype.setTimeout = function(ms) {
 };
 
 // EXPORTED
-// converts any known header objects into their string versions
-// - used on remote connections
-Request.prototype.serializeHeaders = function(headers) {
-	if (this.headers.authorization && typeof this.headers.authorization == 'object') {
-		if (!this.headers.authorization.scheme) { throw new Error("`scheme` required for auth headers"); }
-		var auth;
-		switch (this.headers.authorization.scheme.toLowerCase()) {
-			case 'basic':
-				auth = 'Basic '+btoa(this.headers.authorization.name+':'+this.headers.authorization.password);
-				break;
-			case 'persona':
-				auth = 'Persona name='+this.headers.authorization.name+' assertion='+this.headers.authorization.assertion;
-				break;
-			default:
-				throw new Error("unknown auth sceme: "+this.headers.authorization.scheme);
-		}
-		this.headers.authorization = auth;
+// calls any registered header serialization functions
+// - enables apps to use objects during their operation, but remain conformant with specs during transfer
+Request.prototype.serializeHeaders = function() {
+	for (var k in this.headers) {
+		this.headers[k] = local.httpHeaders.serialize(k, this.headers[k]);
 	}
-	if (this.headers.via && typeof this.headers.via == 'object') {
-		var via = this.headers.via;
-		if (!Array.isArray(via)) via = [via];
-		this.headers.via = via.map(function(v) {
-			return [
-				((v.protocol.name) ? (v.protocol.name + '/') : '') + v.protocol.version,
-				v.host,
-				((v.comment) ? v.comment : '')
-			].join(' ');
-		}).join(', ');
+};
+
+// EXPORTED
+// calls any registered header deserialization functions
+// - enables apps to use objects during their operation, but remain conformant with specs during transfer
+Request.prototype.deserializeHeaders = function() {
+	for (var k in this.headers) {
+		var parsedHeader = local.httpHeaders.deserialize(k, this.headers[k]);
+		if (parsedHeader && typeof parsedHeader != 'string') {
+			this.parsedHeaders[k] = parsedHeader;
+		}
 	}
 };
 
@@ -121,7 +116,7 @@ Request.prototype.write = function(data) {
 	if (!this.isConnOpen)
 		return;
 	if (typeof data != 'string')
-		data = local.contentTypes.serialize(data, this.headers['content-type']);
+		data = local.contentTypes.serialize(this.headers['content-type'], data);
 	this.emit('data', data);
 };
 
