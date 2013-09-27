@@ -4624,7 +4624,147 @@ local.registerLocal('hosts', function(req, res) {
 		res.writeHead(200, 'ok', { 'content-type': 'application/json' });
 		res.end({ host_names: domains });
 	});
-});})();// Local Worker Tools
+});})();// Local Toplevel
+// ==============
+// pfraze 2013
+
+if (typeof this.local == 'undefined')
+	this.local = {};
+
+(function() {local.workerBootstrapUrl = 'worker.min.js';
+local.logAllExceptions = false;// Helpers to create servers
+// -
+
+// EXPORTED
+// Creates a Web Worker and a bridge server to the worker
+// eg `local.spawnWorkerServer('http://foo.com/myworker.js', localServerFn, )
+// - `src`: required string, the URI to load into the worker
+// - `config`: optional object, additional config options to pass to the worker
+// - `config.domain`: optional string, overrides the automatic domain generation
+// - `config.shared`: boolean, should the workerserver be shared?
+// - `config.namespace`: optional string, what should the shared worker be named?
+//   - defaults to `config.src` if undefined
+// - `config.nullify`: optional [string], a list of objects to nullify when the worker loads
+//   - defaults to ['XMLHttpRequest', 'Worker', 'WebSocket', 'EventSource']
+// - `config.bootstrapUrl`: optional string, specifies the URL of the worker bootstrap script
+// - `serverFn`: optional function, a response generator for requests from the worker
+local.spawnWorkerServer = function(src, config, serverFn) {
+	if (typeof config == 'function') { serverFn = config; config = null; }
+	if (!config) { config = {}; }
+	config.src = src;
+	config.serverFn = serverFn;
+
+	// Create the server
+	var server = new local.WorkerBridgeServer(config);
+
+	// Find an open domain and register
+	var domain = config.domain;
+	if (!domain) {
+		if (src.indexOf('data:') === 0) {
+			domain = getAvailableLocalDomain('worker{n}');
+		} else {
+			domain = getAvailableLocalDomain(src.split('/').pop().toLowerCase() + '{n}');
+		}
+	}
+	local.registerLocal(domain, server);
+
+	return server;
+};
+
+// EXPORTED
+// Opens a stream to a peer relay
+// - `providerUrl`: required string, the relay provider
+// - `config.app`: optional string, the app to join as (defaults to window.location.host)
+// - `serverFn`: optional function, a response generator for requests from connected peers
+local.joinPeerRelay = function(providerUrl, config, serverFn) {
+	if (typeof config == 'function') { serverFn = config; config = null; }
+	if (!config) config = {};
+	config.provider = providerUrl;
+	config.serverFn = serverFn;
+	return new local.PeerWebRelay(config);
+};
+
+// helper for name assignment
+function getAvailableLocalDomain(base) {
+	var i = '', str;
+	do {
+		str = base.replace('{n}', i);
+		i = (!i) ? 2 : i + 1;
+	} while (local.getLocal(str));
+	return str;
+}// Standard DOM Events
+// ===================
+
+// bindRequestEvents()
+// ===================
+// EXPORTED
+// Converts 'click' and 'submit' events into custom 'request' events
+// - within the container, all 'click' and 'submit' events will be consumed
+// - 'request' events will be dispatched by the original dispatching element
+// Parameters:
+// - `container` must be a valid DOM element
+// - `options` may disable event listeners by setting `links` or `forms` to false
+function bindRequestEvents(container, options) {
+	container.__localEventHandlers = [];
+	options = options || {};
+
+	var handler;
+	if (options.links !== false) {
+		handler = { name: 'click', handleEvent: Local__clickHandler, container: container };
+		container.addEventListener('click', handler, false);
+		container.__localEventHandlers.push(handler);
+	}
+	if (options.forms !== false) {
+		handler = { name: 'submit', handleEvent: Local__submitHandler, container: container };
+		container.addEventListener('submit', handler, false);
+	}
+}
+
+// unbindRequestEvents()
+// =====================
+// EXPORTED
+// Stops listening to 'click' and 'submit' events
+function unbindRequestEvents(container) {
+	if (container.__localEventHandlers) {
+		container.__localEventHandlers.forEach(function(handler) {
+			container.removeEventListener(handler.name, handler);
+		});
+		delete container.__localEventHandlers;
+	}
+}
+
+// INTERNAL
+// transforms click events into request events
+function Local__clickHandler(e) {
+	if (e.button !== 0) { return; } // handle left-click only
+	local.util.trackFormSubmitter(e.target);
+	var request = local.util.extractRequest.fromAnchor(e.target);
+	if (request && ['_top','_blank'].indexOf(request.target) !== -1) { return; }
+	if (request) {
+		e.preventDefault();
+		e.stopPropagation();
+		local.util.dispatchRequestEvent(e.target, request);
+		return false;
+	}
+}
+
+// INTERNAL
+// transforms submit events into request events
+function Local__submitHandler(e) {
+	var request = local.util.extractRequest(e.target, this.container);
+	if (request && ['_top','_blank'].indexOf(request.target) !== -1) { return; }
+	if (request) {
+		e.preventDefault();
+		e.stopPropagation();
+		local.util.finishPayloadFileReads(request).then(function() {
+			local.util.dispatchRequestEvent(e.target, request);
+		});
+		return false;
+	}
+}
+
+local.bindRequestEvents = bindRequestEvents;
+local.unbindRequestEvents = unbindRequestEvents;})();// Local Worker Tools
 // ==================
 // pfraze 2013
 
