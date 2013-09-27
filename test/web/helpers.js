@@ -172,8 +172,11 @@ success
   headers: {
     link: [
       {href: "httpl://hosts/", id: "hosts", rel: "self service via"},
-      {href: "httpl://_worker.js", id: "_worker.js", rel: "service"},
-      {href: "httpl://test.com", id: "test.com", rel: "service"}
+      {href: "httpl://_worker.js/", rel: "current"},
+      {
+        href: "httpl://test.com/",
+        rel: "current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
+      }
     ]
   },
   reason: "ok, no content",
