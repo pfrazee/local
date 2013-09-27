@@ -20,7 +20,7 @@ local.registerLocal('hosts', function(req, res) {
 
 	local.promise.bundle(responses_).then(function(ress) {
 		ress.forEach(function(res, i) {
-			var selfLink = local.queryLinks1(res, { rel: 'self' });
+			var selfLink = local.queryLinks(res, { rel: 'self' })[0];
 			if (!selfLink) {
 				selfLink = { rel: 'service', id: domains[i], href: 'httpl://'+domains[i] };
 			}

@@ -332,7 +332,7 @@ Navigator.prototype.lookupLink = function(context) {
 	if (context.query) {
 		if (typeof context.query == 'object') {
 			// Try to find a link that matches
-			var link = local.queryLinks1(this.links, context.query);
+			var link = local.queryLinks(this.links, context.query)[0];
 			if (link)
 				return local.UriTemplate.parse(link.href).expand(context.query);
 		}

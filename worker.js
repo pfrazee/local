@@ -803,14 +803,7 @@ local.queryLinks = function queryLinks(links, query) {
 	if (!links) return [];
 	if (links.headers) links = links.headers.link; // actually a request or response object
 	if (!Array.isArray(links)) return [];
-	return links.filter(function(link) { return local.queryLink(link, query) > 0; });
-};
-
-// EXPORTED
-// gives the first result from queryLinks
-local.queryLinks1 = function queryLinks1(links, query) {
-	var matches = local.queryLinks(links, query);
-	return matches[0];
+	return links.filter(function(link) { return local.queryLink(link, query); });
 };
 
 // EXPORTED
@@ -4532,7 +4525,7 @@ Navigator.prototype.lookupLink = function(context) {
 	if (context.query) {
 		if (typeof context.query == 'object') {
 			// Try to find a link that matches
-			var link = local.queryLinks1(this.links, context.query);
+			var link = local.queryLinks(this.links, context.query)[0];
 			if (link)
 				return local.UriTemplate.parse(link.href).expand(context.query);
 		}
@@ -4617,7 +4610,7 @@ local.registerLocal('hosts', function(req, res) {
 
 	local.promise.bundle(responses_).then(function(ress) {
 		ress.forEach(function(res, i) {
-			var selfLink = local.queryLinks1(res, { rel: 'self' });
+			var selfLink = local.queryLinks(res, { rel: 'self' })[0];
 			if (!selfLink) {
 				selfLink = { rel: 'service', id: domains[i], href: 'httpl://'+domains[i] };
 			}

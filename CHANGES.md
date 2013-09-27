@@ -2,6 +2,12 @@ Changes
 =======
 0.4.0
 
+
+2013/09/26 pfraze
+
+ - Dropped queryLinks1 to avoid confusion
+
+
 2013/09/25 pfraze
 
  - Moved everything from the local.web.* namespace to local.*

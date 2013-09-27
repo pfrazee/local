@@ -31,14 +31,7 @@ local.queryLinks = function queryLinks(links, query) {
 	if (!links) return [];
 	if (links.headers) links = links.headers.link; // actually a request or response object
 	if (!Array.isArray(links)) return [];
-	return links.filter(function(link) { return local.queryLink(link, query) > 0; });
-};
-
-// EXPORTED
-// gives the first result from queryLinks
-local.queryLinks1 = function queryLinks1(links, query) {
-	var matches = local.queryLinks(links, query);
-	return matches[0];
+	return links.filter(function(link) { return local.queryLink(link, query); });
 };
 
 // EXPORTED
