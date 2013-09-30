@@ -19,9 +19,10 @@ local.queryLinks = function queryLinks(links, query) {
 //   - if a query attribute is present on the link, but does not match, returns false
 //   - if a query attribute is not present on the link, and is not present in the href as a URI Template token, returns false
 //   - otherwise, returns true
+//   - query values preceded by an exclamation-point (!) will invert (logical NOT)
 //   - rel: can take multiple values, space-separated, which are ANDed logically
 //   - rel: will ignore the preceding scheme and trailing slash on URI values
-//   - rel: items preceded by an exclamation-point will invert (logical NOT)
+//   - rel: items preceded by an exclamation-point (!) will invert (logical NOT)
 local.queryLink = function queryLink(link, query) {
 	for (var attr in query) {
 		if (attr == 'rel') {
@@ -38,11 +39,19 @@ local.queryLink = function queryLink(link, query) {
 		}
 		else {
 			if (typeof link[attr] == 'undefined') {
+				// Attribute not explicitly set -- is it present in the href as a URI token?
 				if (RegExp('\\{[^\\}]*'+attr+'[^\\{]*\\}','i').test(link.href) === false)
 					return false;
 			}
-			else if (link[attr] != query[attr])
-				return false;
+			else {
+				if (query[attr].indexOf('!') === 0) { // negation
+					if (link[attr] == query[attr].slice(1))
+						return false;
+				} else {
+					if (link[attr] != query[attr])
+						return false;
+				}
+			}
 		}
 	}
 	return true;
