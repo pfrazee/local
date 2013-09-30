@@ -6,7 +6,7 @@
 // - `links`: [object]/object, either the parsed array of links or the request/response object
 local.queryLinks = function queryLinks(links, query) {
 	if (!links) return [];
-	if (links.headers) links = links.parsedHeaders.link; // actually a request or response object
+	if (links.parsedHeaders) links = links.parsedHeaders.link; // actually a request or response object
 	if (!Array.isArray(links)) return [];
 	return links.filter(function(link) { return local.queryLink(link, query); });
 };
@@ -93,7 +93,7 @@ function specify(type, spec) {
 // - `provided`: optional [string], allowed media types
 local.preferredTypes = function preferredTypes(accept, provided) {
 	if (typeof accept == 'object') {
-		accept = accept.parsedHeaders.accept;
+		accept = accept.headers.accept;
 	}
 	accept = local.httpHeaders.deserialize('accept', accept || '');
 	if (provided) {

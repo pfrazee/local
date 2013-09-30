@@ -778,7 +778,7 @@ local.LINK_NOT_FOUND = 1;// Helpers
 // - `links`: [object]/object, either the parsed array of links or the request/response object
 local.queryLinks = function queryLinks(links, query) {
 	if (!links) return [];
-	if (links.headers) links = links.parsedHeaders.link; // actually a request or response object
+	if (links.parsedHeaders) links = links.parsedHeaders.link; // actually a request or response object
 	if (!Array.isArray(links)) return [];
 	return links.filter(function(link) { return local.queryLink(link, query); });
 };
@@ -865,7 +865,7 @@ function specify(type, spec) {
 // - `provided`: optional [string], allowed media types
 local.preferredTypes = function preferredTypes(accept, provided) {
 	if (typeof accept == 'object') {
-		accept = accept.parsedHeaders.accept;
+		accept = accept.headers.accept;
 	}
 	accept = local.httpHeaders.deserialize('accept', accept || '');
 	if (provided) {
@@ -2139,6 +2139,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// - `config.peer`: required string, who we are connecting to (a valid peer domain)
 	// - `config.relay`: required PeerWebRelay
 	// - `config.initiate`: optional bool, if true will initiate the connection processes
+	// - `config.loopback`: optional bool, is this the local host? If true, will connect to self
 	function RTCBridgeServer(config) {
 		// Config
 		var self = this;
@@ -2176,7 +2177,11 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
 		this.rtcDataChannel.onmessage  = onHttplChannelMessage.bind(this);
 
-		if (this.config.initiate) {
+		if (this.config.loopback) {
+			// Setup to serve self
+			this.isOfferExchanged = true;
+			onHttplChannelOpen.call(this);
+		} else if (this.config.initiate) {
 			// Initiate event will be picked up by the peer
 			// If they want to connect, they'll send an answer back
 			this.sendOffer();
@@ -2220,7 +2225,11 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// Sends a single message across the channel
 	// - `msg`: required string
 	RTCBridgeServer.prototype.channelSendMsg = function(msg) {
-		this.rtcDataChannel.send(msg);
+		if (this.config.loopback) {
+			this.onChannelMessage(msg);
+		} else {
+			this.rtcDataChannel.send(msg);
+		}
 	};
 
 	// Remote request handler
@@ -2681,7 +2690,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			peer: peerUrl,
 			initiate: config.initiate,
 			relay: this,
-			serverFn: this.config.serverFn
+			serverFn: this.config.serverFn,
+			loopback: (peerUrld.authority == this.myPeerDomain)
 		});
 
 		// Bind events

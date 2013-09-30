@@ -24,6 +24,7 @@
 	// - `config.peer`: required string, who we are connecting to (a valid peer domain)
 	// - `config.relay`: required PeerWebRelay
 	// - `config.initiate`: optional bool, if true will initiate the connection processes
+	// - `config.loopback`: optional bool, is this the local host? If true, will connect to self
 	function RTCBridgeServer(config) {
 		// Config
 		var self = this;
@@ -61,7 +62,11 @@
 		this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
 		this.rtcDataChannel.onmessage  = onHttplChannelMessage.bind(this);
 
-		if (this.config.initiate) {
+		if (this.config.loopback) {
+			// Setup to serve self
+			this.isOfferExchanged = true;
+			onHttplChannelOpen.call(this);
+		} else if (this.config.initiate) {
 			// Initiate event will be picked up by the peer
 			// If they want to connect, they'll send an answer back
 			this.sendOffer();
@@ -105,7 +110,11 @@
 	// Sends a single message across the channel
 	// - `msg`: required string
 	RTCBridgeServer.prototype.channelSendMsg = function(msg) {
-		this.rtcDataChannel.send(msg);
+		if (this.config.loopback) {
+			this.onChannelMessage(msg);
+		} else {
+			this.rtcDataChannel.send(msg);
+		}
 	};
 
 	// Remote request handler
@@ -566,7 +575,8 @@
 			peer: peerUrl,
 			initiate: config.initiate,
 			relay: this,
-			serverFn: this.config.serverFn
+			serverFn: this.config.serverFn,
+			loopback: (peerUrld.authority == this.myPeerDomain)
 		});
 
 		// Bind events
