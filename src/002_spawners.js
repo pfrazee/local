@@ -39,7 +39,7 @@ local.spawnWorkerServer = function(src, config, serverFn) {
 
 // EXPORTED
 // Opens a stream to a peer relay
-// - `providerUrl`: required string, the relay provider
+// - `providerUrl`: optional string, the relay provider
 // - `config.app`: optional string, the app to join as (defaults to window.location.host)
 // - `serverFn`: optional function, a response generator for requests from connected peers
 local.joinPeerRelay = function(providerUrl, config, serverFn) {

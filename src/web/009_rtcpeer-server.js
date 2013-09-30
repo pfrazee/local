@@ -313,17 +313,16 @@
 	// ============
 	// EXPORTED
 	// Helper class for managing a peer web relay provider
-	// - `config.provider`: required string, the relay provider
-	// - `config.serverFn`: required function, the function for peerservers' handleRemoteWebRequest
-	// - `config.app`: optional string, the app to join as (defaults to window.location.host)
+	// - `config.provider`: optional string, the relay provider
+	// - `config.serverFn`: optional function, the function for peerservers' handleRemoteWebRequest
+	// - `config.app`: optional string, the app to join as (defaults to window.location.hostname)
 	// - `config.stream`: optional number, the stream id (defaults to pseudo-random)
 	// - `config.ping`: optional number, sends a ping to self via the relay at the given interval (in ms) to keep the stream alive
 	//   - set to false to disable keepalive pings
 	//   - defaults to 45000
 	function PeerWebRelay(config) {
-		if (!config) throw new Error("PeerWebRelay requires the `config` parameter");
-		if (!config.provider) throw new Error("PeerWebRelay requires `config.provider`");
-		if (!config.app) config.app = window.location.host;
+		if (!config) config = {};
+		if (!config.app) config.app = window.location.hostname;
 		if (typeof config.stream == 'undefined') config.stream = randomStreamId();
 		if (typeof config.ping == 'undefined') { config.ping = 45000; }
 		this.config = config;
@@ -337,21 +336,20 @@
 		this.bridges = {};
 		this.pingInterval = null;
 
-		// :TEMP: Extract provider domain for use in HTTPL domain assignment
-		// when multiple providers are supported, the signal should include this info
-		var providerUrld = local.parseUri(config.provider);
-		this.providerDomain = providerUrld.host;
-
 		// Internal helpers
 		this.messageFromAuthPopupHandler = null;
 
 		// APIs
-		this.p2pwServiceAPI = local.navigator(config.provider);
-		this.accessTokenAPI = this.p2pwServiceAPI.follow({ rel: 'grimwire.com/-access-token', app: config.app });
-		this.accessTokenAPI.resolve({ nohead: true }); // immediately resolve so requestAccessToken() can use it
-		this.p2pwUsersAPI = this.p2pwServiceAPI.follow({ rel: 'grimwire.com/-user collection' });
+		this.p2pwServiceAPI = null;
+		this.accessTokenAPI = null;
+		this.p2pwUsersAPI = null;
 		this.p2pwRelayAPI = null;
 		this.relayStream = null;
+
+		// Setup provider config
+		if (config.provider) {
+			this.setProvider(config.provider);
+		}
 
 		// Bind window close behavior
 		window.addEventListener('beforeunload', this.onPageClose.bind(this));
@@ -401,26 +399,27 @@
 	PeerWebRelay.prototype.isListening    = function() { return this.connectedToRelay; };
 	PeerWebRelay.prototype.getDomain      = function() { return this.myPeerDomain; };
 	PeerWebRelay.prototype.getUserId      = function() { return this.userId; };
-	PeerWebRelay.prototype.getPeer        = function(domain) { return this.bridges[domain]; };
 	PeerWebRelay.prototype.getApp         = function() { return this.config.app; };
 	PeerWebRelay.prototype.getStreamId    = function() { return this.config.stream; };
 	PeerWebRelay.prototype.setStreamId    = function(stream) { this.config.stream = stream; };
 	PeerWebRelay.prototype.getAccessToken = function() { return this.accessToken; };
+	PeerWebRelay.prototype.getServerFn    = function() { return this.config.serverFn; };
+	PeerWebRelay.prototype.setServerFn    = function(fn) { this.config.serverFn = fn; };
 	PeerWebRelay.prototype.getProvider    = function() { return this.config.provider; };
 	PeerWebRelay.prototype.setProvider = function(providerUrl) {
 		// Abort if already connected
 		if (this.connectedToRelay) {
 			throw new Error("Can not change provider while connected to the relay. Call stopListening() first.");
 		}
-		// Update config and APIs
+		// Update config
 		this.config.provider = providerUrl;
 		this.providerDomain = local.parseUri(providerUrl).host;
-		this.p2pwServiceAPI.rebase(providerUrl);
-		this.accessTokenAPI.unresolve().resolve({ nohead: true }); // immediately resolve so requestAccessToken() can use it
-		this.p2pwUsersAPI.unresolve();
-		if (this.p2pwRelayAPI) {
-			this.p2pwRelayAPI.unresolve();
-		}
+
+		// Create APIs
+		this.p2pwServiceAPI = local.navigator(this.config.provider);
+		this.accessTokenAPI = this.p2pwServiceAPI.follow({ rel: 'grimwire.com/-access-token', app: this.config.app });
+		this.p2pwUsersAPI   = this.p2pwServiceAPI.follow({ rel: 'grimwire.com/-user collection' });
+		this.accessTokenAPI.resolve({ nohead: true }); // immediately resolve so requestAccessToken() can use it
 	};
 
 	// Gets an access token from the provider & user using a popup
