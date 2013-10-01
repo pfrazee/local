@@ -78,6 +78,7 @@ WorkerBridgeServer.prototype.getPort = function() {
 };
 
 WorkerBridgeServer.prototype.terminate = function() {
+	BridgeServer.prototype.terminate.call(this);
 	this.worker.terminate();
 	this.worker = null;
 	this.isUserScriptActive = false;

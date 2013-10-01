@@ -86,6 +86,7 @@
 	};
 
 	RTCBridgeServer.prototype.terminate = function(opts) {
+		BridgeServer.prototype.terminate.call(this);
 		if (this.isConnecting || this.isConnected) {
 			if (!(opts && opts.noSignal)) {
 				this.signal({ type: 'disconnect' });

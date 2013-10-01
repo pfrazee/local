@@ -49,6 +49,7 @@ function BridgeServer(config) {
 	this.sidCounter = 1;
 	this.incomingStreams = {}; // maps sid -> request/response stream
 	// ^ only contains active streams (closed streams are deleted)
+	this.outgoingStreams = {}; // like `incomingStreams`, but for requests & responses that are sending out data
 	this.msgBuffer = []; // buffer of messages kept until channel is active
 }
 BridgeServer.prototype = Object.create(Server.prototype);
@@ -109,8 +110,9 @@ BridgeServer.prototype.handleLocalWebRequest = function(request, response) {
 		headers: request.headers
 	};
 
-	// Store response stream in anticipation of the response messages
-	this.incomingStreams[-msg.sid] = response;
+	// Hold onto streams
+	this.outgoingStreams[msg.sid] = request;
+	this.incomingStreams[-msg.sid] = response; // store response stream in anticipation of the response messages
 
 	// Send over the channel
 	this.channelSendMsgWhenReady(JSON.stringify(msg));
@@ -119,6 +121,21 @@ BridgeServer.prototype.handleLocalWebRequest = function(request, response) {
 	var this2 = this;
 	request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, body: data })); });
 	request.on('end', function()       { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, end: true })); });
+	request.on('close', function()     { delete this2.outgoingStreams[msg.sid]; });
+};
+
+// Called before server destruction
+// - may be overridden
+// - executes syncronously; does not wait for cleanup to finish
+BridgeServer.prototype.terminate = function() {
+	Server.prototype.terminate.call(this);
+	for (var sid in this.incomingStreams) {
+		this.incomingStreams[sid].end();
+	}
+	for (sid in this.outgoingStreams) {
+		this.outgoingStreams[sid].end();
+	}
+	this.incomingStreams = this.outgoingStreams = {};
 };
 
 // HTTPL implementation for incoming messages
@@ -162,14 +179,20 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 					headers: response.headers
 				}));
 			});
-			response.on('data',  function(data) { this2.channelSendMsg(JSON.stringify({ sid: resSid, body: data })); });
-			response.on('close', function()     { this2.channelSendMsg(JSON.stringify({ sid: resSid, end: true })); });
+			response.on('data',  function(data) {
+				this2.channelSendMsg(JSON.stringify({ sid: resSid, body: data }));
+			});
+			response.on('close', function() {
+				this2.channelSendMsg(JSON.stringify({ sid: resSid, end: true }));
+				delete this2.outgoingStreams[resSid];
+			});
 
 			// Pass on to the request handler
 			this.handleRemoteWebRequest(request, response);
 
-			// Hold onto the stream
+			// Hold onto the streams
 			stream = this.incomingStreams[msg.sid] = request;
+			this.outgoingStreams[resSid] = response;
 		}
 		// Incoming responses have a negative sid
 		else {
