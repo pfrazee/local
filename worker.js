@@ -1729,9 +1729,8 @@ function Server(config) {
 }
 local.Server = Server;
 
-Server.prototype.getUrl = function() {
-	return 'httpl://' + this.config.domain;
-};
+Server.prototype.getDomain = function() { return this.config.domain; };
+Server.prototype.getUrl = function() { return 'httpl://' + this.config.domain; };
 
 // Local request handler
 // - should be overridden
