@@ -405,17 +405,17 @@
 			}
 		}
 	};
-	PeerWebRelay.prototype.isListening    = function() { return this.connectedToRelay; };
-	PeerWebRelay.prototype.getDomain      = function() { return this.myPeerDomain; };
-	PeerWebRelay.prototype.getUserId      = function() { return this.userId; };
-	PeerWebRelay.prototype.getApp         = function() { return this.config.app; };
-	PeerWebRelay.prototype.getStreamId    = function() { return this.config.stream; };
-	PeerWebRelay.prototype.setStreamId    = function(stream) { this.config.stream = stream; };
-	PeerWebRelay.prototype.getAccessToken = function() { return this.accessToken; };
-	PeerWebRelay.prototype.getServerFn    = function() { return this.config.serverFn; };
-	PeerWebRelay.prototype.setServerFn    = function(fn) { this.config.serverFn = fn; };
-	PeerWebRelay.prototype.getProvider    = function() { return this.config.provider; };
-	PeerWebRelay.prototype.setProvider = function(providerUrl) {
+	PeerWebRelay.prototype.isListening     = function() { return this.connectedToRelay; };
+	PeerWebRelay.prototype.getMyPeerDomain = function() { return this.myPeerDomain; };
+	PeerWebRelay.prototype.getUserId       = function() { return this.userId; };
+	PeerWebRelay.prototype.getApp          = function() { return this.config.app; };
+	PeerWebRelay.prototype.getStreamId     = function() { return this.config.stream; };
+	PeerWebRelay.prototype.setStreamId     = function(stream) { this.config.stream = stream; };
+	PeerWebRelay.prototype.getAccessToken  = function() { return this.accessToken; };
+	PeerWebRelay.prototype.getServerFn     = function() { return this.config.serverFn; };
+	PeerWebRelay.prototype.setServerFn     = function(fn) { this.config.serverFn = fn; };
+	PeerWebRelay.prototype.getProvider     = function() { return this.config.provider; };
+	PeerWebRelay.prototype.setProvider     = function(providerUrl) {
 		// Abort if already connected
 		if (this.connectedToRelay) {
 			throw new Error("Can not change provider while connected to the relay. Call stopListening() first.");
@@ -526,7 +526,7 @@
 					if (self.pingInterval) { clearInterval(self.pingInterval); }
 					if (self.config.ping) {
 						self.pingInterval = setInterval(function() {
-							self.signal(self.getDomain(), { type: 'noop' });
+							self.signal(self.getMyPeerDomain(), { type: 'noop' });
 						}, self.config.ping);
 					}
 				},
