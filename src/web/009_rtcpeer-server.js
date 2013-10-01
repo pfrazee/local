@@ -406,7 +406,7 @@
 		}
 	};
 	PeerWebRelay.prototype.isListening     = function() { return this.connectedToRelay; };
-	PeerWebRelay.prototype.getMyPeerDomain = function() { return this.myPeerDomain; };
+	PeerWebRelay.prototype.getPeerDomain   = function() { return this.myPeerDomain; };
 	PeerWebRelay.prototype.getUserId       = function() { return this.userId; };
 	PeerWebRelay.prototype.getApp          = function() { return this.config.app; };
 	PeerWebRelay.prototype.getStreamId     = function() { return this.config.stream; };
@@ -526,7 +526,7 @@
 					if (self.pingInterval) { clearInterval(self.pingInterval); }
 					if (self.config.ping) {
 						self.pingInterval = setInterval(function() {
-							self.signal(self.getMyPeerDomain(), { type: 'noop' });
+							self.signal(self.getPeerDomain(), { type: 'noop' });
 						}, self.config.ping);
 					}
 				},
