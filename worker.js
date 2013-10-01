@@ -2142,13 +2142,10 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 (function() {
 
 	var peerConstraints = {
-		optional: [{ RtpDataChannels: true }]
+		// optional: [{ RtpDataChannels: true }]
+		optional: [{DtlsSrtpKeyAgreement: true}]
 	};
-	var mediaConstraints = {
-		optional: [],
-		mandatory: { OfferToReceiveAudio: false, OfferToReceiveVideo: false }
-	};
-	var defaultIceServers = { iceServers: [{ url: 'stun:stun.l.google.com:19302' }] };
+	var defaultIceServers = null;//{ iceServers: [{ url: 'stun:stun.l.google.com:19302' }] };
 
 	function randomStreamId() {
 		return Math.round(Math.random()*10000);
@@ -2194,7 +2191,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		this.rtcPeerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
 
 		// Create the HTTPL data channel
-		this.rtcDataChannel = this.rtcPeerConn.createDataChannel('httpl', { ordered: true, reliable: true });
+		this.rtcDataChannel = this.rtcPeerConn.createDataChannel('httpl', { reliable: true });
 		this.rtcDataChannel.onopen     = onHttplChannelOpen.bind(this);
 		this.rtcDataChannel.onclose    = onHttplChannelClose.bind(this);
 		this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
@@ -2345,9 +2342,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 						// Send answer msg
 						self.signal({ type: 'answer', sdp: desc.sdp });
-					},
-					null,
-					mediaConstraints
+					}
 				);
 				break;
 
@@ -2402,9 +2397,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 				// Send offer msg
 				self.signal({ type: 'offer', sdp: desc.sdp });
-			},
-			null,
-			mediaConstraints
+			}
 		);
 		// Emit 'connecting' on next tick
 		// (next tick to make sure objects creating us get a chance to wire up the event)
@@ -2453,7 +2446,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// Thanks to michellebu (https://github.com/michellebu/reliable)
 	var higherBandwidthSDPRE = /b\=AS\:([\d]+)/i;
 	function increaseSDP_MTU(sdp) {
-		return sdp.replace(higherBandwidthSDPRE, 'b=AS:102400'); // 100 Mbps
+		return sdp;
+		// return sdp.replace(higherBandwidthSDPRE, 'b=AS:102400'); // 100 Mbps
 	}
 
 
