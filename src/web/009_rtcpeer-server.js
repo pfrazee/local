@@ -7,7 +7,7 @@
 		// optional: [{ RtpDataChannels: true }]
 		optional: [{DtlsSrtpKeyAgreement: true}]
 	};
-	var defaultIceServers = null;//{ iceServers: [{ url: 'stun:stun.l.google.com:19302' }] };
+	var defaultIceServers = { iceServers: [{ url: 'stun:stun.l.google.com:19302' }] };
 
 	function randomStreamId() {
 		return Math.round(Math.random()*10000);
@@ -39,25 +39,16 @@
 		this.peerInfo = peerd;
 
 		// Internal state
-		this.isConnecting = true;
+		this.isConnecting     = true;
 		this.isOfferExchanged = false;
-		this.isConnected = false;
-		this.candidateQueue = []; // cant add candidates till we get the offer
+		this.isConnected      = false;
+		this.candidateQueue   = []; // cant add candidates till we get the offer
+		this.offerNonce       = 0; // a random number used to decide who takes the lead if both nodes send an offer
+		this.rtcPeerConn      = null;
+		this.rtcDataChannel   = null;
 
 		// Create the peer connection
-		var servers = config.iceServers || defaultIceServers;
-		this.rtcPeerConn = new webkitRTCPeerConnection(servers, peerConstraints);
-		this.rtcPeerConn.onicecandidate             = onIceCandidate.bind(this);
-		this.rtcPeerConn.onicechange                = onIceConnectionStateChange.bind(this);
-		this.rtcPeerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
-		this.rtcPeerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
-
-		// Create the HTTPL data channel
-		this.rtcDataChannel = this.rtcPeerConn.createDataChannel('httpl', { reliable: true });
-		this.rtcDataChannel.onopen     = onHttplChannelOpen.bind(this);
-		this.rtcDataChannel.onclose    = onHttplChannelClose.bind(this);
-		this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
-		this.rtcDataChannel.onmessage  = onHttplChannelMessage.bind(this);
+		this.createPeerConn();
 
 		if (this.config.loopback) {
 			// Setup to serve self
@@ -72,9 +63,8 @@
 	RTCBridgeServer.prototype = Object.create(local.BridgeServer.prototype);
 	local.RTCBridgeServer = RTCBridgeServer;
 
-	RTCBridgeServer.prototype.getPeerInfo = function() {
-		return this.peerInfo;
-	};
+	// Accessors
+	RTCBridgeServer.prototype.getPeerInfo = function() { return this.peerInfo; };
 
 	// :DEBUG:
 	RTCBridgeServer.prototype.debugLog = function() {
@@ -90,12 +80,8 @@
 			}
 			this.isConnecting = false;
 			this.isConnected = false;
+			this.destroyPeerConn();
 			this.emit('disconnected', { peer: this.peerInfo, domain: this.config.domain, server: this });
-
-			if (this.rtcPeerConn) {
-				this.rtcPeerConn.close();
-				this.rtcPeerConn = null;
-			}
 		}
 	};
 
@@ -138,13 +124,23 @@
 	function onHttplChannelOpen(e) {
 		this.debugLog('HTTPL CHANNEL OPEN', e);
 
-		// Update state
-		this.isConnecting = false;
-		this.isConnected = true;
-		this.flushBufferedMessages();
+		// :HACK: for some reason, this CB is getting called before this.rtcDataChannel.negotiated == true
+		//        there doesnt seem to be any other event emitted, so we gotta poll for now
 
-		// Emit event
-		this.emit('connected', { peer: this.peerInfo, domain: this.config.domain, server: this });
+		var self = this;
+		setTimeout(function() {
+			console.warn('using rtcDataChannel delay hack');
+
+			// Update state
+			self.isConnecting = false;
+			self.isConnected = true;
+
+			// Get out any queued messages
+			self.flushBufferedMessages();
+
+			// Emit event
+			self.emit('connected', { peer: self.peerInfo, domain: self.config.domain, server: self });
+		}, 1000);
 	}
 
 	function onHttplChannelClose(e) {
@@ -184,15 +180,40 @@
 				break;
 
 			case 'offer':
-				this.debugLog('GOT OFFER', msg);
 				// Received a session offer from the peer
+				this.debugLog('GOT OFFER', msg);
+				if (this.isConnected) {
+					this.debugLog('RECEIVED AN OFFER WHEN BELIEVED TO BE CONNECTED, DROPPING');
+					return;
+				}
+				if (this.isOfferExchanged) {
+					this.debugLog('RECEIVED A 2ND OFFER, DROPPING (FOR NOW)');
+					return;
+				}
+
+				// Guard against an offer race conditions
+				if (this.config.initiate) {
+					// Leader conflict - compare nonces
+					this.debugLog('LEADER CONFLICT DETECTED, COMPARING NONCES', 'MINE=', this.offerNonce, 'THEIRS=', msg.nonce);
+					if (this.offerNonce < msg.nonce) {
+						// Reset into follower role
+						this.debugLog('RESETTING INTO FOLLOWER ROLE');
+						this.config.initiate = false;
+						this.destroyPeerConn(true);
+						this.createPeerConn();
+					}
+				}
+
 				// Emit event
 				this.emit('connecting', { peer: this.peerInfo, domain: this.config.domain, server: this });
+
 				// Update the peer connection
 				var desc = new RTCSessionDescription({ type: 'offer', sdp: msg.sdp });
 				this.rtcPeerConn.setRemoteDescription(desc);
+
 				// Burn the ICE candidate queue
 				handleOfferExchanged.call(self);
+
 				// Send an answer
 				this.rtcPeerConn.createAnswer(
 					function(desc) {
@@ -209,10 +230,12 @@
 				break;
 
 			case 'answer':
-				this.debugLog('GOT ANSWER', msg);
 				// Received session confirmation from the peer
+				this.debugLog('GOT ANSWER', msg);
+
 				// Update the peer connection
 				this.rtcPeerConn.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
+
 				// Burn the ICE candidate queue
 				handleOfferExchanged.call(self);
 				break;
@@ -245,20 +268,69 @@
 			});
 	};
 
+	// Helper sets up the peer connection
+	RTCBridgeServer.prototype.createPeerConn = function() {
+		if (!this.rtcPeerConn) {
+			var servers = this.config.iceServers || defaultIceServers;
+			this.rtcPeerConn = new webkitRTCPeerConnection(servers, peerConstraints);
+			this.rtcPeerConn.onicecandidate             = onIceCandidate.bind(this);
+			this.rtcPeerConn.onicechange                = onIceConnectionStateChange.bind(this);
+			this.rtcPeerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
+			this.rtcPeerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
+			this.rtcPeerConn.ondatachannel              = onDataChannel.bind(this);
+		}
+	};
+
+	// Helper tears down the peer conn
+	RTCBridgeServer.prototype.destroyPeerConn = function(suppressEvents) {
+		if (this.rtcDataChannel) {
+			this.rtcDataChannel.close();
+			if (suppressEvents) {
+				this.rtcDataChannel.onopen    = null;
+				this.rtcDataChannel.onclose   = null;
+				this.rtcDataChannel.onerror   = null;
+				this.rtcDataChannel.onmessage = null;
+			}
+			this.rtcDataChannel = null;
+		}
+		if (this.rtcPeerConn) {
+			this.rtcPeerConn.close();
+			if (suppressEvents) {
+				this.rtcPeerConn.onicecandidate             = null;
+				this.rtcPeerConn.onicechange                = null;
+				this.rtcPeerConn.oniceconnectionstatechange = null;
+				this.rtcPeerConn.onsignalingstatechange     = null;
+				this.rtcPeerConn.ondatachannel              = null;
+			}
+			this.rtcPeerConn = null;
+		}
+	};
+
 	// Helper initiates a session with peers on the relay
 	RTCBridgeServer.prototype.sendOffer = function() {
 		var self = this;
+
+		// Create the HTTPL data channel
+		this.rtcDataChannel = this.rtcPeerConn.createDataChannel('httpl', { reliable: true });
+		this.rtcDataChannel.onopen     = onHttplChannelOpen.bind(this);
+		this.rtcDataChannel.onclose    = onHttplChannelClose.bind(this);
+		this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
+		this.rtcDataChannel.onmessage  = onHttplChannelMessage.bind(this);
+
 		// Generate offer
 		this.rtcPeerConn.createOffer(
 			function(desc) {
 				self.debugLog('CREATED OFFER', desc);
 
-				// store the SDP
+				// Store the SDP
 				desc.sdp = increaseSDP_MTU(desc.sdp);
 				self.rtcPeerConn.setLocalDescription(desc);
 
+				// Generate an offer nonce
+				self.offerNonce = Math.round(Math.random() * 10000000);
+
 				// Send offer msg
-				self.signal({ type: 'offer', sdp: desc.sdp });
+				self.signal({ type: 'offer', sdp: desc.sdp, nonce: self.offerNonce });
 			}
 		);
 		// Emit 'connecting' on next tick
@@ -302,6 +374,16 @@
 			this.debugLog('SIGNALING STATE CHANGE: DISCONNECTED', e);
 			this.terminate({ noSignal: true });
 		}
+	}
+
+	// Called by the RTCPeerConnection when a datachannel is created (receiving party only)
+	function onDataChannel(e) {
+		this.debugLog('DATA CHANNEL PROVIDED', e);
+		this.rtcDataChannel = e.channel;
+		this.rtcDataChannel.onopen     = onHttplChannelOpen.bind(this);
+		this.rtcDataChannel.onclose    = onHttplChannelClose.bind(this);
+		this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
+		this.rtcDataChannel.onmessage  = onHttplChannelMessage.bind(this);
 	}
 
 	// Increases the bandwidth allocated to our connection

@@ -81,6 +81,7 @@ BridgeServer.prototype.handleRemoteWebRequest = function(request, response) {
 // Sends messages that were buffered while waiting for the channel to setup
 // - should be called by the subclass if there's any period between creation and channel activation
 BridgeServer.prototype.flushBufferedMessages = function() {
+	console.debug('FLUSHING MESSAGES', this, JSON.stringify(this.msgBuffer));
 	this.msgBuffer.forEach(function(msg) {
 		this.channelSendMsg(msg);
 	}, this);
