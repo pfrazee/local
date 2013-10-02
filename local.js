@@ -2161,12 +2161,16 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// - `config.relay`: required PeerWebRelay
 	// - `config.initiate`: optional bool, if true will initiate the connection processes
 	// - `config.loopback`: optional bool, is this the local host? If true, will connect to self
+	// - `config.retryTimeout`: optional number, time (in ms) before a connection is aborted and retried (defaults to 15000)
+	// - `config.retries`: optional number, number of times to retry before giving up (defaults to 5)
 	function RTCBridgeServer(config) {
 		// Config
 		var self = this;
 		if (!config) config = {};
 		if (!config.peer) throw new Error("`config.peer` is required");
 		if (!config.relay) throw new Error("`config.relay` is required");
+		if (typeof config.retryTimeout == 'undefined') config.retryTimeout = 15000;
+		if (typeof config.retries == 'undefined') config.retries = 5;
 		local.BridgeServer.call(this, config);
 		local.util.mixinEventEmitter(this);
 
@@ -2183,6 +2187,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		this.isConnected      = false;
 		this.candidateQueue   = []; // cant add candidates till we get the offer
 		this.offerNonce       = 0; // a random number used to decide who takes the lead if both nodes send an offer
+		this.retriesLeft      = config.retries;
 		this.rtcPeerConn      = null;
 		this.rtcDataChannel   = null;
 
@@ -2325,9 +2330,10 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 					this.debugLog('RECEIVED AN OFFER WHEN BELIEVED TO BE CONNECTED, DROPPING');
 					return;
 				}
-				if (this.isOfferExchanged) {
-					this.debugLog('RECEIVED A 2ND OFFER, DROPPING (FOR NOW)');
-					return;
+
+				// Emit event
+				if (!this.isOfferExchanged) {
+					this.emit('connecting', { peer: this.peerInfo, domain: this.config.domain, server: this });
 				}
 
 				// Guard against an offer race conditions
@@ -2338,13 +2344,22 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 						// Reset into follower role
 						this.debugLog('RESETTING INTO FOLLOWER ROLE');
 						this.config.initiate = false;
-						this.destroyPeerConn(true);
-						this.createPeerConn();
+						this.resetPeerConn();
 					}
 				}
 
-				// Emit event
-				this.emit('connecting', { peer: this.peerInfo, domain: this.config.domain, server: this });
+				// Watch for reset offers from the leader
+				if (!this.config.initiate && this.isOfferExchanged) {
+					if (this.retriesLeft > 0) {
+						this.retriesLeft--;
+						this.debugLog('RECEIVED A NEW OFFER, RESETTING AND RETRYING. RETRIES LEFT:', this.retriesLeft);
+						this.resetPeerConn();
+					} else {
+						this.debugLog('RECEIVED A NEW OFFER, NO RETRIES LEFT. GIVING UP.');
+						this.terminate();
+						return;
+					}
+				}
 
 				// Update the peer connection
 				var desc = new RTCSessionDescription({ type: 'offer', sdp: msg.sdp });
@@ -2445,9 +2460,41 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		}
 	};
 
+	// Helper restarts the connection process
+	RTCBridgeServer.prototype.resetPeerConn = function(suppressEvents) {
+		this.destroyPeerConn(true);
+		this.createPeerConn();
+		this.candidateQueue.length = 0;
+		this.isOfferExchanged = false;
+	};
+
+	// Helper initiates a timeout clock for the connection process
+	function initConnectTimeout() {
+		var self = this;
+		setTimeout(function() {
+			// Leader role only
+			if (self.config.initiate && self.isConnected === false) {
+				if (self.retriesLeft > 0) {
+					self.retriesLeft--;
+					console.debug('CONNECTION TIMED OUT, RESTARTING. TRIES LEFT:', self.retriesLeft);
+					// Reset
+					self.resetPeerConn();
+					self.sendOffer();
+				} else {
+					// Give up
+					console.debug('CONNECTION TIMED OUT, GIVING UP');
+					self.terminate();
+				}
+			}
+		}, this.config.retryTimeout);
+	}
+
 	// Helper initiates a session with peers on the relay
 	RTCBridgeServer.prototype.sendOffer = function() {
 		var self = this;
+
+		// Start the clock
+		initConnectTimeout.call(this);
 
 		// Create the HTTPL data channel
 		this.rtcDataChannel = this.rtcPeerConn.createDataChannel('httpl', { reliable: true });
@@ -2545,6 +2592,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// - `config.ping`: optional number, sends a ping to self via the relay at the given interval (in ms) to keep the stream alive
 	//   - set to false to disable keepalive pings
 	//   - defaults to 45000
+	// - `config.retryTimeout`: optional number, time (in ms) before a peer connection is aborted and retried (defaults to 15000)
+	// - `config.retries`: optional number, number of times to retry a peer connection before giving up (defaults to 5)
 	function PeerWebRelay(config) {
 		if (!config) config = {};
 		if (!config.app) config.app = window.location.hostname;
@@ -2769,6 +2818,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// - `config.initiate`: optional Boolean, should the server initiate the connection?
 	//   - defaults to true
 	//   - should only be false if the connection was already initiated by the opposite end
+	// - `config.retryTimeout`: optional number, time (in ms) before a connection is aborted and retried (defaults to 15000)
+	// - `config.retries`: optional number, number of times to retry before giving up (defaults to 5)
 	PeerWebRelay.prototype.connect = function(peerUrl, config) {
 		if (!config) config = {};
 		if (typeof config.initiate == 'undefined') config.initiate = true;
@@ -2788,11 +2839,13 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 		// Spawn new server
 		var server = new local.RTCBridgeServer({
-			peer: peerUrl,
-			initiate: config.initiate,
-			relay: this,
-			serverFn: this.config.serverFn,
-			loopback: (peerUrld.authority == this.myPeerDomain)
+			peer:         peerUrl,
+			initiate:     config.initiate,
+			relay:        this,
+			serverFn:     this.config.serverFn,
+			loopback:     (peerUrld.authority == this.myPeerDomain),
+			retryTimeout: config.retryTimeout || this.config.retryTimeout,
+			retries:      config.retries || this.config.retries
 		});
 
 		// Bind events
