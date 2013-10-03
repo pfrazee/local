@@ -1064,7 +1064,7 @@ local.parsePeerDomain = function parsePeerDomain(domain) {
 // constructs a peer domain from its constituent parts
 // - returns string
 local.makePeerDomain = function makePeerDomain(user, relay, app, stream) {
-	return user+'@'+relay+'!'+app+':'+(stream||'0');
+	return user+'@'+relay.replace(':','.')+'!'+app.replace(':','.')+':'+(stream||'0');
 };
 
 
@@ -2834,9 +2834,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 		// Parse the url
 		var peerUrld = local.parseUri(peerUrl);
-		var hostParts = peerUrld.host.split('!');
-		var provider = hostParts[0], app = hostParts[1];
-		if (!peerUrld.user || !provider || !app || !peerUrld.port) {
+		var peerd = local.parsePeerDomain(peerUrld.authority);
+		if (!peerd) {
 			throw new Error("Invalid peer url given to connect(): "+peerUrl);
 		}
 

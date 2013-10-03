@@ -292,7 +292,7 @@ local.parsePeerDomain = function parsePeerDomain(domain) {
 // constructs a peer domain from its constituent parts
 // - returns string
 local.makePeerDomain = function makePeerDomain(user, relay, app, stream) {
-	return user+'@'+relay+'!'+app+':'+(stream||'0');
+	return user+'@'+relay.replace(':','.')+'!'+app.replace(':','.')+':'+(stream||'0');
 };
 
 

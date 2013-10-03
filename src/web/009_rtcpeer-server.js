@@ -695,9 +695,8 @@
 
 		// Parse the url
 		var peerUrld = local.parseUri(peerUrl);
-		var hostParts = peerUrld.host.split('!');
-		var provider = hostParts[0], app = hostParts[1];
-		if (!peerUrld.user || !provider || !app || !peerUrld.port) {
+		var peerd = local.parsePeerDomain(peerUrld.authority);
+		if (!peerd) {
 			throw new Error("Invalid peer url given to connect(): "+peerUrl);
 		}
 

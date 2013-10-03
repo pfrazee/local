@@ -35,7 +35,7 @@ if (!sessionStorage.getItem('access-token')) {
 peerWeb2.on('listening', function() {
 	// Connect to self on second stream
 	if (!peer1API) {
-		peerWeb1.connect(peerWeb1.getUserId()+'@grimwire.net!'+window.location.host+':1');
+		peerWeb1.connect(peerWeb1.makeDomain(peerWeb1.getUserId(), window.location.host, 1));
 		// peerWeb2.connect(peerWeb2.getUserId()+'@grimwire.net!'+window.location.host+':0');
 		// ^^^ uncomment to test leader-conflict resolution
 	}
