@@ -448,7 +448,7 @@
 	// Helper class for managing a peer web relay provider
 	// - `config.provider`: optional string, the relay provider
 	// - `config.serverFn`: optional function, the function for peerservers' handleRemoteWebRequest
-	// - `config.app`: optional string, the app to join as (defaults to window.location.hostname)
+	// - `config.app`: optional string, the app to join as (defaults to window.location.host)
 	// - `config.stream`: optional number, the stream id (defaults to pseudo-random)
 	// - `config.ping`: optional number, sends a ping to self via the relay at the given interval (in ms) to keep the stream alive
 	//   - set to false to disable keepalive pings
@@ -457,7 +457,7 @@
 	// - `config.retries`: optional number, number of times to retry a peer connection before giving up (defaults to 5)
 	function PeerWebRelay(config) {
 		if (!config) config = {};
-		if (!config.app) config.app = window.location.hostname;
+		if (!config.app) config.app = window.location.host;
 		if (typeof config.stream == 'undefined') config.stream = randomStreamId();
 		if (typeof config.ping == 'undefined') { config.ping = 45000; }
 		this.config = config;
@@ -594,6 +594,9 @@
 		window.addEventListener('message', this.messageFromAuthPopupHandler);
 
 		// Open interface in a popup
+		// :HACK: because popup blocking can only be avoided by a syncronous popup call, we have to manually construct the url (it burns us)
+		window.open(this.getProvider() + '/session/' + this.config.app);
+		/* the old half-solution:
 		if (this.accessTokenAPI.context.url) {
 			// Try to open immediately, to avoid popup blocking
 			window.open(this.accessTokenAPI.context.url);
@@ -602,7 +605,7 @@
 			this.accessTokenAPI.resolve({ nohead: true }).always(function(url) {
 				window.open(url);
 			});
-		}
+		}*/
 
 		return token_;
 	};
