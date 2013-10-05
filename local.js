@@ -2808,6 +2808,13 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// - peers will no longer be able to connect
 	PeerWebRelay.prototype.stopListening = function() {
 		if (this.connectedToRelay) {
+			// Terminate any bridges that are mid-connection
+			for (var domain in this.bridges) {
+				if (this.bridges[domain].isConnecting) {
+					this.bridges[domain].terminate();
+				}
+			}
+
 			// Update state
 			this.connectedToRelay = false;
 			this.relayStream.close();
