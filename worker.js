@@ -1045,7 +1045,7 @@ local.parseNavUri = function(str) {
 // breaks a peer domain into its constituent parts
 // - returns { user:, relay:, provider:, app:, stream: }
 //   (relay == provider -- they are synonmyms)
-var peerDomainRE = /^(.+)@(.+)!(.+):([\d]+)$/i;
+var peerDomainRE = /^(.+)@([^!]+)!([^:\/]+)(?::([\d]+))?$/i;
 local.parsePeerDomain = function parsePeerDomain(domain) {
 	var match = peerDomainRE.exec(domain);
 	if (match) {
@@ -1054,7 +1054,7 @@ local.parsePeerDomain = function parsePeerDomain(domain) {
 			relay: match[2],
 			provider: match[2],
 			app: match[3],
-			stream: match[4]
+			stream: match[4] || 0
 		};
 	}
 	return null;
@@ -1064,7 +1064,7 @@ local.parsePeerDomain = function parsePeerDomain(domain) {
 // constructs a peer domain from its constituent parts
 // - returns string
 local.makePeerDomain = function makePeerDomain(user, relay, app, stream) {
-	return user+'@'+relay.replace(':','.')+'!'+app.replace(':','.')+':'+(stream||'0');
+	return user+'@'+relay.replace(':','.')+'!'+app.replace(':','.')+((stream) ? ':'+stream : '');
 };
 
 
@@ -3170,15 +3170,26 @@ local.schemes.register('httpl', function(request, response) {
 		// Check if this is a peerweb URI
 		var peerd = local.parsePeerDomain(request.urld.authority);
 		if (peerd) {
-			if (peerd.relay in __peer_relay_registry) {
-				// Try connecting to the peer
-				// console.log(peerd,'not found, connecting');
-				__peer_relay_registry[peerd.relay].connect(request.urld.authority);
-				server = local.getServer(request.urld.authority);
-				// console.log(server);
-			} else {
-				// We're not connected to the relay
-				server = localRelayNotOnlineServer;
+			// See if this is a default stream miss
+			if (peerd.stream === '0') {
+				if (request.urld.authority.slice(-2) == ':0') {
+					server = local.getServer(request.urld.authority.slice(0,-2));
+				} else {
+					server = local.getServer(request.urld.authority + ':0');
+				}
+			}
+			if (!server) {
+				// Not a default stream miss
+				if (peerd.relay in __peer_relay_registry) {
+					// Try connecting to the peer
+					// console.log(peerd,'not found, connecting');
+					__peer_relay_registry[peerd.relay].connect(request.urld.authority);
+					server = local.getServer(request.urld.authority);
+					// console.log(server);
+				} else {
+					// We're not connected to the relay
+					server = localRelayNotOnlineServer;
+				}
 			}
 		} else
 			server = localNotFoundServer;

@@ -2,6 +2,11 @@ Changes
 =======
 0.4.0
 
+2013/10/05 pfraze
+
+ - Added peer default stream (0) support (eg bob@foo.com!bar.com:0 == bob@foo.com!bar.com)
+
+
 2013/09/27 pfraze
 
  - Added local.httpHeaders for standardized header de/serialization (similar to local.contentTypes)
