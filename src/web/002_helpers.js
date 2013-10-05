@@ -142,7 +142,7 @@ local.isAbsUri = function(url) {
 	if (isAbsUriRE.test(url))
 		return true;
 	var urld = local.parseUri(url);
-	return !!local.getLocal(urld.authority) || !!local.parsePeerDomain(urld.authority);
+	return !!local.getServer(urld.authority) || !!local.parsePeerDomain(urld.authority);
 };
 
 // EXPORTED

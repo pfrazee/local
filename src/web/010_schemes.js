@@ -184,7 +184,7 @@ var localRelayNotOnlineServer = {
 };
 local.schemes.register('httpl', function(request, response) {
 	// Find the local server
-	var server = local.getLocal(request.urld.authority);
+	var server = local.getServer(request.urld.authority);
 	if (!server) {
 		// Check if this is a peerweb URI
 		var peerd = local.parsePeerDomain(request.urld.authority);
@@ -193,7 +193,7 @@ local.schemes.register('httpl', function(request, response) {
 				// Try connecting to the peer
 				// console.log(peerd,'not found, connecting');
 				__peer_relay_registry[peerd.relay].connect(request.urld.authority);
-				server = local.getLocal(request.urld.authority);
+				server = local.getServer(request.urld.authority);
 				// console.log(server);
 			} else {
 				// We're not connected to the relay
@@ -265,8 +265,8 @@ var __httpl_registry = {};
 var __peer_relay_registry = {}; // populated by PeerWebRelay startListening() and stopListening()
 
 // EXPORTED
-local.registerLocal = function registerLocal(domain, server, serverContext) {
-	if (__httpl_registry[domain]) throw new Error("server already registered at domain given to registerLocal");
+local.registerServer = function registerServer(domain, server, serverContext) {
+	if (__httpl_registry[domain]) throw new Error("server already registered at domain given to registerServer");
 
 	var isServerObj = (server instanceof local.Server);
 	if (isServerObj) {
@@ -279,18 +279,18 @@ local.registerLocal = function registerLocal(domain, server, serverContext) {
 };
 
 // EXPORTED
-local.unregisterLocal = function unregisterLocal(domain) {
+local.unregisterServer = function unregisterServer(domain) {
 	if (__httpl_registry[domain]) {
 		delete __httpl_registry[domain];
 	}
 };
 
 // EXPORTED
-local.getLocal = function getLocal(domain) {
+local.getServer = function getServer(domain) {
 	return __httpl_registry[domain];
 };
 
 // EXPORTED
-local.getLocalRegistry = function getLocalRegistry() {
+local.getServerRegistry = function getServerRegistry() {
 	return __httpl_registry;
 };

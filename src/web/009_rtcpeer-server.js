@@ -278,7 +278,7 @@
 						self.incomingStreams[k].writeHead(404, 'not found').end();
 					}
 					self.terminate({ noSignal: true });
-					local.unregisterLocal(self.config.domain);
+					local.unregisterServer(self.config.domain);
 				}
 			});
 	};
@@ -727,7 +727,7 @@
 
 		// Add to hostmap
 		this.bridges[peerUrld.authority] = server;
-		local.registerLocal(peerUrld.authority, server);
+		local.registerServer(peerUrld.authority, server);
 
 		return server;
 	};
@@ -814,7 +814,7 @@
 		var bridge = this.bridges[data.domain];
 		if (bridge) {
 			delete this.bridges[data.domain];
-			local.unregisterLocal(data.domain);
+			local.unregisterServer(data.domain);
 		}
 	};
 

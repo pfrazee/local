@@ -281,7 +281,7 @@ Navigator.prototype.resolve = function(options) {
 
 		if (this.context.isRelative() && !this.parentNavigator) {
 			// Scheme-less URIs can map to local URIs, so make sure the local server hasnt been added since we were created
-			if (typeof this.context.query == 'string' && !!local.getLocal(this.context.query)) {
+			if (typeof this.context.query == 'string' && !!local.getServer(this.context.query)) {
 				self.context = new NavigatorContext(self.context.query);
 			} else {
 				self.context.setFailed({ status: 404, reason: 'not found' });

@@ -32,7 +32,7 @@ local.spawnWorkerServer = function(src, config, serverFn) {
 			domain = getAvailableLocalDomain(src.split('/').pop().toLowerCase() + '{n}');
 		}
 	}
-	local.registerLocal(domain, server);
+	local.registerServer(domain, server);
 
 	return server;
 };
@@ -56,6 +56,6 @@ function getAvailableLocalDomain(base) {
 	do {
 		str = base.replace('{n}', i);
 		i = (!i) ? 2 : i + 1;
-	} while (local.getLocal(str));
+	} while (local.getServer(str));
 	return str;
 }

@@ -914,7 +914,7 @@ local.isAbsUri = function(url) {
 	if (isAbsUriRE.test(url))
 		return true;
 	var urld = local.parseUri(url);
-	return !!local.getLocal(urld.authority) || !!local.parsePeerDomain(urld.authority);
+	return !!local.getServer(urld.authority) || !!local.parsePeerDomain(urld.authority);
 };
 
 // EXPORTED
@@ -2417,7 +2417,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 						self.incomingStreams[k].writeHead(404, 'not found').end();
 					}
 					self.terminate({ noSignal: true });
-					local.unregisterLocal(self.config.domain);
+					local.unregisterServer(self.config.domain);
 				}
 			});
 	};
@@ -2866,7 +2866,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 		// Add to hostmap
 		this.bridges[peerUrld.authority] = server;
-		local.registerLocal(peerUrld.authority, server);
+		local.registerServer(peerUrld.authority, server);
 
 		return server;
 	};
@@ -2953,7 +2953,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		var bridge = this.bridges[data.domain];
 		if (bridge) {
 			delete this.bridges[data.domain];
-			local.unregisterLocal(data.domain);
+			local.unregisterServer(data.domain);
 		}
 	};
 
@@ -3165,7 +3165,7 @@ var localRelayNotOnlineServer = {
 };
 local.schemes.register('httpl', function(request, response) {
 	// Find the local server
-	var server = local.getLocal(request.urld.authority);
+	var server = local.getServer(request.urld.authority);
 	if (!server) {
 		// Check if this is a peerweb URI
 		var peerd = local.parsePeerDomain(request.urld.authority);
@@ -3174,7 +3174,7 @@ local.schemes.register('httpl', function(request, response) {
 				// Try connecting to the peer
 				// console.log(peerd,'not found, connecting');
 				__peer_relay_registry[peerd.relay].connect(request.urld.authority);
-				server = local.getLocal(request.urld.authority);
+				server = local.getServer(request.urld.authority);
 				// console.log(server);
 			} else {
 				// We're not connected to the relay
@@ -3246,8 +3246,8 @@ var __httpl_registry = {};
 var __peer_relay_registry = {}; // populated by PeerWebRelay startListening() and stopListening()
 
 // EXPORTED
-local.registerLocal = function registerLocal(domain, server, serverContext) {
-	if (__httpl_registry[domain]) throw new Error("server already registered at domain given to registerLocal");
+local.registerServer = function registerServer(domain, server, serverContext) {
+	if (__httpl_registry[domain]) throw new Error("server already registered at domain given to registerServer");
 
 	var isServerObj = (server instanceof local.Server);
 	if (isServerObj) {
@@ -3260,19 +3260,19 @@ local.registerLocal = function registerLocal(domain, server, serverContext) {
 };
 
 // EXPORTED
-local.unregisterLocal = function unregisterLocal(domain) {
+local.unregisterServer = function unregisterServer(domain) {
 	if (__httpl_registry[domain]) {
 		delete __httpl_registry[domain];
 	}
 };
 
 // EXPORTED
-local.getLocal = function getLocal(domain) {
+local.getServer = function getServer(domain) {
 	return __httpl_registry[domain];
 };
 
 // EXPORTED
-local.getLocalRegistry = function getLocalRegistry() {
+local.getServerRegistry = function getServerRegistry() {
 	return __httpl_registry;
 };
 var webDispatchWrapper;
@@ -4775,7 +4775,7 @@ Navigator.prototype.resolve = function(options) {
 
 		if (this.context.isRelative() && !this.parentNavigator) {
 			// Scheme-less URIs can map to local URIs, so make sure the local server hasnt been added since we were created
-			if (typeof this.context.query == 'string' && !!local.getLocal(this.context.query)) {
+			if (typeof this.context.query == 'string' && !!local.getServer(this.context.query)) {
 				self.context = new NavigatorContext(self.context.query);
 			} else {
 				self.context.setFailed({ status: 404, reason: 'not found' });
@@ -4895,8 +4895,8 @@ local.navigator = function(queryOrNav) {
 
 	return nav;
 };// Local Registry Host
-local.registerLocal('hosts', function(req, res) {
-	var localHosts = local.getLocalRegistry();
+local.registerServer('hosts', function(req, res) {
+	var localHosts = local.getServerRegistry();
 
 	if (!(req.method == 'HEAD' || req.method == 'GET'))
 		return res.writeHead(405, 'bad method').end();
@@ -4972,7 +4972,7 @@ local.spawnWorkerServer = function(src, config, serverFn) {
 			domain = getAvailableLocalDomain(src.split('/').pop().toLowerCase() + '{n}');
 		}
 	}
-	local.registerLocal(domain, server);
+	local.registerServer(domain, server);
 
 	return server;
 };
@@ -4996,7 +4996,7 @@ function getAvailableLocalDomain(base) {
 	do {
 		str = base.replace('{n}', i);
 		i = (!i) ? 2 : i + 1;
-	} while (local.getLocal(str));
+	} while (local.getServer(str));
 	return str;
 }// Standard DOM Events
 // ===================
@@ -5298,7 +5298,7 @@ function addConnection(port) {
 		local.worker.hostPage = page;
 	}
 	local.worker.pages.push(page);
-	local.registerLocal(page.id+'.page', page);
+	local.registerServer(page.id+'.page', page);
 
 	// Let the document know we're active
 	if (port.start) {
