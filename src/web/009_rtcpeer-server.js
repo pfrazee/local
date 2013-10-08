@@ -585,6 +585,7 @@
 				} else {
 					this.accessToken_.fulfill(e.data);
 				}
+				this.accessToken_ = null;
 			}).bind(this);
 		}
 
