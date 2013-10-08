@@ -2401,18 +2401,12 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 	// Helper to send a message to peers on the relay
 	RTCBridgeServer.prototype.signal = function(msg) {
-		if (!this.isConnecting || this.isConnected) {
-			return;
-		}
 		// Send the message through our relay
 		var self = this;
 		this.config.relay.signal(this.config.peer, msg)
 			.fail(function(res) {
-				if (!self.isConnecting || self.isConnected) {
-					return;
-				}
 				if (res.status == 404) {
-					// Peer not online
+					// Peer not online, shut down for now. We can try to reconnect later
 					for (var k in self.incomingStreams) {
 						self.incomingStreams[k].writeHead(404, 'not found').end();
 					}
@@ -2613,6 +2607,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 		// Internal helpers
 		this.messageFromAuthPopupHandler = null;
+		this.accessToken_ = null;
 
 		// APIs
 		this.p2pwServiceAPI = null;
@@ -2700,7 +2695,9 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	//   (note, however, if the accessTokenAPI hasnt resolved its api yet, there will be an async callback that breaks that)
 	// - returns promise(string), fulfills with token on success and rejects with null on failure
 	Relay.prototype.requestAccessToken = function() {
-		var token_ = local.promise();
+		if (this.accessToken_)
+			return this.accessToken_;
+		this.accessToken_ = local.promise();
 
 		// Start listening for messages from the popup
 		if (!this.messageFromAuthPopupHandler) {
@@ -2723,19 +2720,20 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 				// If given a null, emit denial event
 				if (!e.data) {
 					this.emit('accessDenied');
-					token_.reject(null);
+					this.accessToken_.reject(null);
 				} else {
-					token_.fulfill(e.data);
+					this.accessToken_.fulfill(e.data);
 				}
 			}).bind(this);
 		}
+
 		window.addEventListener('message', this.messageFromAuthPopupHandler);
 
 		// Open interface in a popup
 		// :HACK: because popup blocking can only be avoided by a syncronous popup call, we have to manually construct the url (it burns us)
 		window.open(this.getProvider() + '/session/' + this.config.app);
 
-		return token_;
+		return this.accessToken_;
 	};
 
 	// Fetches users from p2pw service
@@ -2888,7 +2886,17 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			console.warn('Relay - signal() called before relay is connected');
 			return;
 		}
-		return this.p2pwRelayAPI.dispatch({ method: 'notify', body: { src: this.myPeerDomain, dst: dst, msg: msg } });
+		var self = this;
+		var response_ = this.p2pwRelayAPI.dispatch({ method: 'notify', body: { src: this.myPeerDomain, dst: dst, msg: msg } });
+		response_.fail(function(res) {
+			if (res.status == 401) {
+				// Remove bad access token to stop reconnect attempts
+				self.setAccessToken(null);
+				// Fire event
+				self.emit('accessInvalid');
+			}
+		});
+		return response_;
 	};
 
 	Relay.prototype.onSignal = function(e) {
