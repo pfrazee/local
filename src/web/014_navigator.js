@@ -161,7 +161,7 @@ function copyDefaults(target, defaults) {
 
 // Executes an HTTP request to our context
 //  - uses additional parameters on the request options:
-//    - retry: bool, should the url resolve be tried if it previously failed?
+//    - noretry: bool, should the url resolve fail automatically if it previously failed?
 Navigator.prototype.dispatch = function(req) {
 	if (!req) req = {};
 	if (!req.headers) req.headers = {};
@@ -171,7 +171,7 @@ Navigator.prototype.dispatch = function(req) {
 		copyDefaults(req, this.requestDefaults);
 
 	// Resolve our target URL
-	return ((req.url) ? local.promise(req.url) : this.resolve({ retry: req.retry, nohead: true }))
+	return ((req.url) ? local.promise(req.url) : this.resolve({ noretry: req.noretry, nohead: true }))
 		.succeed(function(url) {
 			req.url = url;
 			return local.dispatch(req);
@@ -260,7 +260,7 @@ Navigator.prototype.rebase = function(url) {
 //  - also ensures the links have been retrieved from the context
 //  - may trigger resolution of parent contexts
 //  - options is optional and may include:
-//    - retry: bool, should the resolve be tried if it previously failed?
+//    - noretry: bool, should the url resolve fail automatically if it previously failed?
 //    - nohead: bool, should we issue a HEAD request once we have a URL? (not favorable if planning to dispatch something else)
 //  - returns a promise which will fulfill with the resolved url
 Navigator.prototype.resolve = function(options) {
@@ -275,7 +275,7 @@ Navigator.prototype.resolve = function(options) {
 	if (this.links !== null && (this.context.isResolved() || (this.context.isAbsolute() && this.context.isBad() === false))) {
 		// We have links and we were previously resolved (or we're absolute so there's no need)
 		resolvePromise.fulfill(this.context.getUrl());
-	} else if (this.context.isBad() === false || (this.context.isBad() && options.retry)) {
+	} else if (this.context.isBad() === false || (this.context.isBad() && !options.noretry)) {
 		// We don't have links, and we haven't previously failed (or we want to try again)
 		this.context.resetResolvedState();
 

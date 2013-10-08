@@ -512,7 +512,7 @@
 			// Try to validate our access now
 			var self = this;
 			this.p2pwRelayAPI = this.p2pwServiceAPI.follow({ rel: 'item grimwire.com/-p2pw/relay', id: this.getUserId(), stream: this.getStreamId(), nc: Date.now() });
-			this.p2pwRelayAPI.resolve({ retry: true }).then( // a successful HEAD request will verify access
+			this.p2pwRelayAPI.resolve().then( // a successful HEAD request will verify access
 				function() {
 					// Emit an event
 					self.emit('accessGranted');
@@ -608,14 +608,14 @@
 			opts.rel = 'self';
 			api = api.follow(opts);
 		}
-		return api.get({ accept: 'application/json' }, { retry: true });
+		return api.get({ accept: 'application/json' });
 	};
 
 	// Sends (or stores to send) links in the relay's registry
 	Relay.prototype.registerLinks = function(links) {
 		this.registeredLinks = Array.isArray(links) ? links : [links];
 		if (this.p2pwLinksAPI) {
-			this.p2pwLinksAPI.dispatch({ method: 'PATCH', retry: true, body: { links: this.registeredLinks }});
+			this.p2pwLinksAPI.dispatch({ method: 'PATCH', body: { links: this.registeredLinks }});
 		}
 	};
 
@@ -749,7 +749,7 @@
 			console.warn('Relay - signal() called before relay is connected');
 			return;
 		}
-		return this.p2pwRelayAPI.dispatch({ method: 'notify', retry: true, body: { src: this.myPeerDomain, dst: dst, msg: msg } });
+		return this.p2pwRelayAPI.dispatch({ method: 'notify', body: { src: this.myPeerDomain, dst: dst, msg: msg } });
 	};
 
 	Relay.prototype.onSignal = function(e) {
@@ -841,7 +841,7 @@
 
 			// Send a synchronous disconnect signal to all connected peers
 			var req = new XMLHttpRequest();
-			req.open('POST', this.p2pwRelayAPI.context.url, false);
+			req.open('NOTIFY', this.p2pwRelayAPI.context.url, false);
 			req.setRequestHeader('Authorization', 'Bearer '+this.accessToken);
 			req.setRequestHeader('Content-type', 'application/json');
 			req.send(JSON.stringify({ src: this.myPeerDomain, dst: dst, msg: { type: 'disconnect' } }));

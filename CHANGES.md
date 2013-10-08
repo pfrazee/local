@@ -2,6 +2,11 @@ Changes
 =======
 0.4.0
 
+2013/10/09 pfraze
+
+ - Changed the navigator `retry` param to `noretry`, making re-requests on failure the default
+
+
 2013/10/08 pfraze
 
  - Renamed local.PeerWebRelay to local.Relay, local.joinPeerRelay to local.joinRelay
