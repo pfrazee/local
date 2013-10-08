@@ -2,6 +2,12 @@ Changes
 =======
 0.4.0
 
+2013/10/08 pfraze
+
+ - Renamed local.PeerWebRelay to local.Relay, local.joinPeerRelay to local.joinRelay
+ - Added relay.navigator() and relay.registerLinks()
+
+
 2013/10/05 pfraze
 
  - Added peer default stream (0) support (eg bob@foo.com!bar.com:0 == bob@foo.com!bar.com)

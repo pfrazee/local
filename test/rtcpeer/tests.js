@@ -3,51 +3,51 @@ done = false;
 startTime = Date.now();
 
 // Create peerweb relay streams
-var peerWeb1 = local.joinPeerRelay('https://grimwire.net', { stream: 0 }, peer1ServerFn);
-var peerWeb2 = local.joinPeerRelay('https://grimwire.net', { stream: 1 }, peer2ServerFn);
+var relay1 = local.joinRelay('https://grimwire.net', { stream: 0 }, peer1ServerFn);
+var relay2 = local.joinRelay('https://grimwire.net', { stream: 1 }, peer2ServerFn);
 
-peerWeb1.on('accessGranted', function() {
+relay1.on('accessGranted', function() {
 	// Start listening
-	peerWeb1.startListening();
-	peerWeb2.startListening();
+	relay1.startListening();
+	relay2.startListening();
 });
 
 // Handle auth failures
-peerWeb1.on('accessInvalid', function() {
-	peerWeb1.requestAccessToken().then(function() {
-		sessionStorage.setItem('access-token', peerWeb1.getAccessToken());
+relay1.on('accessInvalid', function() {
+	relay1.requestAccessToken().then(function() {
+		sessionStorage.setItem('access-token', relay1.getAccessToken());
 		window.location.reload();
 	});
 });
 
 // Get access token if we need one
 if (!sessionStorage.getItem('access-token')) {
-	peerWeb1.requestAccessToken().then(function() {
-		sessionStorage.setItem('access-token', peerWeb1.getAccessToken());
+	relay1.requestAccessToken().then(function() {
+		sessionStorage.setItem('access-token', relay1.getAccessToken());
 		window.location.reload();
 	});
 } else {
 	// Pull access token from storage
-	peerWeb1.setAccessToken(sessionStorage.getItem('access-token'));
-	peerWeb2.setAccessToken(sessionStorage.getItem('access-token'));
+	relay1.setAccessToken(sessionStorage.getItem('access-token'));
+	relay2.setAccessToken(sessionStorage.getItem('access-token'));
 }
 
-peerWeb2.on('listening', function() {
+relay2.on('listening', function() {
 	// Connect to self on second stream
 	if (!peer1API) {
-		peerWeb1.connect(peerWeb1.makeDomain(peerWeb1.getUserId(), window.location.host, 1));
-		// peerWeb2.connect(peerWeb2.getUserId()+'@grimwire.net!'+window.location.host+':0');
+		relay1.connect(relay1.makeDomain(relay1.getUserId(), window.location.host, 1));
+		// relay2.connect(relay2.getUserId()+'@grimwire.net!'+window.location.host+':0');
 		// ^^^ uncomment to test leader-conflict resolution
 	}
 });
 
 var peer1API;
 var peer2API;
-peerWeb2.on('connected', function(data) {
+relay2.on('connected', function(data) {
 	peer1API = local.navigator(data.server.getUrl());
 	checkReady();
 });
-peerWeb1.on('connected', function(data) {
+relay1.on('connected', function(data) {
 	peer2API = local.navigator(data.server.getUrl());
 	print(data.peer.user);
 	print(data.peer.app);

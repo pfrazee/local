@@ -90,7 +90,7 @@ local.schemes.register(['http', 'https'], function(request, response) {
 					xhrRequest.getAllResponseHeaders().split("\n").forEach(function(h) {
 						if (!h) { return; }
 						var kv = h.replace('\r','').split(': ');
-						headers[kv[0].toLowerCase()] = kv[1];
+						headers[kv[0].toLowerCase()] = kv.slice(1).join(': ');
 					});
 				} else {
 					// a bug in firefox causes getAllResponseHeaders to return an empty string on CORS

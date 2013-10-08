@@ -19,7 +19,7 @@
 	// server wrapper for WebRTC connections
 	// - currently only supports Chrome
 	// - `config.peer`: required string, who we are connecting to (a valid peer domain)
-	// - `config.relay`: required PeerWebRelay
+	// - `config.relay`: required local.Relay
 	// - `config.initiate`: optional bool, if true will initiate the connection processes
 	// - `config.loopback`: optional bool, is this the local host? If true, will connect to self
 	// - `config.retryTimeout`: optional number, time (in ms) before a connection is aborted and retried (defaults to 15000)
@@ -442,8 +442,8 @@
 	}
 
 
-	// PeerWebRelay
-	// ============
+	// Relay
+	// =====
 	// EXPORTED
 	// Helper class for managing a peer web relay provider
 	// - `config.provider`: optional string, the relay provider
@@ -455,7 +455,7 @@
 	//   - defaults to 45000
 	// - `config.retryTimeout`: optional number, time (in ms) before a peer connection is aborted and retried (defaults to 15000)
 	// - `config.retries`: optional number, number of times to retry a peer connection before giving up (defaults to 5)
-	function PeerWebRelay(config) {
+	function Relay(config) {
 		if (!config) config = {};
 		if (!config.app) config.app = window.location.host;
 		if (typeof config.stream == 'undefined') config.stream = randomStreamId();
@@ -470,15 +470,16 @@
 		this.accessToken = null;
 		this.bridges = {};
 		this.pingInterval = null;
+		this.registeredLinks = null;
 
 		// Internal helpers
 		this.messageFromAuthPopupHandler = null;
 
 		// APIs
 		this.p2pwServiceAPI = null;
-		this.accessTokenAPI = null;
 		this.p2pwUsersAPI = null;
 		this.p2pwRelayAPI = null;
+		this.p2pwLinksAPI = null;
 		this.relayStream = null;
 
 		// Setup provider config
@@ -489,12 +490,12 @@
 		// Bind window close behavior
 		window.addEventListener('beforeunload', this.onPageClose.bind(this));
 	}
-	local.PeerWebRelay = PeerWebRelay;
+	local.Relay = Relay;
 
 	// Sets the access token and triggers a connect flow
 	// - `token`: required String?, the access token (null if denied access)
 	// - `token` should follow the form '<userId>:<'
-	PeerWebRelay.prototype.setAccessToken = function(token) {
+	Relay.prototype.setAccessToken = function(token) {
 		if (token) {
 			// Extract user-id from the access token
 			var tokenParts = token.split(':');
@@ -511,7 +512,7 @@
 			// Try to validate our access now
 			var self = this;
 			this.p2pwRelayAPI = this.p2pwServiceAPI.follow({ rel: 'item grimwire.com/-p2pw/relay', id: this.getUserId(), stream: this.getStreamId(), nc: Date.now() });
-			this.p2pwRelayAPI.resolve().then(
+			this.p2pwRelayAPI.resolve({ retry: true }).then( // a successful HEAD request will verify access
 				function() {
 					// Emit an event
 					self.emit('accessGranted');
@@ -531,17 +532,17 @@
 			}
 		}
 	};
-	PeerWebRelay.prototype.isListening     = function() { return this.connectedToRelay; };
-	PeerWebRelay.prototype.getPeerDomain   = function() { return this.myPeerDomain; };
-	PeerWebRelay.prototype.getUserId       = function() { return this.userId; };
-	PeerWebRelay.prototype.getApp          = function() { return this.config.app; };
-	PeerWebRelay.prototype.getStreamId     = function() { return this.config.stream; };
-	PeerWebRelay.prototype.setStreamId     = function(stream) { this.config.stream = stream; };
-	PeerWebRelay.prototype.getAccessToken  = function() { return this.accessToken; };
-	PeerWebRelay.prototype.getServerFn     = function() { return this.config.serverFn; };
-	PeerWebRelay.prototype.setServerFn     = function(fn) { this.config.serverFn = fn; };
-	PeerWebRelay.prototype.getProvider     = function() { return this.config.provider; };
-	PeerWebRelay.prototype.setProvider     = function(providerUrl) {
+	Relay.prototype.isListening     = function() { return this.connectedToRelay; };
+	Relay.prototype.getPeerDomain   = function() { return this.myPeerDomain; };
+	Relay.prototype.getUserId       = function() { return this.userId; };
+	Relay.prototype.getApp          = function() { return this.config.app; };
+	Relay.prototype.getStreamId     = function() { return this.config.stream; };
+	Relay.prototype.setStreamId     = function(stream) { this.config.stream = stream; };
+	Relay.prototype.getAccessToken  = function() { return this.accessToken; };
+	Relay.prototype.getServerFn     = function() { return this.config.serverFn; };
+	Relay.prototype.setServerFn     = function(fn) { this.config.serverFn = fn; };
+	Relay.prototype.getProvider     = function() { return this.config.provider; };
+	Relay.prototype.setProvider     = function(providerUrl) {
 		// Abort if already connected
 		if (this.connectedToRelay) {
 			throw new Error("Can not change provider while connected to the relay. Call stopListening() first.");
@@ -552,16 +553,14 @@
 
 		// Create APIs
 		this.p2pwServiceAPI = local.navigator(this.config.provider);
-		this.accessTokenAPI = this.p2pwServiceAPI.follow({ rel: 'grimwire.com/-access-token', app: this.config.app });
-		this.p2pwUsersAPI   = this.p2pwServiceAPI.follow({ rel: 'grimwire.com/-user collection' });
-		this.accessTokenAPI.resolve({ nohead: true }); // immediately resolve so requestAccessToken() can use it
+		this.p2pwUsersAPI = this.p2pwServiceAPI.follow({ rel: 'grimwire.com/-user collection' });
 	};
 
 	// Gets an access token from the provider & user using a popup
 	// - Best if called within a DOM click handler, as that will avoid popup-blocking
 	//   (note, however, if the accessTokenAPI hasnt resolved its api yet, there will be an async callback that breaks that)
 	// - returns promise(string), fulfills with token on success and rejects with null on failure
-	PeerWebRelay.prototype.requestAccessToken = function() {
+	Relay.prototype.requestAccessToken = function() {
 		var token_ = local.promise();
 
 		// Start listening for messages from the popup
@@ -596,16 +595,6 @@
 		// Open interface in a popup
 		// :HACK: because popup blocking can only be avoided by a syncronous popup call, we have to manually construct the url (it burns us)
 		window.open(this.getProvider() + '/session/' + this.config.app);
-		/* the old half-solution:
-		if (this.accessTokenAPI.context.url) {
-			// Try to open immediately, to avoid popup blocking
-			window.open(this.accessTokenAPI.context.url);
-		} else {
-			// access token URI hasnt resolved yet, we have to wait for that
-			this.accessTokenAPI.resolve({ nohead: true }).always(function(url) {
-				window.open(url);
-			});
-		}*/
 
 		return token_;
 	};
@@ -613,18 +602,32 @@
 	// Fetches users from p2pw service
 	// - opts.online: optional bool, only online users
 	// - opts.trusted: optional bool, only users trusted by our session
-	PeerWebRelay.prototype.getUsers = function(opts) {
+	Relay.prototype.getUsers = function(opts) {
 		var api = this.p2pwUsersAPI;
 		if (opts) {
 			opts.rel = 'self';
 			api = api.follow(opts);
 		}
-		return api.get({ accept: 'application/json' });
+		return api.get({ accept: 'application/json' }, { retry: true });
+	};
+
+	// Sends (or stores to send) links in the relay's registry
+	Relay.prototype.registerLinks = function(links) {
+		this.registeredLinks = Array.isArray(links) ? links : [links];
+		if (this.p2pwLinksAPI) {
+			this.p2pwLinksAPI.dispatch({ method: 'PATCH', retry: true, body: { links: this.registeredLinks }});
+		}
+	};
+
+	// Creates a new navigator with up-to-date links for the relay
+	Relay.prototype.navigator = function() {
+		// Create an unresolved duplicate to that the link cache is refreshed
+		return this.p2pwRelayAPI.follow({ rel: 'self' });
 	};
 
 	// Subscribes to the event relay and begins handling signals
 	// - enables peers to connect
-	PeerWebRelay.prototype.startListening = function() {
+	Relay.prototype.startListening = function() {
 		var self = this;
 		// Make sure we have an access token
 		if (!this.getAccessToken()) {
@@ -642,6 +645,14 @@
 					self.relayStream = stream;
 					self.connectedToRelay = true;
 					stream.response_.then(function(response) {
+						// Setup links
+						self.p2pwLinksAPI = self.p2pwRelayAPI.follow({ rel: 'grimwire.com/-links', app: self.config.app, stream: self.getStreamId() });
+						if (self.registeredLinks) {
+							// We had links stored from before, send them now
+							self.registerLinks(self.registeredLinks);
+						}
+
+						// Emit event
 						self.emit('listening');
 						return response;
 					});
@@ -667,7 +678,7 @@
 
 	// Disconnects from the relay
 	// - peers will no longer be able to connect
-	PeerWebRelay.prototype.stopListening = function() {
+	Relay.prototype.stopListening = function() {
 		if (this.connectedToRelay) {
 			// Terminate any bridges that are mid-connection
 			for (var domain in this.bridges) {
@@ -678,6 +689,7 @@
 
 			// Update state
 			this.connectedToRelay = false;
+			this.p2pwLinksAPI = null;
 			this.relayStream.close();
 			this.relayStream = null;
 			delete __peer_relay_registry[self.providerDomain];
@@ -691,7 +703,7 @@
 	//   - should only be false if the connection was already initiated by the opposite end
 	// - `config.retryTimeout`: optional number, time (in ms) before a connection is aborted and retried (defaults to 15000)
 	// - `config.retries`: optional number, number of times to retry before giving up (defaults to 5)
-	PeerWebRelay.prototype.connect = function(peerUrl, config) {
+	Relay.prototype.connect = function(peerUrl, config) {
 		if (!config) config = {};
 		if (typeof config.initiate == 'undefined') config.initiate = true;
 
@@ -732,15 +744,15 @@
 		return server;
 	};
 
-	PeerWebRelay.prototype.signal = function(dst, msg) {
+	Relay.prototype.signal = function(dst, msg) {
 		if (!this.p2pwRelayAPI) {
-			console.warn('PeerWebRelay - signal() called before relay is connected');
+			console.warn('Relay - signal() called before relay is connected');
 			return;
 		}
-		return this.p2pwRelayAPI.post({ src: this.myPeerDomain, dst: dst, msg: msg }, null, { retry: true });
+		return this.p2pwRelayAPI.dispatch({ method: 'notify', retry: true, body: { src: this.myPeerDomain, dst: dst, msg: msg } });
 	};
 
-	PeerWebRelay.prototype.onSignal = function(e) {
+	Relay.prototype.onSignal = function(e) {
 		if (!e.data || !e.data.src || !e.data.msg) {
 			console.warn('discarding faulty signal message', err);
 		}
@@ -763,7 +775,7 @@
 		}
 	};
 
-	PeerWebRelay.prototype.onRelayError = function(e) {
+	Relay.prototype.onRelayError = function(e) {
 		if (e.data && e.data.status == 423) { // locked
 			// Update state
 			this.relayStream = null;
@@ -793,7 +805,7 @@
 		}
 	};
 
-	PeerWebRelay.prototype.onRelayClose = function() {
+	Relay.prototype.onRelayClose = function() {
 		// Update state
 		var wasConnected = this.connectedToRelay;
 		this.connectedToRelay = false;
@@ -809,7 +821,7 @@
 		}
 	};
 
-	PeerWebRelay.prototype.onBridgeDisconnected = function(data) {
+	Relay.prototype.onBridgeDisconnected = function(data) {
 		// Stop tracking bridges that close
 		var bridge = this.bridges[data.domain];
 		if (bridge) {
@@ -818,7 +830,7 @@
 		}
 	};
 
-	PeerWebRelay.prototype.onPageClose = function() {
+	Relay.prototype.onPageClose = function() {
 		var bridgeDomains = Object.keys(this.bridges);
 		if (this.connectedToRelay && bridgeDomains.length !== 0) {
 			// Collect connected peer destination info
@@ -836,7 +848,7 @@
 		}
 	};
 
-	PeerWebRelay.prototype.makeDomain = function(user, app, stream) {
+	Relay.prototype.makeDomain = function(user, app, stream) {
 		return local.makePeerDomain(user, this.providerDomain, app, stream);
 	};
 

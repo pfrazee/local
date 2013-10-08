@@ -42,12 +42,12 @@ local.spawnWorkerServer = function(src, config, serverFn) {
 // - `providerUrl`: optional string, the relay provider
 // - `config.app`: optional string, the app to join as (defaults to window.location.host)
 // - `serverFn`: optional function, a response generator for requests from connected peers
-local.joinPeerRelay = function(providerUrl, config, serverFn) {
+local.joinRelay = function(providerUrl, config, serverFn) {
 	if (typeof config == 'function') { serverFn = config; config = null; }
 	if (!config) config = {};
 	config.provider = providerUrl;
 	config.serverFn = serverFn;
-	return new local.PeerWebRelay(config);
+	return new local.Relay(config);
 };
 
 // helper for name assignment
