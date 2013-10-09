@@ -59,10 +59,15 @@
 			// Setup to serve self
 			this.isOfferExchanged = true;
 			onHttplChannelOpen.call(this);
-		} else if (this.config.initiate) {
-			// Initiate event will be picked up by the peer
-			// If they want to connect, they'll send an answer back
-			this.sendOffer();
+		} else {
+			// Reorder messages until the WebRTC session is established
+			this.useMessageReordering(true);
+
+			if (this.config.initiate) {
+				// Initiate event will be picked up by the peer
+				// If they want to connect, they'll send an answer back
+				this.sendOffer();
+			}
 		}
 	}
 	RTCBridgeServer.prototype = Object.create(local.BridgeServer.prototype);
@@ -93,7 +98,7 @@
 	// Returns true if the channel is ready for activity
 	// - returns boolean
 	RTCBridgeServer.prototype.isChannelActive = function() {
-		return this.isConnected;
+		return true;// this.isConnected; - we send messages over the relay before connection
 	};
 
 	// Sends a single message across the channel
@@ -101,6 +106,11 @@
 	RTCBridgeServer.prototype.channelSendMsg = function(msg) {
 		if (this.config.loopback) {
 			this.onChannelMessage(msg);
+		} else if (!this.isConnected) {
+			this.signal({
+				type: 'httpl',
+				data: msg
+			});
 		} else {
 			this.rtcDataChannel.send(msg);
 		}
@@ -129,8 +139,7 @@
 	function onHttplChannelOpen(e) {
 		this.debugLog('HTTPL CHANNEL OPEN', e);
 
-		// :HACK: for some reason, this CB is getting called before this.rtcDataChannel.negotiated == true
-		//        there doesnt seem to be any other event emitted, so we gotta poll for now
+		// :HACK: canary appears to drop packets for a short period after the datachannel is made ready
 
 		var self = this;
 		setTimeout(function() {
@@ -140,8 +149,8 @@
 			self.isConnecting = false;
 			self.isConnected = true;
 
-			// Get out any queued messages
-			self.flushBufferedMessages();
+			// Can now rely on sctp ordering
+			self.useMessageReordering(false);
 
 			// Emit event
 			self.emit('connected', { peer: self.peerInfo, domain: self.config.domain, server: self });
@@ -154,7 +163,6 @@
 	}
 
 	function onHttplChannelError(e) {
-		// :TODO: anything?
 		this.debugLog('HTTPL CHANNEL ERR', e);
 		this.emit('error', { peer: this.peerInfo, domain: this.config.domain, server: this, err: e });
 	}
@@ -165,7 +173,6 @@
 	RTCBridgeServer.prototype.onSignal = function(msg) {
 		var self = this;
 
-		this.debugLog('SIG', msg);
 		switch (msg.type) {
 			case 'disconnect':
 				// Peer's dead, shut it down
@@ -227,7 +234,7 @@
 				this.rtcPeerConn.setRemoteDescription(desc);
 
 				// Burn the ICE candidate queue
-				handleOfferExchanged.call(self);
+				handleOfferExchanged.call(this);
 
 				// Send an answer
 				this.rtcPeerConn.createAnswer(
@@ -252,7 +259,15 @@
 				this.rtcPeerConn.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
 
 				// Burn the ICE candidate queue
-				handleOfferExchanged.call(self);
+				handleOfferExchanged.call(this);
+				break;
+
+			case 'httpl':
+				// Received HTTPL traffic from the peer
+				this.debugLog('GOT HTTPL RELAY', msg);
+
+				// Handle
+				this.onChannelMessage(msg.data);
 				break;
 
 			default:
@@ -264,17 +279,18 @@
 	RTCBridgeServer.prototype.signal = function(msg) {
 		// Send the message through our relay
 		var self = this;
-		this.config.relay.signal(this.config.peer, msg)
-			.fail(function(res) {
-				if (res.status == 404) {
-					// Peer not online, shut down for now. We can try to reconnect later
-					for (var k in self.incomingStreams) {
-						self.incomingStreams[k].writeHead(404, 'not found').end();
-					}
-					self.terminate({ noSignal: true });
-					local.unregisterServer(self.config.domain);
+		var response_ = this.config.relay.signal(this.config.peer, msg);
+		response_.fail(function(res) {
+			if (res.status == 404) {
+				// Peer not online, shut down for now. We can try to reconnect later
+				for (var k in self.incomingStreams) {
+					self.incomingStreams[k].writeHead(404, 'not found').end();
 				}
-			});
+				self.terminate({ noSignal: true });
+				local.unregisterServer(self.config.domain);
+			}
+		});
+		return response_;
 	};
 
 	// Helper sets up the peer connection
@@ -776,7 +792,7 @@
 			// Let bridge handle it
 			bridgeServer.onSignal(e.data.msg);
 		} else {
-			if (e.data.msg.type == 'offer') {
+			if (e.data.msg.type == 'offer' || e.data.msg.type == 'httpl') {
 				// Create a server to handle the signal
 				bridgeServer = this.connect(domain, { initiate: false });
 				bridgeServer.onSignal(e.data.msg);

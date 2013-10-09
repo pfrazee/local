@@ -1766,11 +1766,18 @@ function BridgeServer(config) {
 	this.sidCounter = 1;
 	this.incomingStreams = {}; // maps sid -> request/response stream
 	// ^ only contains active streams (closed streams are deleted)
+	this.incomingStreamsBuffer = {}; // maps sid -> {nextMid:, cache:{}}
 	this.outgoingStreams = {}; // like `incomingStreams`, but for requests & responses that are sending out data
 	this.msgBuffer = []; // buffer of messages kept until channel is active
+	this.isReorderingMessages = false;
 }
 BridgeServer.prototype = Object.create(Server.prototype);
 local.BridgeServer = BridgeServer;
+
+// Turns on/off message numbering and the HOL-blocking reorder protocol
+BridgeServer.prototype.useMessageReordering = function(v) {
+	this.isReorderingMessages = !!v;
+};
 
 // Returns true if the channel is ready for activity
 // - should be overridden
@@ -1822,6 +1829,7 @@ BridgeServer.prototype.handleLocalWebRequest = function(request, response) {
 	var sid = this.sidCounter++;
 	var msg = {
 		sid: sid,
+		mid: (this.isReorderingMessages) ? 1 : undefined,
 		method: request.method,
 		path: request.path,
 		query: request.query,
@@ -1837,8 +1845,9 @@ BridgeServer.prototype.handleLocalWebRequest = function(request, response) {
 
 	// Wire up request stream events
 	var this2 = this;
-	request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, body: data })); });
-	request.on('end', function()       { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, end: true })); });
+	var midCounter = msg.mid;
+	request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, body: data })); });
+	request.on('end', function()       { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, end: true })); });
 	request.on('close', function()     { delete this2.outgoingStreams[msg.sid]; });
 };
 
@@ -1870,6 +1879,20 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 	if (!validateHttplMessage(msg)) {
 		console.warn('Dropping malformed HTTPL message', msg, this);
 		return;
+	}
+
+	// Do input buffering if the message is numbered
+	if (msg.mid) {
+		if (!this.incomingStreamsBuffer[msg.sid]) {
+			this.incomingStreamsBuffer[msg.sid] = {
+				nextMid: 1,
+				cache: {}
+			};
+		}
+		if (this.incomingStreamsBuffer[msg.sid].nextMid != msg.mid) {
+			this.incomingStreamsBuffer[msg.sid].cache[msg.mid] = msg;
+			return;
+		}
 	}
 
 	// Get/create stream
@@ -1905,12 +1928,12 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 				delete this2.outgoingStreams[resSid];
 			});
 
-			// Pass on to the request handler
-			this.handleRemoteWebRequest(request, response);
-
 			// Hold onto the streams
 			stream = this.incomingStreams[msg.sid] = request;
 			this.outgoingStreams[resSid] = response;
+
+			// Pass on to the request handler
+			this.handleRemoteWebRequest(request, response);
 		}
 		// Incoming responses have a negative sid
 		else {
@@ -1936,6 +1959,17 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 		stream.end();
 		stream.close();
 		delete this.incomingStreams[msg.sid];
+		delete this.incomingStreamsBuffer[msg.sid];
+		return;
+	}
+
+	if (msg.mid) {
+		var nextmid = ++this.incomingStreamsBuffer[msg.sid].nextMid;
+		if (this.incomingStreamsBuffer[msg.sid].cache[nextmid]) {
+			var cachedmsg = this.incomingStreamsBuffer[msg.sid].cache[nextmid];
+			delete this.incomingStreamsBuffer[msg.sid].cache[nextmid];
+			this.onChannelMessage(cachedmsg);
+		}
 	}
 };
 
@@ -1950,6 +1984,7 @@ function validateJson(str) {
 }
 
 function validateHttplMessage(parsedmsg) {
+	console.debug(parsedmsg);
 	if (!parsedmsg)
 		return false;
 	if (isNaN(parsedmsg.sid))
@@ -2198,10 +2233,15 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			// Setup to serve self
 			this.isOfferExchanged = true;
 			onHttplChannelOpen.call(this);
-		} else if (this.config.initiate) {
-			// Initiate event will be picked up by the peer
-			// If they want to connect, they'll send an answer back
-			this.sendOffer();
+		} else {
+			// Reorder messages until the WebRTC session is established
+			this.useMessageReordering(true);
+
+			if (this.config.initiate) {
+				// Initiate event will be picked up by the peer
+				// If they want to connect, they'll send an answer back
+				this.sendOffer();
+			}
 		}
 	}
 	RTCBridgeServer.prototype = Object.create(local.BridgeServer.prototype);
@@ -2232,7 +2272,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// Returns true if the channel is ready for activity
 	// - returns boolean
 	RTCBridgeServer.prototype.isChannelActive = function() {
-		return this.isConnected;
+		return true;// this.isConnected; - we send messages over the relay before connection
 	};
 
 	// Sends a single message across the channel
@@ -2240,6 +2280,11 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	RTCBridgeServer.prototype.channelSendMsg = function(msg) {
 		if (this.config.loopback) {
 			this.onChannelMessage(msg);
+		} else if (!this.isConnected) {
+			this.signal({
+				type: 'httpl',
+				data: msg
+			});
 		} else {
 			this.rtcDataChannel.send(msg);
 		}
@@ -2268,8 +2313,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	function onHttplChannelOpen(e) {
 		this.debugLog('HTTPL CHANNEL OPEN', e);
 
-		// :HACK: for some reason, this CB is getting called before this.rtcDataChannel.negotiated == true
-		//        there doesnt seem to be any other event emitted, so we gotta poll for now
+		// :HACK: canary appears to drop packets for a short period after the datachannel is made ready
 
 		var self = this;
 		setTimeout(function() {
@@ -2279,8 +2323,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			self.isConnecting = false;
 			self.isConnected = true;
 
-			// Get out any queued messages
-			self.flushBufferedMessages();
+			// Can now rely on sctp ordering
+			self.useMessageReordering(false);
 
 			// Emit event
 			self.emit('connected', { peer: self.peerInfo, domain: self.config.domain, server: self });
@@ -2293,7 +2337,6 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	}
 
 	function onHttplChannelError(e) {
-		// :TODO: anything?
 		this.debugLog('HTTPL CHANNEL ERR', e);
 		this.emit('error', { peer: this.peerInfo, domain: this.config.domain, server: this, err: e });
 	}
@@ -2304,7 +2347,6 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	RTCBridgeServer.prototype.onSignal = function(msg) {
 		var self = this;
 
-		this.debugLog('SIG', msg);
 		switch (msg.type) {
 			case 'disconnect':
 				// Peer's dead, shut it down
@@ -2366,7 +2408,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 				this.rtcPeerConn.setRemoteDescription(desc);
 
 				// Burn the ICE candidate queue
-				handleOfferExchanged.call(self);
+				handleOfferExchanged.call(this);
 
 				// Send an answer
 				this.rtcPeerConn.createAnswer(
@@ -2391,7 +2433,15 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 				this.rtcPeerConn.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
 
 				// Burn the ICE candidate queue
-				handleOfferExchanged.call(self);
+				handleOfferExchanged.call(this);
+				break;
+
+			case 'httpl':
+				// Received HTTPL traffic from the peer
+				this.debugLog('GOT HTTPL RELAY', msg);
+
+				// Handle
+				this.onChannelMessage(msg.data);
 				break;
 
 			default:
@@ -2403,17 +2453,18 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	RTCBridgeServer.prototype.signal = function(msg) {
 		// Send the message through our relay
 		var self = this;
-		this.config.relay.signal(this.config.peer, msg)
-			.fail(function(res) {
-				if (res.status == 404) {
-					// Peer not online, shut down for now. We can try to reconnect later
-					for (var k in self.incomingStreams) {
-						self.incomingStreams[k].writeHead(404, 'not found').end();
-					}
-					self.terminate({ noSignal: true });
-					local.unregisterServer(self.config.domain);
+		var response_ = this.config.relay.signal(this.config.peer, msg);
+		response_.fail(function(res) {
+			if (res.status == 404) {
+				// Peer not online, shut down for now. We can try to reconnect later
+				for (var k in self.incomingStreams) {
+					self.incomingStreams[k].writeHead(404, 'not found').end();
 				}
-			});
+				self.terminate({ noSignal: true });
+				local.unregisterServer(self.config.domain);
+			}
+		});
+		return response_;
 	};
 
 	// Helper sets up the peer connection
@@ -2915,7 +2966,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			// Let bridge handle it
 			bridgeServer.onSignal(e.data.msg);
 		} else {
-			if (e.data.msg.type == 'offer') {
+			if (e.data.msg.type == 'offer' || e.data.msg.type == 'httpl') {
 				// Create a server to handle the signal
 				bridgeServer = this.connect(domain, { initiate: false });
 				bridgeServer.onSignal(e.data.msg);

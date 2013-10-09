@@ -49,11 +49,18 @@ function BridgeServer(config) {
 	this.sidCounter = 1;
 	this.incomingStreams = {}; // maps sid -> request/response stream
 	// ^ only contains active streams (closed streams are deleted)
+	this.incomingStreamsBuffer = {}; // maps sid -> {nextMid:, cache:{}}
 	this.outgoingStreams = {}; // like `incomingStreams`, but for requests & responses that are sending out data
 	this.msgBuffer = []; // buffer of messages kept until channel is active
+	this.isReorderingMessages = false;
 }
 BridgeServer.prototype = Object.create(Server.prototype);
 local.BridgeServer = BridgeServer;
+
+// Turns on/off message numbering and the HOL-blocking reorder protocol
+BridgeServer.prototype.useMessageReordering = function(v) {
+	this.isReorderingMessages = !!v;
+};
 
 // Returns true if the channel is ready for activity
 // - should be overridden
@@ -105,6 +112,7 @@ BridgeServer.prototype.handleLocalWebRequest = function(request, response) {
 	var sid = this.sidCounter++;
 	var msg = {
 		sid: sid,
+		mid: (this.isReorderingMessages) ? 1 : undefined,
 		method: request.method,
 		path: request.path,
 		query: request.query,
@@ -120,8 +128,9 @@ BridgeServer.prototype.handleLocalWebRequest = function(request, response) {
 
 	// Wire up request stream events
 	var this2 = this;
-	request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, body: data })); });
-	request.on('end', function()       { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, end: true })); });
+	var midCounter = msg.mid;
+	request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, body: data })); });
+	request.on('end', function()       { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, end: true })); });
 	request.on('close', function()     { delete this2.outgoingStreams[msg.sid]; });
 };
 
@@ -153,6 +162,22 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 	if (!validateHttplMessage(msg)) {
 		console.warn('Dropping malformed HTTPL message', msg, this);
 		return;
+	}
+
+	// Do input buffering if the message is numbered
+	if (msg.mid) {
+		// Create the buffer
+		if (!this.incomingStreamsBuffer[msg.sid]) {
+			this.incomingStreamsBuffer[msg.sid] = {
+				nextMid: 1,
+				cache: {}
+			};
+		}
+		// Cache (block at HOL) if not next in line
+		if (this.incomingStreamsBuffer[msg.sid].nextMid != msg.mid) {
+			this.incomingStreamsBuffer[msg.sid].cache[msg.mid] = msg;
+			return;
+		}
 	}
 
 	// Get/create stream
@@ -188,12 +213,12 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 				delete this2.outgoingStreams[resSid];
 			});
 
-			// Pass on to the request handler
-			this.handleRemoteWebRequest(request, response);
-
 			// Hold onto the streams
 			stream = this.incomingStreams[msg.sid] = request;
 			this.outgoingStreams[resSid] = response;
+
+			// Pass on to the request handler
+			this.handleRemoteWebRequest(request, response);
 		}
 		// Incoming responses have a negative sid
 		else {
@@ -219,6 +244,20 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 		stream.end();
 		stream.close();
 		delete this.incomingStreams[msg.sid];
+		delete this.incomingStreamsBuffer[msg.sid];
+		return;
+	}
+
+	// Check the cache if the message is numbered for reordering
+	if (msg.mid) {
+		// Is the next message cached?
+		var nextmid = ++this.incomingStreamsBuffer[msg.sid].nextMid;
+		if (this.incomingStreamsBuffer[msg.sid].cache[nextmid]) {
+			// Process it now
+			var cachedmsg = this.incomingStreamsBuffer[msg.sid].cache[nextmid];
+			delete this.incomingStreamsBuffer[msg.sid].cache[nextmid];
+			this.onChannelMessage(cachedmsg);
+		}
 	}
 };
 
