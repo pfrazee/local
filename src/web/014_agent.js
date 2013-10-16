@@ -1,5 +1,5 @@
-// Navigator
-// =========
+// Agent
+// =====
 
 function getEnvironmentHost() {
 	if (typeof window !== 'undefined') return window.location.host;
@@ -7,18 +7,18 @@ function getEnvironmentHost() {
 	return '';
 }
 
-// NavigatorContext
-// ================
+// AgentContext
+// ============
 // INTERNAL
-// information about the resource that a navigator targets
+// information about the resource that a agent targets
 //  - exists in an "unresolved" state until the URI is confirmed by a response from the server
 //  - enters a "bad" state if an attempt to resolve the link failed
 //  - may be "relative" if described by a relation from another context (eg a query or a relative URI)
 //  - may be "absolute" if described by an absolute URI
 // :NOTE: absolute contexts may have a URI without being resolved, so don't take the presence of a URI as a sign that the resource exists
-function NavigatorContext(query) {
+function AgentContext(query) {
 	this.query = query;
-	this.resolveState = NavigatorContext.UNRESOLVED;
+	this.resolveState = AgentContext.UNRESOLVED;
 	this.error = null;
 	this.queryIsAbsolute = (typeof query == 'string' && local.isAbsUri(query));
 	if (this.queryIsAbsolute) {
@@ -29,33 +29,33 @@ function NavigatorContext(query) {
 		this.urld = null;
 	}
 }
-NavigatorContext.UNRESOLVED = 0;
-NavigatorContext.RESOLVED   = 1;
-NavigatorContext.FAILED     = 2;
-NavigatorContext.prototype.isResolved = function() { return this.resolveState === NavigatorContext.RESOLVED; };
-NavigatorContext.prototype.isBad      = function() { return this.resolveState === NavigatorContext.FAILED; };
-NavigatorContext.prototype.isRelative = function() { return (!this.queryIsAbsolute); };
-NavigatorContext.prototype.isAbsolute = function() { return this.queryIsAbsolute; };
-NavigatorContext.prototype.getUrl     = function() { return this.url; };
-NavigatorContext.prototype.getError   = function() { return this.error; };
-NavigatorContext.prototype.resetResolvedState = function() {
-	this.resolveState = NavigatorContext.UNRESOLVED;
+AgentContext.UNRESOLVED = 0;
+AgentContext.RESOLVED   = 1;
+AgentContext.FAILED     = 2;
+AgentContext.prototype.isResolved = function() { return this.resolveState === AgentContext.RESOLVED; };
+AgentContext.prototype.isBad      = function() { return this.resolveState === AgentContext.FAILED; };
+AgentContext.prototype.isRelative = function() { return (!this.queryIsAbsolute); };
+AgentContext.prototype.isAbsolute = function() { return this.queryIsAbsolute; };
+AgentContext.prototype.getUrl     = function() { return this.url; };
+AgentContext.prototype.getError   = function() { return this.error; };
+AgentContext.prototype.resetResolvedState = function() {
+	this.resolveState = AgentContext.UNRESOLVED;
 	this.error = null;
 };
-NavigatorContext.prototype.setResolved = function(url) {
+AgentContext.prototype.setResolved = function(url) {
 	this.error        = null;
-	this.resolveState = NavigatorContext.RESOLVED;
+	this.resolveState = AgentContext.RESOLVED;
 	if (url) {
 		this.url          = url;
 		this.urld         = local.parseUri(this.url);
 	}
 };
-NavigatorContext.prototype.setFailed = function(error) {
+AgentContext.prototype.setFailed = function(error) {
 	this.error        = error;
-	this.resolveState = NavigatorContext.FAILED;
+	this.resolveState = AgentContext.FAILED;
 };
 
-// Navigator
+// Agent
 // =========
 // EXPORTED
 // API to follow resource links (as specified by the response Link header)
@@ -67,9 +67,9 @@ NavigatorContext.prototype.setFailed = function(error) {
 // EXAMPLE 1. Get Bob from Foobar.com
 // - basic navigation
 // - requests
-var foobarService = local.navigator('https://foobar.com');
+var foobarService = local.agent('https://foobar.com');
 var bob = foobarService.follow('|collection=users|item=bob');
-// ^ or local.navigator('nav:||https://foobar.com|collection=users|item=bob')
+// ^ or local.agent('nav:||https://foobar.com|collection=users|item=bob')
 // ^ or foobarService.follow([{ rel: 'collection', id: 'users' }, { rel: 'item', id:'bob' }]);
 // ^ or foobarService.follow({ rel: 'collection', id: 'users' }).follow({ rel: 'item', id:'bob' });
 bob.get()
@@ -126,18 +126,18 @@ pageCursor.get()
 		}
 	});
 */
-function Navigator(context, parentNavigator) {
+function Agent(context, parentAgent) {
 	this.context         = context         || null;
-	this.parentNavigator = parentNavigator || null;
+	this.parentAgent = parentAgent || null;
 	this.links           = null;
 	this.requestDefaults = null;
 }
-local.Navigator = Navigator;
+local.Agent = Agent;
 
 // Sets defaults to be used in all requests
 // - eg nav.setRequestDefaults({ method: 'GET', headers: { authorization: 'bob:pass', accept: 'text/html' }})
 // - eg nav.setRequestDefaults({ proxy: 'httpl://myproxy.app' })
-Navigator.prototype.setRequestDefaults = function(v) {
+Agent.prototype.setRequestDefaults = function(v) {
 	this.requestDefaults = v;
 };
 
@@ -162,7 +162,7 @@ function copyDefaults(target, defaults) {
 // Executes an HTTP request to our context
 //  - uses additional parameters on the request options:
 //    - noretry: bool, should the url resolve fail automatically if it previously failed?
-Navigator.prototype.dispatch = function(req) {
+Agent.prototype.dispatch = function(req) {
 	if (!req) req = {};
 	if (!req.headers) req.headers = {};
 	var self = this;
@@ -192,7 +192,7 @@ Navigator.prototype.dispatch = function(req) {
 };
 
 // Executes a GET text/event-stream request to our context
-Navigator.prototype.subscribe = function(req) {
+Agent.prototype.subscribe = function(req) {
 	var self = this;
 	if (!req) req = {};
 	return this.resolve({ nohead: true }).succeed(function(url) {
@@ -205,7 +205,7 @@ Navigator.prototype.subscribe = function(req) {
 	});
 };
 
-// Follows a link relation from our context, generating a new navigator
+// Follows a link relation from our context, generating a new agent
 // - `query` may be:
 //   - an object in the same form of a `local.queryLink()` parameter
 //   - an array of link query objects (to be followed sequentially)
@@ -217,7 +217,7 @@ Navigator.prototype.subscribe = function(req) {
 // - when querying, only the `rel` and `id` (if specified) attributes must match
 //   - the exception to this is: `rel` matches and the HREF has an {id} token
 //   - all other attributes are used to fill URI Template tokens and are not required to match
-Navigator.prototype.follow = function(query) {
+Agent.prototype.follow = function(query) {
 	// convert nav: uri to a query array
 	if (typeof query == 'string' && local.isNavSchemeUri(query))
 		query = local.parseNavUri(query);
@@ -229,7 +229,7 @@ Navigator.prototype.follow = function(query) {
 	// build a full follow() chain
 	var nav = this;
 	do {
-		nav = new Navigator(new NavigatorContext(query.shift()), nav);
+		nav = new Agent(new AgentContext(query.shift()), nav);
 		if (this.requestDefaults)
 			nav.setRequestDefaults(this.requestDefaults);
 	} while (query[0]);
@@ -237,17 +237,17 @@ Navigator.prototype.follow = function(query) {
 	return nav;
 };
 
-// Resets the navigator's resolution state, causing it to reissue HEAD requests (relative to any parent navigators)
-Navigator.prototype.unresolve = function() {
+// Resets the agent's resolution state, causing it to reissue HEAD requests (relative to any parent agents)
+Agent.prototype.unresolve = function() {
 	this.context.resetResolvedState();
 	this.links = null;
 	return this;
 };
 
-// Reassigns the navigator to a new absolute URL
-// - `url`: required string, the URL to rebase the navigator to
+// Reassigns the agent to a new absolute URL
+// - `url`: required string, the URL to rebase the agent to
 // - resets the resolved state
-Navigator.prototype.rebase = function(url) {
+Agent.prototype.rebase = function(url) {
 	this.unresolve();
 	this.context.query = url;
 	this.context.queryIsAbsolute = true;
@@ -256,14 +256,14 @@ Navigator.prototype.rebase = function(url) {
 	return this;
 };
 
-// Resolves the navigator's URL, reporting failure if a link or resource is unfound
+// Resolves the agent's URL, reporting failure if a link or resource is unfound
 //  - also ensures the links have been retrieved from the context
 //  - may trigger resolution of parent contexts
 //  - options is optional and may include:
 //    - noretry: bool, should the url resolve fail automatically if it previously failed?
 //    - nohead: bool, should we issue a HEAD request once we have a URL? (not favorable if planning to dispatch something else)
 //  - returns a promise which will fulfill with the resolved url
-Navigator.prototype.resolve = function(options) {
+Agent.prototype.resolve = function(options) {
 	var self = this;
 	options = options || {};
 
@@ -279,10 +279,10 @@ Navigator.prototype.resolve = function(options) {
 		// We don't have links, and we haven't previously failed (or we want to try again)
 		this.context.resetResolvedState();
 
-		if (this.context.isRelative() && !this.parentNavigator) {
+		if (this.context.isRelative() && !this.parentAgent) {
 			// Scheme-less URIs can map to local URIs, so make sure the local server hasnt been added since we were created
 			if (typeof this.context.query == 'string' && !!local.getServer(this.context.query)) {
-				self.context = new NavigatorContext(self.context.query);
+				self.context = new AgentContext(self.context.query);
 			} else {
 				self.context.setFailed({ status: 404, reason: 'not found' });
 				resolvePromise.reject(this.context.getError());
@@ -292,10 +292,10 @@ Navigator.prototype.resolve = function(options) {
 
 		if (this.context.isRelative()) {
 			// Up the chain we go
-			resolvePromise = this.parentNavigator.resolve(options)
+			resolvePromise = this.parentAgent.resolve(options)
 				.succeed(function() {
 					// Parent resolved, query its links
-					var childUrl = self.parentNavigator.lookupLink(self.context);
+					var childUrl = self.parentAgent.lookupLink(self.context);
 					if (childUrl) {
 						// We have a pope! I mean, link.
 						self.context.setResolved(childUrl);
@@ -333,7 +333,7 @@ Navigator.prototype.resolve = function(options) {
 };
 
 // Looks up a link in the cache and generates the URI (the follow logic)
-Navigator.prototype.lookupLink = function(context) {
+Agent.prototype.lookupLink = function(context) {
 	if (context.query) {
 		if (typeof context.query == 'object') {
 			// Try to find a link that matches
@@ -348,7 +348,7 @@ Navigator.prototype.lookupLink = function(context) {
 			return context.query;
 		}
 	}
-	console.log('Failed to find a link to resolve context. Link query:', context.query, 'Navigator:', this);
+	console.log('Failed to find a link to resolve context. Link query:', context.query, 'Agent:', this);
 	return null;
 };
 
@@ -371,18 +371,18 @@ function makeDispWBodySugar(method) {
 		return this.dispatch(req);
 	};
 }
-Navigator.prototype.head   = makeDispSugar('HEAD');
-Navigator.prototype.get    = makeDispSugar('GET');
-Navigator.prototype.delete = makeDispSugar('DELETE');
-Navigator.prototype.post   = makeDispWBodySugar('POST');
-Navigator.prototype.put    = makeDispWBodySugar('PUT');
-Navigator.prototype.patch  = makeDispWBodySugar('PATCH');
-Navigator.prototype.notify = makeDispWBodySugar('NOTIFY');
+Agent.prototype.head   = makeDispSugar('HEAD');
+Agent.prototype.get    = makeDispSugar('GET');
+Agent.prototype.delete = makeDispSugar('DELETE');
+Agent.prototype.post   = makeDispWBodySugar('POST');
+Agent.prototype.put    = makeDispWBodySugar('PUT');
+Agent.prototype.patch  = makeDispWBodySugar('PATCH');
+Agent.prototype.notify = makeDispWBodySugar('NOTIFY');
 
 // Builder
 // =======
-local.navigator = function(queryOrNav) {
-	if (queryOrNav instanceof Navigator)
+local.agent = function(queryOrNav) {
+	if (queryOrNav instanceof Agent)
 		return queryOrNav;
 
 	// convert nav: uri to a query array
@@ -394,9 +394,9 @@ local.navigator = function(queryOrNav) {
 		queryOrNav = [queryOrNav];
 
 	// build a full follow() chain
-	var nav = new Navigator(new NavigatorContext(queryOrNav.shift()));
+	var nav = new Agent(new AgentContext(queryOrNav.shift()));
 	while (queryOrNav[0]) {
-		nav = new Navigator(new NavigatorContext(queryOrNav.shift()), nav);
+		nav = new Agent(new AgentContext(queryOrNav.shift()), nav);
 	}
 
 	return nav;

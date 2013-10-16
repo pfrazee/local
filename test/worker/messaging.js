@@ -12,8 +12,8 @@ local.spawnWorkerServer('test/worker/worker2.js', { myname: 'bob' }, function(re
 // GET tests
 done = false;
 startTime = Date.now();
-var worker1API = local.navigator('httpl://worker1.js');
-var worker2API = local.navigator('httpl://worker2.js');
+var worker1API = local.agent('httpl://worker1.js');
+var worker2API = local.agent('httpl://worker2.js');
 var responses_ = [];
 for (var i = 0; i < 10; i++) {
 	responses_.push(worker1API.dispatch());
@@ -54,8 +54,8 @@ wait(function () { return done; });
 
 done = false;
 startTime = Date.now();
-var worker1API = local.navigator('httpl://worker1.js');
-var worker2API = local.navigator('httpl://worker2.js');
+var worker1API = local.agent('httpl://worker1.js');
+var worker2API = local.agent('httpl://worker2.js');
 var responses_ = [];
 for (var i = 0; i < 10; i++) {
 	responses_.push(worker1API.post('FooBar'));
@@ -97,8 +97,8 @@ foobar
 
 done = false;
 startTime = Date.now();
-var worker1API = local.navigator('httpl://worker1.js');
-var worker2API = local.navigator('httpl://worker2.js');
+var worker1API = local.agent('httpl://worker1.js');
+var worker2API = local.agent('httpl://worker2.js');
 var responses_ = [
 	worker1API.dispatch({ method: 'bounce' }),
 	worker2API.dispatch({ method: 'bounce' })

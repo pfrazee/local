@@ -32,7 +32,7 @@ local.spawnWorkerServer = function(src, config, serverFn) {
 			domain = getAvailableLocalDomain(src.split('/').pop().toLowerCase() + '{n}');
 		}
 	}
-	local.registerServer(domain, server);
+	local.addServer(domain, server);
 
 	return server;
 };

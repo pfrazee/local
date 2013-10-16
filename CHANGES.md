@@ -2,6 +2,16 @@ Changes
 =======
 0.4.0
 
+2013/10/16 pfraze
+
+ - Renamed
+   - Navigator -> Agent
+   - Broadaster -> EventHost
+   - registerServer -> addServer
+   - unregisterServer -> removeServer
+   - getServerRegistry -> getServers
+
+
 2013/10/08 pfraze
 
  - Added optional BridgeServer HOL blocking for unordered channels, toggleable with useMessageReordering()

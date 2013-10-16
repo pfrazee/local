@@ -1,6 +1,6 @@
-// == SECTION navigator
+// == SECTION agent
 
-var testRemote = new local.navigator('http://grimwire.com:8080');
+var testRemote = new local.agent('http://grimwire.com:8080');
 
 // remote server navigation
 
@@ -68,7 +68,7 @@ success
 */
 
 
-var testLocal = new local.navigator('httpl://test.com');
+var testLocal = new local.agent('httpl://test.com');
 
 // document local server navigation
 
@@ -110,10 +110,10 @@ success
 
 done = false;
 startTime = Date.now();
-local.navigator('httpl://_worker.js').follow({ rel: 'collection', id: 'foo' }).get()
+local.agent('httpl://_worker.js').follow({ rel: 'collection', id: 'foo' }).get()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
-    local.navigator('httpl://_worker.js').follow({ rel: 'collection', id: 'foo'})
+    local.agent('httpl://_worker.js').follow({ rel: 'collection', id: 'foo'})
       .follow({ rel: 'item', id: 'baz' })
       .get().then(printSuccessAndFinish, printErrorAndFinish);
   });
@@ -144,7 +144,7 @@ success
 
 // rebase() and unresolve()
 
-var testRebase = new local.navigator('httpl://test.com');
+var testRebase = new local.agent('httpl://test.com');
 var testRebaseCollection = testRebase.follow({ rel: 'collection', id: 'foo' });
 var testRebaseItem = testRebaseCollection.follow({ rel: 'item', id: 'baz' });
 
@@ -213,7 +213,7 @@ success
 
 done = false;
 startTime = Date.now();
-local.navigator([
+local.agent([
   'httpl://test.com',
   { rel: 'collection', id: 'foo' },
   { rel: 'item', id: 'baz' }
@@ -254,7 +254,7 @@ success
 
 done = false;
 startTime = Date.now();
-local.navigator('nav:||httpl://test.com|collection=foo|item=baz').get()
+local.agent('nav:||httpl://test.com|collection=foo|item=baz').get()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
     testLocal.follow('|collection=foo|item=baz').get().then(printSuccessAndFinish, printErrorAndFinish);

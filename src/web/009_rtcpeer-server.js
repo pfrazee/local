@@ -287,7 +287,7 @@
 					self.incomingStreams[k].writeHead(404, 'not found').end();
 				}
 				self.terminate({ noSignal: true });
-				local.unregisterServer(self.config.domain);
+				local.removeServer(self.config.domain);
 			}
 		});
 		return response_;
@@ -563,7 +563,7 @@
 		this.providerDomain = local.parseUri(providerUrl).host;
 
 		// Create APIs
-		this.p2pwServiceAPI = local.navigator(this.config.provider);
+		this.p2pwServiceAPI = local.agent(this.config.provider);
 		this.p2pwUsersAPI = this.p2pwServiceAPI.follow({ rel: 'grimwire.com/-user collection' });
 	};
 
@@ -626,6 +626,12 @@
 		return api.get({ accept: 'application/json' });
 	};
 
+	// Fetches a user from p2pw service
+	// - `userId`: string
+	Relay.prototype.getUser = function(userId) {
+		return this.p2pwUsersAPI.follow({ rel: 'item', id: userId }).get({ accept: 'application/json' });
+	};
+
 	// Sends (or stores to send) links in the relay's registry
 	Relay.prototype.registerLinks = function(links) {
 		this.registeredLinks = Array.isArray(links) ? links : [links];
@@ -634,8 +640,8 @@
 		}
 	};
 
-	// Creates a new navigator with up-to-date links for the relay
-	Relay.prototype.navigator = function() {
+	// Creates a new agent with up-to-date links for the relay
+	Relay.prototype.agent = function() {
 		// Create an unresolved duplicate to that the link cache is refreshed
 		return this.p2pwRelayAPI.follow({ rel: 'self' });
 	};
@@ -754,7 +760,7 @@
 
 		// Add to hostmap
 		this.bridges[peerUrld.authority] = server;
-		local.registerServer(peerUrld.authority, server);
+		local.addServer(peerUrld.authority, server);
 
 		return server;
 	};
@@ -851,7 +857,7 @@
 		var bridge = this.bridges[data.domain];
 		if (bridge) {
 			delete this.bridges[data.domain];
-			local.unregisterServer(data.domain);
+			local.removeServer(data.domain);
 		}
 	};
 

@@ -12,7 +12,7 @@ local.spawnWorkerServer('test/web/_worker.js', { log: true });
 
 // document local scaffold server
 
-local.registerServer('test.com', function(request, response) {
+local.addServer('test.com', function(request, response) {
 	var foos = ['bar', 'baz', 'blah'];
 	var payload = null, linkHeader;
 	if (request.path == '/') {

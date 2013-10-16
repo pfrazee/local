@@ -44,11 +44,11 @@ relay2.on('listening', function() {
 var peer1API;
 var peer2API;
 relay2.on('connected', function(data) {
-	peer1API = local.navigator(data.server.getUrl());
+	peer1API = local.agent(data.server.getUrl());
 	checkReady();
 });
 relay1.on('connected', function(data) {
-	peer2API = local.navigator(data.server.getUrl());
+	peer2API = local.agent(data.server.getUrl());
 	print(data.peer.user);
 	print(data.peer.app);
 	print(data.peer.stream);

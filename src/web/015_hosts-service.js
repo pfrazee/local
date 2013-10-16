@@ -1,6 +1,6 @@
 // Local Registry Host
-local.registerServer('hosts', function(req, res) {
-	var localHosts = local.getServerRegistry();
+local.addServer('hosts', function(req, res) {
+	var localHosts = local.getServers();
 
 	if (!(req.method == 'HEAD' || req.method == 'GET'))
 		return res.writeHead(405, 'bad method').end();

@@ -18,17 +18,17 @@ var webDispatchWrapper;
 //   - on failure (status code 4xx,5xx), the promise is rejected with a `ClientResponse` object
 //   - all protocol (status code 1xx,3xx) is handled internally
 local.dispatch = function dispatch(request) {
-	if (!request) { throw new Error("no request param provided to request"); }
+	if (!request) { throw new Error("No request provided to dispatch()"); }
 	if (typeof request == 'string')
 		request = { url: request };
-	if (!request.url) { throw new Error("no url on request"); }
+	if (!request.url) { throw new Error("No url on request"); }
 
-	// If given a nav: scheme, spawn a navigator to handle it
+	// If given a nav: scheme, spawn a agent to handle it
 	var scheme = parseScheme(request.url);
 	if (scheme == 'nav') {
 		var url = request.url;
 		delete request.url;
-		return local.navigator(url).dispatch(request);
+		return local.agent(url).dispatch(request);
 	}
 
 	// Prepare the request

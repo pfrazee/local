@@ -276,8 +276,8 @@ var __httpl_registry = {};
 var __peer_relay_registry = {}; // populated by PeerWebRelay startListening() and stopListening()
 
 // EXPORTED
-local.registerServer = function registerServer(domain, server, serverContext) {
-	if (__httpl_registry[domain]) throw new Error("server already registered at domain given to registerServer");
+local.addServer = function addServer(domain, server, serverContext) {
+	if (__httpl_registry[domain]) throw new Error("server already registered at domain given to addServer");
 
 	var isServerObj = (server instanceof local.Server);
 	if (isServerObj) {
@@ -290,7 +290,7 @@ local.registerServer = function registerServer(domain, server, serverContext) {
 };
 
 // EXPORTED
-local.unregisterServer = function unregisterServer(domain) {
+local.removeServer = function removeServer(domain) {
 	if (__httpl_registry[domain]) {
 		delete __httpl_registry[domain];
 	}
@@ -302,6 +302,6 @@ local.getServer = function getServer(domain) {
 };
 
 // EXPORTED
-local.getServerRegistry = function getServerRegistry() {
+local.getServers = function getServers() {
 	return __httpl_registry;
 };

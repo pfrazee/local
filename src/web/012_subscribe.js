@@ -24,7 +24,7 @@ local.subscribe = function subscribe(request) {
 // EventStream
 // ===========
 // EXPORTED
-// provided by subscribe() to manage the events
+// wraps a response to emit the events
 function EventStream(request, response_) {
 	local.util.EventEmitter.call(this);
 	this.request = request;
@@ -107,17 +107,17 @@ function emitEvent(e) {
 }
 
 
-// Broadcaster
-// ===========
+// EventHost
+// =========
 // EXPORTED
-// a wrapper for event-streams
-function Broadcaster() {
+// manages response streams for a server to emit events to
+function EventHost() {
 	this.streams = [];
 }
-local.Broadcaster = Broadcaster;
+local.EventHost = EventHost;
 
 // listener management
-Broadcaster.prototype.addStream = function(responseStream) {
+EventHost.prototype.addStream = function(responseStream) {
 	responseStream.broadcastStreamId = this.streams.length;
 	this.streams.push(responseStream);
 	var self = this;
@@ -126,21 +126,21 @@ Broadcaster.prototype.addStream = function(responseStream) {
 	});
 	return responseStream.broadcastStreamId;
 };
-Broadcaster.prototype.endStream = function(responseStream) {
+EventHost.prototype.endStream = function(responseStream) {
 	if (typeof responseStream == 'number') {
 		responseStream = this.streams[responseStream];
 	}
 	delete this.streams[responseStream.broadcastStreamId];
 	responseStream.end();
 };
-Broadcaster.prototype.endAllStreams = function() {
+EventHost.prototype.endAllStreams = function() {
 	this.streams.forEach(function(rS) { rS.end(); });
 	this.streams.length = 0;
 };
 
 // Sends an event to all streams
 // - `opts.exclude`: optional number|Response|[number]|[Response], streams not to send to
-Broadcaster.prototype.emit = function(eventName, data, opts) {
+EventHost.prototype.emit = function(eventName, data, opts) {
 	if (!opts) opts = {};
 	if (opts.exclude) {
 		if (!Array.isArray(opts.exclude)) {
@@ -163,14 +163,9 @@ Broadcaster.prototype.emit = function(eventName, data, opts) {
 };
 
 // sends an event to the given response stream
-Broadcaster.prototype.emitTo = function(responseStream, eventName, data) {
+EventHost.prototype.emitTo = function(responseStream, eventName, data) {
 	if (typeof responseStream == 'number') {
 		responseStream = this.streams[responseStream];
 	}
 	responseStream.write({ event: eventName, data: data });
-};
-
-// wrap helper
-local.broadcaster = function() {
-	return new Broadcaster();
 };

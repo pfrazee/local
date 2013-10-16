@@ -1776,6 +1776,7 @@ local.BridgeServer = BridgeServer;
 
 // Turns on/off message numbering and the HOL-blocking reorder protocol
 BridgeServer.prototype.useMessageReordering = function(v) {
+	console.debug('turning '+(v?'on':'off')+'ordering');
 	this.isReorderingMessages = !!v;
 };
 
@@ -1883,12 +1884,14 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 
 	// Do input buffering if the message is numbered
 	if (msg.mid) {
+		// Create the buffer
 		if (!this.incomingStreamsBuffer[msg.sid]) {
 			this.incomingStreamsBuffer[msg.sid] = {
 				nextMid: 1,
 				cache: {}
 			};
 		}
+		// Cache (block at HOL) if not next in line
 		if (this.incomingStreamsBuffer[msg.sid].nextMid != msg.mid) {
 			this.incomingStreamsBuffer[msg.sid].cache[msg.mid] = msg;
 			return;
@@ -1912,19 +1915,21 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 			// Wire response into the stream
 			var this2 = this;
 			var resSid = -(msg.sid);
+			var midCounter = (this.isReorderingMessages) ? 1 : undefined;
 			response.on('headers', function() {
 				this2.channelSendMsg(JSON.stringify({
 					sid: resSid,
+					mid: (midCounter) ? midCounter++ : undefined,
 					status: response.status,
 					reason: response.reason,
-					headers: response.headers
+					headers: response.headers,
 				}));
 			});
 			response.on('data',  function(data) {
-				this2.channelSendMsg(JSON.stringify({ sid: resSid, body: data }));
+				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, body: data }));
 			});
 			response.on('close', function() {
-				this2.channelSendMsg(JSON.stringify({ sid: resSid, end: true }));
+				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, end: true }));
 				delete this2.outgoingStreams[resSid];
 			});
 
@@ -1963,9 +1968,12 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 		return;
 	}
 
+	// Check the cache if the message is numbered for reordering
 	if (msg.mid) {
+		// Is the next message cached?
 		var nextmid = ++this.incomingStreamsBuffer[msg.sid].nextMid;
 		if (this.incomingStreamsBuffer[msg.sid].cache[nextmid]) {
+			// Process it now
 			var cachedmsg = this.incomingStreamsBuffer[msg.sid].cache[nextmid];
 			delete this.incomingStreamsBuffer[msg.sid].cache[nextmid];
 			this.onChannelMessage(cachedmsg);
@@ -1984,7 +1992,6 @@ function validateJson(str) {
 }
 
 function validateHttplMessage(parsedmsg) {
-	console.debug(parsedmsg);
 	if (!parsedmsg)
 		return false;
 	if (isNaN(parsedmsg.sid))
@@ -2461,7 +2468,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 					self.incomingStreams[k].writeHead(404, 'not found').end();
 				}
 				self.terminate({ noSignal: true });
-				local.unregisterServer(self.config.domain);
+				local.removeServer(self.config.domain);
 			}
 		});
 		return response_;
@@ -2737,7 +2744,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		this.providerDomain = local.parseUri(providerUrl).host;
 
 		// Create APIs
-		this.p2pwServiceAPI = local.navigator(this.config.provider);
+		this.p2pwServiceAPI = local.agent(this.config.provider);
 		this.p2pwUsersAPI = this.p2pwServiceAPI.follow({ rel: 'grimwire.com/-user collection' });
 	};
 
@@ -2800,6 +2807,12 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		return api.get({ accept: 'application/json' });
 	};
 
+	// Fetches a user from p2pw service
+	// - `userId`: string
+	Relay.prototype.getUser = function(userId) {
+		return this.p2pwUsersAPI.follow({ rel: 'item', id: userId }).get({ accept: 'application/json' });
+	};
+
 	// Sends (or stores to send) links in the relay's registry
 	Relay.prototype.registerLinks = function(links) {
 		this.registeredLinks = Array.isArray(links) ? links : [links];
@@ -2808,8 +2821,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		}
 	};
 
-	// Creates a new navigator with up-to-date links for the relay
-	Relay.prototype.navigator = function() {
+	// Creates a new agent with up-to-date links for the relay
+	Relay.prototype.agent = function() {
 		// Create an unresolved duplicate to that the link cache is refreshed
 		return this.p2pwRelayAPI.follow({ rel: 'self' });
 	};
@@ -2928,7 +2941,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 		// Add to hostmap
 		this.bridges[peerUrld.authority] = server;
-		local.registerServer(peerUrld.authority, server);
+		local.addServer(peerUrld.authority, server);
 
 		return server;
 	};
@@ -3025,7 +3038,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		var bridge = this.bridges[data.domain];
 		if (bridge) {
 			delete this.bridges[data.domain];
-			local.unregisterServer(data.domain);
+			local.removeServer(data.domain);
 		}
 	};
 
@@ -3329,8 +3342,8 @@ var __httpl_registry = {};
 var __peer_relay_registry = {}; // populated by PeerWebRelay startListening() and stopListening()
 
 // EXPORTED
-local.registerServer = function registerServer(domain, server, serverContext) {
-	if (__httpl_registry[domain]) throw new Error("server already registered at domain given to registerServer");
+local.addServer = function addServer(domain, server, serverContext) {
+	if (__httpl_registry[domain]) throw new Error("server already registered at domain given to addServer");
 
 	var isServerObj = (server instanceof local.Server);
 	if (isServerObj) {
@@ -3343,7 +3356,7 @@ local.registerServer = function registerServer(domain, server, serverContext) {
 };
 
 // EXPORTED
-local.unregisterServer = function unregisterServer(domain) {
+local.removeServer = function removeServer(domain) {
 	if (__httpl_registry[domain]) {
 		delete __httpl_registry[domain];
 	}
@@ -3355,7 +3368,7 @@ local.getServer = function getServer(domain) {
 };
 
 // EXPORTED
-local.getServerRegistry = function getServerRegistry() {
+local.getServers = function getServers() {
 	return __httpl_registry;
 };
 var webDispatchWrapper;
@@ -3378,17 +3391,17 @@ var webDispatchWrapper;
 //   - on failure (status code 4xx,5xx), the promise is rejected with a `ClientResponse` object
 //   - all protocol (status code 1xx,3xx) is handled internally
 local.dispatch = function dispatch(request) {
-	if (!request) { throw new Error("no request param provided to request"); }
+	if (!request) { throw new Error("No request provided to dispatch()"); }
 	if (typeof request == 'string')
 		request = { url: request };
-	if (!request.url) { throw new Error("no url on request"); }
+	if (!request.url) { throw new Error("No url on request"); }
 
-	// If given a nav: scheme, spawn a navigator to handle it
+	// If given a nav: scheme, spawn a agent to handle it
 	var scheme = parseScheme(request.url);
 	if (scheme == 'nav') {
 		var url = request.url;
 		delete request.url;
-		return local.navigator(url).dispatch(request);
+		return local.agent(url).dispatch(request);
 	}
 
 	// Prepare the request
@@ -3553,7 +3566,7 @@ local.subscribe = function subscribe(request) {
 // EventStream
 // ===========
 // EXPORTED
-// provided by subscribe() to manage the events
+// wraps a response to emit the events
 function EventStream(request, response_) {
 	local.util.EventEmitter.call(this);
 	this.request = request;
@@ -3636,17 +3649,17 @@ function emitEvent(e) {
 }
 
 
-// Broadcaster
-// ===========
+// EventHost
+// =========
 // EXPORTED
-// a wrapper for event-streams
-function Broadcaster() {
+// manages response streams for a server to emit events to
+function EventHost() {
 	this.streams = [];
 }
-local.Broadcaster = Broadcaster;
+local.EventHost = EventHost;
 
 // listener management
-Broadcaster.prototype.addStream = function(responseStream) {
+EventHost.prototype.addStream = function(responseStream) {
 	responseStream.broadcastStreamId = this.streams.length;
 	this.streams.push(responseStream);
 	var self = this;
@@ -3655,21 +3668,21 @@ Broadcaster.prototype.addStream = function(responseStream) {
 	});
 	return responseStream.broadcastStreamId;
 };
-Broadcaster.prototype.endStream = function(responseStream) {
+EventHost.prototype.endStream = function(responseStream) {
 	if (typeof responseStream == 'number') {
 		responseStream = this.streams[responseStream];
 	}
 	delete this.streams[responseStream.broadcastStreamId];
 	responseStream.end();
 };
-Broadcaster.prototype.endAllStreams = function() {
+EventHost.prototype.endAllStreams = function() {
 	this.streams.forEach(function(rS) { rS.end(); });
 	this.streams.length = 0;
 };
 
 // Sends an event to all streams
 // - `opts.exclude`: optional number|Response|[number]|[Response], streams not to send to
-Broadcaster.prototype.emit = function(eventName, data, opts) {
+EventHost.prototype.emit = function(eventName, data, opts) {
 	if (!opts) opts = {};
 	if (opts.exclude) {
 		if (!Array.isArray(opts.exclude)) {
@@ -3692,18 +3705,12 @@ Broadcaster.prototype.emit = function(eventName, data, opts) {
 };
 
 // sends an event to the given response stream
-Broadcaster.prototype.emitTo = function(responseStream, eventName, data) {
+EventHost.prototype.emitTo = function(responseStream, eventName, data) {
 	if (typeof responseStream == 'number') {
 		responseStream = this.streams[responseStream];
 	}
 	responseStream.write({ event: eventName, data: data });
-};
-
-// wrap helper
-local.broadcaster = function() {
-	return new Broadcaster();
-};
-/*
+};/*
  UriTemplate Copyright (c) 2012-2013 Franz Antesberger. All Rights Reserved.
  Available via the MIT license.
 */
@@ -4575,8 +4582,8 @@ var UriTemplate = (function () {
 }(function (UriTemplate) {
         "use strict";
         local.UriTemplate = UriTemplate;
-}));// Navigator
-// =========
+}));// Agent
+// =====
 
 function getEnvironmentHost() {
 	if (typeof window !== 'undefined') return window.location.host;
@@ -4584,18 +4591,18 @@ function getEnvironmentHost() {
 	return '';
 }
 
-// NavigatorContext
-// ================
+// AgentContext
+// ============
 // INTERNAL
-// information about the resource that a navigator targets
+// information about the resource that a agent targets
 //  - exists in an "unresolved" state until the URI is confirmed by a response from the server
 //  - enters a "bad" state if an attempt to resolve the link failed
 //  - may be "relative" if described by a relation from another context (eg a query or a relative URI)
 //  - may be "absolute" if described by an absolute URI
 // :NOTE: absolute contexts may have a URI without being resolved, so don't take the presence of a URI as a sign that the resource exists
-function NavigatorContext(query) {
+function AgentContext(query) {
 	this.query = query;
-	this.resolveState = NavigatorContext.UNRESOLVED;
+	this.resolveState = AgentContext.UNRESOLVED;
 	this.error = null;
 	this.queryIsAbsolute = (typeof query == 'string' && local.isAbsUri(query));
 	if (this.queryIsAbsolute) {
@@ -4606,33 +4613,33 @@ function NavigatorContext(query) {
 		this.urld = null;
 	}
 }
-NavigatorContext.UNRESOLVED = 0;
-NavigatorContext.RESOLVED   = 1;
-NavigatorContext.FAILED     = 2;
-NavigatorContext.prototype.isResolved = function() { return this.resolveState === NavigatorContext.RESOLVED; };
-NavigatorContext.prototype.isBad      = function() { return this.resolveState === NavigatorContext.FAILED; };
-NavigatorContext.prototype.isRelative = function() { return (!this.queryIsAbsolute); };
-NavigatorContext.prototype.isAbsolute = function() { return this.queryIsAbsolute; };
-NavigatorContext.prototype.getUrl     = function() { return this.url; };
-NavigatorContext.prototype.getError   = function() { return this.error; };
-NavigatorContext.prototype.resetResolvedState = function() {
-	this.resolveState = NavigatorContext.UNRESOLVED;
+AgentContext.UNRESOLVED = 0;
+AgentContext.RESOLVED   = 1;
+AgentContext.FAILED     = 2;
+AgentContext.prototype.isResolved = function() { return this.resolveState === AgentContext.RESOLVED; };
+AgentContext.prototype.isBad      = function() { return this.resolveState === AgentContext.FAILED; };
+AgentContext.prototype.isRelative = function() { return (!this.queryIsAbsolute); };
+AgentContext.prototype.isAbsolute = function() { return this.queryIsAbsolute; };
+AgentContext.prototype.getUrl     = function() { return this.url; };
+AgentContext.prototype.getError   = function() { return this.error; };
+AgentContext.prototype.resetResolvedState = function() {
+	this.resolveState = AgentContext.UNRESOLVED;
 	this.error = null;
 };
-NavigatorContext.prototype.setResolved = function(url) {
+AgentContext.prototype.setResolved = function(url) {
 	this.error        = null;
-	this.resolveState = NavigatorContext.RESOLVED;
+	this.resolveState = AgentContext.RESOLVED;
 	if (url) {
 		this.url          = url;
 		this.urld         = local.parseUri(this.url);
 	}
 };
-NavigatorContext.prototype.setFailed = function(error) {
+AgentContext.prototype.setFailed = function(error) {
 	this.error        = error;
-	this.resolveState = NavigatorContext.FAILED;
+	this.resolveState = AgentContext.FAILED;
 };
 
-// Navigator
+// Agent
 // =========
 // EXPORTED
 // API to follow resource links (as specified by the response Link header)
@@ -4644,9 +4651,9 @@ NavigatorContext.prototype.setFailed = function(error) {
 // EXAMPLE 1. Get Bob from Foobar.com
 // - basic navigation
 // - requests
-var foobarService = local.navigator('https://foobar.com');
+var foobarService = local.agent('https://foobar.com');
 var bob = foobarService.follow('|collection=users|item=bob');
-// ^ or local.navigator('nav:||https://foobar.com|collection=users|item=bob')
+// ^ or local.agent('nav:||https://foobar.com|collection=users|item=bob')
 // ^ or foobarService.follow([{ rel: 'collection', id: 'users' }, { rel: 'item', id:'bob' }]);
 // ^ or foobarService.follow({ rel: 'collection', id: 'users' }).follow({ rel: 'item', id:'bob' });
 bob.get()
@@ -4703,18 +4710,18 @@ pageCursor.get()
 		}
 	});
 */
-function Navigator(context, parentNavigator) {
+function Agent(context, parentAgent) {
 	this.context         = context         || null;
-	this.parentNavigator = parentNavigator || null;
+	this.parentAgent = parentAgent || null;
 	this.links           = null;
 	this.requestDefaults = null;
 }
-local.Navigator = Navigator;
+local.Agent = Agent;
 
 // Sets defaults to be used in all requests
 // - eg nav.setRequestDefaults({ method: 'GET', headers: { authorization: 'bob:pass', accept: 'text/html' }})
 // - eg nav.setRequestDefaults({ proxy: 'httpl://myproxy.app' })
-Navigator.prototype.setRequestDefaults = function(v) {
+Agent.prototype.setRequestDefaults = function(v) {
 	this.requestDefaults = v;
 };
 
@@ -4739,7 +4746,7 @@ function copyDefaults(target, defaults) {
 // Executes an HTTP request to our context
 //  - uses additional parameters on the request options:
 //    - noretry: bool, should the url resolve fail automatically if it previously failed?
-Navigator.prototype.dispatch = function(req) {
+Agent.prototype.dispatch = function(req) {
 	if (!req) req = {};
 	if (!req.headers) req.headers = {};
 	var self = this;
@@ -4769,7 +4776,7 @@ Navigator.prototype.dispatch = function(req) {
 };
 
 // Executes a GET text/event-stream request to our context
-Navigator.prototype.subscribe = function(req) {
+Agent.prototype.subscribe = function(req) {
 	var self = this;
 	if (!req) req = {};
 	return this.resolve({ nohead: true }).succeed(function(url) {
@@ -4782,7 +4789,7 @@ Navigator.prototype.subscribe = function(req) {
 	});
 };
 
-// Follows a link relation from our context, generating a new navigator
+// Follows a link relation from our context, generating a new agent
 // - `query` may be:
 //   - an object in the same form of a `local.queryLink()` parameter
 //   - an array of link query objects (to be followed sequentially)
@@ -4794,7 +4801,7 @@ Navigator.prototype.subscribe = function(req) {
 // - when querying, only the `rel` and `id` (if specified) attributes must match
 //   - the exception to this is: `rel` matches and the HREF has an {id} token
 //   - all other attributes are used to fill URI Template tokens and are not required to match
-Navigator.prototype.follow = function(query) {
+Agent.prototype.follow = function(query) {
 	// convert nav: uri to a query array
 	if (typeof query == 'string' && local.isNavSchemeUri(query))
 		query = local.parseNavUri(query);
@@ -4806,7 +4813,7 @@ Navigator.prototype.follow = function(query) {
 	// build a full follow() chain
 	var nav = this;
 	do {
-		nav = new Navigator(new NavigatorContext(query.shift()), nav);
+		nav = new Agent(new AgentContext(query.shift()), nav);
 		if (this.requestDefaults)
 			nav.setRequestDefaults(this.requestDefaults);
 	} while (query[0]);
@@ -4814,17 +4821,17 @@ Navigator.prototype.follow = function(query) {
 	return nav;
 };
 
-// Resets the navigator's resolution state, causing it to reissue HEAD requests (relative to any parent navigators)
-Navigator.prototype.unresolve = function() {
+// Resets the agent's resolution state, causing it to reissue HEAD requests (relative to any parent agents)
+Agent.prototype.unresolve = function() {
 	this.context.resetResolvedState();
 	this.links = null;
 	return this;
 };
 
-// Reassigns the navigator to a new absolute URL
-// - `url`: required string, the URL to rebase the navigator to
+// Reassigns the agent to a new absolute URL
+// - `url`: required string, the URL to rebase the agent to
 // - resets the resolved state
-Navigator.prototype.rebase = function(url) {
+Agent.prototype.rebase = function(url) {
 	this.unresolve();
 	this.context.query = url;
 	this.context.queryIsAbsolute = true;
@@ -4833,14 +4840,14 @@ Navigator.prototype.rebase = function(url) {
 	return this;
 };
 
-// Resolves the navigator's URL, reporting failure if a link or resource is unfound
+// Resolves the agent's URL, reporting failure if a link or resource is unfound
 //  - also ensures the links have been retrieved from the context
 //  - may trigger resolution of parent contexts
 //  - options is optional and may include:
 //    - noretry: bool, should the url resolve fail automatically if it previously failed?
 //    - nohead: bool, should we issue a HEAD request once we have a URL? (not favorable if planning to dispatch something else)
 //  - returns a promise which will fulfill with the resolved url
-Navigator.prototype.resolve = function(options) {
+Agent.prototype.resolve = function(options) {
 	var self = this;
 	options = options || {};
 
@@ -4856,10 +4863,10 @@ Navigator.prototype.resolve = function(options) {
 		// We don't have links, and we haven't previously failed (or we want to try again)
 		this.context.resetResolvedState();
 
-		if (this.context.isRelative() && !this.parentNavigator) {
+		if (this.context.isRelative() && !this.parentAgent) {
 			// Scheme-less URIs can map to local URIs, so make sure the local server hasnt been added since we were created
 			if (typeof this.context.query == 'string' && !!local.getServer(this.context.query)) {
-				self.context = new NavigatorContext(self.context.query);
+				self.context = new AgentContext(self.context.query);
 			} else {
 				self.context.setFailed({ status: 404, reason: 'not found' });
 				resolvePromise.reject(this.context.getError());
@@ -4869,10 +4876,10 @@ Navigator.prototype.resolve = function(options) {
 
 		if (this.context.isRelative()) {
 			// Up the chain we go
-			resolvePromise = this.parentNavigator.resolve(options)
+			resolvePromise = this.parentAgent.resolve(options)
 				.succeed(function() {
 					// Parent resolved, query its links
-					var childUrl = self.parentNavigator.lookupLink(self.context);
+					var childUrl = self.parentAgent.lookupLink(self.context);
 					if (childUrl) {
 						// We have a pope! I mean, link.
 						self.context.setResolved(childUrl);
@@ -4910,7 +4917,7 @@ Navigator.prototype.resolve = function(options) {
 };
 
 // Looks up a link in the cache and generates the URI (the follow logic)
-Navigator.prototype.lookupLink = function(context) {
+Agent.prototype.lookupLink = function(context) {
 	if (context.query) {
 		if (typeof context.query == 'object') {
 			// Try to find a link that matches
@@ -4925,7 +4932,7 @@ Navigator.prototype.lookupLink = function(context) {
 			return context.query;
 		}
 	}
-	console.log('Failed to find a link to resolve context. Link query:', context.query, 'Navigator:', this);
+	console.log('Failed to find a link to resolve context. Link query:', context.query, 'Agent:', this);
 	return null;
 };
 
@@ -4948,18 +4955,18 @@ function makeDispWBodySugar(method) {
 		return this.dispatch(req);
 	};
 }
-Navigator.prototype.head   = makeDispSugar('HEAD');
-Navigator.prototype.get    = makeDispSugar('GET');
-Navigator.prototype.delete = makeDispSugar('DELETE');
-Navigator.prototype.post   = makeDispWBodySugar('POST');
-Navigator.prototype.put    = makeDispWBodySugar('PUT');
-Navigator.prototype.patch  = makeDispWBodySugar('PATCH');
-Navigator.prototype.notify = makeDispWBodySugar('NOTIFY');
+Agent.prototype.head   = makeDispSugar('HEAD');
+Agent.prototype.get    = makeDispSugar('GET');
+Agent.prototype.delete = makeDispSugar('DELETE');
+Agent.prototype.post   = makeDispWBodySugar('POST');
+Agent.prototype.put    = makeDispWBodySugar('PUT');
+Agent.prototype.patch  = makeDispWBodySugar('PATCH');
+Agent.prototype.notify = makeDispWBodySugar('NOTIFY');
 
 // Builder
 // =======
-local.navigator = function(queryOrNav) {
-	if (queryOrNav instanceof Navigator)
+local.agent = function(queryOrNav) {
+	if (queryOrNav instanceof Agent)
 		return queryOrNav;
 
 	// convert nav: uri to a query array
@@ -4971,15 +4978,15 @@ local.navigator = function(queryOrNav) {
 		queryOrNav = [queryOrNav];
 
 	// build a full follow() chain
-	var nav = new Navigator(new NavigatorContext(queryOrNav.shift()));
+	var nav = new Agent(new AgentContext(queryOrNav.shift()));
 	while (queryOrNav[0]) {
-		nav = new Navigator(new NavigatorContext(queryOrNav.shift()), nav);
+		nav = new Agent(new AgentContext(queryOrNav.shift()), nav);
 	}
 
 	return nav;
 };// Local Registry Host
-local.registerServer('hosts', function(req, res) {
-	var localHosts = local.getServerRegistry();
+local.addServer('hosts', function(req, res) {
+	var localHosts = local.getServers();
 
 	if (!(req.method == 'HEAD' || req.method == 'GET'))
 		return res.writeHead(405, 'bad method').end();
@@ -5055,7 +5062,7 @@ local.spawnWorkerServer = function(src, config, serverFn) {
 			domain = getAvailableLocalDomain(src.split('/').pop().toLowerCase() + '{n}');
 		}
 	}
-	local.registerServer(domain, server);
+	local.addServer(domain, server);
 
 	return server;
 };
@@ -5099,13 +5106,20 @@ function bindRequestEvents(container, options) {
 
 	var handler;
 	if (options.links !== false) {
+		// anchor-click handler
 		handler = { name: 'click', handleEvent: Local__clickHandler, container: container };
 		container.addEventListener('click', handler, false);
 		container.__localEventHandlers.push(handler);
 	}
 	if (options.forms !== false) {
+		// submitter tracking
+		handler = { name: 'click', handleEvent: Local__submitterTracker, container: container };
+		container.addEventListener('click', handler, true); // must be on capture to happen in time
+		container.__localEventHandlers.push(handler);
+		// submit handler
 		handler = { name: 'submit', handleEvent: Local__submitHandler, container: container };
 		container.addEventListener('submit', handler, false);
+		container.__localEventHandlers.push(handler);
 	}
 }
 
@@ -5126,7 +5140,6 @@ function unbindRequestEvents(container) {
 // transforms click events into request events
 function Local__clickHandler(e) {
 	if (e.button !== 0) { return; } // handle left-click only
-	local.util.trackFormSubmitter(e.target);
 	var request = local.util.extractRequest.fromAnchor(e.target);
 	if (request && ['_top','_blank'].indexOf(request.target) !== -1) { return; }
 	if (request) {
@@ -5135,6 +5148,13 @@ function Local__clickHandler(e) {
 		local.util.dispatchRequestEvent(e.target, request);
 		return false;
 	}
+}
+
+// INTERNAL
+// marks the submitting element (on click capture-phase) so the submit handler knows who triggered it
+function Local__submitterTracker(e) {
+	if (e.button !== 0) { return; } // handle left-click only
+	local.util.trackFormSubmitter(e.target);
 }
 
 // INTERNAL

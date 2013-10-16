@@ -105,7 +105,7 @@ function addConnection(port) {
 		local.worker.hostPage = page;
 	}
 	local.worker.pages.push(page);
-	local.registerServer(page.id+'.page', page);
+	local.addServer(page.id+'.page', page);
 
 	// Let the document know we're active
 	if (port.start) {

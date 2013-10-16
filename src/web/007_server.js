@@ -59,6 +59,7 @@ local.BridgeServer = BridgeServer;
 
 // Turns on/off message numbering and the HOL-blocking reorder protocol
 BridgeServer.prototype.useMessageReordering = function(v) {
+	console.debug('turning '+(v?'on':'off')+'ordering');
 	this.isReorderingMessages = !!v;
 };
 
@@ -197,19 +198,21 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 			// Wire response into the stream
 			var this2 = this;
 			var resSid = -(msg.sid);
+			var midCounter = (this.isReorderingMessages) ? 1 : undefined;
 			response.on('headers', function() {
 				this2.channelSendMsg(JSON.stringify({
 					sid: resSid,
+					mid: (midCounter) ? midCounter++ : undefined,
 					status: response.status,
 					reason: response.reason,
-					headers: response.headers
+					headers: response.headers,
 				}));
 			});
 			response.on('data',  function(data) {
-				this2.channelSendMsg(JSON.stringify({ sid: resSid, body: data }));
+				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, body: data }));
 			});
 			response.on('close', function() {
-				this2.channelSendMsg(JSON.stringify({ sid: resSid, end: true }));
+				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, end: true }));
 				delete this2.outgoingStreams[resSid];
 			});
 

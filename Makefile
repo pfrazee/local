@@ -22,7 +22,7 @@ src-web-files =\
 	${src}web/011_dispatch.js\
 	${src}web/012_subscribe.js\
 	${src}web/013_uri-template.js\
-	${src}web/014_navigator.js\
+	${src}web/014_agent.js\
 	${src}web/015_hosts-service.js\
 	${src}web/module_footer.js
 src-toplevel-files =\
