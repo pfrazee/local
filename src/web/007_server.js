@@ -17,8 +17,8 @@ Server.prototype.getUrl = function() { return 'httpl://' + this.config.domain; }
 
 // Local request handler
 // - should be overridden
-Server.prototype.handleLocalWebRequest = function(request, response) {
-	console.warn('handleLocalWebRequest not defined', this);
+Server.prototype.handleLocalRequest = function(request, response) {
+	console.warn('handleLocalRequest not defined', this);
 	response.writeHead(500, 'server not implemented');
 	response.end();
 };
@@ -80,8 +80,8 @@ BridgeServer.prototype.channelSendMsg = function(msg) {
 
 // Remote request handler
 // - should be overridden
-BridgeServer.prototype.handleRemoteWebRequest = function(request, response) {
-	console.warn('handleRemoteWebRequest not defined', this);
+BridgeServer.prototype.handleRemoteRequest = function(request, response) {
+	console.warn('handleRemoteRequest not defined', this);
 	response.writeHead(500, 'server not implemented');
 	response.end();
 };
@@ -108,7 +108,7 @@ BridgeServer.prototype.channelSendMsgWhenReady = function(msg) {
 
 // Local request handler
 // - pipes the request directly to the remote namespace
-BridgeServer.prototype.handleLocalWebRequest = function(request, response) {
+BridgeServer.prototype.handleLocalRequest = function(request, response) {
 	// Build message
 	var sid = this.sidCounter++;
 	var msg = {
@@ -221,7 +221,7 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 			this.outgoingStreams[resSid] = response;
 
 			// Pass on to the request handler
-			this.handleRemoteWebRequest(request, response);
+			this.handleRemoteRequest(request, response);
 		}
 		// Incoming responses have a negative sid
 		else {

@@ -2,6 +2,13 @@ Changes
 =======
 0.4.0
 
+2013/10/18 pfraze
+
+ - Renamed
+   - Server.handleLocalWebRequest -> Server.handleLocalRequest
+   - Server.handleRemoteWebRequest -> Server.handleRemoteRequest
+
+
 2013/10/16 pfraze
 
  - Renamed

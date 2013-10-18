@@ -1,20 +1,7 @@
-// promises
-// ========
-// pfraze 2013
+if (typeof this.local == 'undefined')
+	this.local = {};
 
-(function () {
-	var exports = this;
-	if (typeof window !== "undefined") {
-		if (typeof window.local == 'undefined')
-			window.local = {};
-		exports = window.local;
-	} else if (typeof self !== "undefined") {
-		if (typeof self.local == 'undefined')
-			self.local = {};
-		exports = self.local;
-	} else if (typeof module !== "undefined") {
-		exports = module.exports;
-	}
+(function() {
 
 	function isPromiselike(p) {
 		return (p && typeof p.then == 'function');
@@ -245,18 +232,12 @@
 		return new Promise(v);
 	}
 
-	exports.Promise = Promise;
-	exports.promise = promise;
-	exports.promise.bundle = bundle;
-	exports.promise.all = all;
-	exports.promise.any = any;
-})();
-
-if (typeof define !== "undefined") {
-	define([], function() {
-		return Promise;
-	});
-}// Local Utilities
+	local.Promise = Promise;
+	local.promise = promise;
+	local.promise.bundle = bundle;
+	local.promise.all = all;
+	local.promise.any = any;
+})();// Local Utilities
 // ===============
 // pfraze 2013
 
@@ -1734,8 +1715,8 @@ Server.prototype.getUrl = function() { return 'httpl://' + this.config.domain; }
 
 // Local request handler
 // - should be overridden
-Server.prototype.handleLocalWebRequest = function(request, response) {
-	console.warn('handleLocalWebRequest not defined', this);
+Server.prototype.handleLocalRequest = function(request, response) {
+	console.warn('handleLocalRequest not defined', this);
 	response.writeHead(500, 'server not implemented');
 	response.end();
 };
@@ -1797,8 +1778,8 @@ BridgeServer.prototype.channelSendMsg = function(msg) {
 
 // Remote request handler
 // - should be overridden
-BridgeServer.prototype.handleRemoteWebRequest = function(request, response) {
-	console.warn('handleRemoteWebRequest not defined', this);
+BridgeServer.prototype.handleRemoteRequest = function(request, response) {
+	console.warn('handleRemoteRequest not defined', this);
 	response.writeHead(500, 'server not implemented');
 	response.end();
 };
@@ -1825,7 +1806,7 @@ BridgeServer.prototype.channelSendMsgWhenReady = function(msg) {
 
 // Local request handler
 // - pipes the request directly to the remote namespace
-BridgeServer.prototype.handleLocalWebRequest = function(request, response) {
+BridgeServer.prototype.handleLocalRequest = function(request, response) {
 	// Build message
 	var sid = this.sidCounter++;
 	var msg = {
@@ -1938,7 +1919,7 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 			this.outgoingStreams[resSid] = response;
 
 			// Pass on to the request handler
-			this.handleRemoteWebRequest(request, response);
+			this.handleRemoteRequest(request, response);
 		}
 		// Incoming responses have a negative sid
 		else {
@@ -2002,7 +1983,7 @@ function validateHttplMessage(parsedmsg) {
 // EXPORTED
 // wrapper for servers run within workers
 // - `config.src`: required URL
-// - `config.serverFn`: optional function to replace handleRemoteWebRequest
+// - `config.serverFn`: optional function to replace handleRemoteRequest
 // - `config.shared`: boolean, should the workerserver be shared?
 // - `config.namespace`: optional string, what should the shared worker be named?
 //   - defaults to `config.src` if undefined
@@ -2111,7 +2092,7 @@ WorkerBridgeServer.prototype.channelSendMsg = function(msg) {
 
 // Remote request handler
 // - should be overridden
-BridgeServer.prototype.handleRemoteWebRequest = function(request, response) {
+BridgeServer.prototype.handleRemoteRequest = function(request, response) {
 	if (this.configServerFn) {
 		this.configServerFn.call(this, request, response, this);
 	} else {
@@ -2298,7 +2279,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	};
 
 	// Remote request handler
-	RTCBridgeServer.prototype.handleRemoteWebRequest = function(request, response) {
+	RTCBridgeServer.prototype.handleRemoteRequest = function(request, response) {
 		if (this.config.serverFn) {
 			this.config.serverFn.call(this, request, response, this);
 		} else {
@@ -2638,7 +2619,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// EXPORTED
 	// Helper class for managing a peer web relay provider
 	// - `config.provider`: optional string, the relay provider
-	// - `config.serverFn`: optional function, the function for peerservers' handleRemoteWebRequest
+	// - `config.serverFn`: optional function, the function for peerservers' handleRemoteRequest
 	// - `config.app`: optional string, the app to join as (defaults to window.location.host)
 	// - `config.stream`: optional number, the stream id (defaults to pseudo-random)
 	// - `config.ping`: optional number, sends a ping to self via the relay at the given interval (in ms) to keep the stream alive
@@ -3348,7 +3329,7 @@ local.addServer = function addServer(domain, server, serverContext) {
 	var isServerObj = (server instanceof local.Server);
 	if (isServerObj) {
 		serverContext = server;
-		server = server.handleLocalWebRequest;
+		server = server.handleLocalRequest;
 		serverContext.config.domain = domain;
 	}
 

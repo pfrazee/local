@@ -117,7 +117,7 @@
 	};
 
 	// Remote request handler
-	RTCBridgeServer.prototype.handleRemoteWebRequest = function(request, response) {
+	RTCBridgeServer.prototype.handleRemoteRequest = function(request, response) {
 		if (this.config.serverFn) {
 			this.config.serverFn.call(this, request, response, this);
 		} else {
@@ -457,7 +457,7 @@
 	// EXPORTED
 	// Helper class for managing a peer web relay provider
 	// - `config.provider`: optional string, the relay provider
-	// - `config.serverFn`: optional function, the function for peerservers' handleRemoteWebRequest
+	// - `config.serverFn`: optional function, the function for peerservers' handleRemoteRequest
 	// - `config.app`: optional string, the app to join as (defaults to window.location.host)
 	// - `config.stream`: optional number, the stream id (defaults to pseudo-random)
 	// - `config.ping`: optional number, sends a ping to self via the relay at the given interval (in ms) to keep the stream alive

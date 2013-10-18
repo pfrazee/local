@@ -3,7 +3,7 @@
 // EXPORTED
 // wrapper for servers run within workers
 // - `config.src`: required URL
-// - `config.serverFn`: optional function to replace handleRemoteWebRequest
+// - `config.serverFn`: optional function to replace handleRemoteRequest
 // - `config.shared`: boolean, should the workerserver be shared?
 // - `config.namespace`: optional string, what should the shared worker be named?
 //   - defaults to `config.src` if undefined
@@ -112,7 +112,7 @@ WorkerBridgeServer.prototype.channelSendMsg = function(msg) {
 
 // Remote request handler
 // - should be overridden
-BridgeServer.prototype.handleRemoteWebRequest = function(request, response) {
+BridgeServer.prototype.handleRemoteRequest = function(request, response) {
 	if (this.configServerFn) {
 		this.configServerFn.call(this, request, response, this);
 	} else {

@@ -56,13 +56,9 @@
 	};
 
 	// Remote request handler
-	PageServer.prototype.handleRemoteWebRequest = function(request, response) {
-		if (main) {
-			main(request, response, this);
-		} else {
-			response.writeHead(500, 'worker main() not implemented');
-			response.end();
-		}
+	PageServer.prototype.handleRemoteRequest = function(request, response) {
+		response.writeHead(500, 'worker server not implemented');
+		response.end();
 	};
 
 	// Stores configuration sent by the page

@@ -282,7 +282,7 @@ local.addServer = function addServer(domain, server, serverContext) {
 	var isServerObj = (server instanceof local.Server);
 	if (isServerObj) {
 		serverContext = server;
-		server = server.handleLocalWebRequest;
+		server = server.handleLocalRequest;
 		serverContext.config.domain = domain;
 	}
 
