@@ -2185,7 +2185,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// - `config.initiate`: optional bool, if true will initiate the connection processes
 	// - `config.loopback`: optional bool, is this the local host? If true, will connect to self
 	// - `config.retryTimeout`: optional number, time (in ms) before a connection is aborted and retried (defaults to 15000)
-	// - `config.retries`: optional number, number of times to retry before giving up (defaults to 5)
+	// - `config.retries`: optional number, number of times to retry before giving up (defaults to 3)
 	function RTCBridgeServer(config) {
 		// Config
 		var self = this;
@@ -2193,7 +2193,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		if (!config.peer) throw new Error("`config.peer` is required");
 		if (!config.relay) throw new Error("`config.relay` is required");
 		if (typeof config.retryTimeout == 'undefined') config.retryTimeout = 15000;
-		if (typeof config.retries == 'undefined') config.retries = 5;
+		if (typeof config.retries == 'undefined') config.retries = 3;
 		local.BridgeServer.call(this, config);
 		local.util.mixinEventEmitter(this);
 
@@ -2519,7 +2519,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 				} else {
 					// Give up
 					console.debug('CONNECTION TIMED OUT, GIVING UP');
-					self.terminate();
+					self.resetPeerConn();
+					// ^ resets but doesn't terminate - can try again with sendOffer()
 				}
 			}
 		}, this.config.retryTimeout);
@@ -2717,6 +2718,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	Relay.prototype.getAccessToken  = function() { return this.accessToken; };
 	Relay.prototype.getServer       = function() { return this.config.serverFn; };
 	Relay.prototype.setServer       = function(fn) { this.config.serverFn = fn; };
+	Relay.prototype.getRetryTimeout = function() { return this.config.retryTimeout; };
+	Relay.prototype.setRetryTimeout = function(v) { this.config.retryTimeout = v; };
 	Relay.prototype.getProvider     = function() { return this.config.provider; };
 	Relay.prototype.setProvider     = function(providerUrl) {
 		// Abort if already connected
