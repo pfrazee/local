@@ -1,4 +1,4 @@
-local.worker.hostPage.handleRemoteRequest = function(request, response) {
+local.worker.setServer(function(request, response) {
 	var foos = ['bar', 'baz', 'blah'];
 	var payload = null, linkHeader;
 	if (request.path == '/') {
@@ -89,4 +89,4 @@ local.worker.hostPage.handleRemoteRequest = function(request, response) {
 		response.writeHead(404, 'not found');
 		response.end();
 	}
-}
+});

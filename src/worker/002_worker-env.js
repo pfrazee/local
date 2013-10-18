@@ -94,6 +94,10 @@ if (!self.btoa) {
 	};
 }
 
+local.worker.setServer = function(fn) {
+	local.worker.serverFn = fn;
+};
+
 local.worker.pages = [];
 function addConnection(port) {
 	// Create new page server

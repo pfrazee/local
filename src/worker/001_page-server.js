@@ -57,8 +57,15 @@
 
 	// Remote request handler
 	PageServer.prototype.handleRemoteRequest = function(request, response) {
-		response.writeHead(500, 'worker server not implemented');
-		response.end();
+		var server = local.worker.serverFn;
+		if (server && typeof server == 'function') {
+			server.call(this, request, response, this);
+		} else if (server && server.handleRemoteRequest) {
+			server.handleRemoteRequest(request, response, this);
+		} else {
+			response.writeHead(500, 'not implemented');
+			response.end();
+		}
 	};
 
 	// Stores configuration sent by the page

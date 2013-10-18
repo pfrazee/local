@@ -1,5 +1,5 @@
 var counter = 100;
-local.worker.hostPage.handleRemoteRequest = function(req, res, page) {
+local.worker.setServer(function(req, res, page) {
 	if (req.path == '/' && req.method == 'GET') {
 		res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
 		res.end(counter--);
@@ -21,4 +21,4 @@ local.worker.hostPage.handleRemoteRequest = function(req, res, page) {
 		return;
 	}
 	res.writeHead(404, 'not found').end();
-};
+});

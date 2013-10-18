@@ -86,4 +86,6 @@ local.bindRequestEvents = bindRequestEvents;
 local.unbindRequestEvents = unbindRequestEvents;
 
 // Turn on by default
-local.bindRequestEvents(document.body);
+if (typeof document != 'undefined') {
+	local.bindRequestEvents(document.body);
+}

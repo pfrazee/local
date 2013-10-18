@@ -5160,7 +5160,9 @@ local.bindRequestEvents = bindRequestEvents;
 local.unbindRequestEvents = unbindRequestEvents;
 
 // Turn on by default
-local.bindRequestEvents(document.body);})();// Local Worker Tools
+if (typeof document != 'undefined') {
+	local.bindRequestEvents(document.body);
+}})();// Local Worker Tools
 // ==================
 // pfraze 2013
 
@@ -5228,8 +5230,15 @@ if (typeof this.local.worker == 'undefined')
 
 	// Remote request handler
 	PageServer.prototype.handleRemoteRequest = function(request, response) {
-		response.writeHead(500, 'worker server not implemented');
-		response.end();
+		var server = local.worker.serverFn;
+		if (server && typeof server == 'function') {
+			server.call(this, request, response, this);
+		} else if (server && server.handleRemoteRequest) {
+			server.handleRemoteRequest(request, response, this);
+		} else {
+			response.writeHead(500, 'not implemented');
+			response.end();
+		}
 	};
 
 	// Stores configuration sent by the page
@@ -5372,6 +5381,10 @@ if (!self.btoa) {
 		return x.join('');
 	};
 }
+
+local.worker.setServer = function(fn) {
+	local.worker.serverFn = fn;
+};
 
 local.worker.pages = [];
 function addConnection(port) {
