@@ -4,6 +4,7 @@ Changes
 
 2013/10/18 pfraze
 
+ - Updated Relay to share server fn with all peers, and to allow server objects
  - Renamed
    - Server.handleLocalWebRequest -> Server.handleLocalRequest
    - Server.handleRemoteWebRequest -> Server.handleRemoteRequest

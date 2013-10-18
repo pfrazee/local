@@ -1,4 +1,4 @@
-function main(request, response) {
+local.worker.hostPage.handleRemoteRequest = function(request, response) {
 	var foos = ['bar', 'baz', 'blah'];
 	var payload = null, linkHeader;
 	if (request.path == '/') {

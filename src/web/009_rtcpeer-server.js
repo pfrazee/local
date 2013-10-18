@@ -118,8 +118,11 @@
 
 	// Remote request handler
 	RTCBridgeServer.prototype.handleRemoteRequest = function(request, response) {
-		if (this.config.serverFn) {
-			this.config.serverFn.call(this, request, response, this);
+		var server = this.config.relay.getServer();
+		if (server && typeof server == 'function') {
+			server.call(this, request, response, this);
+		} else if (server && server.handleRemoteRequest) {
+			server.handleRemoteRequest(request, response, this);
 		} else {
 			response.writeHead(500, 'not implemented');
 			response.end();
@@ -550,8 +553,8 @@
 	Relay.prototype.getStreamId     = function() { return this.config.stream; };
 	Relay.prototype.setStreamId     = function(stream) { this.config.stream = stream; };
 	Relay.prototype.getAccessToken  = function() { return this.accessToken; };
-	Relay.prototype.getServerFn     = function() { return this.config.serverFn; };
-	Relay.prototype.setServerFn     = function(fn) { this.config.serverFn = fn; };
+	Relay.prototype.getServer       = function() { return this.config.serverFn; };
+	Relay.prototype.setServer       = function(fn) { this.config.serverFn = fn; };
 	Relay.prototype.getProvider     = function() { return this.config.provider; };
 	Relay.prototype.setProvider     = function(providerUrl) {
 		// Abort if already connected
