@@ -84,3 +84,6 @@ function Local__submitHandler(e) {
 
 local.bindRequestEvents = bindRequestEvents;
 local.unbindRequestEvents = unbindRequestEvents;
+
+// Turn on by default
+local.bindRequestEvents(document.body);

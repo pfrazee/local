@@ -5157,7 +5157,10 @@ function Local__submitHandler(e) {
 }
 
 local.bindRequestEvents = bindRequestEvents;
-local.unbindRequestEvents = unbindRequestEvents;})();// Local Worker Tools
+local.unbindRequestEvents = unbindRequestEvents;
+
+// Turn on by default
+local.bindRequestEvents(document.body);})();// Local Worker Tools
 // ==================
 // pfraze 2013
 

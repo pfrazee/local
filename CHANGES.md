@@ -4,6 +4,7 @@ Changes
 
 2013/10/18 pfraze
 
+ - Request event handlers are now bound to the document body by default
  - Updated Relay to share server fn with all peers, and to allow server objects
  - Renamed
    - Server.handleLocalWebRequest -> Server.handleLocalRequest
