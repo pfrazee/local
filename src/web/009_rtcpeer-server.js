@@ -98,7 +98,7 @@
 			this.isConnecting = false;
 			this.isConnected = false;
 			this.destroyPeerConn();
-			this.emit('disconnected', { peer: this.peerInfo, domain: this.config.domain, server: this });
+			this.emit('disconnected', Object.create(this.peerInfo), this);
 		}
 	};
 
@@ -163,7 +163,7 @@
 			self.useMessageReordering(false);
 
 			// Emit event
-			self.emit('connected', { peer: self.peerInfo, domain: self.config.domain, server: self });
+			self.emit('connected', Object.create(self.peerInfo), self);
 		}, 1000);
 	}
 
@@ -174,7 +174,7 @@
 
 	function onHttplChannelError(e) {
 		this.debugLog('HTTPL CHANNEL ERR', e);
-		this.emit('error', { peer: this.peerInfo, domain: this.config.domain, server: this, err: e });
+		this.emit('error', Object.create(this.peerInfo, { error: { value: e } }), this);
 	}
 
 	// Signal relay behaviors
@@ -211,7 +211,7 @@
 
 				// Emit event
 				if (!this.isOfferExchanged) {
-					this.emit('connecting', { peer: this.peerInfo, domain: this.config.domain, server: this });
+					this.emit('connecting', Object.create(this.peerInfo), this);
 				}
 
 				// Guard against an offer race conditions
@@ -404,7 +404,7 @@
 		// Emit 'connecting' on next tick
 		// (next tick to make sure objects creating us get a chance to wire up the event)
 		setTimeout(function() {
-			self.emit('connecting', { peer: self.peerInfo, domain: self.config.domain, server: self });
+			self.emit('connecting', Object.create(self.peerInfo), self);
 		}, 0);
 	};
 
@@ -845,7 +845,7 @@
 			}, 2000);
 		} else {
 			// Fire event
-			this.emit('error', e);
+			this.emit('error', { error: e.data });
 		}
 	};
 

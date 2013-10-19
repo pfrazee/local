@@ -43,17 +43,17 @@ relay2.on('listening', function() {
 
 var peer1API;
 var peer2API;
-relay2.on('connected', function(data) {
-	peer1API = local.agent(data.server.getUrl());
+relay2.on('connected', function(data, server) {
+	peer1API = local.agent(server.getUrl());
 	checkReady();
 });
-relay1.on('connected', function(data) {
-	peer2API = local.agent(data.server.getUrl());
-	print(data.peer.user);
-	print(data.peer.app);
-	print(data.peer.stream);
+relay1.on('connected', function(data, server) {
+	peer2API = local.agent(server.getUrl());
+	print(data.user);
+	print(data.app);
+	print(data.stream);
 	print(data.domain);
-	print(typeof data.server);
+	print(typeof server);
 	checkReady();
 });
 function checkReady() {

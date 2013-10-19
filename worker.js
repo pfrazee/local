@@ -1031,6 +1031,7 @@ local.parsePeerDomain = function parsePeerDomain(domain) {
 	var match = peerDomainRE.exec(domain);
 	if (match) {
 		return {
+			domain: domain,
 			user: match[1],
 			relay: match[2],
 			provider: match[2],
@@ -2260,7 +2261,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			this.isConnecting = false;
 			this.isConnected = false;
 			this.destroyPeerConn();
-			this.emit('disconnected', { peer: this.peerInfo, domain: this.config.domain, server: this });
+			this.emit('disconnected', Object.create(this.peerInfo), this);
 		}
 	};
 
@@ -2325,7 +2326,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			self.useMessageReordering(false);
 
 			// Emit event
-			self.emit('connected', { peer: self.peerInfo, domain: self.config.domain, server: self });
+			self.emit('connected', Object.create(self.peerInfo), self);
 		}, 1000);
 	}
 
@@ -2336,7 +2337,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 	function onHttplChannelError(e) {
 		this.debugLog('HTTPL CHANNEL ERR', e);
-		this.emit('error', { peer: this.peerInfo, domain: this.config.domain, server: this, err: e });
+		this.emit('error', Object.create(this.peerInfo, { error: { value: e } }), this);
 	}
 
 	// Signal relay behaviors
@@ -2373,7 +2374,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 				// Emit event
 				if (!this.isOfferExchanged) {
-					this.emit('connecting', { peer: this.peerInfo, domain: this.config.domain, server: this });
+					this.emit('connecting', Object.create(this.peerInfo), this);
 				}
 
 				// Guard against an offer race conditions
@@ -2566,7 +2567,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		// Emit 'connecting' on next tick
 		// (next tick to make sure objects creating us get a chance to wire up the event)
 		setTimeout(function() {
-			self.emit('connecting', { peer: self.peerInfo, domain: self.config.domain, server: self });
+			self.emit('connecting', Object.create(self.peerInfo), self);
 		}, 0);
 	};
 
@@ -3007,7 +3008,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			}, 2000);
 		} else {
 			// Fire event
-			this.emit('error', e);
+			this.emit('error', { error: e.data });
 		}
 	};
 

@@ -278,6 +278,7 @@ local.parsePeerDomain = function parsePeerDomain(domain) {
 	var match = peerDomainRE.exec(domain);
 	if (match) {
 		return {
+			domain: domain,
 			user: match[1],
 			relay: match[2],
 			provider: match[2],
