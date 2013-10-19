@@ -2718,7 +2718,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		}
 	};
 	Relay.prototype.isListening     = function() { return this.connectedToRelay; };
-	Relay.prototype.getPeerDomain   = function() { return this.myPeerDomain; };
+	Relay.prototype.getDomain       = function() { return this.myPeerDomain; };
 	Relay.prototype.getUserId       = function() { return this.userId; };
 	Relay.prototype.getApp          = function() { return this.config.app; };
 	Relay.prototype.getStreamId     = function() { return this.config.stream; };
@@ -2863,7 +2863,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 					if (self.pingInterval) { clearInterval(self.pingInterval); }
 					if (self.config.ping) {
 						self.pingInterval = setInterval(function() {
-							self.signal(self.getPeerDomain(), { type: 'noop' });
+							self.signal(self.getDomain(), { type: 'noop' });
 						}, self.config.ping);
 					}
 				},
