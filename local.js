@@ -2175,6 +2175,13 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		return Math.round(Math.random()*10000);
 	}
 
+	// Browser compat
+	var __env = (typeof window != 'undefined') ? window : self;
+	var RTCSessionDescription = __env.mozRTCSessionDescription || __env.RTCSessionDescription;
+	var RTCPeerConnection = __env.mozRTCPeerConnection || __env.webkitRTCPeerConnection || __env.RTCPeerConnection;
+	var RTCIceCandidate = __env.mozRTCIceCandidate || __env.RTCIceCandidate;
+
+
 	// RTCBridgeServer
 	// ===============
 	// EXPORTED
@@ -2462,7 +2469,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	RTCBridgeServer.prototype.createPeerConn = function() {
 		if (!this.rtcPeerConn) {
 			var servers = this.config.iceServers || defaultIceServers;
-			this.rtcPeerConn = new webkitRTCPeerConnection(servers, peerConstraints);
+			this.rtcPeerConn = new RTCPeerConnection(servers, peerConstraints);
 			this.rtcPeerConn.onicecandidate             = onIceCandidate.bind(this);
 			this.rtcPeerConn.onicechange                = onIceConnectionStateChange.bind(this);
 			this.rtcPeerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
