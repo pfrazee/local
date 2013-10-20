@@ -211,6 +211,11 @@
 					return;
 				}
 
+				// Abandon ye' hope if no rtc support
+				if (typeof RTCSessionDescription == 'undefined') {
+					return;
+				}
+
 				// Emit event
 				if (!this.isOfferExchanged) {
 					this.emit('connecting', Object.create(this.peerInfo), this);
@@ -307,7 +312,7 @@
 
 	// Helper sets up the peer connection
 	RTCBridgeServer.prototype.createPeerConn = function() {
-		if (!this.rtcPeerConn) {
+		if (!this.rtcPeerConn && typeof RTCPeerConnection != 'undefined') {
 			var servers = this.config.iceServers || defaultIceServers;
 			this.rtcPeerConn = new RTCPeerConnection(servers, peerConstraints);
 			this.rtcPeerConn.onicecandidate             = onIceCandidate.bind(this);
@@ -376,6 +381,9 @@
 	// Helper initiates a session with peers on the relay
 	RTCBridgeServer.prototype.sendOffer = function() {
 		var self = this;
+		if (typeof RTCPeerConnection == 'undefined') {
+			return;
+		}
 
 		// Start the clock
 		initConnectTimeout.call(this);
