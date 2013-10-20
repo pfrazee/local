@@ -7,6 +7,7 @@ var relay1 = local.joinRelay('https://grimwire.net', { stream: 0 }, peer1ServerF
 var relay2 = local.joinRelay('https://grimwire.net', { stream: 1 }, peer2ServerFn);
 
 relay1.on('accessGranted', function() {
+	sessionStorage.setItem('access-token', relay1.getAccessToken());
 	// Start listening
 	relay1.startListening();
 	relay2.startListening();
@@ -14,18 +15,14 @@ relay1.on('accessGranted', function() {
 
 // Handle auth failures
 relay1.on('accessInvalid', function() {
-	relay1.requestAccessToken().then(function() {
-		sessionStorage.setItem('access-token', relay1.getAccessToken());
-		window.location.reload();
-	});
+	relay1.requestAccessToken();
+	relay1.on('accessGranted', function() { window.reload(); });
 });
 
 // Get access token if we need one
 if (!sessionStorage.getItem('access-token')) {
-	relay1.requestAccessToken().then(function() {
-		sessionStorage.setItem('access-token', relay1.getAccessToken());
-		window.location.reload();
-	});
+	relay1.requestAccessToken();
+	relay1.on('accessGranted', function() { window.reload(); });
 } else {
 	// Pull access token from storage
 	relay1.setAccessToken(sessionStorage.getItem('access-token'));

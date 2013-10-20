@@ -2216,6 +2216,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		this.isConnecting     = true;
 		this.isOfferExchanged = false;
 		this.isConnected      = false;
+		this.isTerminated     = false;
 		this.candidateQueue   = []; // cant add candidates till we get the offer
 		this.offerNonce       = 0; // a random number used to decide who takes the lead if both nodes send an offer
 		this.retriesLeft      = config.retries;
@@ -2254,6 +2255,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 	RTCBridgeServer.prototype.terminate = function(opts) {
 		BridgeServer.prototype.terminate.call(this);
+		this.isTerminated = true;
 		if (this.isConnecting || this.isConnected) {
 			if (!(opts && opts.noSignal)) {
 				this.signal({ type: 'disconnect' });
@@ -2454,7 +2456,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		var self = this;
 		var response_ = this.config.relay.signal(this.config.peer, msg);
 		response_.fail(function(res) {
-			if (res.status == 404) {
+			if (res.status == 404 && !self.isTerminated) {
 				// Peer not online, shut down for now. We can try to reconnect later
 				for (var k in self.incomingStreams) {
 					self.incomingStreams[k].writeHead(404, 'not found').end();
