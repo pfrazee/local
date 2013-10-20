@@ -2660,7 +2660,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	function Relay(config) {
 		if (!config) config = {};
 		if (!config.app) config.app = window.location.host;
-		if (typeof config.stream == 'undefined') config.stream = randomStreamId();
+		if (typeof config.stream == 'undefined') { config.stream = randomStreamId(); this.autoRetryStreamTaken = true; }
 		if (typeof config.ping == 'undefined') { config.ping = 45000; }
 		this.config = config;
 		local.util.mixinEventEmitter(this);
@@ -2993,8 +2993,14 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			this.relayStream = null;
 			this.connectedToRelay = false;
 
-			// Fire event
-			this.emit('streamTaken');
+			if (!this.autoRetryStreamTaken) {
+				// Fire event
+				this.emit('streamTaken');
+			} else {
+				// Auto-retry
+				this.setStreamId(randomStreamId());
+				this.startListening();
+			}
 		} else if (e.data && (e.data.status == 401 || e.data.status == 403)) { // unauthorized
 			// Remove bad access token to stop reconnect attempts
 			this.setAccessToken(null);
