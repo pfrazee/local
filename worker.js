@@ -393,6 +393,14 @@ if (typeof CustomEvent === 'undefined') {
 	};
 }
 
+// Track window close event
+local.util.isAppClosing = false;
+if (typeof window != 'undefined') {
+	window.addEventListener('beforeunload', function() {
+		local.util.isAppClosing = true;
+	});
+}
+
 // EXPORTED
 // searches up the node tree for an element
 function findParentNode(node, test) {
@@ -3603,6 +3611,12 @@ EventStream.prototype.reconnect = function() {
 	if (this.isConnOpen) {
 		this.isConnOpen = false;
 		this.request.close();
+	}
+
+	// Hold off if the app is tearing down (Firefox will succeed in the request and then hold onto the stream)
+	if (local.util.isAppClosing) {
+		console.debug('not reconnecting, this is sparta');
+		return;
 	}
 
 	// Re-establish the connection

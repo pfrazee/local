@@ -79,6 +79,12 @@ EventStream.prototype.reconnect = function() {
 		this.request.close();
 	}
 
+	// Hold off if the app is tearing down (Firefox will succeed in the request and then hold onto the stream)
+	if (local.util.isAppClosing) {
+		console.debug('not reconnecting, this is sparta');
+		return;
+	}
+
 	// Re-establish the connection
 	this.request = new local.Request(this.request);
 	if (!this.request.headers) this.request.headers = {};

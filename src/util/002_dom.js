@@ -12,6 +12,14 @@ if (typeof CustomEvent === 'undefined') {
 	};
 }
 
+// Track window close event
+local.util.isAppClosing = false;
+if (typeof window != 'undefined') {
+	window.addEventListener('beforeunload', function() {
+		local.util.isAppClosing = true;
+	});
+}
+
 // EXPORTED
 // searches up the node tree for an element
 function findParentNode(node, test) {
