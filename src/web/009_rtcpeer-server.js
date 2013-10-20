@@ -582,13 +582,7 @@
 
 	// Gets an access token from the provider & user using a popup
 	// - Best if called within a DOM click handler, as that will avoid popup-blocking
-	//   (note, however, if the accessTokenAPI hasnt resolved its api yet, there will be an async callback that breaks that)
-	// - returns promise(string), fulfills with token on success and rejects with null on failure
 	Relay.prototype.requestAccessToken = function() {
-		if (this.accessToken_)
-			return this.accessToken_;
-		this.accessToken_ = local.promise();
-
 		// Start listening for messages from the popup
 		if (!this.messageFromAuthPopupHandler) {
 			this.messageFromAuthPopupHandler = (function(e) {
@@ -604,27 +598,17 @@
 				// Update our token
 				this.setAccessToken(e.data);
 
-				// Stop listening
-				window.removeEventListener('message', this.messageFromAuthPopupHandler);
-
 				// If given a null, emit denial event
 				if (!e.data) {
 					this.emit('accessDenied');
-					this.accessToken_.reject(null);
-				} else {
-					this.accessToken_.fulfill(e.data);
 				}
-				this.accessToken_ = null;
 			}).bind(this);
+			window.addEventListener('message', this.messageFromAuthPopupHandler);
 		}
-
-		window.addEventListener('message', this.messageFromAuthPopupHandler);
 
 		// Open interface in a popup
 		// :HACK: because popup blocking can only be avoided by a syncronous popup call, we have to manually construct the url (it burns us)
 		window.open(this.getProvider() + '/session/' + this.config.app);
-
-		return this.accessToken_;
 	};
 
 	// Fetches users from p2pw service
@@ -787,6 +771,9 @@
 		var response_ = this.p2pwRelayAPI.dispatch({ method: 'notify', body: { src: this.myPeerDomain, dst: dst, msg: msg } });
 		response_.fail(function(res) {
 			if (res.status == 401) {
+				if (!self.accessToken) {
+					return;
+				}
 				// Remove bad access token to stop reconnect attempts
 				self.setAccessToken(null);
 				// Fire event
