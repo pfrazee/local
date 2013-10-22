@@ -59,9 +59,9 @@ worker.js: ${src-worker-files}
 buildmin: local.min.js worker.min.js
 	@echo Built Minified Versions
 local.min.js: local.js
-	@./minify.sh $@ $^
+	@./scripts/minify.sh $@ $^
 worker.min.js: worker.js
-	@./minify.sh $@ $^
+	@./scripts/minify.sh $@ $^
 
 deps: uglifyjs
 uglifyjs:
