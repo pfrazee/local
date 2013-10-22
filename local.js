@@ -5184,9 +5184,4 @@ function Local__submitHandler(e) {
 }
 
 local.bindRequestEvents = bindRequestEvents;
-local.unbindRequestEvents = unbindRequestEvents;
-
-// Turn on by default
-if (typeof document != 'undefined') {
-	local.bindRequestEvents(document.body);
-}})();
+local.unbindRequestEvents = unbindRequestEvents;})();
