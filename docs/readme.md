@@ -6,71 +6,131 @@ pfraze 2013
 
 ## Overview
 
-Local is a framework for running user applications on the page using Web Workers.
+Local.js is an Ajax library which can target JS Functions, Web Workers, WebRTC Peers, Data URIs, and public Web servers using HTTP-style requests. Applications can use it to structure their components in an SOA, abstracting over the messagable environments with a common protocol. It can be used with [Grimwire](https://github.com/grimwire/grimwire), a node.js "Peer Relay", to create WebRTC sessions. Additionally, Local.js makes use of the [Web Linking spec](http://tools.ietf.org/html/rfc5988) to programmatically navigate APIs, allowing you to reason about a component's capabilities and automatically configure to them.
 
-Some terminology:
+### Features
 
- - The "environment" is the document
- - "Applications" are javascript programs run in Web Workers
- - "HTTPL" (HTTP Local) is the protocol for servers hosted in the document or in Web Workers
+ - Promises-based Ajax library with support for streams
+ - SSE-based EventStream APIs for distributed event-subscriptions
+ - A programmatic user-agent for navigating via link headers
+ - Extensibly adds new target environments
+ - API to transform link-clicks and form-submits into "request" events which can be routed to Local servers
 
-## Example
+### Examples
+
+Run servers in the document:
 
 ```javascript
-// load a local web server into a worker
-local.env.addServer('helloworld.usr', new local.env.WorkerServer({
-  src: 'data:application/javascript,'+
-    'function main(request, response) {'+
-      'response.writeHead(200, "ok", {"content-type":"text/html"});'+
-      'response.end("<h1>Hello, World!</h1>");'+
-    '}'
-}));
-// send an ajax request to the worker
-local.http.dispatch({ method: 'get', url: 'httpl://helloworld.usr' })
-  .then(function(res) { console.log(res.body); });
-  // => "<h1>Hello, World!</h1>"
+local.addServer('foobar', function(req, res) {
+    res.writeHead(200, 'ok', { 'content-type': 'text/plain' })
+    res.end('Hello, world!');
+});
+local.dispatch({ method: 'GET', url: 'httpl://foobar' })
+	.then(/* ... */);
+```
+
+Run servers in Web Workers:
+
+```javascript
+local.spawnWorkerServer('http://myhost.com/myworker.js');
+local.dispatch({ method: 'GET', url: 'httpl://myworker.js' })
+    .then(/* ... */);
+```
+
+Run servers for other users on Grimwire:
+
+```javascript
+// Get access to the relay
+var relay = local.joinRelay('https://grimwire.net', peerServerFn);
+relay.requestAccessToken(); // this will prompt the user to authorize the app
+relay.on('accessGranted', function() {
+    peerRelay.startListening();
+});
+
+// Serve peers
+function peerServerFn(req, res, peer) {
+    res.writeHead(200, 'ok', { 'content-type': 'text/plain' })
+    res.end('Hello, '+peer.getPeerInfo().user);
+}
+
+// Contact peers on the relay
+local.dispatch({ method: 'GET', url: 'httpl://bob@grimwire.net!bobs-app.com' })
+    .then(/* ... */);
+```
+
+Programmatically navigate Web APIs (based on the [Web Linking spec](http://tools.ietf.org/html/rfc5988)):
+
+```javascript
+// Register an in-document server:
+local.addServer('foo', function(req, res) {
+    if (req.path == '/') {
+        res.writeHead(200, 'ok', {
+            'content-type': 'text/plain',
+            'link': [
+            	'</>; rel="self service"',
+            	'</bar>; rel="item"; id="bar"'
+            ].join(',')
+        });
+        res.end('Hello from /');
+    } else if (req.path == '/bar') {
+        res.writeHead(200, 'ok', {
+            'content-type': 'text/plain',
+            'link': [
+            	'</>; rel="up service"',
+            	'</bar>; rel="self item"; id="bar"'
+            ].join(',')
+        });
+        res.end('Hello from /bar');
+    } else {
+        res.writeHead(404, 'not found').end();
+    }
+});
+
+// Create an agent for the server and dispatch a GET:
+var fooAPI = local.agent('httpl://foo');
+fooAPI.get().then(/* ... */); // => "Hello from /"
+
+// Navigate by searching the link header of the response:
+var fooBarItem = fooAPI.follow({ rel: 'item', id: 'bar' });
+fooBarItem.get().then(/* ... */); // => "Hello from /bar"
+
+// Follow the "up" link back to the root:
+fooBarItem.follow({ rel: 'up' }).get().then(/* ... */); // => "Hello from /"
 ```
 
 
-## Background
+## How it works
 
-The browser is a relatively secure but rigid environment. <a href="http://www.cs.utexas.edu/~mwalfish/papers/zoog-hotnets11.pdf" target="_top">A paper by Microsoft, UT, and Penn researchers</a> lists its traits as Isolated, Rich, On-demand, and Networked (IRON). Broadly speaking, they argue that without the IRON properties, the Web would be too dangerous or too unsophisticated to get any use of.
+Local.js starts with its dispatch() function, which parses the target URL and routes according to the scheme. 'http:' is handled using XMLHttpRequest, 'data:' is parsed and sent back, and 'httpl:' sends the request to a function registered in the local domain map. In the httpl case, the function is given request and response objects which provide stream interfaces similar to that of node.js.
 
-The browser is bad at injecting its own software. Greasemonkey is limited to UI decoration, and browser apps (which Chrome offers) live in isolation of each other. For sandboxing, the iframe isn't available as it's kept in the same thread as the parent document.
+Special httpl server functions called "bridges" can be established over messaging channels to other environments. They serialize the requests' messages to JSON, send them over the channel, then deserialize them to generate a response*. This is how Workers and WebRTC peers are targeted.
 
-Web Workers, however, <a href="http://stackoverflow.com/questions/12209657/how-can-i-sandbox-untrusted-user-submitted-javascript-content" target="_top">can safely sandbox a script</a> and do not have access to the document or window. To use them, you need a robust messaging protocol in order to create rich applications. Local provides this with a RESTful emulation of HTTP called "HTTPLocal."
-
-
-## HTTP over Workers
-
-Local builds on the <a target="_top" href="http://en.wikipedia.org/wiki/Service-oriented_architecture">Service-Oriented Architecture</a> by allowing browser-side javascript to respond to Ajax requests. This causes applications to behave as low-latency Web servers, providing JSON resources to each other and responding with HTML to the document's requests. The document is then segmented into independent regions which browse the applications' resources.
-
-To maintain page security, user applications are isolated into Web Workers and communicated with via HTTPL messages. Using routing policies, the environment regulates the access and permission of its applications, enabling users to load programs without risking session- or data-comprimise. <a target="_top" href="https://developer.mozilla.org/en-US/docs/Security/CSP">Content Security Policies (CSP)</a> are additionally used to stop inline scripts from executing in the page.
-
-Because applications can't touch the document, the environment has to handle it for them. Rather than binding to events, the applications set their links and forms to target "httpl://" addresses. The click and submit events are translated into local requests, and their responses are used to update the originating client region. Additionally, servers (both local or remote) can trigger GET requests in the client using Server-Sent Events, which can be used to implement realtime updates.
-
-
-## Why Local?
-
-Local was built with a number of goals in mind:
-
- - No tight coupling between the interface and a web service
- - Safe execution of untrusted code
- - Better JS composition in Web Apps
-
-It was first built to address the lack of user-extensibility for modern Web applications: with a strong framework for organizing and configuring the client, users can assemble private and public services into safe and personal tools.
-
-Local is also easy enough to use for simple apps. This 'docs.html' page, for example, is a reusable markdown-browser at ~50 lines of javascript (not including dependencies). It works by browsing the 'apps/util/markdown.js' server, which proxies to the .md files on the remote host and converts the response to HTML.
+* JSON was ultimately chosen for its de/serialization speed over other options in the browser.
 
 
 ## Getting Started
 
-Local can be statically hosted after a clean checkout using any Web server.
+Download local.js or local.min.js and add either to your application to use the library, then read through the documentation at grimwire.com/local to get familiar with the API and concepts. If you're developing for Grimwire, download grimwidget.js and read the sections on Developing for Grimwire.
 
-```bash
-git clone https://github.com/grimwire/local.git
-python -m SimpleHTTPServer
-# navigate browser to localhost:8000
-```
 
-If you're new to Local, the best place to start is with <a href="https://github.com/grimwire/grimwire" target="_blank" title="Grimwire">Grimwire</a>, a general-purpose deployment of Local. Grimwire adds configuration management, layout tools, widgets, and other tools which make starting easier. <a href="http://grimwire.github.io/grimwire/" target="_blank" title="Grimwire Nightly Build">Grimwire's Nightly Build</a> includes additional documentation which will help you familiarize with Local.
+## Special thanks and credits
+
+Thank you to the following third-party library authors:
+
+ - [**parseUri**](http://stevenlevithan.com/demo/parseuri/js/), Stephen Levithan
+ - [**UriTemplate**](https://github.com/fxa/uritemplate-js), Franz Antesberger
+ - **TODO** anybody else
+
+Additional thanks to [Goodybag](http://goodybag.com) for their support during the development of this project. If you're in Austin and need food delivered to the office, they've got a great selection of restaurants and menus inside a slick interface for lunches without the hassle.
+
+
+## License
+
+The MIT License (MIT)
+Copyright (c) 2013 Paul Frazee
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
