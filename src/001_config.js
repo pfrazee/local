@@ -1,2 +1,2 @@
-local.workerBootstrapUrl = 'worker.min.js';
+local.workerBootstrapUrl = 'local.min.js';
 local.logAllExceptions = false;

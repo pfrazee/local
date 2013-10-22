@@ -1,5 +1,5 @@
 // load worker
-local.workerBootstrapUrl = '../worker.js';
+local.workerBootstrapUrl = '../local.js';
 local.spawnWorkerServer('test/worker/worker1.js', { myname: 'alice' }, function(req, res, me) {
 	print(me.config.domain);
 	res.writeHead(200, 'ok', { 'content-type': 'text/plain' }).end('yes, hello '+req.query.foo+' '+req.query.bar);

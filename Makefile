@@ -25,42 +25,33 @@ src-web-files =\
 	${src}web/014_agent.js\
 	${src}web/015_hosts-service.js\
 	${src}web/module_footer.js
+src-worker-files =\
+	${src}worker/000_header.js\
+	${src}worker/001_page-server.js\
+	${src}worker/002_worker-env.js\
+	${src}worker/module_footer.js
 src-toplevel-files =\
 	${src}000_header.js\
 	${src}001_config.js\
 	${src}002_spawners.js\
 	${src}003_request-dom-events.js\
 	${src}module_footer.js
-src-worker-files =\
-	${src-promises-files}\
-	${src-util-files}\
-	${src-web-files}\
-	${src-toplevel-files}\
-	${src}worker/000_header.js\
-	${src}worker/001_page-server.js\
-	${src}worker/002_worker-env.js\
-	${src}worker/module_footer.js
 
 setup: clean concat buildmin
 	@echo "Done!"
 
 clean:
 	@-rm local.js local.min.js
-	@-rm worker.js worker.min.js
 	@echo Cleaned Out Libraries
 
-concat: local.js worker.js
+concat: local.js
 	@echo Concatted Libraries
-local.js: ${src-promises-files} ${src-util-files} ${src-web-files} ${src-toplevel-files}
-	@cat > $@ $^
-worker.js: ${src-worker-files}
+local.js: ${src-promises-files} ${src-util-files} ${src-web-files} ${src-worker-files} ${src-toplevel-files}
 	@cat > $@ $^
 
-buildmin: local.min.js worker.min.js
+buildmin: local.min.js
 	@echo Built Minified Versions
 local.min.js: local.js
-	@./scripts/minify.sh $@ $^
-worker.min.js: worker.js
 	@./scripts/minify.sh $@ $^
 
 deps: uglifyjs

@@ -5031,14 +5031,270 @@ local.addServer('hosts', function(req, res) {
 		res.writeHead(200, 'ok', { 'content-type': 'application/json' });
 		res.end({ host_names: domains });
 	});
-});})();// Local Toplevel
+});})();// Local Worker Tools
+// ==================
+// pfraze 2013
+
+if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+
+	if (typeof this.local.worker == 'undefined')
+		this.local.worker = {};
+
+	(function() {(function() {
+
+	// PageServer
+	// ==========
+	// EXPORTED
+	// wraps the comm interface to a page for messaging
+	// - `id`: required number, should be the index of the connection in the list
+	// - `port`: required object, either `self` (for non-shared workers) or a port from `onconnect`
+	// - `isHost`: boolean, should connection get host privileges?
+	function PageServer(id, port, isHost) {
+		local.BridgeServer.call(this);
+		this.id = id;
+		this.port = port;
+		this.isHostPage = isHost;
+
+		// Setup the incoming message handler
+		this.port.addEventListener('message', (function(event) {
+			var message = event.data;
+			if (!message)
+				return console.error('Invalid message from page: Payload missing', event);
+
+			// Handle messages with an `op` field as worker-control packets rather than HTTPL messages
+			switch (message.op) {
+				case 'configure':
+					this.onPageConfigure(message.body);
+					break;
+				case 'nullify':
+					this.onPageNullify(message.body);
+					break;
+				case 'importScripts':
+					this.onPageImportScripts(message.body);
+					break;
+				case 'terminate':
+					this.terminate();
+					break;
+				default:
+					// If no 'op' field is given, treat it as an HTTPL request and pass onto our BridgeServer parent method
+					this.onChannelMessage(message);
+					break;
+			}
+		}).bind(this));
+	}
+	PageServer.prototype = Object.create(local.BridgeServer.prototype);
+	local.worker.PageServer = PageServer;
+
+	// Returns true if the channel is ready for activity
+	// - returns boolean
+	PageServer.prototype.isChannelActive = function() {
+		return true;
+	};
+
+	// Sends a single message across the channel
+	// - `msg`: required string
+	PageServer.prototype.channelSendMsg = function(msg) {
+		this.port.postMessage(msg);
+	};
+
+	// Remote request handler
+	PageServer.prototype.handleRemoteRequest = function(request, response) {
+		var server = local.worker.serverFn;
+		if (server && typeof server == 'function') {
+			server.call(this, request, response, this);
+		} else if (server && server.handleRemoteRequest) {
+			server.handleRemoteRequest(request, response, this);
+		} else {
+			response.writeHead(500, 'not implemented');
+			response.end();
+		}
+	};
+
+	// Stores configuration sent by the page
+	PageServer.prototype.onPageConfigure = function(message) {
+		if (!this.isHostPage) {
+			console.log('rejected "configure" from non-host connection');
+			return;
+		}
+		local.worker.config = message;
+	};
+
+	// Nullifies a global
+	PageServer.prototype.onPageNullify = function(message) {
+		if (!this.isHostPage) {
+			console.log('rejected "nullify" from non-host connection');
+			return;
+		}
+		console.log('nullifying: ' + message);
+		if (typeof message === 'string') {
+			self[message] = null; // destroy the top-level reference
+		} else {
+			throw new Error("'nullify' message must include a valid string");
+		}
+	};
+
+	// Imports a user-script
+	PageServer.prototype.onPageImportScripts = function(message) {
+		if (!this.isHostPage) {
+			console.log('rejected "importScripts" from non-host connection');
+			return;
+		}
+		if (message) {
+			try {
+				closureImportScripts(message);
+			} catch(e) {
+				console.error((e ? e.toString() : e), (e ? e.stack : e));
+				this.channelSendMsg({ op: 'loaded', body: { error: true, reason: (e ? e.toString() : e) }});
+				return;
+			}
+		} else {
+			console.error("'importScripts' message must include a valid array/string");
+			this.channelSendMsg({ op: 'loaded', body: { error: true, reason: 'No script URI provided' }});
+			return;
+		}
+		this.channelSendMsg({ op: 'loaded', body: { error: false }});
+	};
+
+})();// Setup
+// =====
+local.util.mixinEventEmitter(local.worker);
+var closureImportScripts = importScripts; // self.importScripts may be nullified later (and we're in a closure right now)
+
+// EXPORTED
+// console.* replacements
+self.console = {
+	log: function() {
+		var args = Array.prototype.slice.call(arguments);
+		doLog('log', args);
+	},
+	dir: function() {
+		var args = Array.prototype.slice.call(arguments);
+		doLog('dir', args);
+	},
+	debug: function() {
+		var args = Array.prototype.slice.call(arguments);
+		doLog('debug', args);
+	},
+	warn: function() {
+		var args = Array.prototype.slice.call(arguments);
+		doLog('warn', args);
+	},
+	error: function() {
+		var args = Array.prototype.slice.call(arguments);
+		doLog('error', args);
+	}
+};
+function doLog(type, args) {
+	var hostPage = local.worker.hostPage;
+	try { hostPage.channelSendMsg({ op: 'log', body: [type].concat(args) }); }
+	catch (e) {
+		// this is usually caused by trying to log information that cant be serialized
+		hostPage.channelSendMsg({ op: 'log', body: [type].concat(args.map(JSONifyMessage)) });
+	}
+}
+
+// INTERNAL
+// helper to try to get a failed log message through
+function JSONifyMessage(data) {
+	if (Array.isArray(data))
+		return data.map(JSONifyMessage);
+	if (data && typeof data == 'object')
+		return JSON.stringify(data);
+	return data;
+}
+
+// EXPORTED
+// btoa shim
+// - from https://github.com/lydonchandra/base64encoder
+//   (thanks to Lydon Chandra)
+if (!self.btoa) {
+	var PADCHAR = '=';
+	var ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+	function getbyte(s,i) {
+		var x = s.charCodeAt(i) & 0xFF;
+		return x;
+	}
+	self.btoa = function(s) {
+		var padchar = PADCHAR;
+		var alpha   = ALPHA;
+
+		var i, b10;
+		var x = [];
+
+		// convert to string
+		s = '' + s;
+
+		var imax = s.length - s.length % 3;
+
+		if (s.length === 0) {
+			return s;
+		}
+		for (i = 0; i < imax; i += 3) {
+			b10 = (getbyte(s,i) << 16) | (getbyte(s,i+1) << 8) | getbyte(s,i+2);
+			x.push(alpha.charAt(b10 >> 18));
+			x.push(alpha.charAt((b10 >> 12) & 0x3F));
+			x.push(alpha.charAt((b10 >> 6) & 0x3f));
+			x.push(alpha.charAt(b10 & 0x3f));
+		}
+		switch (s.length - imax) {
+		case 1:
+			b10 = getbyte(s,i) << 16;
+			x.push(alpha.charAt(b10 >> 18) + alpha.charAt((b10 >> 12) & 0x3F) + padchar + padchar);
+			break;
+		case 2:
+			b10 = (getbyte(s,i) << 16) | (getbyte(s,i+1) << 8);
+			x.push(alpha.charAt(b10 >> 18) + alpha.charAt((b10 >> 12) & 0x3F) +
+				   alpha.charAt((b10 >> 6) & 0x3f) + padchar);
+			break;
+		}
+		return x.join('');
+	};
+}
+
+local.worker.setServer = function(fn) {
+	local.worker.serverFn = fn;
+};
+
+local.worker.pages = [];
+function addConnection(port) {
+	// Create new page server
+	var isHost = (!local.worker.hostPage); // First to add = host page
+	var page = new local.worker.PageServer(local.worker.pages.length, port, isHost);
+
+	// Track new connection
+	if (isHost) {
+		local.worker.hostPage = page;
+	}
+	local.worker.pages.push(page);
+	local.addServer(page.id+'.page', page);
+
+	// Let the document know we're active
+	if (port.start) {
+		port.start();
+	}
+	page.channelSendMsg({ op: 'ready', body: { hostPrivileges: isHost } });
+
+	// Fire even
+	local.worker.emit('connect', { page: page });
+}
+
+// Setup for future connections (shared worker)
+addEventListener('connect', function(e) {
+	addConnection(e.ports[0]);
+});
+// Create connection to host page (regular worker)
+if (self.postMessage) {
+	addConnection(self);
+}})();
+
+} // if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope)// Local Toplevel
 // ==============
 // pfraze 2013
 
 if (typeof this.local == 'undefined')
 	this.local = {};
 
-(function() {local.workerBootstrapUrl = 'worker.min.js';
+(function() {local.workerBootstrapUrl = 'local.min.js';
 local.logAllExceptions = false;// Helpers to create servers
 // -
 

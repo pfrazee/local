@@ -2,9 +2,9 @@
 // ==================
 // pfraze 2013
 
-if (typeof this.local == 'undefined')
-	this.local = {};
-if (typeof this.local.worker == 'undefined')
-	this.local.worker = {};
+if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
 
-(function() {
+	if (typeof this.local.worker == 'undefined')
+		this.local.worker = {};
+
+	(function() {
