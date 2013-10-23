@@ -24,17 +24,11 @@
 				case 'configure':
 					this.onPageConfigure(message.body);
 					break;
-				case 'nullify':
-					this.onPageNullify(message.body);
-					break;
-				case 'importScripts':
-					this.onPageImportScripts(message.body);
-					break;
 				case 'terminate':
 					this.terminate();
 					break;
 				default:
-					// If no 'op' field is given, treat it as an HTTPL request and pass onto our BridgeServer parent method
+					// If no recognized 'op' field is given, treat it as an HTTPL request and pass onto our BridgeServer parent method
 					this.onChannelMessage(message);
 					break;
 			}
@@ -89,28 +83,6 @@
 		} else {
 			throw new Error("'nullify' message must include a valid string");
 		}
-	};
-
-	// Imports a user-script
-	PageServer.prototype.onPageImportScripts = function(message) {
-		if (!this.isHostPage) {
-			console.log('rejected "importScripts" from non-host connection');
-			return;
-		}
-		if (message) {
-			try {
-				closureImportScripts(message);
-			} catch(e) {
-				console.error((e ? e.toString() : e), (e ? e.stack : e));
-				this.channelSendMsg({ op: 'loaded', body: { error: true, reason: (e ? e.toString() : e) }});
-				return;
-			}
-		} else {
-			console.error("'importScripts' message must include a valid array/string");
-			this.channelSendMsg({ op: 'loaded', body: { error: true, reason: 'No script URI provided' }});
-			return;
-		}
-		this.channelSendMsg({ op: 'loaded', body: { error: false }});
 	};
 
 })();

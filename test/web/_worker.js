@@ -1,3 +1,4 @@
+importScripts('../../local.js');
 local.worker.setServer(function(request, response) {
 	var foos = ['bar', 'baz', 'blah'];
 	var payload = null, linkHeader;

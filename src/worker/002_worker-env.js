@@ -1,7 +1,6 @@
 // Setup
 // =====
 local.util.mixinEventEmitter(local.worker);
-var closureImportScripts = importScripts; // self.importScripts may be nullified later (and we're in a closure right now)
 
 // EXPORTED
 // console.* replacements
@@ -117,7 +116,7 @@ function addConnection(port) {
 	}
 	page.channelSendMsg({ op: 'ready', body: { hostPrivileges: isHost } });
 
-	// Fire even
+	// Fire event
 	local.worker.emit('connect', { page: page });
 }
 

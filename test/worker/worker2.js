@@ -1,3 +1,4 @@
+importScripts('../../local.js');
 var counter = 100;
 local.worker.setServer(function(req, res, page) {
 	if (req.path == '/' && req.method == 'GET') {

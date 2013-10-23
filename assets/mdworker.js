@@ -1,4 +1,5 @@
-importScripts('assets/marked.js');
+importScripts('../local.js');
+importScripts('marked.js');
 marked.setOptions({ gfm: true, tables: true });
 
 local.worker.setServer(function (request, response) {

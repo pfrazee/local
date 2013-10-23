@@ -2002,22 +2002,18 @@ function validateHttplMessage(parsedmsg) {
 // - `config.shared`: boolean, should the workerserver be shared?
 // - `config.namespace`: optional string, what should the shared worker be named?
 //   - defaults to `config.src` if undefined
-// - `config.nullify`: optional [string], a list of objects to nullify when the worker loads
-// - `config.bootstrapUrl`: optional string, specifies the URL of the worker bootstrap script
 // - `config.log`: optional bool, enables logging of all message traffic
-// - `loadCb`: optional function(message)
-function WorkerBridgeServer(config, loadCb) {
+function WorkerBridgeServer(config) {
 	if (!config || !config.src)
 		throw new Error("WorkerBridgeServer requires config with `src` attribute.");
 	local.BridgeServer.call(this, config);
-	this.isUserScriptActive = false; // when true, ready for activity
+	this.isActive = false; // when true, ready for activity
 	this.hasHostPrivileges = true; // do we have full control over the worker?
 	// ^ set to false by the ready message of a shared worker (if we're not the first page to connect)
 	if (config.serverFn) {
 		this.configServerFn = config.serverFn;
 		delete this.config.serverFn; // clear out the function from config, so we dont get an error when we send config to the worker
 	}
-	this.loadCb = loadCb;
 
 	// Prep config
 	if (!this.config.domain) { // assign a temporary label for logging if no domain is given yet
@@ -2027,10 +2023,10 @@ function WorkerBridgeServer(config, loadCb) {
 
 	// Initialize the worker
 	if (this.config.shared) {
-		this.worker = new SharedWorker(config.bootstrapUrl || local.workerBootstrapUrl, config.namespace);
+		this.worker = new SharedWorker(config.src, config.namespace);
 		this.worker.port.start();
 	} else {
-		this.worker = new Worker(config.bootstrapUrl || local.workerBootstrapUrl);
+		this.worker = new Worker(config.src);
 	}
 
 	// Setup the incoming message handler
@@ -2043,12 +2039,8 @@ function WorkerBridgeServer(config, loadCb) {
 		// Handle messages with an `op` field as worker-control packets rather than HTTPL messages
 		switch (message.op) {
 			case 'ready':
-				// Bootstrap script can now accept commands
+				// Worker can now accept commands
 				this.onWorkerReady(message.body);
-				break;
-			case 'loaded':
-				// User script has loaded
-				this.onWorkerUserScriptLoaded(message.body);
 				break;
 			case 'log':
 				this.onWorkerLog(message.body);
@@ -2076,26 +2068,13 @@ WorkerBridgeServer.prototype.terminate = function() {
 	BridgeServer.prototype.terminate.call(this);
 	this.worker.terminate();
 	this.worker = null;
-	this.isUserScriptActive = false;
-};
-
-// Instructs the worker to set the given name to null
-// - eg worker.nullify('XMLHttpRequest'); // no ajax
-WorkerBridgeServer.prototype.nullify = function(name) {
-	this.channelSendMsg({ op: 'nullify', body: name });
-};
-
-// Instructs the WorkerBridgeServer to import the JS given by the URL
-// - eg worker.importScripts('/my/script.js');
-// - `urls`: required string|[string]
-WorkerBridgeServer.prototype.importScripts = function(urls) {
-	this.channelSendMsg({ op: 'importScripts', body: urls });
+	this.isActive = false;
 };
 
 // Returns true if the channel is ready for activity
 // - returns boolean
 WorkerBridgeServer.prototype.isChannelActive = function() {
-	return this.isUserScriptActive;
+	return this.isActive;
 };
 
 // Sends a single message across the channel
@@ -2121,38 +2100,11 @@ BridgeServer.prototype.handleRemoteRequest = function(request, response) {
 WorkerBridgeServer.prototype.onWorkerReady = function(message) {
 	this.hasHostPrivileges = message.hostPrivileges;
 	if (this.hasHostPrivileges) {
-		// Disable undesirable APIs
-		if (this.config.nullify) {
-			this.config.nullify.forEach(function(api) {
-				this.nullify(api);
-			}, this);
-		}
-
-		// Load user script
-		var src = this.config.src;
-		if (src.indexOf('data:application/javascript,') === 0)
-			src = 'data:application/javacsript;base64,'+btoa(src.slice(28));
+		// Send config
 		this.channelSendMsg({ op: 'configure', body: this.config });
-		this.importScripts(src);
-	} else {
-		this.onWorkerUserScriptLoaded();
 	}
-};
-
-// Starts normal operation
-// - called when the user script has finished loading
-WorkerBridgeServer.prototype.onWorkerUserScriptLoaded = function(message) {
-	if (this.loadCb && typeof this.loadCb == 'function') {
-		this.loadCb(message);
-	}
-	if (message && message.error) {
-		console.error('Failed to load user script in worker, terminating', message, this);
-		this.terminate();
-	}
-	else {
-		this.isUserScriptActive = true;
-		this.flushBufferedMessages();
-	}
+	this.isActive = true;
+	this.flushBufferedMessages();
 };
 
 // Logs message data from the worker
@@ -5072,17 +5024,11 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
 				case 'configure':
 					this.onPageConfigure(message.body);
 					break;
-				case 'nullify':
-					this.onPageNullify(message.body);
-					break;
-				case 'importScripts':
-					this.onPageImportScripts(message.body);
-					break;
 				case 'terminate':
 					this.terminate();
 					break;
 				default:
-					// If no 'op' field is given, treat it as an HTTPL request and pass onto our BridgeServer parent method
+					// If no recognized 'op' field is given, treat it as an HTTPL request and pass onto our BridgeServer parent method
 					this.onChannelMessage(message);
 					break;
 			}
@@ -5139,32 +5085,9 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
 		}
 	};
 
-	// Imports a user-script
-	PageServer.prototype.onPageImportScripts = function(message) {
-		if (!this.isHostPage) {
-			console.log('rejected "importScripts" from non-host connection');
-			return;
-		}
-		if (message) {
-			try {
-				closureImportScripts(message);
-			} catch(e) {
-				console.error((e ? e.toString() : e), (e ? e.stack : e));
-				this.channelSendMsg({ op: 'loaded', body: { error: true, reason: (e ? e.toString() : e) }});
-				return;
-			}
-		} else {
-			console.error("'importScripts' message must include a valid array/string");
-			this.channelSendMsg({ op: 'loaded', body: { error: true, reason: 'No script URI provided' }});
-			return;
-		}
-		this.channelSendMsg({ op: 'loaded', body: { error: false }});
-	};
-
 })();// Setup
 // =====
 local.util.mixinEventEmitter(local.worker);
-var closureImportScripts = importScripts; // self.importScripts may be nullified later (and we're in a closure right now)
 
 // EXPORTED
 // console.* replacements
@@ -5300,8 +5223,7 @@ if (self.postMessage) {
 if (typeof this.local == 'undefined')
 	this.local = {};
 
-(function() {local.workerBootstrapUrl = 'local.min.js';
-local.logAllExceptions = false;// Helpers to create servers
+(function() {local.logAllExceptions = false;// Helpers to create servers
 // -
 
 // EXPORTED
