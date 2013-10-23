@@ -22,16 +22,14 @@ local.addServer('foobar', function(req, res) {
     res.writeHead(200, 'ok', { 'content-type': 'text/plain' })
     res.end('Hello, world!');
 });
-local.dispatch({ method: 'GET', url: 'httpl://foobar' })
-	.then(/* ... */);
+local.dispatch({ method: 'GET', url: 'httpl://foobar' }).then(handle2or3xx, handle4or5xx);
 ```
 
 Run servers in Web Workers:
 
 ```javascript
 local.spawnWorkerServer('http://myhost.com/myworker.js');
-local.dispatch({ method: 'GET', url: 'httpl://myworker.js' })
-    .then(/* ... */);
+local.dispatch({ method: 'GET', url: 'httpl://myworker.js' }).then(/* ... */);
 ```
 
 Run servers for other users on Grimwire:
@@ -92,18 +90,18 @@ local.addServer('foo', function(req, res) {
         res.writeHead(200, 'ok', {
             'content-type': 'text/plain',
             'link': [
-                '</>; rel="self service"',
-                '</bar>; rel="item"; id="bar"'
-            ].join(',')
+                { href: '/', rel: 'self service' },
+                { href: '/bar', rel: 'item', id: 'bar' }
+            ]
         });
         res.end('Hello from /');
     } else if (req.path == '/bar') {
         res.writeHead(200, 'ok', {
             'content-type': 'text/plain',
             'link': [
-                '</>; rel="up service"',
-                '</bar>; rel="self item"; id="bar"'
-            ].join(',')
+                { href: '/', rel: 'up service' },
+                { href: '/bar', rel: 'self item', id: 'bar' }
+            ]
         });
         res.end('Hello from /bar');
     } else {

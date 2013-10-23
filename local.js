@@ -2095,8 +2095,8 @@ BridgeServer.prototype.handleRemoteRequest = function(request, response) {
 	}
 };
 
-// Sends initialization commands
-// - called when the bootstrap signals that it has finished loading
+// Starts normal functioning
+// - called when the local.js signals that it has finished loading
 WorkerBridgeServer.prototype.onWorkerReady = function(message) {
 	this.hasHostPrivileges = message.hostPrivileges;
 	if (this.hasHostPrivileges) {
@@ -5203,7 +5203,7 @@ function addConnection(port) {
 	}
 	page.channelSendMsg({ op: 'ready', body: { hostPrivileges: isHost } });
 
-	// Fire even
+	// Fire event
 	local.worker.emit('connect', { page: page });
 }
 
