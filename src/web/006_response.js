@@ -84,7 +84,7 @@ Response.prototype.deserializeHeaders = function() {
 // - emits the 'headers' event
 Response.prototype.writeHead = function(status, reason, headers) {
 	if (!this.isConnOpen)
-		return;
+		return this;
 	this.status = status;
 	this.reason = reason;
 	if (headers) {
@@ -103,11 +103,12 @@ Response.prototype.writeHead = function(status, reason, headers) {
 // - emits the 'data' event
 Response.prototype.write = function(data) {
 	if (!this.isConnOpen)
-		return;
+		return this;
 	if (typeof data != 'string') {
 		data = local.contentTypes.serialize(this.headers['content-type'], data);
 	}
 	this.emit('data', data);
+	return this;
 };
 
 // ends the response stream
@@ -115,18 +116,19 @@ Response.prototype.write = function(data) {
 // - emits 'end' and 'close' events
 Response.prototype.end = function(data) {
 	if (!this.isConnOpen)
-		return;
+		return this;
 	if (typeof data != 'undefined')
 		this.write(data);
 	this.emit('end');
 	this.close();
+	return this;
 };
 
 // closes the stream, aborting if not yet finished
 // - emits 'close' event
 Response.prototype.close = function() {
 	if (!this.isConnOpen)
-		return;
+		return this;
 	this.isConnOpen = false;
 	this.emit('close');
 
@@ -136,4 +138,5 @@ Response.prototype.close = function() {
 	// this.removeAllListeners('data');
 	// this.removeAllListeners('end');
 	// this.removeAllListeners('close');
+	return this;
 };

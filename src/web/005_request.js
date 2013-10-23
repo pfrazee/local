@@ -114,10 +114,11 @@ Request.prototype.deserializeHeaders = function() {
 // - emits the 'data' event
 Request.prototype.write = function(data) {
 	if (!this.isConnOpen)
-		return;
+		return this;
 	if (typeof data != 'string')
 		data = local.contentTypes.serialize(this.headers['content-type'], data);
 	this.emit('data', data);
+	return this;
 };
 
 // ends the request stream
@@ -125,19 +126,20 @@ Request.prototype.write = function(data) {
 // - emits 'end' and 'close' events
 Request.prototype.end = function(data) {
 	if (!this.isConnOpen)
-		return;
+		return this;
 	if (typeof data != 'undefined')
 		this.write(data);
 	this.emit('end');
 	// this.close();
 	// ^ do not close - the response should close
+	return this;
 };
 
 // closes the stream, aborting if not yet finished
 // - emits 'close' event
 Request.prototype.close = function() {
 	if (!this.isConnOpen)
-		return;
+		return this;
 	this.isConnOpen = false;
 	this.emit('close');
 
@@ -146,4 +148,5 @@ Request.prototype.close = function() {
 	// this.removeAllListeners('data');
 	// this.removeAllListeners('end');
 	// this.removeAllListeners('close');
+	return this;
 };
