@@ -7,7 +7,7 @@ bindRequestEvents()
 local.bindRequestEvents(document.body);
 document.body.addEventListener('request', function(e) { local.dispatch(e.detail); });
 ```
-Converts unhandled 'click' and 'submit' events into custom 'request' events.
+Converts unhandled 'click' and 'submit' events into custom 'request' events. Allows links and forms to target 'httpl' hosts.
 
 ### local.bindRequestEvents(element)
 
