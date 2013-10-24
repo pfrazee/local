@@ -201,10 +201,8 @@ local.schemes.register('httpl', function(request, response) {
 				// Not a default stream miss
 				if (peerd.relay in __peer_relay_registry) {
 					// Try connecting to the peer
-					// console.log(peerd,'not found, connecting');
 					__peer_relay_registry[peerd.relay].connect(request.urld.authority);
 					server = local.getServer(request.urld.authority);
-					// console.log(server);
 				} else {
 					// We're not connected to the relay
 					server = localRelayNotOnlineServer;

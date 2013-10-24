@@ -1,7 +1,7 @@
 Local 0.4.0dev
 ==============
 
-[<a href="https://github.com/grimwire/local">repository</a> | <a href="https://github.com/grimwire/local/issues">issues</a> | <a href="http://grimwire.com/local">docs</a>]
+[<a href="https://github.com/grimwire/local">Repository</a> | <a href="https://github.com/grimwire/local/issues">Issues</a> | <a href="http://grimwire.com/local">Documentation</a>]
 
 ## Overview
 
@@ -131,7 +131,7 @@ For an introduction to writing Local.js apps, read <a href="#docs/todosoa.md">In
 
 ### BETA STATUS
 
-Please be aware that Local.js and Grimwire are in beta status and are not yet stable APIs. I am actively taking feedback in the <a href="//github.com/grimwire/local/issue">issue tracker</a> and will consider all suggestions as the use-cases become clear.
+The Local.js and Grimwire APIs are not feature-stable. <a href="//github.com/grimwire/local/issues">Suggestions and bug reports are welcome</a>.
 
 <br/>
 
@@ -143,9 +143,10 @@ Thank you to the following third-party library authors:
 
  - [**parseUri**](http://stevenlevithan.com/demo/parseuri/js/), Stephen Levithan
  - [**UriTemplate**](https://github.com/fxa/uritemplate-js), Franz Antesberger
- - **TODO** anybody else
+ - [**Prism**](https://github.com/LeaVerou/prism), Lea Verou
+ - [**Marked**](https://github.com/chjj/marked), Christopher Jeffrey
 
-Special thanks to [Goodybag](http://goodybag.com) for their support during the development of this project. If you're in Austin and need food delivered to the office, check them out.
+Special thanks to [Goodybag.com](http://goodybag.com) for their support during the development of this project. If you're in Austin and need food delivered to the office, be sure to check out their website.
 
 ### License
 
