@@ -41,7 +41,7 @@ EventEmitter.prototype.playbackHistory = function() {
 	// always check if we're suspended - a handler might resuspend us
 	while (!this.isSuspended() && (e = this._history.shift()))
 		this.emit.apply(this, e);
-}
+};
 
 EventEmitter.prototype.emit = function(type) {
 	var args = Array.prototype.slice.call(arguments);
@@ -92,6 +92,8 @@ EventEmitter.prototype.once = function(type, listener) {
 		self.removeListener(type, g);
 		listener.apply(this, arguments);
 	});
+
+	return this;
 };
 
 EventEmitter.prototype.removeListener = function(type, listener) {

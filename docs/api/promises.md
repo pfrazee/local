@@ -3,6 +3,8 @@ Promises
 
 ---
 
+Asyncronous wrapper for values which are not yet available.
+
 ```javascript
 local.promise(local.http.dispatch(request))
   .succeed(updateUI)
@@ -111,3 +113,15 @@ Queues success and fail functions which will, respectively, fulfill or reject `o
  - `value`: optional any
 
 A node-style function which will reject if `err` is truthy and fulfill with `value` otherwise.
+
+### .isUnfulfilled()
+
+ - returns bool
+
+### .isFulfilled()
+
+ - returns bool
+
+### .isRejected()
+
+ - returns bool
