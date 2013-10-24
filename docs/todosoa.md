@@ -259,7 +259,7 @@ Node.js developers should feel somewhat at ease with Local.js servers, though th
 
 A word on the link headers. Some headers have parsers and stringifiers registered in `httpHeaders` which allow you to use object formats. The 'link' header is one such case. Additionally, link headers can use URI Templates to specify parameters in the path or query. The navigator makes use of this by filling the tokens with values in its `follow()` queries. Read more about this in the <a href="#">Agent</a> and <a href="#">UriTemplate</a> documentation.
 
-<a href="#">&raquo; Request</a>, <a href="#">&raquo; Response</a>, <a href="#">&raquo; httpHeaders</a>, <a href="#">&raquo; agent()</a>, <a href="#">&raquo; UriTemplate</a>
+<a href="#docs/api/request.md">&raquo; Request</a>, <a href="#docs/api/response.md">&raquo; Response</a>, <a href="#">&raquo; httpHeaders</a>, <a href="#">&raquo; agent()</a>, <a href="#">&raquo; UriTemplate</a>
 
 ---
 

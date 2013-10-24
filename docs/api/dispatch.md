@@ -40,6 +40,43 @@ resPromise.then(
 
 All requests are sent on the next tick.
 
+<a href="#docs/api/request.md">&raquo; Request</a>, <a href="#docs/api/response.md">&raquo; Response</a>
+
+---
+
+### Server Functions
+
+Server functions are given copies of the `local.Request` object, but with `url` replaced with `path`.
+
+```javascript
+local.addServer('myserver', function(req, res) {
+	console.log(req); /* =>
+	{
+		path: '/',
+		method: 'GET',
+		headers: { ... }
+	}
+	*/
+	req.on('end', function() {
+		// ...
+	});
+});
+```
+
+All servers are called when the request headers are first dispatched, not when the request ends. This means you must wait for the 'end' event if you want to use the request body.
+
+---
+
+### Request/Response Bodies
+
+In the case of both request and response streams, the body is automatically buffered. When the stream ends, Local.js will use the 'content-type' header to attempt deserialization. It will set the `body` attribute of the request/response to the resulting object (if parsing is successful) or string (if not).
+
+You can add new content-type support with `local.contentTypes.register()`.
+
+<a href="#docs/api/contenttypes.md">&raquo; contentTypes</a>
+
+---
+
 ### Request Streaming
 
 If you want to stream the body of the request, use a `local.Request` object in `dispatch()`, then use the request's API to add data and finish the stream.
@@ -57,6 +94,8 @@ req.end();
 ```
 
 You must always call end() to complete the request when streaming.
+
+---
 
 ### Response Streaming
 
