@@ -117,7 +117,7 @@ function addConnection(port) {
 	page.channelSendMsg({ op: 'ready', body: { hostPrivileges: isHost } });
 
 	// Fire event
-	local.worker.emit('connect', { page: page });
+	local.worker.emit('connect', page);
 }
 
 // Setup for future connections (shared worker)

@@ -71,18 +71,4 @@
 		local.worker.config = message;
 	};
 
-	// Nullifies a global
-	PageServer.prototype.onPageNullify = function(message) {
-		if (!this.isHostPage) {
-			console.log('rejected "nullify" from non-host connection');
-			return;
-		}
-		console.log('nullifying: ' + message);
-		if (typeof message === 'string') {
-			self[message] = null; // destroy the top-level reference
-		} else {
-			throw new Error("'nullify' message must include a valid string");
-		}
-	};
-
 })();
