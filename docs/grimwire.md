@@ -76,7 +76,7 @@ var relay = grimwidget.getRelay();
 
 Grimwire assigns a globally unique URL to every active stream using 4 pieces of information.
 
-httpl://<strong style="color: rgb(216, 56, 56)">bob</strong>@<strong style="color: rgb(81, 129, 201)">grimwire.net</strong>!<strong style="color: rgb(81, 160, 37)">chat.grimwire.com</strong>:<strong style="color: rgb(216, 149, 31)">123</strong>/
+<strong>httpl://<span style="color: rgb(216, 56, 56)">bob</span>@<span style="color: rgb(81, 129, 201)">grimwire.net</span>!<span style="color: rgb(81, 160, 37)">chat.grimwire.com</span>:<span style="color: rgb(216, 149, 31)">123</span>/</strong>
 
  1. <strong style="color: rgb(216, 56, 56)">User</strong>: the id of the account authenticated with the relay
  2. <strong style="color: rgb(81, 129, 201)">Provider Domain</strong>: the relay hosting the peer stream

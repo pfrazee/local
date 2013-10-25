@@ -10,9 +10,6 @@
 // - `config.shared`: boolean, should the workerserver be shared?
 // - `config.namespace`: optional string, what should the shared worker be named?
 //   - defaults to `config.src` if undefined
-// - `config.nullify`: optional [string], a list of objects to nullify when the worker loads
-//   - defaults to ['XMLHttpRequest', 'Worker', 'WebSocket', 'EventSource']
-// - `config.bootstrapUrl`: optional string, specifies the URL of the worker bootstrap script
 // - `serverFn`: optional function, a response generator for requests from the worker
 local.spawnWorkerServer = function(src, config, serverFn) {
 	if (typeof config == 'function') { serverFn = config; config = null; }

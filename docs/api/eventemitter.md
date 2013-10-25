@@ -30,11 +30,15 @@ Calls the EventEmitter constructor on the object and mixes in all of the methods
 
 Returns `false` if no handlers are registered to the `eventName` and `true` otherwise.
 
+---
+
 ### .on/addListener(eventName, listenerFn)
 
  - `eventName`: required string
  - `listenerFn`: required function
  - returns `this`
+
+---
 
 ### .once(eventName, listenerFn)
 
@@ -42,11 +46,15 @@ Returns `false` if no handlers are registered to the `eventName` and `true` othe
  - `listenerFn`: required function
  - returns `this`
 
+---
+
 ### .removeListener(eventName, listenerFn)
 
  - `eventName`: required string
  - `listenerFn`: required function
  - returns `this`
+
+---
 
 ### .removeAllListeners(eventName)
 
@@ -54,13 +62,19 @@ Returns `false` if no handlers are registered to the `eventName` and `true` othe
  - `listenerFn`: required function
  - returns `this`
 
+---
+
 ### .suspendEvents()
 
 Adds to the lock counter on the emitter, causing it to buffers all received events until `resumeEvents()` releases the lock.
 
+---
+
 ### .resumeEvents()
 
 Decrements the lock counter. If the lock counter reaches 0, buffered events are fired (in order received) and future events are fired immediately.
+
+---
 
 ### .isSuspended()
 

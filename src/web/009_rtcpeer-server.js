@@ -24,7 +24,6 @@
 	// ===============
 	// EXPORTED
 	// server wrapper for WebRTC connections
-	// - currently only supports Chrome
 	// - `config.peer`: required string, who we are connecting to (a valid peer domain)
 	// - `config.relay`: required local.Relay
 	// - `config.initiate`: optional bool, if true will initiate the connection processes
@@ -568,6 +567,7 @@
 	Relay.prototype.getDomain       = function() { return this.myPeerDomain; };
 	Relay.prototype.getUserId       = function() { return this.userId; };
 	Relay.prototype.getApp          = function() { return this.config.app; };
+	Relay.prototype.setApp          = function(v) { this.config.app = v; };
 	Relay.prototype.getStreamId     = function() { return this.config.stream; };
 	Relay.prototype.setStreamId     = function(stream) { this.config.stream = stream; };
 	Relay.prototype.getAccessToken  = function() { return this.accessToken; };

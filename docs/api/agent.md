@@ -108,12 +108,16 @@ myagent.follow({ rel: 'foobar.com/message', id: 500 }); // => httpl://foo/messag
 myagent.follow({ rel: 'item foobar.com/user' }); // => link not found
 ```
 
+---
+
 ### .dispatch(<span class="muted">request</span>)
 
  - `request`: optional object
  - returns `local.Promise(response)`
 
 Dispatches the given request to the current URL, resolving the agent first if required.
+
+---
 
 ### .resolve(<span class="muted">options</span>)
 
@@ -123,11 +127,15 @@ Dispatches the given request to the current URL, resolving the agent first if re
 
 Resolves the agent's URL, reporting failure if a link or resource is unfound.
 
+---
+
 ### .unresolve(<span class="muted">options</span>)
 
  - returns `this`
 
 Resets the agent's state to 'unresolved', causing future requests to run the resolve process again.
+
+---
 
 ### .rebase(url)
 
@@ -142,6 +150,8 @@ myhost.rebase('httpl://another-host');
 users.unresolve();
 bob.unresolve();
 ```
+
+---
 
 ### .subscribe(<span class="muted">request</span>)
 
