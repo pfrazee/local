@@ -59,7 +59,7 @@ local.dispatch({ method: 'GET', url: 'httpl://bob@grimwire.net!bobs-app.com' })
 
 The core of Local.js is a message router which adds a new scheme, `httpl://`, for targeting requests at functions within the application. These in-app server functions work similarly to node.js servers, and support streaming for requests and responses. Special types of server functions, the `bridge` servers, serialize the streams into JSON and transport them over channels to other namespaces.
 
-<a href="/assets/docs-messaging-diagram.png" target="_blank"><img src="/assets/docs-messaging-diagram.png" /></a>
+<img src="assets/docs-messaging-diagram.png" />
 
 This diagram illustrates how Local.js' HTTPL messages are routed. Note: any time a bridge server receives a request from within its own application, it pipes that request directly to its remote environment to be fulfilled. Likewise, a request that arrives from the remote environment is handled by the bridge server and sent directly back.
 

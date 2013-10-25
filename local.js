@@ -4934,22 +4934,22 @@ Agent.prototype.notify = makeDispWBodySugar('NOTIFY');
 
 // Builder
 // =======
-local.agent = function(queryOrNav) {
-	if (queryOrNav instanceof Agent)
-		return queryOrNav;
+local.agent = function(query) {
+	if (query instanceof Agent)
+		return query;
 
 	// convert nav: uri to a query array
-	if (typeof queryOrNav == 'string' && local.isNavSchemeUri(queryOrNav))
-		queryOrNav = local.parseNavUri(queryOrNav);
+	if (typeof query == 'string' && local.isNavSchemeUri(query))
+		query = local.parseNavUri(query);
 
 	// make sure we always have an array
-	if (!Array.isArray(queryOrNav))
-		queryOrNav = [queryOrNav];
+	if (!Array.isArray(query))
+		query = [query];
 
 	// build a full follow() chain
-	var nav = new Agent(new AgentContext(queryOrNav.shift()));
-	while (queryOrNav[0]) {
-		nav = new Agent(new AgentContext(queryOrNav.shift()), nav);
+	var nav = new Agent(new AgentContext(query.shift()));
+	while (query[0]) {
+		nav = new Agent(new AgentContext(query.shift()), nav);
 	}
 
 	return nav;
