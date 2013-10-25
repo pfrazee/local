@@ -4,6 +4,7 @@
 // EXPORTED
 // takes parsed a link header and a query object, produces an array of matching links
 // - `links`: [object]/object, either the parsed array of links or the request/response object
+// - `query`: object
 local.queryLinks = function queryLinks(links, query) {
 	if (!links) return [];
 	if (links.parsedHeaders) links = links.parsedHeaders.link; // actually a request or response object
@@ -136,7 +137,7 @@ local.joinUrl = function joinUrl() {
 // EXPORTED
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
-// - eg http://foo.com, //foo.com, httpl://bar.app, rel:http://foo.com, rel:foo.com
+// - eg http://foo.com, //foo.com, httpl://bar.app
 var isAbsUriRE = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)/;
 local.isAbsUri = function(url) {
 	if (isAbsUriRE.test(url))
