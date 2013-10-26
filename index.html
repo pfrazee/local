@@ -11,65 +11,66 @@
 	</head>
 
 	<body>
-		<div class="container">
-			<div class="row">
-				<div class="span3">
-					<ul id="viewer-nav" class="nav nav-list">
-						<li>&nbsp;</li>
-						<li><strong>Documentation</strong></li>
-						<li class="divider"></li>
-						<li><a href="#README.md">README</a></li>
-						<li><a href="#docs/todosoa.md">Intro: TodoSOA</a></li>
-						<li><a href="#docs/example_mdviewer.md">Example: Markdown Viewer</a></li>
-						<li><a href="#docs/grimwire.md">Using Grimwire</a></li>
-						<li><a href="#docs/grimwidget.md">GrimWidget.js</a></li>
-						<li class="divider"></li>
-						<li>&nbsp;</li>
-						<li><strong>API Reference</strong></li>
-						<li class="divider"></li>
-						<li class="nav-header">Utils</li>
-						<li><a href="#docs/api/promises.md">Promises</a></li>
-						<li><a href="#docs/api/eventemitter.md">EventEmitter</a></li>
-						<li><a href="#docs/api/setdispatchwrapper.md">setDispatchWrapper()</a></li>
-						<li><a href="#docs/api/bindrequestevents.md">bindRequestEvents()</a></li>
-						<li class="divider"></li>
-						<li class="nav-header">Web API</li>
-						<li><a href="#docs/api/dispatch.md">dispatch()</a></li>
-						<li><a href="#docs/api/subscribe.md">subscribe()</a></li>
-						<li><a href="#docs/api/agent.md">agent()</a></li>
-						<li><a href="#docs/managing_servers.md">Managing Servers</a></li>
-						<li><a href="#docs/navscheme.md">nav:|| URIs</a></li>
-						<li><a href="#docs/hosts.md">httpl://hosts</a></li>
-						<li class="divider"></li>
-						<li class="nav-header">Objects</li>
-						<li><a href="#docs/api/request.md">Request</a></li>
-						<li><a href="#docs/api/response.md">Response</a></li>
-						<li><a href="#docs/api/server.md">Server</a></li>
-						<li><a href="#docs/api/bridgeserver.md">BridgeServer</a></li>
-						<li><a href="#docs/api/workerbridgeserver.md">WorkerBridgeServer</a></li>
-						<li><a href="#docs/api/rtcbridgeserver.md">RTCBridgeServer</a></li>
-						<li><a href="#docs/api/relay.md">Relay</a></li>
-						<li><a href="#docs/api/eventstream.md">EventStream</a></li>
-						<li><a href="#docs/api/eventhost.md">EventHost</a></li>
-						<li class="divider"></li>
-						<li class="nav-header">Web Helpers</li>
-						<li><a href="#docs/api/pipe.md">pipe()</a></li>
-						<li><a href="#docs/api/querylinks.md">queryLinks()</a></li>
-						<li><a href="#docs/api/preferredtypes.md">preferredTypes()</a></li>
-						<li><a href="#docs/api/contenttypes.md">contentTypes</a></li>
-						<li><a href="#docs/api/httpheaders.md">httpHeaders</a></li>
-						<li><a href="#docs/api/uri_helpers.md">URI Helpers</a></li>
-						<li class="divider"></li>
-						<li class="nav-header">Workers</li>
-						<li><a href="#docs/api/worker.md">local.worker</a></li>
-						<li><a href="#docs/api/pageserver.md">PageServer</a></li>
-					</ul>
-					<br/><br/><br/><br/>
-				</div>
-				<div class="span9 loading" id="viewer"></div>
-			</div>
-
+		<div id="header">
+			<img src="assets/logo.png">
+			<a href="//grimwire.com">Home</a>
+			<a href="//grimwire.com/about">About</a>
+			<a href="//grimwire.com/download">Download</a>
+			<a class="active" href="//grimwire.com/local">Local.js</a>
+			<a href="//blog.grimwire.com">Blog</a>
 		</div>
+
+		<ul id="viewer-nav" class="nav nav-list">
+			<li>&nbsp;</li>
+			<li><strong style="color: gray">Documentation</strong></li>
+			<li class="divider"></li>
+			<li><a href="#README.md">README</a></li>
+			<li><a href="#docs/todosoa.md">Intro: TodoSOA</a></li>
+			<li><a href="#docs/example_mdviewer.md">Example: Markdown Viewer</a></li>
+			<li><a href="#docs/grimwire.md">Using Grimwire</a></li>
+			<li><a href="#docs/grimwidget.md">GrimWidget.js</a></li>
+			<li class="divider"></li>
+			<li>&nbsp;</li>
+			<li><strong style="color: gray">API Reference</strong></li>
+			<li class="divider"></li>
+			<li class="nav-header">Utils</li>
+			<li><a href="#docs/api/promises.md">Promises</a></li>
+			<li><a href="#docs/api/eventemitter.md">EventEmitter</a></li>
+			<li><a href="#docs/api/setdispatchwrapper.md">setDispatchWrapper()</a></li>
+			<li><a href="#docs/api/bindrequestevents.md">bindRequestEvents()</a></li>
+			<li class="divider"></li>
+			<li class="nav-header">Web API</li>
+			<li><a href="#docs/api/dispatch.md">dispatch()</a></li>
+			<li><a href="#docs/api/subscribe.md">subscribe()</a></li>
+			<li><a href="#docs/api/agent.md">agent()</a></li>
+			<li><a href="#docs/managing_servers.md">Managing Servers</a></li>
+			<li><a href="#docs/navscheme.md">nav:|| URIs</a></li>
+			<li><a href="#docs/hosts.md">httpl://hosts</a></li>
+			<li class="divider"></li>
+			<li class="nav-header">Objects</li>
+			<li><a href="#docs/api/request.md">Request</a></li>
+			<li><a href="#docs/api/response.md">Response</a></li>
+			<li><a href="#docs/api/server.md">Server</a></li>
+			<li><a href="#docs/api/bridgeserver.md">BridgeServer</a></li>
+			<li><a href="#docs/api/workerbridgeserver.md">WorkerBridgeServer</a></li>
+			<li><a href="#docs/api/rtcbridgeserver.md">RTCBridgeServer</a></li>
+			<li><a href="#docs/api/relay.md">Relay</a></li>
+			<li><a href="#docs/api/eventstream.md">EventStream</a></li>
+			<li><a href="#docs/api/eventhost.md">EventHost</a></li>
+			<li class="divider"></li>
+			<li class="nav-header">Web Helpers</li>
+			<li><a href="#docs/api/pipe.md">pipe()</a></li>
+			<li><a href="#docs/api/querylinks.md">queryLinks()</a></li>
+			<li><a href="#docs/api/preferredtypes.md">preferredTypes()</a></li>
+			<li><a href="#docs/api/contenttypes.md">contentTypes</a></li>
+			<li><a href="#docs/api/httpheaders.md">httpHeaders</a></li>
+			<li><a href="#docs/api/uri_helpers.md">URI Helpers</a></li>
+			<li class="divider"></li>
+			<li class="nav-header">Workers</li>
+			<li><a href="#docs/api/worker.md">local.worker</a></li>
+			<li><a href="#docs/api/pageserver.md">PageServer</a></li>
+		</ul>
+		<div id="viewer"></div>
 
 		<!-- third-party -->
 		<script src="assets/prism/prism.js"></script>

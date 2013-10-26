@@ -63,13 +63,13 @@ The core of Local.js is a message router which adds a new scheme, `httpl://`, fo
 
 This diagram illustrates how Local.js' HTTPL messages are routed. Note: any time a bridge server receives a request from within its own application, it pipes that request directly to its remote environment to be fulfilled. Likewise, a request that arrives from the remote environment is handled by the bridge server and sent directly back.
 
- > Read more in the <a href="#docs/web/dispatch.md">dispatch()</a> documentation.
+ > Read more in the <a href="#docs/api/dispatch.md">dispatch()</a> documentation.
 
 ### Server-Sent Events
 
 SSE streams are responses which remain open for a long period to deliver updates in named chunks. They can be used with HTTP and HTTPL to broadcast realtime events.
 
-> Read more in the <a href="#docs/web/subscribe.md">subscribe()</a> documentation.
+> Read more in the <a href="#docs/api/subscribe.md">subscribe()</a> documentation.
 
 ```javascript
 var events = local.subscribe('httpl://ssehost');
@@ -81,7 +81,7 @@ events.on('bar', function(e) { console.log(e); }) // => { event: "bar", data: ..
 
 The `local.Agent` is similar to a headless browser or a database cursor that travels Web APIs. It issues HEAD requests to hosts, then runs queries against the returned Link headers to navigate. The navigation queries allow applications to reason about remote hosts and make strong assumptions based on reltypes. This protocol is outlined in the [Web Linking spec](http://tools.ietf.org/html/rfc5988).
 
-> Read more in the <a href="#docs/web/agent.md">agent()</a> documentation.
+> Read more in the <a href="#docs/api/agent.md">agent()</a> documentation.
 
 ```javascript
 // Register an in-document server:
@@ -111,14 +111,14 @@ local.addServer('foo', function(req, res) {
 
 // Create an agent for the server and dispatch a GET:
 var fooAPI = local.agent('httpl://foo');
-fooAPI.get().then(/* ... */); // => "Hello from /"
+fooAPI.get(); // => "Hello from /"
 
 // Navigate by searching the link header of the response:
 var fooBarItem = fooAPI.follow({ rel: 'item', id: 'bar' });
-fooBarItem.get().then(/* ... */); // => "Hello from /bar"
+fooBarItem.get(); // => "Hello from /bar"
 
 // Follow the "up" link back to the root:
-fooBarItem.follow({ rel: 'up' }).get().then(/* ... */); // => "Hello from /"
+fooBarItem.follow({ rel: 'up' }).get(); // => "Hello from /"
 ```
 
 <br/>
