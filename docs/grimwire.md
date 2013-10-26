@@ -41,7 +41,7 @@ relay.on('listening', function() {
 	alert('Connected to the relay!');
 });
 relay.on('notlistening', function() {
-	alert('Disconnected to the relay!');
+	alert('Disconnected from the relay!');
 });
 
 // Handle requests
@@ -83,7 +83,7 @@ Grimwire assigns a globally unique URL to every active stream using 4 pieces of 
  3. <strong style="color: rgb(81, 160, 37)">App Domain</strong>: the hostname of the application using the stream
  4. <strong style="color: rgb(216, 149, 31)">Stream ID</strong>: the id of the app's stream to the relay (optional if 0)
 
-Any request sent to an HTTPL address matching this scheme will automatically route to the peer (establishing a WebRTC connection in the process) if possible.
+Any request sent to an HTTPL address matching this scheme will automatically route to the peer (establishing a WebRTC connection in the process).
 
  - If the application is not connected to the target peer's relay, the request will receive a 407 (Proxy Authentication Required).
  - If the target peer is not online, the request will receive a 404.
@@ -113,7 +113,7 @@ function peerServerFn(req, res, peer) {
 
 ## Registering Links
 
-Applications can register links with the relay's index for other peers to discover. As with response headers, any relative paths will be altered to point toward the origin peer.
+Applications can register links with the relay's index for other peers to discover. As with response headers, any relative paths will have the hostname of the peer prepended.
 
 ```javascript
 relay.registerLinks([

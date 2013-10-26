@@ -57,7 +57,7 @@ local.dispatch({ method: 'GET', url: 'httpl://bob@grimwire.net!bobs-app.com' })
 
 ## How it works
 
-The core of Local.js is a message router which adds a new scheme, `httpl://`, for targeting requests at functions within the application. These in-app server functions work similarly to node.js servers, and support streaming for requests and responses. Special types of server functions, the `bridge` servers, serialize the streams into JSON and transport them over channels to other namespaces.
+The core of Local.js is a message router which adds a new scheme, `httpl://`, for targeting requests at functions within the application. These in-app server functions work similarly to node.js servers, and support streaming for requests and responses. Special types of server functions, the "bridge" servers, serialize the streams into JSON and transport them over channels to other namespaces.
 
 <img src="assets/docs-messaging-diagram.png" />
 
@@ -79,7 +79,7 @@ events.on('bar', function(e) { console.log(e); }) // => { event: "bar", data: ..
 
 ### Programmatic Navigation
 
-The `local.Agent` is similar to a headless browser or a database cursor that travels Web APIs. It issues HEAD requests to hosts, then runs queries against the returned Link headers to navigate. The navigation queries allow applications to reason about remote hosts and make strong assumptions based on reltypes. This protocol is outlined in the [Web Linking spec](http://tools.ietf.org/html/rfc5988).
+The `local.Agent` is a headless browser that travels Web APIs. It issues HEAD requests to hosts, then runs queries against the returned Link headers to navigate. The navigation queries allow applications to reason about remote hosts and make strong assumptions based on reltypes. This protocol is outlined in the [Web Linking spec](http://tools.ietf.org/html/rfc5988).
 
 > Read more in the <a href="#docs/api/agent.md">agent()</a> documentation.
 
@@ -132,6 +132,10 @@ For an introduction to writing Local.js apps, read <a href="#docs/todosoa.md">In
 ### BETA STATUS
 
 The Local.js and Grimwire APIs are not feature-stable. <a href="//github.com/grimwire/local/issues">Suggestions and bug reports are welcome</a>.
+
+### Getting Help
+
+Contact <a href="//twitter.com/pfrazee">@pfrazee</a> or join #grimwire on freenode.
 
 <br/>
 

@@ -126,7 +126,7 @@ $$('#todo-list').addEventListener('click', function (e) {
 ```
 <br/>
 
-## /js/todo.js - The central control
+## /js/todo.js - The coordinator
 
 ### Constructor
 
@@ -265,7 +265,7 @@ A word on the link headers. Some headers have parsers and stringifiers registere
 
 This should give a general idea of how Local.js apps operate. I recommend you browse through the <a href="//github.com/grimwire/todosoa">full source of TodoSOA</a> to get a more complete understanding of its architecture.
 
-Message-passing is not always the ideal design for applications. It requires some additional boiler-plate, syncing steps, and introduces calling latency. However, the high degree of separation can be advantageous to large applications which need to evolve over time, and the common protocol opens much greater opportunities for parallelism and distributed applications. In some cases, message-driven applications can also enable users to configure where data is stored or how an application behaves.
+Message-passing is not always the ideal design for applications. It requires some additional boiler-plate, syncing steps, and introduces calling latency. However, the high degree of separation can be advantageous to large applications which need to evolve over time, and opens much greater opportunities for parallelism and distributed applications. In some cases, message-driven applications can also enable users to configure where data is stored or how an application behaves.
 
 Continue reading to get a better understanding of the strengths and weaknesses:
 

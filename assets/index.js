@@ -16,6 +16,7 @@ function getContent() {
 	local.dispatch('httpl://mdworker.js/'+path).then(
 		function (res) {
 			viewer.innerHTML = res.body;
+			window.scrollTo(0,0);
 			Prism.highlightAll();
 		},
 		function (res) {

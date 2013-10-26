@@ -3,7 +3,9 @@ GrimWidget.js
 
 ---
 
-To simplify the connection process, <a href="https://github.com/grimwire/grimwire">Grimwire includes grimwidget.js</a> (<a href="https://raw.github.com/grimwire/grimwire/master/grimwidget.js">Direct Link</a>) to use in applications. The Grimwidget gives a popup interface for inputting the relay URL and rendering links in the relay's index.
+To simplify the connection process, <a href="https://github.com/grimwire/grimwire">Grimwire includes grimwidget.js</a> (<a href="https://raw.github.com/grimwire/grimwire/master/grimwidget.js">Direct Link</a>) to use in applications. The GrimWidget gives a popup interface for inputting the relay URL and rendering links in the relay's index.
+
+<img src="assets/docs-grimwidget.png">
 
 ```javascript
 // An example from chat.grimwire.com
