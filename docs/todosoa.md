@@ -35,7 +35,7 @@ local.setDispatchWrapper(function(req, res, dispatch) {
 
 The dispatch wrapper is an optional middleware that is injected between `dispatch()` and delivery of the request. It's used here for logging.
 
-<a href="#">&raquo; setDispatchWrapper()</a>
+<a href="#docs/api/setdispatchwrapper.md">&raquo; setDispatchWrapper()</a>
 
 ---
 
@@ -45,7 +45,7 @@ local.spawnWorkerServer('js/view.js');
 
 This will create a worker using 'js/view.js' and assign it to 'httpl://view.js'. All requests to that address will buffer until the script has loaded.
 
-<a href="#">&raquo; spawnWorkerServer()</a>
+<a href="#docs/api/managing_servers.md">&raquo; spawnWorkerServer()</a>
 
 ---
 
@@ -56,7 +56,7 @@ local.addServer('todo', new app.Host('httpl://storage', 'httpl://view.js'));
 
 Both of these servers will live in the document (at 'httpl://storage' and 'httpl://todo', respectively). The addServer call takes the desired domain name, then a function or object. If an object is given, it should descend from `local.Server.prototype`.
 
-<a href="#">&raquo; addServer()</a>
+<a href="#docs/api/managing_servers.md">&raquo; addServer()</a>
 
 ---
 
@@ -66,7 +66,7 @@ var todoApi = local.agent('httpl://todo');
 
 Agents are like database cursors for Web APIs. We'll use `todoApi` to send requests to the 'todo' server while avoiding any URL construction.
 
-<a href="#">&raquo; agent()</a>
+<a href="#docs/api/agent.md">&raquo; agent()</a>
 
 ---
 
@@ -102,9 +102,7 @@ function lookupResource(target) {
 
 Agent navigations work by issuing HEAD requests to their starting locations and searching through the responses' Link headers. The searches are specified in queries given to `follow()`, as above. This query will find the first link with a `rel` that **includes** `'item'` and an `id` that **equals** `target.dataset.id`.
 
-<span class="muted">Reltypes are a special part of queries; read more about them in the <a href="#">Agent documentation</a>.</span>
-
-<a href="#">&raquo; agent()</a>
+<span class="muted">Reltypes are a special part of queries; read more about them in the <a href="#docs/api/agent.md">Agent documentation</a>.</span>
 
 Here is how `lookupResource` gets used:
 
@@ -153,7 +151,7 @@ Todo.prototype = Object.create(local.Server.prototype);
 
 The Todo server creates agents that point to the storage and the different views. DOM event handlers in js/app.js generate requests to the todo server, which then sends requests to storage and views to update the data and UI.
 
-<a href="#">&raquo; Server</a>
+<a href="#docs/api/server.md">&raquo; Server</a>
 
 ---
 
@@ -187,7 +185,7 @@ this.storageApi.dispatch({ method: 'GET', query: { completed: 0 } })
 
 The view server generates HTML using GET requests. In the case of the list-render (above) this can create multiple requests which require syncing. This is handled with `promise.bundle()`.
 
-<a href="#">&raquo; Promises</a>
+<a href="#docs/api/promises.md">&raquo; Promises</a>
 
 ---
 
@@ -257,9 +255,9 @@ switch (req.path) {
 
 Node.js developers should feel somewhat at ease with Local.js servers, though the APIs are not exact copies. Request and response objects behave as streams, and can not change headers after dispatch (for requests) or writeHead (for responses). In this case, we don't wait for the request stream to end, as GET requests do not have bodies.
 
-A word on the link headers. Some headers have parsers and stringifiers registered in `httpHeaders` which allow you to use object formats. The 'link' header is one such case. Additionally, link headers can use URI Templates to specify parameters in the path or query. The navigator makes use of this by filling the tokens with values in its `follow()` queries. Read more about this in the <a href="#">Agent</a> and <a href="#">UriTemplate</a> documentation.
+A word on the link headers. Some headers have parsers and stringifiers registered in `httpHeaders` which allow you to use object formats. The 'link' header is one such case. Additionally, link headers can use URI Templates to specify parameters in the path or query. The navigator makes use of this by filling the tokens with values in its `follow()` queries. Read more about this in the <a href="#docs/api/agent.md">Agent</a> documentation.
 
-<a href="#docs/api/request.md">&raquo; Request</a>, <a href="#docs/api/response.md">&raquo; Response</a>, <a href="#">&raquo; httpHeaders</a>, <a href="#">&raquo; agent()</a>, <a href="#">&raquo; UriTemplate</a>
+<a href="#docs/api/request.md">&raquo; Request</a>, <a href="#docs/api/response.md">&raquo; Response</a>, <a href="#docs/api/httpheaders.md">&raquo; httpHeaders</a>, <a href="#docs/api/agent.md">&raquo; agent()</a>
 
 ---
 

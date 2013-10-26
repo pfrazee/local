@@ -11,7 +11,7 @@ Local.js is an Ajax-to-anywhere messaging library for Web applications. It sends
  - Server-Sent Event APIs for distributed updates
  - A programmatic user-agent for navigating via link headers
 
-Local.js can be used with [Grimwire](https://github.com/grimwire/grimwire), a node.js "Peer Relay", to establish sessions between apps for WebRTC.
+Local.js can be used with [Grimwire](https://github.com/grimwire/grimwire), a node.js Peer Relay, to establish sessions between apps for WebRTC.
 
 ### Examples
 

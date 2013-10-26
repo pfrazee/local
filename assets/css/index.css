@@ -1,4 +1,6 @@
+body { color: #555; }
 a { color: #3184D6; }
+p { margin: 13px 0 17px; }
 blockquote { border-left: 5px solid #ddd; }
 blockquote p { font-size:14px }
 h2 { font-size:30px; border-bottom:1px solid gray; font-weight:normal; margin-top:16px }
