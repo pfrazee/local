@@ -7,7 +7,7 @@ local.worker.setServer(function(req, res, page) {
 		return;
 	}
 	if (req.path == '/' && req.method == 'POST') {
-		req.finishStream().then(function(body) {
+		req.body_.then(function(body) {
 			res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
 			res.end(body.toLowerCase());
 		});

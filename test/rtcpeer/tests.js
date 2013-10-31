@@ -3,8 +3,8 @@ done = false;
 startTime = Date.now();
 
 // Create peerweb relay streams
-var relay1 = local.joinRelay('https://grimwire.net', { stream: 0 }, peer1ServerFn);
-var relay2 = local.joinRelay('https://grimwire.net', { stream: 1 }, peer2ServerFn);
+var relay1 = local.joinRelay('http://grimwire.com:8000', { stream: 0 }, peer1ServerFn);
+var relay2 = local.joinRelay('http://grimwire.com:8000', { stream: 1 }, peer2ServerFn);
 
 relay1.on('accessGranted', function() {
 	sessionStorage.setItem('access-token', relay1.getAccessToken());
@@ -16,13 +16,13 @@ relay1.on('accessGranted', function() {
 // Handle auth failures
 relay1.on('accessInvalid', function() {
 	relay1.requestAccessToken();
-	relay1.on('accessGranted', function() { window.reload(); });
+	relay1.on('accessGranted', function() { window.location.reload(); });
 });
 
 // Get access token if we need one
 if (!sessionStorage.getItem('access-token')) {
 	relay1.requestAccessToken();
-	relay1.on('accessGranted', function() { window.reload(); });
+	relay1.on('accessGranted', function() { window.location.reload(); });
 } else {
 	// Pull access token from storage
 	relay1.setAccessToken(sessionStorage.getItem('access-token'));
@@ -68,7 +68,7 @@ function peer1ServerFn(req, res, peer) {
 		return;
 	}
 	if (req.path == '/' && req.method == 'POST') {
-		req.finishStream().then(function(body) {
+		req.body_.then(function(body) {
 			res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
 			res.end(body.toUpperCase());
 		});
@@ -85,7 +85,7 @@ function peer2ServerFn(req, res, peer) {
 		return;
 	}
 	if (req.path == '/' && req.method == 'POST') {
-		req.finishStream().then(function(body) {
+		req.body_.then(function(body) {
 			res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
 			res.end(body.toLowerCase());
 		});

@@ -2632,17 +2632,15 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		this.bridges = {};
 		this.pingInterval = null;
 		this.registeredLinks = null;
+		this.relayEventStream = null;
 
 		// Internal helpers
 		this.messageFromAuthPopupHandler = null;
-		this.accessToken_ = null;
 
-		// APIs
-		this.p2pwServiceAPI = null;
-		this.p2pwUsersAPI = null;
-		this.p2pwRelayAPI = null;
-		this.p2pwLinksAPI = null;
-		this.relayStream = null;
+		// Agents
+		this.relayService = null;
+		this.usersCollection = null;
+		this.relayItem = null;
 
 		// Setup provider config
 		if (config.provider) {
@@ -2668,13 +2666,19 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			// Store
 			this.userId = tokenParts[0];
 			this.accessToken = token;
-			this.p2pwServiceAPI.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
-			this.p2pwUsersAPI.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
+			this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
+			this.usersCollection.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
 
 			// Try to validate our access now
 			var self = this;
-			this.p2pwRelayAPI = this.p2pwServiceAPI.follow({ rel: 'item grimwire.com/-p2pw/relay', id: this.getUserId(), stream: this.getStreamId(), nc: Date.now() });
-			this.p2pwRelayAPI.resolve().then( // a successful HEAD request will verify access
+			this.relayItem = this.relayService.follow({
+				rel:    'item gwr.io/relay',
+				user:   this.getUserId(),
+				app:    this.getApp(),
+				stream: this.getStreamId(),
+				nc:     Date.now() // nocache
+			});
+			this.relayItem.resolve().then( // a successful HEAD request will verify access
 				function() {
 					// Emit an event
 					self.emit('accessGranted');
@@ -2717,8 +2721,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		this.providerDomain = local.parseUri(providerUrl).host;
 
 		// Create APIs
-		this.p2pwServiceAPI = local.agent(this.config.provider);
-		this.p2pwUsersAPI = this.p2pwServiceAPI.follow({ rel: 'grimwire.com/-user collection' });
+		this.relayService = local.agent(this.config.provider);
+		this.usersCollection = this.relayService.follow({ rel: 'gwr.io/user collection' });
 	};
 
 	// Gets an access token from the provider & user using a popup
@@ -2756,7 +2760,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// - opts.online: optional bool, only online users
 	// - opts.trusted: optional bool, only users trusted by our session
 	Relay.prototype.getUsers = function(opts) {
-		var api = this.p2pwUsersAPI;
+		var api = this.usersCollection;
 		if (opts) {
 			opts.rel = 'self';
 			api = api.follow(opts);
@@ -2767,21 +2771,20 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// Fetches a user from p2pw service
 	// - `userId`: string
 	Relay.prototype.getUser = function(userId) {
-		return this.p2pwUsersAPI.follow({ rel: 'item', id: userId }).get({ accept: 'application/json' });
+		return this.usersCollection.follow({ rel: 'item gwr.io/user', id: userId }).get({ accept: 'application/json' });
 	};
 
 	// Sends (or stores to send) links in the relay's registry
 	Relay.prototype.registerLinks = function(links) {
 		this.registeredLinks = Array.isArray(links) ? links : [links];
-		if (this.p2pwLinksAPI) {
-			this.p2pwLinksAPI.dispatch({ method: 'PATCH', body: { links: this.registeredLinks }});
+		if (this.relayItem) {
+			this.relayItem.dispatch({ method: 'PATCH', body: { links: this.registeredLinks }});
 		}
 	};
 
 	// Creates a new agent with up-to-date links for the relay
 	Relay.prototype.agent = function() {
-		// Create an unresolved duplicate to that the link cache is refreshed
-		return this.p2pwRelayAPI.follow({ rel: 'self' });
+		return this.relayService.follow({ rel: 'collection gwr.io/relay', links: 1 });
 	};
 
 	// Subscribes to the event relay and begins handling signals
@@ -2795,17 +2798,22 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		// Update "src" object, for use in signal messages
 		this.myPeerDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.stream);
 		// Connect to the relay stream
-		this.p2pwRelayAPI = this.p2pwServiceAPI.follow({ rel: 'item grimwire.com/-p2pw/relay', id: this.getUserId(), stream: this.getStreamId(), nc: Date.now() });
-		this.p2pwRelayAPI.subscribe({ method: 'subscribe' })
+		this.relayItem = this.relayService.follow({
+			rel:    'item gwr.io/relay',
+			user:   this.getUserId(),
+			app:    this.getApp(),
+			stream: this.getStreamId(),
+			nc:     Date.now() // nocache
+		});
+		this.relayItem.subscribe({ method: 'subscribe' })
 			.then(
 				function(stream) {
 					// Update state
 					__peer_relay_registry[self.providerDomain] = self;
-					self.relayStream = stream;
+					self.relayEventStream = stream;
 					self.connectedToRelay = true;
 					stream.response_.then(function(response) {
 						// Setup links
-						self.p2pwLinksAPI = self.p2pwRelayAPI.follow({ rel: 'grimwire.com/-links', app: self.config.app, stream: self.getStreamId() });
 						if (self.registeredLinks) {
 							// We had links stored from before, send them now
 							self.registerLinks(self.registeredLinks);
@@ -2848,9 +2856,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 			// Update state
 			this.connectedToRelay = false;
-			this.p2pwLinksAPI = null;
-			this.relayStream.close();
-			this.relayStream = null;
+			this.relayEventStream.close();
+			this.relayEventStream = null;
 			delete __peer_relay_registry[self.providerDomain];
 		}
 	};
@@ -2904,12 +2911,12 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	};
 
 	Relay.prototype.signal = function(dst, msg) {
-		if (!this.p2pwRelayAPI) {
+		if (!this.relayItem) {
 			console.warn('Relay - signal() called before relay is connected');
 			return;
 		}
 		var self = this;
-		var response_ = this.p2pwRelayAPI.dispatch({ method: 'notify', body: { src: this.myPeerDomain, dst: dst, msg: msg } });
+		var response_ = this.relayItem.dispatch({ method: 'notify', body: { src: this.myPeerDomain, dst: dst, msg: msg } });
 		response_.fail(function(res) {
 			if (res.status == 401) {
 				if (!self.accessToken) {
@@ -2950,7 +2957,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	Relay.prototype.onRelayError = function(e) {
 		if (e.data && e.data.status == 423) { // locked
 			// Update state
-			this.relayStream = null;
+			this.relayEventStream = null;
 			this.connectedToRelay = false;
 
 			if (!this.autoRetryStreamTaken) {
@@ -2968,7 +2975,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			this.emit('accessInvalid');
 		} else if (e.data && (e.data.status === 0 || e.data.status == 404 || e.data.status >= 500)) { // connection lost
 			// Update state
-			this.relayStream = null;
+			this.relayEventStream = null;
 			this.connectedToRelay = false;
 
 			// Attempt to reconnect in 2 seconds
@@ -3019,7 +3026,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 			// Send a synchronous disconnect signal to all connected peers
 			var req = new XMLHttpRequest();
-			req.open('NOTIFY', this.p2pwRelayAPI.context.url, false);
+			req.open('NOTIFY', this.relayItem.context.url, false);
 			req.setRequestHeader('Authorization', 'Bearer '+this.accessToken);
 			req.setRequestHeader('Content-type', 'application/json');
 			req.send(JSON.stringify({ src: this.myPeerDomain, dst: dst, msg: { type: 'disconnect' } }));
