@@ -137,6 +137,10 @@ The Local.js and Grimwire APIs are not feature-stable. <a href="//github.com/gri
 
 Contact <a href="//twitter.com/pfrazee">@pfrazee</a> or join #grimwire on freenode.
 
+### Feedback &amp; Bug Reporting
+
+Send specific issues and suggestions to the [GitHub issue tracker](https://github.com/grimwire/local/issues). Suggestions to improve the documentation can be added to the ongoing [Documentation Improvements](https://github.com/grimwire/local/issues/77) issue.
+
 <br/>
 
 ## Misc
