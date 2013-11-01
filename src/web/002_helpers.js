@@ -254,11 +254,11 @@ local.parseNavUri = function(str) {
 		for (var j=0; j < attrs.length; j++) {
 			var kv = attrs[j].split('=');
 			if (j === 0) {
-				query.rel = kv[0].replace(/\+/, ' ');
+				query.rel = kv[0].replace(/\+/g, ' ');
 				if (kv[1])
 					query.id = kv[1];
 			} else
-				query[kv[0]] = decodeURIComponent(kv[1]).replace(/\+/, ' ');
+				query[kv[0]] = decodeURIComponent(kv[1]).replace(/\+/g, ' ');
 		}
 		parts[i] = query;
 	}

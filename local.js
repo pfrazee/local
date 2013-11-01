@@ -1017,11 +1017,11 @@ local.parseNavUri = function(str) {
 		for (var j=0; j < attrs.length; j++) {
 			var kv = attrs[j].split('=');
 			if (j === 0) {
-				query.rel = kv[0].replace(/\+/, ' ');
+				query.rel = kv[0].replace(/\+/g, ' ');
 				if (kv[1])
 					query.id = kv[1];
 			} else
-				query[kv[0]] = decodeURIComponent(kv[1]).replace(/\+/, ' ');
+				query[kv[0]] = decodeURIComponent(kv[1]).replace(/\+/g, ' ');
 		}
 		parts[i] = query;
 	}
@@ -5209,11 +5209,7 @@ if (self.postMessage) {
 	addConnection(self);
 }})();
 
-} // if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope)// Local Toplevel
-// ==============
-// pfraze 2013
-
-if (typeof this.local == 'undefined')
+}if (typeof this.local == 'undefined')
 	this.local = {};
 
 (function() {local.logAllExceptions = false;// Helpers to create servers
