@@ -121,8 +121,8 @@ local.preferredType = function preferredType(accept, provided) {
 
 // EXPORTED
 // correctly joins together all url segments given in the arguments
-// eg joinUrl('/foo/', '/bar', '/baz/') -> '/foo/bar/baz/'
-local.joinUrl = function joinUrl() {
+// eg joinUri('/foo/', '/bar', '/baz/') -> '/foo/bar/baz/'
+local.joinUri = function joinUri() {
 	var parts = Array.prototype.map.call(arguments, function(arg, i) {
 		arg = ''+arg;
 		var lo = 0, hi = arg.length;
@@ -188,7 +188,7 @@ local.joinRelPath = function(urld, relpath) {
 		else
 			hostpathParts.push(relpathParts[i]);
 	}
-	return local.joinUrl(protocol + urld.authority, hostpathParts.join('/'));
+	return local.joinUri(protocol + urld.authority, hostpathParts.join('/'));
 };
 
 // EXPORTED
@@ -196,7 +196,7 @@ local.joinRelPath = function(urld, relpath) {
 local.parseUri = function parseUri(str) {
 	if (typeof str === 'object') {
 		if (str.url) { str = str.url; }
-		else if (str.host || str.path) { str = local.joinUrl(req.host, req.path); }
+		else if (str.host || str.path) { str = local.joinUri(req.host, req.path); }
 	}
 
 	// handle data-uris specially - performance characteristics are much different

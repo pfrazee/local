@@ -343,7 +343,7 @@ Agent.prototype.lookupLink = function(context) {
 		}
 		else if (typeof context.query == 'string') {
 			// A URL
-			if (!local.isAbsUrl(context.query))
+			if (!local.isAbsUri(context.query))
 				return local.joinRelPath(this.context.urld, context.query);
 			return context.query;
 		}
