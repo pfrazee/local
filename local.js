@@ -2805,7 +2805,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			stream: this.getStreamId(),
 			nc:     Date.now() // nocache
 		});
-		this.relayItem.subscribe({ method: 'subscribe' })
+		this.relayItem.subscribe()
 			.then(
 				function(stream) {
 					// Update state
@@ -3525,7 +3525,7 @@ local.subscribe = function subscribe(request) {
 	if (typeof request == 'string')
 		request = { url: request };
 	request.stream = true; // stream the response
-	if (!request.method) request.method = 'GET';
+	if (!request.method) request.method = 'SUBSCRIBE';
 	if (!request.headers) request.headers = { accept : 'text/event-stream' };
 	if (!request.headers.accept) request.headers.accept = 'text/event-stream';
 

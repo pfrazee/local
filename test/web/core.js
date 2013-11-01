@@ -13,7 +13,7 @@ success
 {
   body: {hello: "world"},
   headers: {
-    allow: "OPTIONS, HEAD, GET",
+    allow: "OPTIONS, HEAD, GET, SUBSCRIBE",
     "content-type": "application/json",
     link: "</>; rel=\"self current\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
   },
@@ -34,7 +34,7 @@ wait(function () { return done; });
 error
 {
   body: "",
-  headers: {allow: "OPTIONS, HEAD, GET"},
+  headers: {allow: "OPTIONS, HEAD, GET, SUBSCRIBE"},
   reason: "Not Found",
   status: 404
 }

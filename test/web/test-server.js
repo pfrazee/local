@@ -68,11 +68,11 @@ function serveHome(request, response) {
 
 	// send
 	response.writeHead(200, 'Ok', {
-		Allow:'OPTIONS, HEAD, GET',
+		Allow:'OPTIONS, HEAD, GET, SUBSCRIBE',
 		Link:linkHeader,
 		'Access-Control-Allow-Origin'      : '*',
 		'Access-Control-Allow-Credentials' : 'true',
-		'Access-Control-Allow-Methods'     : 'OPTIONS, HEAD, GET',
+		'Access-Control-Allow-Methods'     : 'OPTIONS, HEAD, GET, SUBSCRIBE',
 		'Access-Control-Allow-Headers'     : Object.keys(request.headers).concat(commonReqHeaders).join(', '),
 		'Access-Control-Expose-Headers'    : 'Allow, Link, Content-type'
 	});
@@ -115,11 +115,11 @@ function serveFoo(request, response) {
 
 	// send
 	response.writeHead(200, 'Ok', {
-		Allow:'OPTIONS, HEAD, GET',
+		Allow:'OPTIONS, HEAD, GET, SUBSCRIBE',
 		Link:linkHeader,
 		'Access-Control-Allow-Origin'      : '*',
 		'Access-Control-Allow-Credentials' : 'true',
-		'Access-Control-Allow-Methods'     : 'OPTIONS, HEAD, GET',
+		'Access-Control-Allow-Methods'     : 'OPTIONS, HEAD, GET, SUBSCRIBE',
 		'Access-Control-Allow-Headers'     : Object.keys(request.headers).concat(commonReqHeaders).join(', '),
 		'Access-Control-Expose-Headers'    : 'Allow, Link, Content-type'
 	});
@@ -181,11 +181,11 @@ function serveFooItem(request, response) {
 
 	// send
 	response.writeHead(200, 'Ok', {
-		Allow:'OPTIONS, HEAD, GET',
+		Allow:'OPTIONS, HEAD, GET, SUBSCRIBE',
 		Link:linkHeader,
 		'Access-Control-Allow-Origin'      : '*',
 		'Access-Control-Allow-Credentials' : 'true',
-		'Access-Control-Allow-Methods'     : 'OPTIONS, HEAD, GET',
+		'Access-Control-Allow-Methods'     : 'OPTIONS, HEAD, GET, SUBSCRIBE',
 		'Access-Control-Allow-Headers'     : Object.keys(request.headers).concat(commonReqHeaders).join(', '),
 		'Access-Control-Expose-Headers'    : 'Allow, Link, Content-type'
 	});
@@ -200,6 +200,7 @@ function serveEvents(request, response) {
 		case 'OPTIONS':
 		case 'HEAD':
 		case 'GET':
+		case 'SUBSCRIBE':
 			break;
 		default:
 			return serveError(405, request, response);
@@ -207,11 +208,11 @@ function serveEvents(request, response) {
 
 	// send headers
 	response.writeHead(200, 'Ok', {
-		Allow          : 'OPTIONS, HEAD, GET',
+		Allow          : 'OPTIONS, HEAD, GET, SUBSCRIBE',
 		'Content-type' : 'text/event-stream',
 		'Access-Control-Allow-Origin'      : '*',
 		'Access-Control-Allow-Credentials' : 'true',
-		'Access-Control-Allow-Methods'     : 'OPTIONS, HEAD, GET',
+		'Access-Control-Allow-Methods'     : 'OPTIONS, HEAD, GET, SUBSCRIBE',
 		'Access-Control-Allow-Headers'     : Object.keys(request.headers).concat(commonReqHeaders).join(', '),
 		'Access-Control-Expose-Headers'    : 'Allow, Link, Content-type'
 	});
@@ -227,10 +228,10 @@ function serveEvents(request, response) {
 // =======
 function serveError(code, request, response) {
 	response.writeHead(code, http.STATUS_CODES[code], {
-		Allow:'OPTIONS, HEAD, GET',
+		Allow:'OPTIONS, HEAD, GET, SUBSCRIBE',
 		'Access-Control-Allow-Origin'      : '*',
 		'Access-Control-Allow-Credentials' : 'true',
-		'Access-Control-Allow-Methods'     : 'OPTIONS, HEAD, GET',
+		'Access-Control-Allow-Methods'     : 'OPTIONS, HEAD, GET, SUBSCRIBE',
 		'Access-Control-Allow-Headers'     : Object.keys(request.headers).concat(commonReqHeaders).join(', '),
 		'Access-Control-Expose-Headers'    : 'Allow, Link, Content-type'
 	});

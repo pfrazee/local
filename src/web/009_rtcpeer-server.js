@@ -674,7 +674,7 @@
 			stream: this.getStreamId(),
 			nc:     Date.now() // nocache
 		});
-		this.relayItem.subscribe({ method: 'subscribe' })
+		this.relayItem.subscribe()
 			.then(
 				function(stream) {
 					// Update state

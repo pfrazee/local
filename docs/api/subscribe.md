@@ -13,7 +13,7 @@ news.on('update', console.log.bind(console));
 
 ### local.subscribe(request)
 
- - `request`: required string|object. If just a URL, will default the method to GET and the 'accept' header to 'text/event-stream'.
+ - `request`: required string|object. If just a URL, will default the method to SUBSCRIBE and the 'accept' header to 'text/event-stream'.
  - returns `local.EventStream`
 
 Dispatches the request, then returns a `local.EventStream` which wraps around the response stream with an event-subscription interface.

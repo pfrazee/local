@@ -19,7 +19,7 @@ success
 {
   body: ["bar", "baz", "blah"],
   headers: {
-    allow: "OPTIONS, HEAD, GET",
+    allow: "OPTIONS, HEAD, GET, SUBSCRIBE",
     "content-type": "application/json",
     link: "</>; rel=\"up via service\", </foo>; rel=\"self current\", </foo/{id}>; rel=\"item\""
   },
@@ -30,7 +30,7 @@ success
 {
   body: "baz",
   headers: {
-    allow: "OPTIONS, HEAD, GET",
+    allow: "OPTIONS, HEAD, GET, SUBSCRIBE",
     "content-type": "application/json",
     link: "</>; rel=\"via service\", </foo>; rel=\"up collection index\", </foo/baz>; rel=\"self current\", </foo/bar>; rel=\"first\", </foo/blah>; rel=\"last\", </foo/bar>; rel=\"prev\", </foo/blah>; rel=\"next\""
   },
@@ -58,7 +58,7 @@ success
 {
   body: ["bar", "baz", "blah"],
   headers: {
-    allow: "OPTIONS, HEAD, GET",
+    allow: "OPTIONS, HEAD, GET, SUBSCRIBE",
     "content-type": "application/json",
     link: "</>; rel=\"up via service\", </foo>; rel=\"self current\", </foo/{id}>; rel=\"item\""
   },

@@ -158,7 +158,7 @@ bob.unresolve();
  - `request`: optional object
  - returns `local.Promise(local.EventStream)`
 
-Calls `local.http.subscribe()` on the agent's resolved URL, then fulfills the given promise with the resulting stream.
+Calls `local.subscribe()` on the agent's resolved URL, then fulfills the given promise with the resulting stream.
 
 ## Dispatch sugars
 
