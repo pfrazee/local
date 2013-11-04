@@ -2397,6 +2397,9 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 						// Send answer msg
 						self.signal({ type: 'answer', sdp: desc.sdp });
+					},
+					function(error) {
+						self.emit('error', Object.create(this.peerInfo, { error: { value: error } }), self);
 					}
 				);
 				break;
@@ -2449,7 +2452,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			var servers = this.config.iceServers || defaultIceServers;
 			this.rtcPeerConn = new RTCPeerConnection(servers, peerConstraints);
 			this.rtcPeerConn.onicecandidate             = onIceCandidate.bind(this);
-			this.rtcPeerConn.onicechange                = onIceConnectionStateChange.bind(this);
+			// this.rtcPeerConn.onicechange                = onIceConnectionStateChange.bind(this);
 			this.rtcPeerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
 			this.rtcPeerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
 			this.rtcPeerConn.ondatachannel              = onDataChannel.bind(this);
@@ -2472,7 +2475,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			this.rtcPeerConn.close();
 			if (suppressEvents) {
 				this.rtcPeerConn.onicecandidate             = null;
-				this.rtcPeerConn.onicechange                = null;
+				// this.rtcPeerConn.onicechange                = null;
 				this.rtcPeerConn.oniceconnectionstatechange = null;
 				this.rtcPeerConn.onsignalingstatechange     = null;
 				this.rtcPeerConn.ondatachannel              = null;
@@ -2542,6 +2545,9 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 				// Send offer msg
 				self.signal({ type: 'offer', sdp: desc.sdp, nonce: self.offerNonce });
+			},
+			function(error) {
+				self.emit('error', Object.create(this.peerInfo, { error: { value: error } }), self);
 			}
 		);
 		// Emit 'connecting' on next tick
