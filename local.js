@@ -3505,7 +3505,10 @@ function processResponseHeaders(request, response) {
 				link.host_app    = peerd.app;
 				link.host_stream = peerd.stream;
 			} else {
-				link.host_user = link.host_relay = link.host_app = link.host_stream = null;
+				delete link.host_user;
+				delete link.host_relay;
+				delete link.host_app;
+				delete link.host_stream;
 			}
 		});
 	}
