@@ -615,6 +615,13 @@
 					return;
 				}
 
+				// Use this moment to switch to HTTPS, if we're using HTTP
+				// - this occurs when the provider domain is given without a protocol, and the server is HTTPS
+				// - failing to do so causes a redirect during the XHR calls to the relay, which violates a CORS condition
+				if (this.config.provider != e.origin) {
+					this.setProvider(e.origin);
+				}
+
 				// Update our token
 				this.setAccessToken(e.data);
 
