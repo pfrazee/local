@@ -1,6 +1,6 @@
 
 body { color: #555; font-family: Arial, sans-serif; }
-pre, code { font-family: Consolas, "Courier New", monospace }
+pre, code { font-family: Consolas, "Courier New", monospace; color: #5E5E5E; }
 a { color: #3184D6; }
 p { margin: 13px 0 17px; }
 blockquote { border-left: 5px solid #ddd; }
@@ -8,27 +8,16 @@ blockquote p { font-size:14px }
 h2 { font-size:30px; border-bottom:1px solid gray; font-weight:normal; margin-top:16px }
 h3 { font-size:20px }
 
-#header {
-    min-width: 720px;
-	margin: 5px 10px 20px;
-	border-bottom: 1px solid #eee;
-	height: 81px;
+#header { min-width: 810px; margin: 5px 10px 20px; border-bottom: 1px solid #eee; height: 81px; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif }
+#header img { padding-right: 27px; vertical-align: top; }
+#header span { position: relative; top: 27px; margin-right: 40px; font-size: 18px; }
+#header span.right { float: right; }
+#header span a { color: gray; }
+#header a.active { color: rgb(125, 146, 115); text-decoration: underline; }
 
-	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif
-}
-#header img {
-	padding-right: 27px;
-	vertical-align: top;
-}
-#header a {
-	position: relative;
-	top: 27px;
-	margin-right: 40px;
+.stdpage { max-width: 1200px; margin: 40px auto; }
+.twocolumnpage { margin-top: 40px; }
+.twocolumnpage .sidebar { width: 180px; float: left; }
+.twocolumnpage .content { margin: 30px 40px 0 220px; max-width: 960px; }
 
-	color: gray;
-	font-size: 18px;
-}
-#header a.active {
-	color: rgb(125, 146, 115);
-	text-decoration: underline;
-}
+.schema ul { list-style: none; margin-bottom: 0; }
