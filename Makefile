@@ -1,6 +1,6 @@
 src = src/
 src-promises-files =\
-	${src}promises/promises.js
+	${src}promises.js
 src-util-files =\
 	${src}util/000_header.js\
 	${src}util/001_event-emitter.js\
