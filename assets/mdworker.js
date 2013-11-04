@@ -1,4 +1,4 @@
-importScripts('/local.js');
+importScripts('../local.js');
 importScripts('marked.js');
 marked.setOptions({ gfm: true, tables: true });
 
