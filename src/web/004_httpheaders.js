@@ -74,7 +74,10 @@ local.httpHeaders.register('link',
 				if (attr == 'href') {
 					continue;
 				}
-				if (typeof link[attr] == 'boolean') {
+				if (link[attr] === null) {
+					continue;
+				}
+				if (typeof link[attr] == 'boolean' && link[attr]) {
 					linkParts.push(attr);
 				} else {
 					linkParts.push(attr+'="'+link[attr]+'"');

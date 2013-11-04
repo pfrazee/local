@@ -2,6 +2,11 @@ Changes
 =======
 0.4.0
 
+2013/11/04 pfraze
+
+ - Standardized host_domain, host_user, host_relay, host_app, host_stream attribute extraction during link header processing.
+
+
 2013/10/18 pfraze
 
  - Replaced worker main() pattern with local.worker.setServer() (was too flimsy)
