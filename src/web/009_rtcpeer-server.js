@@ -30,6 +30,7 @@
 	// - `config.loopback`: optional bool, is this the local host? If true, will connect to self
 	// - `config.retryTimeout`: optional number, time (in ms) before a connection is aborted and retried (defaults to 15000)
 	// - `config.retries`: optional number, number of times to retry before giving up (defaults to 3)
+	// - `config.log`: optional bool, enables logging of all message traffic
 	function RTCBridgeServer(config) {
 		// Config
 		var self = this;
@@ -80,15 +81,7 @@
 	RTCBridgeServer.prototype = Object.create(local.BridgeServer.prototype);
 	local.RTCBridgeServer = RTCBridgeServer;
 
-	// Accessors
 	RTCBridgeServer.prototype.getPeerInfo = function() { return this.peerInfo; };
-
-	// :DEBUG:
-	RTCBridgeServer.prototype.debugLog = function() {
-		var args = [this.config.domain].concat([].slice.call(arguments));
-		console.debug.apply(console, args);
-	};
-
 	RTCBridgeServer.prototype.terminate = function(opts) {
 		BridgeServer.prototype.terminate.call(this);
 		this.isTerminated = true;
@@ -366,13 +359,13 @@
 			if (self.config.initiate && self.isConnected === false) {
 				if (self.retriesLeft > 0) {
 					self.retriesLeft--;
-					console.debug('CONNECTION TIMED OUT, RESTARTING. TRIES LEFT:', self.retriesLeft);
+					self.debugLog('CONNECTION TIMED OUT, RESTARTING. TRIES LEFT:', self.retriesLeft);
 					// Reset
 					self.resetPeerConn();
 					self.sendOffer();
 				} else {
 					// Give up
-					console.debug('CONNECTION TIMED OUT, GIVING UP');
+					self.debugLog('CONNECTION TIMED OUT, GIVING UP');
 					self.resetPeerConn();
 					// ^ resets but doesn't terminate - can try again with sendOffer()
 				}
@@ -606,7 +599,7 @@
 		// Start listening for messages from the popup
 		if (!this.messageFromAuthPopupHandler) {
 			this.messageFromAuthPopupHandler = (function(e) {
-				console.debug('Message (from ' + e.origin + '): ' + e.data);
+				console.log('Received access token from '+e.origin);
 
 				// Make sure this is from our popup
 				var originUrld = local.parseUri(e.origin);
@@ -775,7 +768,8 @@
 			serverFn:     this.config.serverFn,
 			loopback:     (peerUrld.authority == this.myPeerDomain),
 			retryTimeout: config.retryTimeout || this.config.retryTimeout,
-			retries:      config.retries || this.config.retries
+			retries:      config.retries || this.config.retries,
+			log:          this.config.log || false
 		});
 
 		// Bind events

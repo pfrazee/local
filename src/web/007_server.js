@@ -4,7 +4,7 @@
 // core type for all servers
 // - should be used as a prototype
 function Server(config) {
-	this.config = { domain: null };
+	this.config = { domain: null, log: false };
 	if (config) {
 		for (var k in config)
 			this.config[k] = config[k];
@@ -14,6 +14,12 @@ local.Server = Server;
 
 Server.prototype.getDomain = function() { return this.config.domain; };
 Server.prototype.getUrl = function() { return 'httpl://' + this.config.domain; };
+
+Server.prototype.debugLog = function() {
+	if (!this.config.log) return;
+	var args = [this.config.domain].concat([].slice.call(arguments));
+	console.debug.apply(console, args);
+};
 
 // Local request handler
 // - should be overridden
@@ -59,7 +65,7 @@ local.BridgeServer = BridgeServer;
 
 // Turns on/off message numbering and the HOL-blocking reorder protocol
 BridgeServer.prototype.useMessageReordering = function(v) {
-	console.debug('turning '+(v?'on':'off')+'ordering');
+	this.debugLog('turning '+(v?'on':'off')+' reordering');
 	this.isReorderingMessages = !!v;
 };
 
@@ -89,7 +95,7 @@ BridgeServer.prototype.handleRemoteRequest = function(request, response) {
 // Sends messages that were buffered while waiting for the channel to setup
 // - should be called by the subclass if there's any period between creation and channel activation
 BridgeServer.prototype.flushBufferedMessages = function() {
-	console.debug('FLUSHING MESSAGES', this, JSON.stringify(this.msgBuffer));
+	this.debugLog('FLUSHING MESSAGES', this, JSON.stringify(this.msgBuffer));
 	this.msgBuffer.forEach(function(msg) {
 		this.channelSendMsg(msg);
 	}, this);

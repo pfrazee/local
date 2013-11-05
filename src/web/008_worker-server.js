@@ -39,7 +39,7 @@ function WorkerBridgeServer(config) {
 		var message = event.data;
 		if (!message)
 			return console.error('Invalid message from worker: Payload missing', this, event);
-		if (this.config.log) { console.debug('WORKER received', message); }
+		if (this.config.log) { this.debugLog('received from worker', message); }
 
 		// Handle messages with an `op` field as worker-control packets rather than HTTPL messages
 		switch (message.op) {
@@ -85,7 +85,7 @@ WorkerBridgeServer.prototype.isChannelActive = function() {
 // Sends a single message across the channel
 // - `msg`: required string
 WorkerBridgeServer.prototype.channelSendMsg = function(msg) {
-	if (this.config.log) { console.debug('WORKER sending', msg); }
+	if (this.config.log) { this.debugLog('sending to worker', msg); }
 	this.getPort().postMessage(msg);
 };
 

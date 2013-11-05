@@ -1722,7 +1722,7 @@ Response.prototype.close = function() {
 // core type for all servers
 // - should be used as a prototype
 function Server(config) {
-	this.config = { domain: null };
+	this.config = { domain: null, log: false };
 	if (config) {
 		for (var k in config)
 			this.config[k] = config[k];
@@ -1732,6 +1732,12 @@ local.Server = Server;
 
 Server.prototype.getDomain = function() { return this.config.domain; };
 Server.prototype.getUrl = function() { return 'httpl://' + this.config.domain; };
+
+Server.prototype.debugLog = function() {
+	if (!this.config.log) return;
+	var args = [this.config.domain].concat([].slice.call(arguments));
+	console.debug.apply(console, args);
+};
 
 // Local request handler
 // - should be overridden
@@ -1777,7 +1783,7 @@ local.BridgeServer = BridgeServer;
 
 // Turns on/off message numbering and the HOL-blocking reorder protocol
 BridgeServer.prototype.useMessageReordering = function(v) {
-	console.debug('turning '+(v?'on':'off')+'ordering');
+	this.debugLog('turning '+(v?'on':'off')+' reordering');
 	this.isReorderingMessages = !!v;
 };
 
@@ -1807,7 +1813,7 @@ BridgeServer.prototype.handleRemoteRequest = function(request, response) {
 // Sends messages that were buffered while waiting for the channel to setup
 // - should be called by the subclass if there's any period between creation and channel activation
 BridgeServer.prototype.flushBufferedMessages = function() {
-	console.debug('FLUSHING MESSAGES', this, JSON.stringify(this.msgBuffer));
+	this.debugLog('FLUSHING MESSAGES', this, JSON.stringify(this.msgBuffer));
 	this.msgBuffer.forEach(function(msg) {
 		this.channelSendMsg(msg);
 	}, this);
@@ -2039,7 +2045,7 @@ function WorkerBridgeServer(config) {
 		var message = event.data;
 		if (!message)
 			return console.error('Invalid message from worker: Payload missing', this, event);
-		if (this.config.log) { console.debug('WORKER received', message); }
+		if (this.config.log) { this.debugLog('received from worker', message); }
 
 		// Handle messages with an `op` field as worker-control packets rather than HTTPL messages
 		switch (message.op) {
@@ -2085,7 +2091,7 @@ WorkerBridgeServer.prototype.isChannelActive = function() {
 // Sends a single message across the channel
 // - `msg`: required string
 WorkerBridgeServer.prototype.channelSendMsg = function(msg) {
-	if (this.config.log) { console.debug('WORKER sending', msg); }
+	if (this.config.log) { this.debugLog('sending to worker', msg); }
 	this.getPort().postMessage(msg);
 };
 
@@ -2164,6 +2170,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// - `config.loopback`: optional bool, is this the local host? If true, will connect to self
 	// - `config.retryTimeout`: optional number, time (in ms) before a connection is aborted and retried (defaults to 15000)
 	// - `config.retries`: optional number, number of times to retry before giving up (defaults to 3)
+	// - `config.log`: optional bool, enables logging of all message traffic
 	function RTCBridgeServer(config) {
 		// Config
 		var self = this;
@@ -2214,15 +2221,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	RTCBridgeServer.prototype = Object.create(local.BridgeServer.prototype);
 	local.RTCBridgeServer = RTCBridgeServer;
 
-	// Accessors
 	RTCBridgeServer.prototype.getPeerInfo = function() { return this.peerInfo; };
-
-	// :DEBUG:
-	RTCBridgeServer.prototype.debugLog = function() {
-		var args = [this.config.domain].concat([].slice.call(arguments));
-		console.debug.apply(console, args);
-	};
-
 	RTCBridgeServer.prototype.terminate = function(opts) {
 		BridgeServer.prototype.terminate.call(this);
 		this.isTerminated = true;
@@ -2500,13 +2499,13 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			if (self.config.initiate && self.isConnected === false) {
 				if (self.retriesLeft > 0) {
 					self.retriesLeft--;
-					console.debug('CONNECTION TIMED OUT, RESTARTING. TRIES LEFT:', self.retriesLeft);
+					self.debugLog('CONNECTION TIMED OUT, RESTARTING. TRIES LEFT:', self.retriesLeft);
 					// Reset
 					self.resetPeerConn();
 					self.sendOffer();
 				} else {
 					// Give up
-					console.debug('CONNECTION TIMED OUT, GIVING UP');
+					self.debugLog('CONNECTION TIMED OUT, GIVING UP');
 					self.resetPeerConn();
 					// ^ resets but doesn't terminate - can try again with sendOffer()
 				}
@@ -2740,7 +2739,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		// Start listening for messages from the popup
 		if (!this.messageFromAuthPopupHandler) {
 			this.messageFromAuthPopupHandler = (function(e) {
-				console.debug('Message (from ' + e.origin + '): ' + e.data);
+				console.log('Received access token from '+e.origin);
 
 				// Make sure this is from our popup
 				var originUrld = local.parseUri(e.origin);
@@ -2909,7 +2908,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			serverFn:     this.config.serverFn,
 			loopback:     (peerUrld.authority == this.myPeerDomain),
 			retryTimeout: config.retryTimeout || this.config.retryTimeout,
-			retries:      config.retries || this.config.retries
+			retries:      config.retries || this.config.retries,
+			log:          this.config.log || false
 		});
 
 		// Bind events
