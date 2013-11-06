@@ -1,6 +1,229 @@
 Changes
 =======
+0.4.0
+
+2013/11/04 pfraze
+
+ - Standardized host_domain, host_user, host_relay, host_app, host_stream attribute extraction during link header processing.
+
+
+2013/10/18 pfraze
+
+ - Replaced worker main() pattern with local.worker.setServer() (was too flimsy)
+ - Updated Relay to share server fn with all peers, and to allow server objects
+ - Renamed
+   - Server.handleLocalWebRequest -> Server.handleLocalRequest
+   - Server.handleRemoteWebRequest -> Server.handleRemoteRequest
+
+
+2013/10/16 pfraze
+
+ - Renamed
+   - Navigator -> Agent
+   - Broadaster -> EventHost
+   - registerServer -> addServer
+   - unregisterServer -> removeServer
+   - getServerRegistry -> getServers
+
+
+2013/10/08 pfraze
+
+ - Added optional BridgeServer HOL blocking for unordered channels, toggleable with useMessageReordering()
+ - Updated RTCPeerServers to send HTTPL traffic over the Relay until the session is established
+ - Changed the navigator `retry` param to `noretry`, making re-requests on failure the default
+
+
+2013/10/07 pfraze
+
+ - Renamed local.PeerWebRelay to local.Relay, local.joinPeerRelay to local.joinRelay
+ - Added relay.navigator() and relay.registerLinks()
+
+
+2013/10/05 pfraze
+
+ - Added peer default stream (0) support (eg bob@foo.com!bar.com:0 == bob@foo.com!bar.com)
+
+
+2013/09/27 pfraze
+
+ - Added local.httpHeaders for standardized header de/serialization (similar to local.contentTypes)
+ - Moved parsed headers into request/response.parsedHeaders, preserved serialized headers in .headers
+
+
+2013/09/26 pfraze
+
+ - Dropped queryLinks1 to avoid confusion
+
+
+2013/09/25 pfraze
+
+ - Moved everything from the local.web.* namespace to local.*
+
+
+2013/09/23 pfraze
+
+ - Added ping config to PeerWebRelay to keep streams alive
+
+
+2013/09/22 pfraze
+
+ - Added local.worker "connect" event for pages
+
+
+2013/09/20 pfraze
+
+ - Added local.logAllExceptions config flag
+ - Added response.latency
+
+
+2013/09/16 pfraze
+
+ - Added navigator.rebase() and navigator.unresolve()
+
+
+2013/09/09 pfraze
+
+ - Added stream support to local.web.PeerWebRelay
+ - Added 'listening' event and .startListening() to local.web.PeerWebRelay
+
+
+2013/08/27 pfraze
+
+ - Added local.web.BridgeServer
+ - Added local.web.PeerWebRelay
+ - Added local.joinPeerRelay
+ - Added local.web.Server.getUrl()
+ - Added {exclude:} option to local.web.Broadcaster.emit()
+ - Added local.web.EventSource.getUrl()
+ - Added local.util.mixinEventEmitter
+
+
+2013/08/22 pfraze
+
+ - Added local.* aliases (dispatch, subscribe, navigator, etc)
+ - Added local.spawnAppServer, local.spawnWorkerServer
+ - Added httpl://hosts service
+ - Added Navigator.notify()
+ - Added Request.finishStream()
+ - Added self.config to workers
+ - Removed local.client
+   - Moved findParentNode, dispatchRequestEvent, trackFormSubmitter, extractRequest, extractRequestPayload, finishPayloadFileReads to local.util
+   - Changed local.client.listen to local.bindRequestEvents
+   - Changed local.client.unlisten to local.unbindRequestEvents
+   - Removed regions and response handling utilities (they will be moved to a separate repo)
+ - Removed local.env
+   - Moved Server classes into local.web
+   - Renamed Server.handleHttpRequest to handleLocalWebRequest
+
+
+2013/08/09 pfraze
+
+ - Removed the "proxy" URI scheme (supplanted by the "nav" scheme)
+ - Updated local.env.addServer to accept functions as well as local.env.Server objects
+
+
+2013/08/08 pfraze
+
+ - Added support for the "nav" URI scheme
+ - Refactored local.web.Navigator
+   - Replaced `relation()` with `follow()`, which uses link queries in the form of `local.web.queryLink()`
+   - Removed all `relation()` sugars (eg `collection()`, `item()`, etc)
+   - Removed `get*` sugars and simplified existing dispatch sugars, as JSON is now pushed as the default
+ - Added `local.web.isAbsUrl()` helper
+ - Removed `local.web.lookupLink()` helper
+
+
+2013/07/31 pfraze
+
+ - Added local.web.joinRelPath
+ - Added response header processing to change relative links (Link header) to absolute
+
+
+2013/07/29 pfraze
+
+ - Added support for the "proxy" URI scheme
+
+
+2013/07/25 pfraze
+
+ - Added `conn` parameter to web worker main function (signature is now `main(request, response, conn)`)
+
+
+2013/07/15 pfraze
+
+ - Added helpers: web.queryLink, web.queryLinks, web.queryLinks1
+ - Added web.parseAcceptHeader, web.preferredTypes, web.preferredType
+   - from https://github.com/federomero/negotiator
+ - Improved web.parseLinkHeader (now handles non-quoted values and attributes without values)
+
+
+2013/07/05 pfraze
+
+ - Changed anchor element's generated request to have no method, so that decision can occur elsewhere
+
+
+2013/07/01 pfraze
+
+ - Updated http response header parsing to preserve case of header values (but still toLower() header names)
+ - Added binary request support to HTTP/S
+
+
+2013/06/29 pfraze
+
+ - Changed local.client.renderResponse to wrap non-html content in <pre> tags.
+
+
+2013/06/24 pfraze
+
+ - Added env.RTCPeerServer (brought over from Grimwire repo)
+
+
+2013/06/19 pfraze
+
+ - Changed web.navigator (discovery protocol) to use the id attribute instead of title
+ - Added setAuthHeader to web.navigator
+
+
+2013/06/03 pfraze
+
+ - Added support for SharedWorkers
+   - Controlled with `shared` and `namespace` options to local.env.WorkerServer() and local.env.Worker()
+ - local.web.Request & local.web.Response
+   - Added automatic buffering with the body_ promise
+ - local.util.EventEmitter
+   - Added suspendEvents()/resumeEvents()
+   - Dropped keepHistory()/loseHistory()
+
+
+2013/06/01 pfraze
+
+ - Added keepHistory() and loseHistory() to local.util.EventEmitter
+
+
+2013/05/31 pfraze
+
+ - Changed the param signature of the env dispatch wrapper to `(request, response, dispatch, origin)`
+ - Refactored local.worker/local.env.Worker/local.env.WorkerServer API to use "exchange" protocol
+   - Added local.worker.PageConnection to support multiple pages (for SharedWorker)
+   - Improved logging from workers
+   - Removed require() due to security issues
+ - Renamed local.http to local.web
+   - Added local.web.schemes to control dispatch() behaviors
+   - Added local.web.setDispatchWrapper to allow local.env to wrap without monkey-patching
+   - Added local.web.Request with support for request streaming
+   - Added local.web.Response, dropped local.web.ClientResponse and local.web.ServerResponse
+   - Altered local.web.subscribe to always use dispatch() (removing the need for special worker protocols)
+
+
+2013/05/21 pfraze
+
+ - Added `targetEl` parameter to `Region.prototype.dispatchRequest`
+ - Updated URITemplates to latest
+ - Added support for data-uris to local.http.dispatch()
+
+
 0.3.1
+=====
 
 2013/05/19 pfraze
 
@@ -14,7 +237,7 @@ Changes
 2013/05/15 pfraze
 
  - Changed html-deltas to use an ordered array structure
- 
+
 
 2013/05/08 pfraze
 
@@ -30,7 +253,7 @@ Changes
 
  - Added promise.always()
  - Added use of <form> `accept` attribute for data-subscribe behavior
- 
+
 
 2013/05/02 pfraze
 
@@ -73,7 +296,7 @@ Changes
 2013/04/23 pfraze
 
  - Added require() method to workers
- 
+
 
 2013/04/22 pfraze
 

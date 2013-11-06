@@ -1,9 +1,0 @@
-blockquote { border-left: 5px solid #ddd; }
-blockquote p { font-size:14px }
-h2 { font-size:30px; border-bottom:1px solid gray; font-weight:normal; margin-top:16px }
-h3 { font-size:20px }
-.nav-list > li > ul > .active > a,
-.nav-list > li > ul > .active > a:hover {
-	font-weight: bold;
-}
-#viewer:empty { background: center 200px no-repeat url(../ajax_spinner.gif); min-height: 300px; }

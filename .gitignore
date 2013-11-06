@@ -6,3 +6,4 @@ db
 .DS_Store
 UglifyJS2
 *.log
+build.sh

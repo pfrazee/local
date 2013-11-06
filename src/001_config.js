@@ -1,0 +1,1 @@
+local.logAllExceptions = false;

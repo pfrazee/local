@@ -1,82 +1,58 @@
 src = src/
 src-promises-files =\
-	${src}promises/promises.js
+	${src}promises.js
 src-util-files =\
-	${src}util/_compiled_header.js\
-	${src}util/event-emitter.js\
-	${src}util/_compiled_footer.js
-src-http-files =\
-	${src}http/_compiled_header.js\
-	${src}http/helpers.js\
-	${src}http/content-types.js\
-	${src}http/core.js\
-	${src}http/events.js\
-	${src}http/uri-template.js\
-	${src}http/navigator.js\
-	${src}http/_compiled_footer.js
-src-client-files =\
-	${src}client/_compiled_header.js\
-	${src}client/helpers.js\
-	${src}client/domevents.js\
-	${src}client/responses.js\
-	${src}client/regions.js\
-	${src}client/_compiled_footer.js
-src-env-files =\
-	${src}env/_compiled_header.js\
-	${src}env/worker.js\
-	${src}env/server.js\
-	${src}env/core.js\
-	${src}env/_compiled_footer.js
+	${src}util/000_header.js\
+	${src}util/001_event-emitter.js\
+	${src}util/002_dom.js\
+	${src}util/003_helpers.js\
+	${src}util/module_footer.js
+src-web-files =\
+	${src}web/000_header.js\
+	${src}web/001_constants.js\
+	${src}web/002_helpers.js\
+	${src}web/003_content-types.js\
+	${src}web/004_httpheaders.js\
+	${src}web/005_request.js\
+	${src}web/006_response.js\
+	${src}web/007_server.js\
+	${src}web/008_worker-server.js\
+	${src}web/009_rtcpeer-server.js\
+	${src}web/010_schemes.js\
+	${src}web/011_dispatch.js\
+	${src}web/012_subscribe.js\
+	${src}web/013_uri-template.js\
+	${src}web/014_agent.js\
+	${src}web/015_hosts-service.js\
+	${src}web/module_footer.js
 src-worker-files =\
-	${src-promises-files}\
-	${src-util-files}\
-	${src-http-files}\
-	${src}worker/_compiled_header.js\
-	${src}worker/messaging.js\
-	${src}worker/http.js\
-	${src}worker/setup.js\
-	${src}worker/_compiled_footer.js
-
-lib = lib/
-lib-local-files =\
-	${lib}local/promises.js\
-	${lib}local/util.js\
-	${lib}local/http.js\
-	${lib}local/client.js\
-	${lib}local/env.js
+	${src}worker/000_header.js\
+	${src}worker/001_page-server.js\
+	${src}worker/002_worker-env.js\
+	${src}worker/module_footer.js
+src-toplevel-files =\
+	${src}000_header.js\
+	${src}001_config.js\
+	${src}002_spawners.js\
+	${src}003_request-dom-events.js\
+	${src}module_footer.js
 
 setup: clean concat buildmin
 	@echo "Done!"
 
 clean:
-	@-rm ${lib-local-files}
-	@-rm ${lib}local.js ${lib}local.min.js
-	@-rm worker.js worker.min.js
+	@-rm local.js local.min.js
 	@echo Cleaned Out Libraries
 
-concat: ${lib-local-files} ${lib}local.js worker.js worker.js
+concat: local.js
 	@echo Concatted Libraries
-${lib}local/promises.js: ${src-promises-files}
-	@cat > $@ $^
-${lib}local/util.js: ${src-util-files}
-	@cat > $@ $^
-${lib}local/http.js: ${src-http-files}
-	@cat > $@ $^
-${lib}local/client.js: ${src-client-files}
-	@cat > $@ $^
-${lib}local/env.js: ${src-env-files}
-	@cat > $@ $^
-${lib}local.js: ${lib-local-files}
-	@cat > $@ $^
-worker.js: ${src-worker-files}
+local.js: ${src-promises-files} ${src-util-files} ${src-web-files} ${src-worker-files} ${src-toplevel-files}
 	@cat > $@ $^
 
-buildmin: ${lib}local.min.js worker.min.js
+buildmin: local.min.js
 	@echo Built Minified Versions
-${lib}local.min.js: ${lib}local.js
-	@./minify.sh $@ $^
-worker.min.js: worker.js
-	@./minify.sh $@ $^
+local.min.js: local.js
+	@./scripts/minify.sh $@ $^
 
 deps: uglifyjs
 uglifyjs:

@@ -1,12 +1,25 @@
-var myvar1 = 'worker2var';
-var myvar2 = 'worker2var';
-var worker3 = require('worker3.js');
-var vars = {
-	mine1: myvar1,
-	mine2: myvar2,
-	theirs: worker3.myvar
-};
-function main(request, response) {
-	response.writeHead(200, 'ok', {'content-type':'application/json'});
-	response.end(vars);
-}
+importScripts('../../local.js');
+var counter = 100;
+local.worker.setServer(function(req, res, page) {
+	if (req.path == '/' && req.method == 'GET') {
+		res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
+		res.end(counter--);
+		return;
+	}
+	if (req.path == '/' && req.method == 'POST') {
+		req.body_.then(function(body) {
+			res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
+			res.end(body.toLowerCase());
+		});
+		return;
+	}
+	if (req.path == '/' && req.method == 'BOUNCE') {
+		local.dispatch({ method: 'GET', url: 'httpl://0.page?foo='+local.worker.config.myname, query: { bar: 'buzz' } })
+			.always(function(res2) {
+				res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
+				res.end(res2.body);
+			});
+		return;
+	}
+	res.writeHead(404, 'not found').end();
+});

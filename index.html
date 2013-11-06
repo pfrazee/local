@@ -1,66 +1,86 @@
 <!doctype html>
 <html>
 	<head>
-		<title>Local 0.3.1</title>
-
-		<!-- recommended security policies -->
-		<!-- :NOTE: safari 5 (windows, iOS) current doesnt these directives correctly and will break -->
-		<!--        additionally, Firefox does not yet support them through <meta> -->
-		<!-- <meta http-equiv="X-WebKit-CSP" content="frame-src 'none'; object-src 'none'; script-src 'self'" /> -->
-		<!-- <meta http-equiv="X-Content-Security-Policy" content="frame-src 'none'; object-src 'none'; script-src 'self'" /> -->
-		<meta http-equiv="Content-Security-Policy" content="frame-src 'none'; object-src 'none'; script-src 'self'" />
+		<title>Local 0.4.0dev</title>
 
 		<!-- styling -->
 		<link rel="stylesheet" href="assets/bootstrap/css/bootstrap.css" />
-		<link rel="stylesheet" href="assets/css/link-ap.css" />
+		<link rel="stylesheet" href="assets/css/grimwire.css" />
 		<link rel="stylesheet" href="assets/css/index.css" />
+		<link rel="stylesheet" href="assets/prism/prism.css" />
 		<link rel="icon" type="image/vnd.microsoft.icon" href="assets/favicon.png" />
 	</head>
-	
+
 	<body>
-		<!-- github banner -->
-		<a href="https://github.com/grimwire/local" title="Local Repo on GitHub"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub"></a>
-
-		<!-- nav -->
-		<div class="navbar">
-			<div class="navbar-inner">
-				<a class="brand" href="#">Local 0.3.1</a>
-				<ul class="nav">
-					<li class="active"><a href="index.html" title="Home">Home</a></li>
-					<li><a href="docs.html" title="Documentation">Documentation</a></li>
-				</ul>
-			</div>
+		<div id="header">
+			<img src="assets/logo.png">
+			<span><a href="//grimwire.com">Home</a></span>
+			<span><a href="//grimwire.com/about">About</a></span>
+            <span><a href="//grimwire.com/apps">Apps</a></span>
+			<span><a href="//grimwire.com/download">Download</a></span>
+			<span><a class="active" href="//grimwire.com/local">Local.js</a></span>
+			<span><a href="//blog.grimwire.com">Blog</a></span>
+			<span class="right"><a href="//gwr.io">gwr.io</a></span>
 		</div>
 
+		<ul id="viewer-nav" class="nav nav-list">
+			<li>&nbsp;</li>
+			<li><strong style="color: gray">Documentation</strong></li>
+			<li class="divider"></li>
+			<li><a href="#README.md">README</a></li>
+			<li><a href="#docs/todosoa.md">Intro: TodoSOA</a></li>
+			<li><a href="#docs/example_mdviewer.md">Example: Markdown Viewer</a></li>
+			<li><a href="#docs/grimwire.md">Using Grimwire</a></li>
+			<li><a href="#docs/grimwidget.md">GrimWidget.js</a></li>
+			<li class="divider"></li>
+			<li>&nbsp;</li>
+			<li><strong style="color: gray">API Reference</strong></li>
+			<li class="divider"></li>
+			<li class="nav-header">Utils</li>
+			<li><a href="#docs/api/promises.md">Promises</a></li>
+			<li><a href="#docs/api/eventemitter.md">EventEmitter</a></li>
+			<li><a href="#docs/api/setdispatchwrapper.md">setDispatchWrapper()</a></li>
+			<li><a href="#docs/api/bindrequestevents.md">bindRequestEvents()</a></li>
+			<li class="divider"></li>
+			<li class="nav-header">Web API</li>
+			<li><a href="#docs/api/dispatch.md">dispatch()</a></li>
+			<li><a href="#docs/api/subscribe.md">subscribe()</a></li>
+			<li><a href="#docs/api/agent.md">agent()</a></li>
+			<li><a href="#docs/managing_servers.md">Managing Servers</a></li>
+			<li><a href="#docs/navscheme.md">nav:|| URIs</a></li>
+			<li><a href="#docs/hosts.md">httpl://hosts</a></li>
+			<li class="divider"></li>
+			<li class="nav-header">Objects</li>
+			<li><a href="#docs/api/request.md">Request</a></li>
+			<li><a href="#docs/api/response.md">Response</a></li>
+			<li><a href="#docs/api/server.md">Server</a></li>
+			<li><a href="#docs/api/bridgeserver.md">BridgeServer</a></li>
+			<li><a href="#docs/api/workerbridgeserver.md">WorkerBridgeServer</a></li>
+			<li><a href="#docs/api/rtcbridgeserver.md">RTCBridgeServer</a></li>
+			<li><a href="#docs/api/relay.md">Relay</a></li>
+			<li><a href="#docs/api/eventstream.md">EventStream</a></li>
+			<li><a href="#docs/api/eventhost.md">EventHost</a></li>
+			<li class="divider"></li>
+			<li class="nav-header">Web Helpers</li>
+			<li><a href="#docs/api/pipe.md">pipe()</a></li>
+			<li><a href="#docs/api/querylinks.md">queryLinks()</a></li>
+			<li><a href="#docs/api/preferredtypes.md">preferredTypes()</a></li>
+			<li><a href="#docs/api/contenttypes.md">contentTypes</a></li>
+			<li><a href="#docs/api/httpheaders.md">httpHeaders</a></li>
+			<li><a href="#docs/api/uri_helpers.md">URI Helpers</a></li>
+			<li class="divider"></li>
+			<li class="nav-header">Workers</li>
+			<li><a href="#docs/api/worker.md">local.worker</a></li>
+			<li><a href="#docs/api/pageserver.md">PageServer</a></li>
+		</ul>
+		<div id="viewer"></div>
+
+		<!-- third-party -->
+		<script src="assets/prism/prism.js"></script>
+
 		<!-- environment -->
-		<div class="container">
-			<div class="row">
-				<div class="span9">
-					<div class="client">
-						<div class="client-toolbar" data-client="intro"></div>
-						<div id="intro"></div>
-					</div>
-					<div class="client">
-						<div class="client-toolbar" data-client="features"></div>
-						<div id="features"></div>
-					</div>
-				</div>
-				<div class="span3" id="request-log"></div>
-			</div>
-
-			<br/><br/>
-			<p style="text-align:center">
-				Local is distributed under the <a href="//opensource.org/licenses/mit-license.php" title="MIT License">MIT License</a>.<br/>
-				Special thanks to <a href="http://www.fatcow.com/free-icons" title="FatCow, generous giver of icons">FatCow</a> and <a href="http://twitter.github.com/bootstrap/" title="Twitter Bootstrap, generous giver of css">Twitter Bootstrap</a>.<br/>
-				Supports latest <img src="assets/icons/16x16/firefox.png" title="Firefox 16+" /> <img src="assets/icons/16x16/google_chrome.png" title="Chrome 23+" /> <img src="assets/icons/16x16/opera.png" title="Opera 12+" /> Currently doesn't support <img src="assets/icons/16x16/internet_explorer.png" title="Internet Explorer" /> <img src="assets/icons/16x16/safari_browser.png" title="Safari" /> 
-			</p>
-
-		</div>
-
-		<!-- environment -->
-		<script src="lib/local.js"></script>
-		<script src="servers/env/storage.js"></script>
-		<script src="servers/env/reflector.js"></script>
-		<script src="index.js"></script>
+		<script src="local.min.js"></script>
+		<script src="assets/index.js"></script>
 	</body>
 </html>
+
