@@ -1,6 +1,14 @@
 Changes
 =======
+0.4.1
+
+2013/11/08 pfraze
+
+ - Added local.patchXHR
+
+
 0.4.0
+=====
 
 2013/11/04 pfraze
 

@@ -14,7 +14,7 @@
 	}
 
 	// Browser compat
-	var __env = (typeof window != 'undefined') ? window : self;
+	var __env = (typeof window != 'undefined') ? window : ((typeof self != 'undefined') ? self : global);
 	var RTCSessionDescription = __env.mozRTCSessionDescription || __env.RTCSessionDescription;
 	var RTCPeerConnection = __env.mozRTCPeerConnection || __env.webkitRTCPeerConnection || __env.RTCPeerConnection;
 	var RTCIceCandidate = __env.mozRTCIceCandidate || __env.RTCIceCandidate;
@@ -733,7 +733,7 @@
 			this.connectedToRelay = false;
 			this.relayEventStream.close();
 			this.relayEventStream = null;
-			delete __peer_relay_registry[self.providerDomain];
+			delete __peer_relay_registry[this.providerDomain];
 		}
 	};
 

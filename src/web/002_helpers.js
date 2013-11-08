@@ -297,7 +297,7 @@ local.makePeerDomain = function makePeerDomain(user, relay, app, stream) {
 	return user+'@'+relay.replace(':','.')+'!'+app.replace(':','.')+((stream) ? ':'+stream : '');
 };
 
-
+// EXPORTED
 // sends the given response back verbatim
 // - if `writeHead` has been previously called, it will not change
 // - params:
@@ -337,4 +337,128 @@ local.pipe = function(target, source, headersCB, bodyCb) {
 			target.end(body);
 			throw source;
 		});
+};
+
+// EXPORTED
+// modifies XMLHttpRequest to support HTTPL
+local.patchXHR = function() {
+	// Store references to original methods
+	var orgXHR = XMLHttpRequest;
+	var orgPrototype = XMLHttpRequest.prototype;
+	function localXMLHttpRequest() {}
+	(window || self).XMLHttpRequest = localXMLHttpRequest;
+
+	localXMLHttpRequest.prototype.open = function(method, url, async, user, password) {
+		// Is HTTPL?
+		var urld = local.parseUri(url);
+		if (urld.protocol != 'httpl') {
+			Object.defineProperty(this, '__xhr_request', { value: new orgXHR() });
+			return this.__xhr_request.open(method, url, async, user, password);
+		}
+
+		// Construct request
+		Object.defineProperty(this, '__local_request', { value: new local.Request({ method: method, url: url, stream: true }) });
+		if (user) {
+			this.__local_request.setHeader('Authorization', 'Basic '+btoa(user+':'+password));
+		}
+
+		// Update state
+		this.readyState = 1;
+		if (this.onreadystatechange) {
+			this.onreadystatechange();
+		}
+	};
+
+	localXMLHttpRequest.prototype.send = function(data) {
+		var this2 = this;
+		if (this.__local_request) {
+			// Dispatch and send data
+			var res_ = local.dispatch(this.__local_request);
+			this.__local_request.end(data);
+
+			// Wire up events
+			res_.always(function(res) {
+				Object.defineProperty(this2, '__local_response', { value: res });
+				// Update state
+				this2.readyState = 2;
+				this2.status = res.status;
+				this2.statusText = res.status + ' ' + res.reason;
+				this2.responseText = '';
+				// Fire event
+				if (this2.onreadystatechange) {
+					this2.onreadystatechange();
+				}
+				res.on('data', function(chunk) {
+					this2.readyState = 3;
+					this2.responseText += chunk;
+					// Fire event
+					if (this2.onreadystatechange) {
+						this2.onreadystatechange();
+					}
+				});
+				res.on('end', function() {
+					this2.readyState = 4;
+					switch (this2.responseType) {
+						case 'json':
+							this2.response = res.body;
+							break;
+
+						case 'text':
+						default:
+							this2.response = this2.responseText;
+							break;
+					}
+					// Fire event
+					if (this2.onreadystatechange) {
+						this2.onreadystatechange();
+					}
+					if (this2.onload) {
+						this2.onload();
+					}
+				});
+			});
+		} else {
+			// Copy over any attributes we've been given
+			this.__xhr_request.onreadystatechange = function() {
+				for (var k in this) {
+					if (typeof this[k] == 'function') continue;
+					this2[k] = this[k];
+				}
+				this2.onreadystatechange();
+			};
+			return this.__xhr_request.send(data);
+		}
+	};
+
+	localXMLHttpRequest.prototype.abort = function() {
+		if (this.__local_request) {
+			return this.__local_request.close();
+		} else {
+			return this.__xhr_request.abort();
+		}
+	};
+
+	localXMLHttpRequest.prototype.setRequestHeader = function(k, v) {
+		if (this.__local_request) {
+			return this.__local_request.setHeader(k, v);
+		} else {
+			return this.__xhr_request.setRequestHeader(k, v);
+		}
+	};
+
+	localXMLHttpRequest.prototype.getAllResponseHeaders = function(k) {
+		if (this.__local_request) {
+			return this.__local_response ? this.__local_response.headers : null;
+		} else {
+			return this.__xhr_request.getAllResponseHeaders(k);
+		}
+	};
+
+	localXMLHttpRequest.prototype.getResponseHeader = function(k) {
+		if (this.__local_request) {
+			return this.__local_response ? this.__local_response.getHeader(k) : null;
+		} else {
+			return this.__xhr_request.getResponseHeader(k);
+		}
+	};
 };
