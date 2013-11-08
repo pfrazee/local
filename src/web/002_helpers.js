@@ -440,7 +440,7 @@ local.patchXHR = function() {
 
 	localXMLHttpRequest.prototype.setRequestHeader = function(k, v) {
 		if (this.__local_request) {
-			return this.__local_request.setHeader(k, v);
+			return this.__local_request.setHeader(k.toLowerCase(), v);
 		} else {
 			return this.__xhr_request.setRequestHeader(k, v);
 		}
