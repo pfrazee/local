@@ -312,3 +312,11 @@ function() { }
 ```
 
 The requested stream id is in use, try to connect again with a different ID.
+
+### "outOfStreams"
+
+```
+function() { }
+```
+
+The relay account has used all of its allocated streams and can not allocate any more.

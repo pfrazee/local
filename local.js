@@ -1110,6 +1110,11 @@ local.patchXHR = function() {
 	var orgPrototype = XMLHttpRequest.prototype;
 	function localXMLHttpRequest() {}
 	(window || self).XMLHttpRequest = localXMLHttpRequest;
+	localXMLHttpRequest.UNSENT = 0;
+	localXMLHttpRequest.OPENED = 1;
+	localXMLHttpRequest.HEADERS_RECEIVED = 2;
+	localXMLHttpRequest.LOADING = 4;
+	localXMLHttpRequest.DONE = 4;
 
 	localXMLHttpRequest.prototype.open = function(method, url, async, user, password) {
 		// Is HTTPL?
@@ -2855,11 +2860,17 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		// Create APIs
 		this.relayService = local.agent(this.config.provider);
 		this.usersCollection = this.relayService.follow({ rel: 'gwr.io/user collection' });
+
+		if (this.accessToken) {
+			this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+this.accessToken }});
+			this.usersCollection.setRequestDefaults({ headers: { authorization: 'Bearer '+this.accessToken }});
+		}
 	};
 
 	// Gets an access token from the provider & user using a popup
 	// - Best if called within a DOM click handler, as that will avoid popup-blocking
-	Relay.prototype.requestAccessToken = function() {
+	// - `opts.guestof`: optional string, the host userid providing the guest account. If specified, attempts to get a guest session
+	Relay.prototype.requestAccessToken = function(opts) {
 		// Start listening for messages from the popup
 		if (!this.messageFromAuthPopupHandler) {
 			this.messageFromAuthPopupHandler = (function(e) {
@@ -2892,7 +2903,9 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 		// Open interface in a popup
 		// :HACK: because popup blocking can only be avoided by a syncronous popup call, we have to manually construct the url (it burns us)
-		window.open(this.getProvider() + '/session/' + this.config.app);
+		var url = this.getProvider() + '/session/' + this.config.app;
+		if (opts && opts.guestof) { url += '?guestof='+encodeURIComponent(opts.guestof); }
+		window.open(url);
 	};
 
 	// Fetches users from p2pw service
@@ -3108,6 +3121,13 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 				this.setStreamId(randomStreamId());
 				this.startListening();
 			}
+		} else if (e.data && e.data.status == 420) { // out of streams
+			// Update state
+			this.relayEventStream = null;
+			this.connectedToRelay = false;
+
+			// Fire event
+			this.emit('outOfStreams');
 		} else if (e.data && (e.data.status == 401 || e.data.status == 403)) { // unauthorized
 			// Remove bad access token to stop reconnect attempts
 			this.setAccessToken(null);

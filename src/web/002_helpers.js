@@ -347,6 +347,11 @@ local.patchXHR = function() {
 	var orgPrototype = XMLHttpRequest.prototype;
 	function localXMLHttpRequest() {}
 	(window || self).XMLHttpRequest = localXMLHttpRequest;
+	localXMLHttpRequest.UNSENT = 0;
+	localXMLHttpRequest.OPENED = 1;
+	localXMLHttpRequest.HEADERS_RECEIVED = 2;
+	localXMLHttpRequest.LOADING = 4;
+	localXMLHttpRequest.DONE = 4;
 
 	localXMLHttpRequest.prototype.open = function(method, url, async, user, password) {
 		// Is HTTPL?

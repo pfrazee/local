@@ -2,6 +2,16 @@ Changes
 =======
 0.4.1
 
+2013/11/12 pfraze
+
+ - Added opt.guestof to Relay requestAccessToken
+
+
+2013/11/11 pfraze
+
+ - Added Relay event "outOfStreams" to handle 420 response (no more allocatable streams)
+
+
 2013/11/08 pfraze
 
  - Added local.patchXHR
