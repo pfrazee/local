@@ -2,6 +2,11 @@ Changes
 =======
 0.4.1
 
+2013/11/14 pfraze
+
+ - Altered peer URI scheme to support ports in relay and application hosts
+
+
 2013/11/12 pfraze
 
  - Added opt.guestof to Relay requestAccessToken

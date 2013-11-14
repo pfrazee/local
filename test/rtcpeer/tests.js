@@ -3,8 +3,8 @@ done = false;
 startTime = Date.now();
 
 // Create peerweb relay streams
-var relay1 = local.joinRelay('https://grimwire.net', { stream: 0 }, peer1ServerFn);
-var relay2 = local.joinRelay('https://grimwire.net', { stream: 1 }, peer2ServerFn);
+var relay1 = local.joinRelay('http://grimwire.com:8000', { stream: 0 }, peer1ServerFn);
+var relay2 = local.joinRelay('http://grimwire.com:8000', { stream: 1 }, peer2ServerFn);
 
 relay1.on('accessGranted', function() {
 	sessionStorage.setItem('access-token', relay1.getAccessToken());
@@ -99,7 +99,7 @@ wait(function () { return done; }, 15000);
 pfraze
 dev.grimwire.com
 1
-pfraze@grimwire.net!dev.grimwire.com:1
+pfraze@grimwire.com!dev.grimwire.com!1
 object
 ready
 */

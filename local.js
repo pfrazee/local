@@ -1037,7 +1037,7 @@ local.parseNavUri = function(str) {
 // breaks a peer domain into its constituent parts
 // - returns { user:, relay:, provider:, app:, stream: }
 //   (relay == provider -- they are synonmyms)
-var peerDomainRE = /^(.+)@([^!]+)!([^:\/]+)(?::([\d]+))?$/i;
+var peerDomainRE = /^(.+)@([^!]+)!([^!\/]+)(?:!([\d]+))?$/i;
 local.parsePeerDomain = function parsePeerDomain(domain) {
 	var match = peerDomainRE.exec(domain);
 	if (match) {
@@ -1057,7 +1057,7 @@ local.parsePeerDomain = function parsePeerDomain(domain) {
 // constructs a peer domain from its constituent parts
 // - returns string
 local.makePeerDomain = function makePeerDomain(user, relay, app, stream) {
-	return user+'@'+relay.replace(':','.')+'!'+app.replace(':','.')+((stream) ? ':'+stream : '');
+	return user+'@'+relay+'!'+app+((stream) ? '!'+stream : '');
 };
 
 // EXPORTED
@@ -3403,10 +3403,10 @@ local.schemes.register('httpl', function(request, response) {
 		if (peerd) {
 			// See if this is a default stream miss
 			if (peerd.stream === '0') {
-				if (request.urld.authority.slice(-2) == ':0') {
+				if (request.urld.authority.slice(-2) == '!0') {
 					server = local.getServer(request.urld.authority.slice(0,-2));
 				} else {
-					server = local.getServer(request.urld.authority + ':0');
+					server = local.getServer(request.urld.authority + '!0');
 				}
 			}
 			if (!server) {
