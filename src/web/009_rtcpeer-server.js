@@ -588,7 +588,7 @@
 		}
 		// Update config
 		this.config.provider = providerUrl;
-		this.providerDomain = local.parseUri(providerUrl).host;
+		this.providerDomain = local.parseUri(providerUrl).authority;
 
 		// Create APIs
 		this.relayService = local.agent(this.config.provider);

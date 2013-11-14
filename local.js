@@ -962,9 +962,28 @@ local.parseUri = function parseUri(str) {
 		else if (str.host || str.path) { str = local.joinUri(req.host, req.path); }
 	}
 
-	// handle data-uris specially - performance characteristics are much different
+	// handle data-uris specially
 	if (str.slice(0,5) == 'data:') {
 		return { protocol: 'data', source: str };
+	}
+
+	// handle peer-uris specially
+	if (str.indexOf('!') !== -1) {
+		var schemeSepI = str.indexOf('//');
+		var firstSlashI = str.indexOf('/', schemeSepI+2);
+		var peerdomain = str.slice((schemeSepI !== -1) ? schemeSepI+2 : 0, (firstSlashI !== -1) ? firstSlashI : str.length);
+		var peerd = local.parsePeerDomain(peerdomain);
+		if (peerd) {
+			var urld = {};
+			if (firstSlashI !== -1 && str.slice(firstSlashI+1)) {
+				urld = local.parseUri(str.slice(firstSlashI+1));
+			}
+			urld.protocol = 'httpl';
+			urld.host = urld.authority = peerdomain;
+			urld.port = urld.password = urld.user = urld.userInfo = '';
+			urld.source = str;
+			return urld;
+		}
 	}
 
 	var	o   = local.parseUri.options,
@@ -2857,7 +2876,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		}
 		// Update config
 		this.config.provider = providerUrl;
-		this.providerDomain = local.parseUri(providerUrl).host;
+		this.providerDomain = local.parseUri(providerUrl).authority;
 
 		// Create APIs
 		this.relayService = local.agent(this.config.provider);
