@@ -2299,7 +2299,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// - `config.loopback`: optional bool, is this the local host? If true, will connect to self
 	// - `config.retryTimeout`: optional number, time (in ms) before a connection is aborted and retried (defaults to 15000)
 	// - `config.retries`: optional number, number of times to retry before giving up (defaults to 3)
-	// - `config.log`: optional bool, enables logging of all message traffic
+	// - `config.log`: optional bool, enables logging of all message traffic and webrtc connection processes
 	function RTCBridgeServer(config) {
 		// Config
 		var self = this;
@@ -2753,6 +2753,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	//   - defaults to 45000
 	// - `config.retryTimeout`: optional number, time (in ms) before a peer connection is aborted and retried (defaults to 15000)
 	// - `config.retries`: optional number, number of times to retry a peer connection before giving up (defaults to 5)
+	// - `config.log`: optional bool, enables logging of all message traffic and webrtc connection processes
 	function Relay(config) {
 		if (!config) config = {};
 		if (!config.app) config.app = window.location.host;
@@ -2793,6 +2794,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// - `token`: required String?, the access token (null if denied access)
 	// - `token` should follow the form '<userId>:<'
 	Relay.prototype.setAccessToken = function(token) {
+		if (token == "null") token = null; // this happens sometimes when a bad token gets saved in localStorage
 		if (token) {
 			// Extract user-id from the access token
 			var tokenParts = token.split(':');
@@ -3133,10 +3135,12 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			this.setAccessToken(null);
 			// Fire event
 			this.emit('accessInvalid');
-		} else if (e.data && (e.data.status === 0 || e.data.status == 404 || e.data.status >= 500)) { // connection lost
+		} else if (e.data && (e.data.status === 0 || e.data.status == 404 || e.data.status >= 500)) { // connection lost, looks like server fault?
 			// Update state
+			if (this.connectedToRelay) {
+				this.onRelayClose();
+			}
 			this.relayEventStream = null;
-			this.connectedToRelay = false;
 
 			// Attempt to reconnect in 2 seconds
 			var self = this;
@@ -3152,18 +3156,11 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 	Relay.prototype.onRelayClose = function() {
 		// Update state
-		var wasConnected = this.connectedToRelay;
 		this.connectedToRelay = false;
 		if (self.pingInterval) { clearInterval(self.pingInterval); }
 
 		// Fire event
 		this.emit('notlistening');
-
-		// Did we expect this close event?
-		if (wasConnected) {
-			// No, we should reconnect
-			this.startListening();
-		}
 	};
 
 	Relay.prototype.onBridgeDisconnected = function(data) {
@@ -3195,6 +3192,20 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 	Relay.prototype.makeDomain = function(user, app, stream) {
 		return local.makePeerDomain(user, this.providerDomain, app, stream);
+	};
+
+	// :DEBUG: helper to deal with webrtc issues
+	local.logWebRTC = function(v) {
+		if (typeof v == 'undefined') v = true;
+		for (var k in __peer_relay_registry) {
+			__peer_relay_registry[k].config.log = v;
+		}
+		for (var k in local.getServers()) {
+			var s = local.getServer(k);
+			if (s.context && s.context instanceof local.RTCBridgeServer) {
+				s.context.config.log = v;
+			}
+		}
 	};
 
 })();// schemes
@@ -4929,6 +4940,7 @@ Agent.prototype.dispatch = function(req) {
 // Executes a GET text/event-stream request to our context
 Agent.prototype.subscribe = function(req) {
 	var self = this;
+	var eventStream;
 	if (!req) req = {};
 	return this.resolve({ nohead: true }).succeed(function(url) {
 		req.url = url;
@@ -4936,7 +4948,10 @@ Agent.prototype.subscribe = function(req) {
 		if (self.requestDefaults)
 			copyDefaults(req, self.requestDefaults);
 
-		return local.subscribe(req);
+		eventStream = local.subscribe(req);
+		return eventStream.response_;
+	}).then(function() {
+		return eventStream;
 	});
 };
 

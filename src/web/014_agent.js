@@ -194,6 +194,7 @@ Agent.prototype.dispatch = function(req) {
 // Executes a GET text/event-stream request to our context
 Agent.prototype.subscribe = function(req) {
 	var self = this;
+	var eventStream;
 	if (!req) req = {};
 	return this.resolve({ nohead: true }).succeed(function(url) {
 		req.url = url;
@@ -201,7 +202,10 @@ Agent.prototype.subscribe = function(req) {
 		if (self.requestDefaults)
 			copyDefaults(req, self.requestDefaults);
 
-		return local.subscribe(req);
+		eventStream = local.subscribe(req);
+		return eventStream.response_;
+	}).then(function() {
+		return eventStream;
 	});
 };
 
