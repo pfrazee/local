@@ -5,6 +5,7 @@ Changes
 2013/11/14 pfraze
 
  - Altered peer URI scheme to support ports in relay and application hosts
+ - Added "host" attribute to requests given to local servers
 
 
 2013/11/12 pfraze

@@ -217,8 +217,9 @@ local.schemes.register('httpl', function(request, response) {
 	// Deserialize the headers
 	request.deserializeHeaders();
 
-	// Pull out and standardize the path
+	// Pull out and standardize the path & host
 	request.path = request.urld.path;
+	request.host = request.urld.authority;
 	if (!request.path) request.path = '/'; // no path, give a '/'
 	else request.path = request.path.replace(/(.)\/$/, '$1'); // otherwise, never end with a '/'
 

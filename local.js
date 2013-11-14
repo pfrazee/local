@@ -1587,6 +1587,7 @@ function Request(options) {
 	this.method = options.method ? options.method.toUpperCase() : 'GET';
 	this.url = options.url || null;
 	this.path = options.path || null;
+	this.host = options.host || null;
 	this.query = options.query || {};
 	this.headers = options.headers || {};
 	this.body = '';
@@ -1988,6 +1989,7 @@ BridgeServer.prototype.handleLocalRequest = function(request, response) {
 		mid: (this.isReorderingMessages) ? 1 : undefined,
 		method: request.method,
 		path: request.path,
+		host: request.host,
 		query: request.query,
 		headers: request.headers
 	};
@@ -3446,8 +3448,9 @@ local.schemes.register('httpl', function(request, response) {
 	// Deserialize the headers
 	request.deserializeHeaders();
 
-	// Pull out and standardize the path
+	// Pull out and standardize the path & host
 	request.path = request.urld.path;
+	request.host = request.urld.authority;
 	if (!request.path) request.path = '/'; // no path, give a '/'
 	else request.path = request.path.replace(/(.)\/$/, '$1'); // otherwise, never end with a '/'
 

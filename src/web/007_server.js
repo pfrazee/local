@@ -122,6 +122,7 @@ BridgeServer.prototype.handleLocalRequest = function(request, response) {
 		mid: (this.isReorderingMessages) ? 1 : undefined,
 		method: request.method,
 		path: request.path,
+		host: request.host,
 		query: request.query,
 		headers: request.headers
 	};

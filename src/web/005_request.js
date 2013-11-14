@@ -12,6 +12,7 @@ function Request(options) {
 	this.method = options.method ? options.method.toUpperCase() : 'GET';
 	this.url = options.url || null;
 	this.path = options.path || null;
+	this.host = options.host || null;
 	this.query = options.query || {};
 	this.headers = options.headers || {};
 	this.body = '';
