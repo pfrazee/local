@@ -500,7 +500,11 @@
 
 		// State
 		this.myPeerDomain = null;
-		this.connectedToRelay = false;
+		this.connectionStatus = 0;
+		Object.defineProperty(this, 'connectedToRelay', {
+			get: function() { return this.connectionStatus == Relay.CONNECTED; },
+			set: function(v) { this.connectionStatus = (v) ? Relay.CONNECTED : Relay.DISCONNECTED; }
+		});
 		this.userId = null;
 		this.accessToken = null;
 		this.bridges = {};
@@ -525,6 +529,11 @@
 		window.addEventListener('beforeunload', this.onPageClose.bind(this));
 	}
 	local.Relay = Relay;
+
+	// Constants
+	Relay.DISCONNECTED = 0;
+	Relay.CONNECTING   = 1;
+	Relay.CONNECTED    = 2;
 
 	// Sets the access token and triggers a connect flow
 	// - `token`: required String?, the access token (null if denied access)
@@ -685,6 +694,10 @@
 		if (!this.getAccessToken()) {
 			return;
 		}
+		if (this.connectionStatus !== Relay.DISCONNECTED) {
+			console.error('startListening() called when already connected or connecting to relay. Must call stopListening() first.');
+			return;
+		}
 		// Update "src" object, for use in signal messages
 		this.myPeerDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.stream);
 		// Connect to the relay stream
@@ -695,13 +708,14 @@
 			stream: this.getStreamId(),
 			nc:     Date.now() // nocache
 		});
+		this.connectionStatus = Relay.CONNECTING;
 		this.relayItem.subscribe()
 			.then(
 				function(stream) {
 					// Update state
 					__peer_relay_registry[self.providerDomain] = self;
 					self.relayEventStream = stream;
-					self.connectedToRelay = true;
+					self.connectionStatus = Relay.CONNECTED;
 					stream.response_.then(function(response) {
 						// Setup links
 						if (self.registeredLinks) {
