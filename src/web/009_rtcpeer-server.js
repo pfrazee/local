@@ -542,7 +542,7 @@
 			// Try to validate our access now
 			var self = this;
 			this.relayItem = this.relayService.follow({
-				rel:    'item gwr.io/relay',
+				rel:    'gwr.io/relay/item',
 				user:   this.getUserId(),
 				app:    this.getApp(),
 				stream: this.getStreamId(),
@@ -592,7 +592,7 @@
 
 		// Create APIs
 		this.relayService = local.agent(this.config.provider);
-		this.usersCollection = this.relayService.follow({ rel: 'gwr.io/user collection' });
+		this.usersCollection = this.relayService.follow({ rel: 'gwr.io/user/coll' });
 
 		if (this.accessToken) {
 			this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+this.accessToken }});
@@ -656,7 +656,7 @@
 	// Fetches a user from p2pw service
 	// - `userId`: string
 	Relay.prototype.getUser = function(userId) {
-		return this.usersCollection.follow({ rel: 'item gwr.io/user', id: userId }).get({ accept: 'application/json' });
+		return this.usersCollection.follow({ rel: 'gwr.io/user/item', id: userId }).get({ accept: 'application/json' });
 	};
 
 	// Sends (or stores to send) links in the relay's registry
@@ -669,7 +669,7 @@
 
 	// Creates a new agent with up-to-date links for the relay
 	Relay.prototype.agent = function() {
-		return this.relayService.follow({ rel: 'collection gwr.io/relay', links: 1 });
+		return this.relayService.follow({ rel: 'gwr.io/relay/coll', links: 1 });
 	};
 
 	// Subscribes to the event relay and begins handling signals
@@ -684,7 +684,7 @@
 		this.myPeerDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.stream);
 		// Connect to the relay stream
 		this.relayItem = this.relayService.follow({
-			rel:    'item gwr.io/relay',
+			rel:    'gwr.io/relay/item',
 			user:   this.getUserId(),
 			app:    this.getApp(),
 			stream: this.getStreamId(),

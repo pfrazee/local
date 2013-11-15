@@ -1,6 +1,11 @@
 Changes
 =======
-0.4.1
+0.5.0
+
+2013/11/15 pfraze
+
+ - Updated gwr.io protocols to no longer combine semantics (gwr.io/user item -> gwr.io/user/item)
+
 
 2013/11/14 pfraze
 
