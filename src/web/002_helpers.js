@@ -212,8 +212,8 @@ local.parseUri = function parseUri(str) {
 		var peerd = local.parsePeerDomain(peerdomain);
 		if (peerd) {
 			var urld = {};
-			if (firstSlashI !== -1 && str.slice(firstSlashI+1)) {
-				urld = local.parseUri(str.slice(firstSlashI+1));
+			if (firstSlashI !== -1 && str.slice(firstSlashI)) {
+				urld = local.parseUri(str.slice(firstSlashI));
 			}
 			urld.protocol = 'httpl';
 			urld.host = urld.authority = peerdomain;
@@ -407,13 +407,14 @@ local.patchXHR = function() {
 				this2.readyState = 2;
 				this2.status = res.status;
 				this2.statusText = res.status + ' ' + res.reason;
-				this2.responseText = '';
+				this2.responseText = null;
 				// Fire event
 				if (this2.onreadystatechange) {
 					this2.onreadystatechange();
 				}
 				res.on('data', function(chunk) {
 					this2.readyState = 3;
+					if (this2.responseText === null && typeof chunk == 'string') this2.responseText = '';
 					this2.responseText += chunk;
 					// Fire event
 					if (this2.onreadystatechange) {
