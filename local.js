@@ -541,10 +541,10 @@ extractRequest.fromAnchor = function(node) {
 
 	// pull out params
 	var request = {
-		// method  : 'get',
-		url     : node.attributes.href.value,
-		target  : node.getAttribute('target'),
-		headers : { accept:node.getAttribute('type') }
+		method: node.getAttribute('method'),
+		url: node.attributes.href.value,
+		target: node.getAttribute('target'),
+		headers: { accept: node.getAttribute('type') }
 	};
 	return request;
 };

@@ -6,6 +6,7 @@ Changes
 
  - Altered peer URI scheme to support ports in relay and application hosts
  - Added "host" attribute to requests given to local servers
+ - Added non-standard "method" attr to requests extracted from anchor elements
 
 
 2013/11/12 pfraze
