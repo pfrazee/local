@@ -3073,10 +3073,15 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		}
 
 		// Parse the url
-		var peerUrld = local.parseUri(peerUrl);
-		var peerd = local.parsePeerDomain(peerUrld.authority);
+		peerUrl = local.parseUri(peerUrl).authority;
+		var peerd = local.parsePeerDomain(peerUrl);
 		if (!peerd) {
 			throw new Error("Invalid peer url given to connect(): "+peerUrl);
+		}
+
+		// Make sure the url has a stream id
+		if (peerd.stream === 0 && peerUrl.slice(-2) != '!0') {
+			peerUrl += '!0';
 		}
 
 		// Spawn new server
@@ -3085,7 +3090,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			initiate:     config.initiate,
 			relay:        this,
 			serverFn:     this.config.serverFn,
-			loopback:     (peerUrld.authority == this.myPeerDomain),
+			loopback:     (peerUrl == this.myPeerDomain),
 			retryTimeout: config.retryTimeout || this.config.retryTimeout,
 			retries:      config.retries || this.config.retries,
 			log:          this.config.log || false
@@ -3099,8 +3104,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		server.on('error', this.emit.bind(this, 'error'));
 
 		// Add to hostmap
-		this.bridges[peerUrld.authority] = server;
-		local.addServer(peerUrld.authority, server);
+		this.bridges[peerUrl] = server;
+		local.addServer(peerUrl, server);
 
 		return server;
 	};
@@ -3134,7 +3139,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 		// Find bridge that represents this origin
 		var domain = e.data.src;
-		var bridgeServer = this.bridges[domain];
+		var bridgeServer = this.bridges[domain] || this.bridges[domain + '!0'];
 
 		// Does bridge exist?
 		if (bridgeServer) {
