@@ -170,11 +170,20 @@ Agent.prototype.dispatch = function(req) {
 	if (this.requestDefaults)
 		copyDefaults(req, this.requestDefaults);
 
+	// If given a request, streaming may occur. Suspend events on the request until resolved, as the dispatcher wont wire up until after resolution.
+	if (req instanceof local.Request) {
+		req.suspendEvents();
+	}
+
 	// Resolve our target URL
 	return ((req.url) ? local.promise(req.url) : this.resolve({ noretry: req.noretry, nohead: true }))
 		.succeed(function(url) {
 			req.url = url;
-			return local.dispatch(req);
+			var res_ = local.dispatch(req);
+			if (req instanceof local.Request) {
+				req.resumeEvents();
+			}
+			return res_;
 		})
 		.succeed(function(res) {
 			// After every successful request, update our links and mark our context as good (in case it had been bad)
