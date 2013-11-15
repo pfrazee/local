@@ -2670,15 +2670,20 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			return;
 		}
 
+		try {
+			// Create the HTTPL data channel
+			this.rtcDataChannel = this.rtcPeerConn.createDataChannel('httpl', { reliable: true });
+			this.rtcDataChannel.onopen     = onHttplChannelOpen.bind(this);
+			this.rtcDataChannel.onclose    = onHttplChannelClose.bind(this);
+			this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
+			this.rtcDataChannel.onmessage  = onHttplChannelMessage.bind(this);
+		} catch (e) {
+			// Probably a NotSupportedError - give up and let bouncing handle it
+			return;
+		}
+
 		// Start the clock
 		initConnectTimeout.call(this);
-
-		// Create the HTTPL data channel
-		this.rtcDataChannel = this.rtcPeerConn.createDataChannel('httpl', { reliable: true });
-		this.rtcDataChannel.onopen     = onHttplChannelOpen.bind(this);
-		this.rtcDataChannel.onclose    = onHttplChannelClose.bind(this);
-		this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
-		this.rtcDataChannel.onmessage  = onHttplChannelMessage.bind(this);
 
 		// Generate offer
 		this.rtcPeerConn.createOffer(
