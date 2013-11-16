@@ -2602,7 +2602,6 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			var servers = this.config.iceServers || defaultIceServers;
 			this.rtcPeerConn = new RTCPeerConnection(servers, peerConstraints);
 			this.rtcPeerConn.onicecandidate             = onIceCandidate.bind(this);
-			// this.rtcPeerConn.onicechange                = onIceConnectionStateChange.bind(this);
 			this.rtcPeerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
 			this.rtcPeerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
 			this.rtcPeerConn.ondatachannel              = onDataChannel.bind(this);
@@ -2625,7 +2624,6 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			this.rtcPeerConn.close();
 			if (suppressEvents) {
 				this.rtcPeerConn.onicecandidate             = null;
-				// this.rtcPeerConn.onicechange                = null;
 				this.rtcPeerConn.oniceconnectionstatechange = null;
 				this.rtcPeerConn.onsignalingstatechange     = null;
 				this.rtcPeerConn.ondatachannel              = null;
@@ -3127,6 +3125,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 				self.setAccessToken(null);
 				// Fire event
 				self.emit('accessInvalid');
+			} else {
+				// throw res;
 			}
 		});
 		return response_;

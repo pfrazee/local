@@ -188,3 +188,15 @@ foobar
 FOOBAR
 foobar
 */
+
+// Test: 404 on bad target
+
+done = false;
+startTime = Date.now();
+local.dispatch(relay1.makeDomain(relay1.getUserId(), window.location.host, 1337)).then(printErrorAndFinish, printSuccessAndFinish);
+wait(function () { return done; });
+
+/* =>
+success
+{body: "", headers: {}, reason: "not found", status: 404}
+*/
