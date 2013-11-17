@@ -129,6 +129,11 @@ local.contentTypes.register('application/x-www-form-urlencoded',
 			isArray = /\[\]$/.test(key),
 			dictMatch = key.match(/^(.+)\[([^\]]+)\]$/);
 
+			// try to match the value to a bool or number type, if appropriate
+			if (value === 'true') value = true;
+			else if (value === 'false') value = false;
+			else if (+value == value) value = +value;
+
 			if (dictMatch) {
 				key = dictMatch[1];
 				var subkey = dictMatch[2];
