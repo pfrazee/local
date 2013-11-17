@@ -696,8 +696,9 @@
 			console.error('startListening() called when already connected or connecting to relay. Must call stopListening() first.');
 			return;
 		}
-		// Update "src" object, for use in signal messages
+		// Record our peer domain
 		this.myPeerDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.stream);
+		if (this.config.stream === 0) { this.myPeerDomain += '!0'; } // full URI always
 		// Connect to the relay stream
 		this.relayItem = this.relayService.follow({
 			rel:    'gwr.io/relay/item',
@@ -775,11 +776,6 @@
 		if (!config) config = {};
 		if (typeof config.initiate == 'undefined') config.initiate = true;
 
-		// Make sure we're not already connected
-		if (peerUrl in this.bridges) {
-			return this.bridges[peerUrl];
-		}
-
 		// Parse the url
 		peerUrl = local.parseUri(peerUrl).authority;
 		var peerd = local.parsePeerDomain(peerUrl);
@@ -790,6 +786,11 @@
 		// Make sure the url has a stream id
 		if (peerd.stream === 0 && peerUrl.slice(-2) != '!0') {
 			peerUrl += '!0';
+		}
+
+		// Make sure we're not already connected
+		if (peerUrl in this.bridges) {
+			return this.bridges[peerUrl];
 		}
 
 		// Spawn new server
