@@ -5,6 +5,7 @@ Changes
 2013/11/17 pfraze
 
  - Changed relay.getDomain() to .getAssignedDomain() for clarity
+ - Added relay.getAssignedUrl()
 
 
 2013/11/15 pfraze

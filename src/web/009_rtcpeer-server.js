@@ -582,6 +582,7 @@
 	};
 	Relay.prototype.isListening       = function() { return this.connectedToRelay; };
 	Relay.prototype.getAssignedDomain = function() { return this.assignedDomain; };
+	Relay.prototype.getAssignedUrl    = function() { return 'httpl://'+this.assignedDomain; };
 	Relay.prototype.getUserId         = function() { return this.userId; };
 	Relay.prototype.getApp            = function() { return this.config.app; };
 	Relay.prototype.setApp            = function(v) { this.config.app = v; };
