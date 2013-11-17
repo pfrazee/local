@@ -449,7 +449,9 @@ local.patchXHR = function() {
 					if (typeof this[k] == 'function') continue;
 					this2[k] = this[k];
 				}
-				this2.onreadystatechange();
+				if (this2.onreadystatechange) {
+					this2.onreadystatechange();
+				}
 			};
 			return this.__xhr_request.send(data);
 		}
