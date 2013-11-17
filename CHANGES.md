@@ -2,6 +2,11 @@ Changes
 =======
 0.5.0
 
+2013/11/17 pfraze
+
+ - Changed relay.getDomain() to .getAssignedDomain() for clarity
+
+
 2013/11/15 pfraze
 
  - Updated gwr.io protocols to no longer combine semantics (gwr.io/user item -> gwr.io/user/item)
