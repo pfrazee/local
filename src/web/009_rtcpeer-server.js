@@ -895,6 +895,7 @@
 			if (this.connectedToRelay) {
 				this.onRelayClose();
 			}
+			this.connectedToRelay = false;
 			this.relayEventStream = null;
 
 			// Attempt to reconnect in 2 seconds
