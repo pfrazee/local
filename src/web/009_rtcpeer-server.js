@@ -141,6 +141,7 @@
 	}
 
 	function onHttplChannelOpen(e) {
+		console.log('Successfully established WebRTC session with', this.config.peer);
 		this.debugLog('HTTPL CHANNEL OPEN', e);
 
 		// :HACK: canary appears to drop packets for a short period after the datachannel is made ready
@@ -162,6 +163,7 @@
 	}
 
 	function onHttplChannelClose(e) {
+		console.log('Closed WebRTC session with', this.config.peer);
 		this.debugLog('HTTPL CHANNEL CLOSE', e);
 		this.terminate({ noSignal: true });
 	}
@@ -363,6 +365,7 @@
 					self.sendOffer();
 				} else {
 					// Give up
+					console.log('Failed to establish WebRTC session with', self.config.peer, ' - Will continue bouncing traffic through the relay');
 					self.debugLog('CONNECTION TIMED OUT, GIVING UP');
 					self.resetPeerConn();
 					// ^ resets but doesn't terminate - can try again with sendOffer()
@@ -795,6 +798,7 @@
 		}
 
 		// Spawn new server
+		console.log('Initiating WebRTC session with', peerUrl);
 		var server = new local.RTCBridgeServer({
 			peer:         peerUrl,
 			initiate:     config.initiate,
