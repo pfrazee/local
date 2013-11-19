@@ -95,7 +95,7 @@ BridgeServer.prototype.handleRemoteRequest = function(request, response) {
 	if (this.configServerFn) {
 		this.configServerFn.call(this, request, response, this);
 	} else {
-		response.writeHead(500, 'server not implemented');
+		response.writeHead(501, 'server not implemented');
 		response.end();
 	}
 };

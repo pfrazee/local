@@ -25,7 +25,7 @@ Server.prototype.debugLog = function() {
 // - should be overridden
 Server.prototype.handleLocalRequest = function(request, response) {
 	console.warn('handleLocalRequest not defined', this);
-	response.writeHead(500, 'server not implemented');
+	response.writeHead(501, 'server not implemented');
 	response.end();
 };
 
@@ -88,7 +88,7 @@ BridgeServer.prototype.channelSendMsg = function(msg) {
 // - should be overridden
 BridgeServer.prototype.handleRemoteRequest = function(request, response) {
 	console.warn('handleRemoteRequest not defined', this);
-	response.writeHead(500, 'server not implemented');
+	response.writeHead(501, 'server not implemented');
 	response.end();
 };
 

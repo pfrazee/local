@@ -1903,7 +1903,7 @@ Server.prototype.debugLog = function() {
 // - should be overridden
 Server.prototype.handleLocalRequest = function(request, response) {
 	console.warn('handleLocalRequest not defined', this);
-	response.writeHead(500, 'server not implemented');
+	response.writeHead(501, 'server not implemented');
 	response.end();
 };
 
@@ -1966,7 +1966,7 @@ BridgeServer.prototype.channelSendMsg = function(msg) {
 // - should be overridden
 BridgeServer.prototype.handleRemoteRequest = function(request, response) {
 	console.warn('handleRemoteRequest not defined', this);
-	response.writeHead(500, 'server not implemented');
+	response.writeHead(501, 'server not implemented');
 	response.end();
 };
 
@@ -2262,7 +2262,7 @@ BridgeServer.prototype.handleRemoteRequest = function(request, response) {
 	if (this.configServerFn) {
 		this.configServerFn.call(this, request, response, this);
 	} else {
-		response.writeHead(500, 'server not implemented');
+		response.writeHead(501, 'server not implemented');
 		response.end();
 	}
 };
@@ -2426,7 +2426,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		} else if (server && server.handleRemoteRequest) {
 			server.handleRemoteRequest(request, response, this);
 		} else {
-			response.writeHead(500, 'not implemented');
+			response.writeHead(501, 'not implemented');
 			response.end();
 		}
 	};
@@ -5322,7 +5322,7 @@ if (typeof self != 'undefined' && typeof self.window == 'undefined') {
 		} else if (server && server.handleRemoteRequest) {
 			server.handleRemoteRequest(request, response, this);
 		} else {
-			response.writeHead(500, 'not implemented');
+			response.writeHead(501, 'not implemented');
 			response.end();
 		}
 	};
