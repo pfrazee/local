@@ -112,10 +112,10 @@ local.dispatch = function dispatch(request) {
 	args.unshift(request);
 
 	// Wait until next tick, to make sure dispatch() is always async
-	setTimeout(function() {
+	local.util.nextTick(function() {
 		// Allow the wrapper to audit the message
 		webDispatchWrapper.apply(null, args);
-	}, 0);
+	});
 
 	response_.request = request;
 	return response_;

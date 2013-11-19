@@ -23,7 +23,7 @@ wait(function () { return done; });
 
 /* =>
 2
-
+null
 3
 service resource
 4
@@ -61,7 +61,7 @@ wait(function () { return done; });
 
 /* =>
 2
-
+null
 3
 [
 3
@@ -108,7 +108,7 @@ wait(function () { return done; });
 
 /* =>
 2
-
+null
 3
 [
 3
@@ -155,7 +155,7 @@ wait(function () { return done; });
 
 /* =>
 2
-
+null
 3
 hello, world
 4

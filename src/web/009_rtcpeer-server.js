@@ -414,9 +414,9 @@
 		);
 		// Emit 'connecting' on next tick
 		// (next tick to make sure objects creating us get a chance to wire up the event)
-		setTimeout(function() {
+		local.util.nextTick(function() {
 			self.emit('connecting', Object.create(self.peerInfo), self);
-		}, 0);
+		});
 	};
 
 	// Helper called whenever we have a remote session description

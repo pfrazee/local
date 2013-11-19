@@ -2,6 +2,11 @@ Changes
 =======
 0.5.0
 
+2013/11/19 pfraze
+
+ - Added local.util.nextTick to optimize async
+
+
 2013/11/17 pfraze
 
  - Changed relay.getDomain() to .getAssignedDomain() for clarity

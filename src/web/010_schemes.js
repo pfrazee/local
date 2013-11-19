@@ -265,7 +265,7 @@ local.schemes.register('data', function(request, response) {
 	else data = decodeURIComponent(data);
 
 	// respond (async)
-	setTimeout(function() {
+	local.util.nextTick(function() {
 		response.writeHead(200, 'ok', {'content-type': contentType});
 		response.end(data);
 	});
