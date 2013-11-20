@@ -2877,28 +2877,31 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			// Store
 			this.userId = tokenParts[0];
 			this.accessToken = token;
-			this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
-			this.usersCollection.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
 
-			// Try to validate our access now
-			var self = this;
-			this.relayItem = this.relayService.follow({
-				rel:    'gwr.io/relay/item',
-				user:   this.getUserId(),
-				app:    this.getApp(),
-				stream: this.getStreamId(),
-				nc:     Date.now() // nocache
-			});
-			this.relayItem.resolve().then( // a successful HEAD request will verify access
-				function() {
-					// Emit an event
-					self.emit('accessGranted');
-				},
-				function(res) {
-					// Handle error
-					self.onRelayError({ event: 'error', data: res });
-				}
-			);
+			if (this.relayService) {
+				this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
+				this.usersCollection.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
+
+				// Try to validate our access now
+				var self = this;
+				this.relayItem = this.relayService.follow({
+					rel:    'gwr.io/relay/item',
+					user:   this.getUserId(),
+					app:    this.getApp(),
+					stream: this.getStreamId(),
+					nc:     Date.now() // nocache
+				});
+				this.relayItem.resolve().then( // a successful HEAD request will verify access
+					function() {
+						// Emit an event
+						self.emit('accessGranted');
+					},
+					function(res) {
+						// Handle error
+						self.onRelayError({ event: 'error', data: res });
+					}
+				);
+			}
 		} else {
 			// Update state and emit event
 			var hadToken = !!this.accessToken;
