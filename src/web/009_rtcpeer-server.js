@@ -623,14 +623,13 @@
 		// Start listening for messages from the popup
 		if (!this.messageFromAuthPopupHandler) {
 			this.messageFromAuthPopupHandler = (function(e) {
-				console.log('Received access token from '+e.origin);
-
 				// Make sure this is from our popup
 				var originUrld = local.parseUri(e.origin);
 				var providerUrld = local.parseUri(this.config.provider);
 				if (originUrld.authority !== providerUrld.authority) {
 					return;
 				}
+				console.log('Received access token from '+e.origin);
 
 				// Use this moment to switch to HTTPS, if we're using HTTP
 				// - this occurs when the provider domain is given without a protocol, and the server is HTTPS

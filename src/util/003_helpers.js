@@ -13,7 +13,8 @@ if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage)
 		if (!nextTickQueue.length) window.postMessage('nextTick', '*');
 		nextTickQueue.push(fn);
 	};
-	window.addEventListener('message', function(){
+	window.addEventListener('message', function(evt){
+		if (evt.data != 'nextTick') { return; }
 		var i = 0;
 		while (i < nextTickQueue.length) {
 			try { nextTickQueue[i++](); }
