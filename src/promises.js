@@ -63,12 +63,12 @@ if (typeof this.local == 'undefined')
 			this.failCBs.push({ p:p, fn:failFn });
 		} else {
 			var self = this;
-			setTimeout(function() {
+			local.util.nextTick(function() {
 				if (self.isFulfilled())
 					execCallback(self, p, succeedFn);
 				else
 					execCallback(self, p, failFn);
-			}, 0);
+			});
 		}
 		return p;
 	};

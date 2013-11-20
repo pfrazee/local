@@ -14,7 +14,7 @@
 	}
 
 	// Browser compat
-	var __env = (typeof window != 'undefined') ? window : self;
+	var __env = (typeof window != 'undefined') ? window : ((typeof self != 'undefined') ? self : global);
 	var RTCSessionDescription = __env.mozRTCSessionDescription || __env.RTCSessionDescription;
 	var RTCPeerConnection = __env.mozRTCPeerConnection || __env.webkitRTCPeerConnection || __env.RTCPeerConnection;
 	var RTCIceCandidate = __env.mozRTCIceCandidate || __env.RTCIceCandidate;
@@ -30,7 +30,7 @@
 	// - `config.loopback`: optional bool, is this the local host? If true, will connect to self
 	// - `config.retryTimeout`: optional number, time (in ms) before a connection is aborted and retried (defaults to 15000)
 	// - `config.retries`: optional number, number of times to retry before giving up (defaults to 3)
-	// - `config.log`: optional bool, enables logging of all message traffic
+	// - `config.log`: optional bool, enables logging of all message traffic and webrtc connection processes
 	function RTCBridgeServer(config) {
 		// Config
 		var self = this;
@@ -125,7 +125,7 @@
 		} else if (server && server.handleRemoteRequest) {
 			server.handleRemoteRequest(request, response, this);
 		} else {
-			response.writeHead(500, 'not implemented');
+			response.writeHead(501, 'not implemented');
 			response.end();
 		}
 	};
@@ -141,6 +141,7 @@
 	}
 
 	function onHttplChannelOpen(e) {
+		console.log('Successfully established WebRTC session with', this.config.peer);
 		this.debugLog('HTTPL CHANNEL OPEN', e);
 
 		// :HACK: canary appears to drop packets for a short period after the datachannel is made ready
@@ -162,6 +163,7 @@
 	}
 
 	function onHttplChannelClose(e) {
+		console.log('Closed WebRTC session with', this.config.peer);
 		this.debugLog('HTTPL CHANNEL CLOSE', e);
 		this.terminate({ noSignal: true });
 	}
@@ -311,7 +313,6 @@
 			var servers = this.config.iceServers || defaultIceServers;
 			this.rtcPeerConn = new RTCPeerConnection(servers, peerConstraints);
 			this.rtcPeerConn.onicecandidate             = onIceCandidate.bind(this);
-			// this.rtcPeerConn.onicechange                = onIceConnectionStateChange.bind(this);
 			this.rtcPeerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
 			this.rtcPeerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
 			this.rtcPeerConn.ondatachannel              = onDataChannel.bind(this);
@@ -334,7 +335,6 @@
 			this.rtcPeerConn.close();
 			if (suppressEvents) {
 				this.rtcPeerConn.onicecandidate             = null;
-				// this.rtcPeerConn.onicechange                = null;
 				this.rtcPeerConn.oniceconnectionstatechange = null;
 				this.rtcPeerConn.onsignalingstatechange     = null;
 				this.rtcPeerConn.ondatachannel              = null;
@@ -365,6 +365,7 @@
 					self.sendOffer();
 				} else {
 					// Give up
+					console.log('Failed to establish WebRTC session with', self.config.peer, ' - Will continue bouncing traffic through the relay');
 					self.debugLog('CONNECTION TIMED OUT, GIVING UP');
 					self.resetPeerConn();
 					// ^ resets but doesn't terminate - can try again with sendOffer()
@@ -380,15 +381,20 @@
 			return;
 		}
 
+		try {
+			// Create the HTTPL data channel
+			this.rtcDataChannel = this.rtcPeerConn.createDataChannel('httpl', { reliable: true });
+			this.rtcDataChannel.onopen     = onHttplChannelOpen.bind(this);
+			this.rtcDataChannel.onclose    = onHttplChannelClose.bind(this);
+			this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
+			this.rtcDataChannel.onmessage  = onHttplChannelMessage.bind(this);
+		} catch (e) {
+			// Probably a NotSupportedError - give up and let bouncing handle it
+			return;
+		}
+
 		// Start the clock
 		initConnectTimeout.call(this);
-
-		// Create the HTTPL data channel
-		this.rtcDataChannel = this.rtcPeerConn.createDataChannel('httpl', { reliable: true });
-		this.rtcDataChannel.onopen     = onHttplChannelOpen.bind(this);
-		this.rtcDataChannel.onclose    = onHttplChannelClose.bind(this);
-		this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
-		this.rtcDataChannel.onmessage  = onHttplChannelMessage.bind(this);
 
 		// Generate offer
 		this.rtcPeerConn.createOffer(
@@ -411,9 +417,9 @@
 		);
 		// Emit 'connecting' on next tick
 		// (next tick to make sure objects creating us get a chance to wire up the event)
-		setTimeout(function() {
+		local.util.nextTick(function() {
 			self.emit('connecting', Object.create(self.peerInfo), self);
-		}, 0);
+		});
 	};
 
 	// Helper called whenever we have a remote session description
@@ -484,6 +490,7 @@
 	//   - defaults to 45000
 	// - `config.retryTimeout`: optional number, time (in ms) before a peer connection is aborted and retried (defaults to 15000)
 	// - `config.retries`: optional number, number of times to retry a peer connection before giving up (defaults to 5)
+	// - `config.log`: optional bool, enables logging of all message traffic and webrtc connection processes
 	function Relay(config) {
 		if (!config) config = {};
 		if (!config.app) config.app = window.location.host;
@@ -493,8 +500,12 @@
 		local.util.mixinEventEmitter(this);
 
 		// State
-		this.myPeerDomain = null;
-		this.connectedToRelay = false;
+		this.assignedDomain = null;
+		this.connectionStatus = 0;
+		Object.defineProperty(this, 'connectedToRelay', {
+			get: function() { return this.connectionStatus == Relay.CONNECTED; },
+			set: function(v) { this.connectionStatus = (v) ? Relay.CONNECTED : Relay.DISCONNECTED; }
+		});
 		this.userId = null;
 		this.accessToken = null;
 		this.bridges = {};
@@ -520,10 +531,16 @@
 	}
 	local.Relay = Relay;
 
+	// Constants
+	Relay.DISCONNECTED = 0;
+	Relay.CONNECTING   = 1;
+	Relay.CONNECTED    = 2;
+
 	// Sets the access token and triggers a connect flow
 	// - `token`: required String?, the access token (null if denied access)
 	// - `token` should follow the form '<userId>:<'
 	Relay.prototype.setAccessToken = function(token) {
+		if (token == "null") token = null; // this happens sometimes when a bad token gets saved in localStorage
 		if (token) {
 			// Extract user-id from the access token
 			var tokenParts = token.split(':');
@@ -540,7 +557,7 @@
 			// Try to validate our access now
 			var self = this;
 			this.relayItem = this.relayService.follow({
-				rel:    'item gwr.io/relay',
+				rel:    'gwr.io/relay/item',
 				user:   this.getUserId(),
 				app:    this.getApp(),
 				stream: this.getStreamId(),
@@ -566,36 +583,43 @@
 			}
 		}
 	};
-	Relay.prototype.isListening     = function() { return this.connectedToRelay; };
-	Relay.prototype.getDomain       = function() { return this.myPeerDomain; };
-	Relay.prototype.getUserId       = function() { return this.userId; };
-	Relay.prototype.getApp          = function() { return this.config.app; };
-	Relay.prototype.setApp          = function(v) { this.config.app = v; };
-	Relay.prototype.getStreamId     = function() { return this.config.stream; };
-	Relay.prototype.setStreamId     = function(stream) { this.config.stream = stream; };
-	Relay.prototype.getAccessToken  = function() { return this.accessToken; };
-	Relay.prototype.getServer       = function() { return this.config.serverFn; };
-	Relay.prototype.setServer       = function(fn) { this.config.serverFn = fn; };
-	Relay.prototype.getRetryTimeout = function() { return this.config.retryTimeout; };
-	Relay.prototype.setRetryTimeout = function(v) { this.config.retryTimeout = v; };
-	Relay.prototype.getProvider     = function() { return this.config.provider; };
-	Relay.prototype.setProvider     = function(providerUrl) {
+	Relay.prototype.isListening       = function() { return this.connectedToRelay; };
+	Relay.prototype.getAssignedDomain = function() { return this.assignedDomain; };
+	Relay.prototype.getAssignedUrl    = function() { return 'httpl://'+this.assignedDomain; };
+	Relay.prototype.getUserId         = function() { return this.userId; };
+	Relay.prototype.getApp            = function() { return this.config.app; };
+	Relay.prototype.setApp            = function(v) { this.config.app = v; };
+	Relay.prototype.getStreamId       = function() { return this.config.stream; };
+	Relay.prototype.setStreamId       = function(stream) { this.config.stream = stream; };
+	Relay.prototype.getAccessToken    = function() { return this.accessToken; };
+	Relay.prototype.getServer         = function() { return this.config.serverFn; };
+	Relay.prototype.setServer         = function(fn) { this.config.serverFn = fn; };
+	Relay.prototype.getRetryTimeout   = function() { return this.config.retryTimeout; };
+	Relay.prototype.setRetryTimeout   = function(v) { this.config.retryTimeout = v; };
+	Relay.prototype.getProvider       = function() { return this.config.provider; };
+	Relay.prototype.setProvider       = function(providerUrl) {
 		// Abort if already connected
 		if (this.connectedToRelay) {
 			throw new Error("Can not change provider while connected to the relay. Call stopListening() first.");
 		}
 		// Update config
 		this.config.provider = providerUrl;
-		this.providerDomain = local.parseUri(providerUrl).host;
+		this.providerDomain = local.parseUri(providerUrl).authority;
 
 		// Create APIs
 		this.relayService = local.agent(this.config.provider);
-		this.usersCollection = this.relayService.follow({ rel: 'gwr.io/user collection' });
+		this.usersCollection = this.relayService.follow({ rel: 'gwr.io/user/coll' });
+
+		if (this.accessToken) {
+			this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+this.accessToken }});
+			this.usersCollection.setRequestDefaults({ headers: { authorization: 'Bearer '+this.accessToken }});
+		}
 	};
 
 	// Gets an access token from the provider & user using a popup
 	// - Best if called within a DOM click handler, as that will avoid popup-blocking
-	Relay.prototype.requestAccessToken = function() {
+	// - `opts.guestof`: optional string, the host userid providing the guest account. If specified, attempts to get a guest session
+	Relay.prototype.requestAccessToken = function(opts) {
 		// Start listening for messages from the popup
 		if (!this.messageFromAuthPopupHandler) {
 			this.messageFromAuthPopupHandler = (function(e) {
@@ -628,7 +652,9 @@
 
 		// Open interface in a popup
 		// :HACK: because popup blocking can only be avoided by a syncronous popup call, we have to manually construct the url (it burns us)
-		window.open(this.getProvider() + '/session/' + this.config.app);
+		var url = this.getProvider() + '/session/' + this.config.app;
+		if (opts && opts.guestof) { url += '?guestof='+encodeURIComponent(opts.guestof); }
+		window.open(url);
 	};
 
 	// Fetches users from p2pw service
@@ -646,7 +672,7 @@
 	// Fetches a user from p2pw service
 	// - `userId`: string
 	Relay.prototype.getUser = function(userId) {
-		return this.usersCollection.follow({ rel: 'item gwr.io/user', id: userId }).get({ accept: 'application/json' });
+		return this.usersCollection.follow({ rel: 'gwr.io/user/item', id: userId }).get({ accept: 'application/json' });
 	};
 
 	// Sends (or stores to send) links in the relay's registry
@@ -659,7 +685,7 @@
 
 	// Creates a new agent with up-to-date links for the relay
 	Relay.prototype.agent = function() {
-		return this.relayService.follow({ rel: 'collection gwr.io/relay', links: 1 });
+		return this.relayService.follow({ rel: 'gwr.io/relay/coll', links: 1 });
 	};
 
 	// Subscribes to the event relay and begins handling signals
@@ -670,23 +696,29 @@
 		if (!this.getAccessToken()) {
 			return;
 		}
-		// Update "src" object, for use in signal messages
-		this.myPeerDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.stream);
+		if (this.connectionStatus !== Relay.DISCONNECTED) {
+			console.error('startListening() called when already connected or connecting to relay. Must call stopListening() first.');
+			return;
+		}
+		// Record our peer domain
+		this.assignedDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.stream);
+		if (this.config.stream === 0) { this.assignedDomain += '!0'; } // full URI always
 		// Connect to the relay stream
 		this.relayItem = this.relayService.follow({
-			rel:    'item gwr.io/relay',
+			rel:    'gwr.io/relay/item',
 			user:   this.getUserId(),
 			app:    this.getApp(),
 			stream: this.getStreamId(),
 			nc:     Date.now() // nocache
 		});
+		this.connectionStatus = Relay.CONNECTING;
 		this.relayItem.subscribe()
 			.then(
 				function(stream) {
 					// Update state
 					__peer_relay_registry[self.providerDomain] = self;
 					self.relayEventStream = stream;
-					self.connectedToRelay = true;
+					self.connectionStatus = Relay.CONNECTED;
 					stream.response_.then(function(response) {
 						// Setup links
 						if (self.registeredLinks) {
@@ -708,7 +740,7 @@
 					if (self.pingInterval) { clearInterval(self.pingInterval); }
 					if (self.config.ping) {
 						self.pingInterval = setInterval(function() {
-							self.signal(self.getDomain(), { type: 'noop' });
+							self.signal(self.getAssignedDomain(), { type: 'noop' });
 						}, self.config.ping);
 					}
 				},
@@ -733,7 +765,7 @@
 			this.connectedToRelay = false;
 			this.relayEventStream.close();
 			this.relayEventStream = null;
-			delete __peer_relay_registry[self.providerDomain];
+			delete __peer_relay_registry[this.providerDomain];
 		}
 	};
 
@@ -748,25 +780,31 @@
 		if (!config) config = {};
 		if (typeof config.initiate == 'undefined') config.initiate = true;
 
+		// Parse the url
+		peerUrl = local.parseUri(peerUrl).authority;
+		var peerd = local.parsePeerDomain(peerUrl);
+		if (!peerd) {
+			throw new Error("Invalid peer url given to connect(): "+peerUrl);
+		}
+
+		// Make sure the url has a stream id
+		if (peerd.stream === 0 && peerUrl.slice(-2) != '!0') {
+			peerUrl += '!0';
+		}
+
 		// Make sure we're not already connected
 		if (peerUrl in this.bridges) {
 			return this.bridges[peerUrl];
 		}
 
-		// Parse the url
-		var peerUrld = local.parseUri(peerUrl);
-		var peerd = local.parsePeerDomain(peerUrld.authority);
-		if (!peerd) {
-			throw new Error("Invalid peer url given to connect(): "+peerUrl);
-		}
-
 		// Spawn new server
+		console.log('Initiating WebRTC session with', peerUrl);
 		var server = new local.RTCBridgeServer({
 			peer:         peerUrl,
 			initiate:     config.initiate,
 			relay:        this,
 			serverFn:     this.config.serverFn,
-			loopback:     (peerUrld.authority == this.myPeerDomain),
+			loopback:     (peerUrl == this.assignedDomain),
 			retryTimeout: config.retryTimeout || this.config.retryTimeout,
 			retries:      config.retries || this.config.retries,
 			log:          this.config.log || false
@@ -780,8 +818,8 @@
 		server.on('error', this.emit.bind(this, 'error'));
 
 		// Add to hostmap
-		this.bridges[peerUrld.authority] = server;
-		local.addServer(peerUrld.authority, server);
+		this.bridges[peerUrl] = server;
+		local.addServer(peerUrl, server);
 
 		return server;
 	};
@@ -792,7 +830,7 @@
 			return;
 		}
 		var self = this;
-		var response_ = this.relayItem.dispatch({ method: 'notify', body: { src: this.myPeerDomain, dst: dst, msg: msg } });
+		var response_ = this.relayItem.dispatch({ method: 'notify', body: { src: this.assignedDomain, dst: dst, msg: msg } });
 		response_.fail(function(res) {
 			if (res.status == 401) {
 				if (!self.accessToken) {
@@ -815,7 +853,7 @@
 
 		// Find bridge that represents this origin
 		var domain = e.data.src;
-		var bridgeServer = this.bridges[domain];
+		var bridgeServer = this.bridges[domain] || this.bridges[domain + '!0'];
 
 		// Does bridge exist?
 		if (bridgeServer) {
@@ -844,15 +882,25 @@
 				this.setStreamId(randomStreamId());
 				this.startListening();
 			}
+		} else if (e.data && e.data.status == 420) { // out of streams
+			// Update state
+			this.relayEventStream = null;
+			this.connectedToRelay = false;
+
+			// Fire event
+			this.emit('outOfStreams');
 		} else if (e.data && (e.data.status == 401 || e.data.status == 403)) { // unauthorized
 			// Remove bad access token to stop reconnect attempts
 			this.setAccessToken(null);
 			// Fire event
 			this.emit('accessInvalid');
-		} else if (e.data && (e.data.status === 0 || e.data.status == 404 || e.data.status >= 500)) { // connection lost
+		} else if (e.data && (e.data.status === 0 || e.data.status == 404 || e.data.status >= 500)) { // connection lost, looks like server fault?
 			// Update state
-			this.relayEventStream = null;
+			if (this.connectedToRelay) {
+				this.onRelayClose();
+			}
 			this.connectedToRelay = false;
+			this.relayEventStream = null;
 
 			// Attempt to reconnect in 2 seconds
 			var self = this;
@@ -868,18 +916,11 @@
 
 	Relay.prototype.onRelayClose = function() {
 		// Update state
-		var wasConnected = this.connectedToRelay;
 		this.connectedToRelay = false;
 		if (self.pingInterval) { clearInterval(self.pingInterval); }
 
 		// Fire event
 		this.emit('notlistening');
-
-		// Did we expect this close event?
-		if (wasConnected) {
-			// No, we should reconnect
-			this.startListening();
-		}
 	};
 
 	Relay.prototype.onBridgeDisconnected = function(data) {
@@ -905,12 +946,26 @@
 			req.open('NOTIFY', this.relayItem.context.url, false);
 			req.setRequestHeader('Authorization', 'Bearer '+this.accessToken);
 			req.setRequestHeader('Content-type', 'application/json');
-			req.send(JSON.stringify({ src: this.myPeerDomain, dst: dst, msg: { type: 'disconnect' } }));
+			req.send(JSON.stringify({ src: this.assignedDomain, dst: dst, msg: { type: 'disconnect' } }));
 		}
 	};
 
 	Relay.prototype.makeDomain = function(user, app, stream) {
 		return local.makePeerDomain(user, this.providerDomain, app, stream);
+	};
+
+	// :DEBUG: helper to deal with webrtc issues
+	local.logWebRTC = function(v) {
+		if (typeof v == 'undefined') v = true;
+		for (var k in __peer_relay_registry) {
+			__peer_relay_registry[k].config.log = v;
+		}
+		for (var k in local.getServers()) {
+			var s = local.getServer(k);
+			if (s.context && s.context instanceof local.RTCBridgeServer) {
+				s.context.config.log = v;
+			}
+		}
 	};
 
 })();

@@ -19,7 +19,7 @@ success
 {
   body: ["bar", "baz", "blah"],
   headers: {
-    allow: "OPTIONS, HEAD, GET, SUBSCRIBE",
+    allow: "OPTIONS, HEAD, GET, POST, SUBSCRIBE",
     "content-type": "application/json",
     link: "</>; rel=\"up via service\", </foo>; rel=\"self current\", </foo/{id}>; rel=\"item\""
   },
@@ -58,7 +58,7 @@ success
 {
   body: ["bar", "baz", "blah"],
   headers: {
-    allow: "OPTIONS, HEAD, GET, SUBSCRIBE",
+    allow: "OPTIONS, HEAD, GET, POST, SUBSCRIBE",
     "content-type": "application/json",
     link: "</>; rel=\"up via service\", </foo>; rel=\"self current\", </foo/{id}>; rel=\"item\""
   },
@@ -362,4 +362,50 @@ foo {c: 4}
 {data: {c: 5}, event: "foo"}
 foo {c: 5}
 close
+*/
+
+// local request streaming after async follow()s
+
+done = false;
+startTime = Date.now();
+testLocal.unresolve();
+var req = new local.Request({ method: 'POST', headers: { 'content-type': 'application/json' } });
+var res_ = testLocal.follow({ rel: 'collection', id: 'foo' }).dispatch(req);
+req.end({ foo: 'bar' });
+res_.then(printSuccessAndFinish, printErrorAndFinish);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: {foo: "bar"},
+  headers: {"content-type": "application/json"},
+  reason: "ok",
+  status: 200
+}
+*/
+
+// remote request streaming after async follow()s
+
+done = false;
+startTime = Date.now();
+testRemote.unresolve();
+var req = new local.Request({ method: 'POST', headers: { 'content-type': 'application/json' } });
+var res_ = testRemote.follow({ rel: 'collection', id: 'foo' }).dispatch(req);
+req.end({ foo: 'bar' });
+res_.then(printSuccessAndFinish, printErrorAndFinish);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "{\"foo\":\"bar\"}",
+  headers: {
+    allow: "OPTIONS, HEAD, GET, POST, SUBSCRIBE",
+    "content-type": "application/json",
+    link: "</>; rel=\"up via service\", </foo>; rel=\"self current\", </foo/{id}>; rel=\"item\""
+  },
+  reason: "Ok",
+  status: 200
+}
 */

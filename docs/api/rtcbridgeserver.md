@@ -25,7 +25,7 @@ Typically created and managed by a `local.Relay` instance.
 ```javascript
 peerServer.getPeerInfo();
 /* => {
-	domain: 'bob@grimwire.net!chat.grimwire.com:123',
+	domain: 'bob@grimwire.net!chat.grimwire.com!123',
 	user: 'bob',
 	relay: 'grimwire.net',
 	app: 'chat.grimwire.com',

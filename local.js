@@ -63,12 +63,12 @@ if (typeof this.local == 'undefined')
 			this.failCBs.push({ p:p, fn:failFn });
 		} else {
 			var self = this;
-			setTimeout(function() {
+			local.util.nextTick(function() {
 				if (self.isFulfilled())
 					execCallback(self, p, succeedFn);
 				else
 					execCallback(self, p, failFn);
-			}, 0);
+			});
 		}
 		return p;
 	};
@@ -541,10 +541,10 @@ extractRequest.fromAnchor = function(node) {
 
 	// pull out params
 	var request = {
-		// method  : 'get',
-		url     : node.attributes.href.value,
-		target  : node.getAttribute('target'),
-		headers : { accept:node.getAttribute('type') }
+		method: node.getAttribute('method'),
+		url: node.attributes.href.value,
+		target: node.getAttribute('target'),
+		headers: { accept: node.getAttribute('type') }
 	};
 	return request;
 };
@@ -748,7 +748,31 @@ local.util.extractRequestPayload = extractRequestPayload;
 local.util.finishPayloadFileReads = finishPayloadFileReads;// http://jsperf.com/cloning-an-object/2
 local.util.deepClone = function(obj) {
 	return JSON.parse(JSON.stringify(obj));
-};})();// Local HTTP
+};
+
+// https://github.com/timoxley/next-tick
+// fallback for other environments / postMessage behaves badly on IE8
+if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage) {
+	local.util.nextTick = function(fn) { setTimeout(fn, 0); };
+} else {
+	var nextTickQueue = [];
+	local.util.nextTick = function(fn) {
+		if (!nextTickQueue.length) window.postMessage('nextTick', '*');
+		nextTickQueue.push(fn);
+	};
+	window.addEventListener('message', function(){
+		var i = 0;
+		while (i < nextTickQueue.length) {
+			try { nextTickQueue[i++](); }
+			catch (e) {
+				nextTickQueue = nextTickQueue.slice(i);
+				window.postMessage('nextTick', '*');
+				throw e;
+			}
+		}
+		nextTickQueue.length = 0;
+	}, true);
+}})();// Local HTTP
 // ==========
 // pfraze 2013
 
@@ -962,9 +986,28 @@ local.parseUri = function parseUri(str) {
 		else if (str.host || str.path) { str = local.joinUri(req.host, req.path); }
 	}
 
-	// handle data-uris specially - performance characteristics are much different
+	// handle data-uris specially
 	if (str.slice(0,5) == 'data:') {
 		return { protocol: 'data', source: str };
+	}
+
+	// handle peer-uris specially
+	if (str.indexOf('!') !== -1) {
+		var schemeSepI = str.indexOf('//');
+		var firstSlashI = str.indexOf('/', schemeSepI+2);
+		var peerdomain = str.slice((schemeSepI !== -1) ? schemeSepI+2 : 0, (firstSlashI !== -1) ? firstSlashI : str.length);
+		var peerd = local.parsePeerDomain(peerdomain);
+		if (peerd) {
+			var urld = {};
+			if (firstSlashI !== -1 && str.slice(firstSlashI)) {
+				urld = local.parseUri(str.slice(firstSlashI));
+			}
+			urld.protocol = 'httpl';
+			urld.host = urld.authority = peerdomain;
+			urld.port = urld.password = urld.user = urld.userInfo = '';
+			urld.source = str;
+			return urld;
+		}
 	}
 
 	var	o   = local.parseUri.options,
@@ -1037,7 +1080,7 @@ local.parseNavUri = function(str) {
 // breaks a peer domain into its constituent parts
 // - returns { user:, relay:, provider:, app:, stream: }
 //   (relay == provider -- they are synonmyms)
-var peerDomainRE = /^(.+)@([^!]+)!([^:\/]+)(?::([\d]+))?$/i;
+var peerDomainRE = /^(.+)@([^!]+)!([^!\/]+)(?:!([\d]+))?$/i;
 local.parsePeerDomain = function parsePeerDomain(domain) {
 	var match = peerDomainRE.exec(domain);
 	if (match) {
@@ -1057,10 +1100,10 @@ local.parsePeerDomain = function parsePeerDomain(domain) {
 // constructs a peer domain from its constituent parts
 // - returns string
 local.makePeerDomain = function makePeerDomain(user, relay, app, stream) {
-	return user+'@'+relay.replace(':','.')+'!'+app.replace(':','.')+((stream) ? ':'+stream : '');
+	return user+'@'+relay+'!'+app+((stream) ? '!'+stream : '');
 };
 
-
+// EXPORTED
 // sends the given response back verbatim
 // - if `writeHead` has been previously called, it will not change
 // - params:
@@ -1100,6 +1143,138 @@ local.pipe = function(target, source, headersCB, bodyCb) {
 			target.end(body);
 			throw source;
 		});
+};
+
+// EXPORTED
+// modifies XMLHttpRequest to support HTTPL
+local.patchXHR = function() {
+	// Store references to original methods
+	var orgXHR = XMLHttpRequest;
+	var orgPrototype = XMLHttpRequest.prototype;
+	function localXMLHttpRequest() {}
+	(window || self).XMLHttpRequest = localXMLHttpRequest;
+	localXMLHttpRequest.UNSENT = 0;
+	localXMLHttpRequest.OPENED = 1;
+	localXMLHttpRequest.HEADERS_RECEIVED = 2;
+	localXMLHttpRequest.LOADING = 4;
+	localXMLHttpRequest.DONE = 4;
+
+	localXMLHttpRequest.prototype.open = function(method, url, async, user, password) {
+		// Is HTTPL?
+		var urld = local.parseUri(url);
+		if (urld.protocol != 'httpl') {
+			Object.defineProperty(this, '__xhr_request', { value: new orgXHR() });
+			return this.__xhr_request.open(method, url, async, user, password);
+		}
+
+		// Construct request
+		Object.defineProperty(this, '__local_request', { value: new local.Request({ method: method, url: url, stream: true }) });
+		if (user) {
+			this.__local_request.setHeader('Authorization', 'Basic '+btoa(user+':'+password));
+		}
+
+		// Update state
+		this.readyState = 1;
+		if (this.onreadystatechange) {
+			this.onreadystatechange();
+		}
+	};
+
+	localXMLHttpRequest.prototype.send = function(data) {
+		var this2 = this;
+		if (this.__local_request) {
+			// Dispatch and send data
+			var res_ = local.dispatch(this.__local_request);
+			this.__local_request.end(data);
+
+			// Wire up events
+			res_.always(function(res) {
+				Object.defineProperty(this2, '__local_response', { value: res });
+				// Update state
+				this2.readyState = 2;
+				this2.status = res.status;
+				this2.statusText = res.status + ' ' + res.reason;
+				this2.responseText = null;
+				// Fire event
+				if (this2.onreadystatechange) {
+					this2.onreadystatechange();
+				}
+				res.on('data', function(chunk) {
+					this2.readyState = 3;
+					if (this2.responseText === null && typeof chunk == 'string') this2.responseText = '';
+					this2.responseText += chunk;
+					// Fire event
+					if (this2.onreadystatechange) {
+						this2.onreadystatechange();
+					}
+				});
+				res.on('end', function() {
+					this2.readyState = 4;
+					switch (this2.responseType) {
+						case 'json':
+							this2.response = res.body;
+							break;
+
+						case 'text':
+						default:
+							this2.response = this2.responseText;
+							break;
+					}
+					// Fire event
+					if (this2.onreadystatechange) {
+						this2.onreadystatechange();
+					}
+					if (this2.onload) {
+						this2.onload();
+					}
+				});
+			});
+		} else {
+			// Copy over any attributes we've been given
+			this.__xhr_request.onreadystatechange = function() {
+				for (var k in this) {
+					if (typeof this[k] == 'function') continue;
+					this2[k] = this[k];
+				}
+				if (this2.onreadystatechange) {
+					this2.onreadystatechange();
+				}
+			};
+			return this.__xhr_request.send(data);
+		}
+	};
+
+	localXMLHttpRequest.prototype.abort = function() {
+		if (this.__local_request) {
+			return this.__local_request.close();
+		} else {
+			return this.__xhr_request.abort();
+		}
+	};
+
+	localXMLHttpRequest.prototype.setRequestHeader = function(k, v) {
+		if (this.__local_request) {
+			return this.__local_request.setHeader(k.toLowerCase(), v);
+		} else {
+			return this.__xhr_request.setRequestHeader(k, v);
+		}
+	};
+
+	localXMLHttpRequest.prototype.getAllResponseHeaders = function(k) {
+		if (this.__local_request) {
+			return this.__local_response ? this.__local_response.headers : null;
+		} else {
+			return this.__xhr_request.getAllResponseHeaders(k);
+		}
+	};
+
+	localXMLHttpRequest.prototype.getResponseHeader = function(k) {
+		if (this.__local_request) {
+			return this.__local_response ? this.__local_response.getHeader(k) : null;
+		} else {
+			return this.__xhr_request.getResponseHeader(k);
+		}
+	};
 };// contentTypes
 // ============
 // EXPORTED
@@ -1231,6 +1406,11 @@ local.contentTypes.register('application/x-www-form-urlencoded',
 			isArray = /\[\]$/.test(key),
 			dictMatch = key.match(/^(.+)\[([^\]]+)\]$/);
 
+			// try to match the value to a bool or number type, if appropriate
+			if (value === 'true') value = true;
+			else if (value === 'false') value = false;
+			else if (+value == value) value = +value;
+
 			if (dictMatch) {
 				key = dictMatch[1];
 				var subkey = dictMatch[2];
@@ -1251,9 +1431,12 @@ local.contentTypes.register('application/x-www-form-urlencoded',
 );
 local.contentTypes.register('text/event-stream',
 	function (obj) {
+		var str = '';
+		if (typeof obj.event != 'undefined')
+			str += 'event: '+obj.event+'\r\n';
 		if (typeof obj.data != 'undefined')
-			return "event: "+obj.event+"\r\ndata: "+JSON.stringify(obj.data)+"\r\n\r\n";
-		return "event: "+obj.event+"\r\n\r\n";
+			str += 'data: '+JSON.stringify(obj.data)+'\r\n';
+		return str + '\r\n';
 	},
 	function (str) {
 		var m = {};
@@ -1439,6 +1622,7 @@ function Request(options) {
 	this.method = options.method ? options.method.toUpperCase() : 'GET';
 	this.url = options.url || null;
 	this.path = options.path || null;
+	this.host = options.host || null;
 	this.query = options.query || {};
 	this.headers = options.headers || {};
 	this.body = '';
@@ -1743,7 +1927,7 @@ Server.prototype.debugLog = function() {
 // - should be overridden
 Server.prototype.handleLocalRequest = function(request, response) {
 	console.warn('handleLocalRequest not defined', this);
-	response.writeHead(500, 'server not implemented');
+	response.writeHead(501, 'server not implemented');
 	response.end();
 };
 
@@ -1806,7 +1990,7 @@ BridgeServer.prototype.channelSendMsg = function(msg) {
 // - should be overridden
 BridgeServer.prototype.handleRemoteRequest = function(request, response) {
 	console.warn('handleRemoteRequest not defined', this);
-	response.writeHead(500, 'server not implemented');
+	response.writeHead(501, 'server not implemented');
 	response.end();
 };
 
@@ -1840,6 +2024,7 @@ BridgeServer.prototype.handleLocalRequest = function(request, response) {
 		mid: (this.isReorderingMessages) ? 1 : undefined,
 		method: request.method,
 		path: request.path,
+		host: request.host,
 		query: request.query,
 		headers: request.headers
 	};
@@ -2101,7 +2286,7 @@ BridgeServer.prototype.handleRemoteRequest = function(request, response) {
 	if (this.configServerFn) {
 		this.configServerFn.call(this, request, response, this);
 	} else {
-		response.writeHead(500, 'server not implemented');
+		response.writeHead(501, 'server not implemented');
 		response.end();
 	}
 };
@@ -2154,7 +2339,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	}
 
 	// Browser compat
-	var __env = (typeof window != 'undefined') ? window : self;
+	var __env = (typeof window != 'undefined') ? window : ((typeof self != 'undefined') ? self : global);
 	var RTCSessionDescription = __env.mozRTCSessionDescription || __env.RTCSessionDescription;
 	var RTCPeerConnection = __env.mozRTCPeerConnection || __env.webkitRTCPeerConnection || __env.RTCPeerConnection;
 	var RTCIceCandidate = __env.mozRTCIceCandidate || __env.RTCIceCandidate;
@@ -2170,7 +2355,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// - `config.loopback`: optional bool, is this the local host? If true, will connect to self
 	// - `config.retryTimeout`: optional number, time (in ms) before a connection is aborted and retried (defaults to 15000)
 	// - `config.retries`: optional number, number of times to retry before giving up (defaults to 3)
-	// - `config.log`: optional bool, enables logging of all message traffic
+	// - `config.log`: optional bool, enables logging of all message traffic and webrtc connection processes
 	function RTCBridgeServer(config) {
 		// Config
 		var self = this;
@@ -2265,7 +2450,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		} else if (server && server.handleRemoteRequest) {
 			server.handleRemoteRequest(request, response, this);
 		} else {
-			response.writeHead(500, 'not implemented');
+			response.writeHead(501, 'not implemented');
 			response.end();
 		}
 	};
@@ -2281,6 +2466,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	}
 
 	function onHttplChannelOpen(e) {
+		console.log('Successfully established WebRTC session with', this.config.peer);
 		this.debugLog('HTTPL CHANNEL OPEN', e);
 
 		// :HACK: canary appears to drop packets for a short period after the datachannel is made ready
@@ -2302,6 +2488,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	}
 
 	function onHttplChannelClose(e) {
+		console.log('Closed WebRTC session with', this.config.peer);
 		this.debugLog('HTTPL CHANNEL CLOSE', e);
 		this.terminate({ noSignal: true });
 	}
@@ -2451,7 +2638,6 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			var servers = this.config.iceServers || defaultIceServers;
 			this.rtcPeerConn = new RTCPeerConnection(servers, peerConstraints);
 			this.rtcPeerConn.onicecandidate             = onIceCandidate.bind(this);
-			// this.rtcPeerConn.onicechange                = onIceConnectionStateChange.bind(this);
 			this.rtcPeerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
 			this.rtcPeerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
 			this.rtcPeerConn.ondatachannel              = onDataChannel.bind(this);
@@ -2474,7 +2660,6 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			this.rtcPeerConn.close();
 			if (suppressEvents) {
 				this.rtcPeerConn.onicecandidate             = null;
-				// this.rtcPeerConn.onicechange                = null;
 				this.rtcPeerConn.oniceconnectionstatechange = null;
 				this.rtcPeerConn.onsignalingstatechange     = null;
 				this.rtcPeerConn.ondatachannel              = null;
@@ -2505,6 +2690,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 					self.sendOffer();
 				} else {
 					// Give up
+					console.log('Failed to establish WebRTC session with', self.config.peer, ' - Will continue bouncing traffic through the relay');
 					self.debugLog('CONNECTION TIMED OUT, GIVING UP');
 					self.resetPeerConn();
 					// ^ resets but doesn't terminate - can try again with sendOffer()
@@ -2520,15 +2706,20 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			return;
 		}
 
+		try {
+			// Create the HTTPL data channel
+			this.rtcDataChannel = this.rtcPeerConn.createDataChannel('httpl', { reliable: true });
+			this.rtcDataChannel.onopen     = onHttplChannelOpen.bind(this);
+			this.rtcDataChannel.onclose    = onHttplChannelClose.bind(this);
+			this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
+			this.rtcDataChannel.onmessage  = onHttplChannelMessage.bind(this);
+		} catch (e) {
+			// Probably a NotSupportedError - give up and let bouncing handle it
+			return;
+		}
+
 		// Start the clock
 		initConnectTimeout.call(this);
-
-		// Create the HTTPL data channel
-		this.rtcDataChannel = this.rtcPeerConn.createDataChannel('httpl', { reliable: true });
-		this.rtcDataChannel.onopen     = onHttplChannelOpen.bind(this);
-		this.rtcDataChannel.onclose    = onHttplChannelClose.bind(this);
-		this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
-		this.rtcDataChannel.onmessage  = onHttplChannelMessage.bind(this);
 
 		// Generate offer
 		this.rtcPeerConn.createOffer(
@@ -2551,9 +2742,9 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		);
 		// Emit 'connecting' on next tick
 		// (next tick to make sure objects creating us get a chance to wire up the event)
-		setTimeout(function() {
+		local.util.nextTick(function() {
 			self.emit('connecting', Object.create(self.peerInfo), self);
-		}, 0);
+		});
 	};
 
 	// Helper called whenever we have a remote session description
@@ -2624,6 +2815,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	//   - defaults to 45000
 	// - `config.retryTimeout`: optional number, time (in ms) before a peer connection is aborted and retried (defaults to 15000)
 	// - `config.retries`: optional number, number of times to retry a peer connection before giving up (defaults to 5)
+	// - `config.log`: optional bool, enables logging of all message traffic and webrtc connection processes
 	function Relay(config) {
 		if (!config) config = {};
 		if (!config.app) config.app = window.location.host;
@@ -2633,8 +2825,12 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		local.util.mixinEventEmitter(this);
 
 		// State
-		this.myPeerDomain = null;
-		this.connectedToRelay = false;
+		this.assignedDomain = null;
+		this.connectionStatus = 0;
+		Object.defineProperty(this, 'connectedToRelay', {
+			get: function() { return this.connectionStatus == Relay.CONNECTED; },
+			set: function(v) { this.connectionStatus = (v) ? Relay.CONNECTED : Relay.DISCONNECTED; }
+		});
 		this.userId = null;
 		this.accessToken = null;
 		this.bridges = {};
@@ -2660,10 +2856,16 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	}
 	local.Relay = Relay;
 
+	// Constants
+	Relay.DISCONNECTED = 0;
+	Relay.CONNECTING   = 1;
+	Relay.CONNECTED    = 2;
+
 	// Sets the access token and triggers a connect flow
 	// - `token`: required String?, the access token (null if denied access)
 	// - `token` should follow the form '<userId>:<'
 	Relay.prototype.setAccessToken = function(token) {
+		if (token == "null") token = null; // this happens sometimes when a bad token gets saved in localStorage
 		if (token) {
 			// Extract user-id from the access token
 			var tokenParts = token.split(':');
@@ -2680,7 +2882,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			// Try to validate our access now
 			var self = this;
 			this.relayItem = this.relayService.follow({
-				rel:    'item gwr.io/relay',
+				rel:    'gwr.io/relay/item',
 				user:   this.getUserId(),
 				app:    this.getApp(),
 				stream: this.getStreamId(),
@@ -2706,36 +2908,43 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			}
 		}
 	};
-	Relay.prototype.isListening     = function() { return this.connectedToRelay; };
-	Relay.prototype.getDomain       = function() { return this.myPeerDomain; };
-	Relay.prototype.getUserId       = function() { return this.userId; };
-	Relay.prototype.getApp          = function() { return this.config.app; };
-	Relay.prototype.setApp          = function(v) { this.config.app = v; };
-	Relay.prototype.getStreamId     = function() { return this.config.stream; };
-	Relay.prototype.setStreamId     = function(stream) { this.config.stream = stream; };
-	Relay.prototype.getAccessToken  = function() { return this.accessToken; };
-	Relay.prototype.getServer       = function() { return this.config.serverFn; };
-	Relay.prototype.setServer       = function(fn) { this.config.serverFn = fn; };
-	Relay.prototype.getRetryTimeout = function() { return this.config.retryTimeout; };
-	Relay.prototype.setRetryTimeout = function(v) { this.config.retryTimeout = v; };
-	Relay.prototype.getProvider     = function() { return this.config.provider; };
-	Relay.prototype.setProvider     = function(providerUrl) {
+	Relay.prototype.isListening       = function() { return this.connectedToRelay; };
+	Relay.prototype.getAssignedDomain = function() { return this.assignedDomain; };
+	Relay.prototype.getAssignedUrl    = function() { return 'httpl://'+this.assignedDomain; };
+	Relay.prototype.getUserId         = function() { return this.userId; };
+	Relay.prototype.getApp            = function() { return this.config.app; };
+	Relay.prototype.setApp            = function(v) { this.config.app = v; };
+	Relay.prototype.getStreamId       = function() { return this.config.stream; };
+	Relay.prototype.setStreamId       = function(stream) { this.config.stream = stream; };
+	Relay.prototype.getAccessToken    = function() { return this.accessToken; };
+	Relay.prototype.getServer         = function() { return this.config.serverFn; };
+	Relay.prototype.setServer         = function(fn) { this.config.serverFn = fn; };
+	Relay.prototype.getRetryTimeout   = function() { return this.config.retryTimeout; };
+	Relay.prototype.setRetryTimeout   = function(v) { this.config.retryTimeout = v; };
+	Relay.prototype.getProvider       = function() { return this.config.provider; };
+	Relay.prototype.setProvider       = function(providerUrl) {
 		// Abort if already connected
 		if (this.connectedToRelay) {
 			throw new Error("Can not change provider while connected to the relay. Call stopListening() first.");
 		}
 		// Update config
 		this.config.provider = providerUrl;
-		this.providerDomain = local.parseUri(providerUrl).host;
+		this.providerDomain = local.parseUri(providerUrl).authority;
 
 		// Create APIs
 		this.relayService = local.agent(this.config.provider);
-		this.usersCollection = this.relayService.follow({ rel: 'gwr.io/user collection' });
+		this.usersCollection = this.relayService.follow({ rel: 'gwr.io/user/coll' });
+
+		if (this.accessToken) {
+			this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+this.accessToken }});
+			this.usersCollection.setRequestDefaults({ headers: { authorization: 'Bearer '+this.accessToken }});
+		}
 	};
 
 	// Gets an access token from the provider & user using a popup
 	// - Best if called within a DOM click handler, as that will avoid popup-blocking
-	Relay.prototype.requestAccessToken = function() {
+	// - `opts.guestof`: optional string, the host userid providing the guest account. If specified, attempts to get a guest session
+	Relay.prototype.requestAccessToken = function(opts) {
 		// Start listening for messages from the popup
 		if (!this.messageFromAuthPopupHandler) {
 			this.messageFromAuthPopupHandler = (function(e) {
@@ -2768,7 +2977,9 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 		// Open interface in a popup
 		// :HACK: because popup blocking can only be avoided by a syncronous popup call, we have to manually construct the url (it burns us)
-		window.open(this.getProvider() + '/session/' + this.config.app);
+		var url = this.getProvider() + '/session/' + this.config.app;
+		if (opts && opts.guestof) { url += '?guestof='+encodeURIComponent(opts.guestof); }
+		window.open(url);
 	};
 
 	// Fetches users from p2pw service
@@ -2786,7 +2997,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// Fetches a user from p2pw service
 	// - `userId`: string
 	Relay.prototype.getUser = function(userId) {
-		return this.usersCollection.follow({ rel: 'item gwr.io/user', id: userId }).get({ accept: 'application/json' });
+		return this.usersCollection.follow({ rel: 'gwr.io/user/item', id: userId }).get({ accept: 'application/json' });
 	};
 
 	// Sends (or stores to send) links in the relay's registry
@@ -2799,7 +3010,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 	// Creates a new agent with up-to-date links for the relay
 	Relay.prototype.agent = function() {
-		return this.relayService.follow({ rel: 'collection gwr.io/relay', links: 1 });
+		return this.relayService.follow({ rel: 'gwr.io/relay/coll', links: 1 });
 	};
 
 	// Subscribes to the event relay and begins handling signals
@@ -2810,23 +3021,29 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		if (!this.getAccessToken()) {
 			return;
 		}
-		// Update "src" object, for use in signal messages
-		this.myPeerDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.stream);
+		if (this.connectionStatus !== Relay.DISCONNECTED) {
+			console.error('startListening() called when already connected or connecting to relay. Must call stopListening() first.');
+			return;
+		}
+		// Record our peer domain
+		this.assignedDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.stream);
+		if (this.config.stream === 0) { this.assignedDomain += '!0'; } // full URI always
 		// Connect to the relay stream
 		this.relayItem = this.relayService.follow({
-			rel:    'item gwr.io/relay',
+			rel:    'gwr.io/relay/item',
 			user:   this.getUserId(),
 			app:    this.getApp(),
 			stream: this.getStreamId(),
 			nc:     Date.now() // nocache
 		});
+		this.connectionStatus = Relay.CONNECTING;
 		this.relayItem.subscribe()
 			.then(
 				function(stream) {
 					// Update state
 					__peer_relay_registry[self.providerDomain] = self;
 					self.relayEventStream = stream;
-					self.connectedToRelay = true;
+					self.connectionStatus = Relay.CONNECTED;
 					stream.response_.then(function(response) {
 						// Setup links
 						if (self.registeredLinks) {
@@ -2848,7 +3065,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 					if (self.pingInterval) { clearInterval(self.pingInterval); }
 					if (self.config.ping) {
 						self.pingInterval = setInterval(function() {
-							self.signal(self.getDomain(), { type: 'noop' });
+							self.signal(self.getAssignedDomain(), { type: 'noop' });
 						}, self.config.ping);
 					}
 				},
@@ -2873,7 +3090,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			this.connectedToRelay = false;
 			this.relayEventStream.close();
 			this.relayEventStream = null;
-			delete __peer_relay_registry[self.providerDomain];
+			delete __peer_relay_registry[this.providerDomain];
 		}
 	};
 
@@ -2888,25 +3105,31 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		if (!config) config = {};
 		if (typeof config.initiate == 'undefined') config.initiate = true;
 
+		// Parse the url
+		peerUrl = local.parseUri(peerUrl).authority;
+		var peerd = local.parsePeerDomain(peerUrl);
+		if (!peerd) {
+			throw new Error("Invalid peer url given to connect(): "+peerUrl);
+		}
+
+		// Make sure the url has a stream id
+		if (peerd.stream === 0 && peerUrl.slice(-2) != '!0') {
+			peerUrl += '!0';
+		}
+
 		// Make sure we're not already connected
 		if (peerUrl in this.bridges) {
 			return this.bridges[peerUrl];
 		}
 
-		// Parse the url
-		var peerUrld = local.parseUri(peerUrl);
-		var peerd = local.parsePeerDomain(peerUrld.authority);
-		if (!peerd) {
-			throw new Error("Invalid peer url given to connect(): "+peerUrl);
-		}
-
 		// Spawn new server
+		console.log('Initiating WebRTC session with', peerUrl);
 		var server = new local.RTCBridgeServer({
 			peer:         peerUrl,
 			initiate:     config.initiate,
 			relay:        this,
 			serverFn:     this.config.serverFn,
-			loopback:     (peerUrld.authority == this.myPeerDomain),
+			loopback:     (peerUrl == this.assignedDomain),
 			retryTimeout: config.retryTimeout || this.config.retryTimeout,
 			retries:      config.retries || this.config.retries,
 			log:          this.config.log || false
@@ -2920,8 +3143,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		server.on('error', this.emit.bind(this, 'error'));
 
 		// Add to hostmap
-		this.bridges[peerUrld.authority] = server;
-		local.addServer(peerUrld.authority, server);
+		this.bridges[peerUrl] = server;
+		local.addServer(peerUrl, server);
 
 		return server;
 	};
@@ -2932,7 +3155,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			return;
 		}
 		var self = this;
-		var response_ = this.relayItem.dispatch({ method: 'notify', body: { src: this.myPeerDomain, dst: dst, msg: msg } });
+		var response_ = this.relayItem.dispatch({ method: 'notify', body: { src: this.assignedDomain, dst: dst, msg: msg } });
 		response_.fail(function(res) {
 			if (res.status == 401) {
 				if (!self.accessToken) {
@@ -2955,7 +3178,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 		// Find bridge that represents this origin
 		var domain = e.data.src;
-		var bridgeServer = this.bridges[domain];
+		var bridgeServer = this.bridges[domain] || this.bridges[domain + '!0'];
 
 		// Does bridge exist?
 		if (bridgeServer) {
@@ -2984,15 +3207,25 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 				this.setStreamId(randomStreamId());
 				this.startListening();
 			}
+		} else if (e.data && e.data.status == 420) { // out of streams
+			// Update state
+			this.relayEventStream = null;
+			this.connectedToRelay = false;
+
+			// Fire event
+			this.emit('outOfStreams');
 		} else if (e.data && (e.data.status == 401 || e.data.status == 403)) { // unauthorized
 			// Remove bad access token to stop reconnect attempts
 			this.setAccessToken(null);
 			// Fire event
 			this.emit('accessInvalid');
-		} else if (e.data && (e.data.status === 0 || e.data.status == 404 || e.data.status >= 500)) { // connection lost
+		} else if (e.data && (e.data.status === 0 || e.data.status == 404 || e.data.status >= 500)) { // connection lost, looks like server fault?
 			// Update state
-			this.relayEventStream = null;
+			if (this.connectedToRelay) {
+				this.onRelayClose();
+			}
 			this.connectedToRelay = false;
+			this.relayEventStream = null;
 
 			// Attempt to reconnect in 2 seconds
 			var self = this;
@@ -3008,18 +3241,11 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 	Relay.prototype.onRelayClose = function() {
 		// Update state
-		var wasConnected = this.connectedToRelay;
 		this.connectedToRelay = false;
 		if (self.pingInterval) { clearInterval(self.pingInterval); }
 
 		// Fire event
 		this.emit('notlistening');
-
-		// Did we expect this close event?
-		if (wasConnected) {
-			// No, we should reconnect
-			this.startListening();
-		}
 	};
 
 	Relay.prototype.onBridgeDisconnected = function(data) {
@@ -3045,12 +3271,26 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			req.open('NOTIFY', this.relayItem.context.url, false);
 			req.setRequestHeader('Authorization', 'Bearer '+this.accessToken);
 			req.setRequestHeader('Content-type', 'application/json');
-			req.send(JSON.stringify({ src: this.myPeerDomain, dst: dst, msg: { type: 'disconnect' } }));
+			req.send(JSON.stringify({ src: this.assignedDomain, dst: dst, msg: { type: 'disconnect' } }));
 		}
 	};
 
 	Relay.prototype.makeDomain = function(user, app, stream) {
 		return local.makePeerDomain(user, this.providerDomain, app, stream);
+	};
+
+	// :DEBUG: helper to deal with webrtc issues
+	local.logWebRTC = function(v) {
+		if (typeof v == 'undefined') v = true;
+		for (var k in __peer_relay_registry) {
+			__peer_relay_registry[k].config.log = v;
+		}
+		for (var k in local.getServers()) {
+			var s = local.getServer(k);
+			if (s.context && s.context instanceof local.RTCBridgeServer) {
+				s.context.config.log = v;
+			}
+		}
 	};
 
 })();// schemes
@@ -3128,8 +3368,10 @@ local.schemes.register(['http', 'https'], function(request, response) {
 
 	// abort on request close
 	request.on('close', function() {
-		if (xhrRequest.readyState !== XMLHttpRequest.DONE)
+		if (xhrRequest.readyState !== XMLHttpRequest.DONE) {
+			xhrRequest.aborted = true;
 			xhrRequest.abort();
+		}
 	});
 
 	// register response handlers
@@ -3207,7 +3449,7 @@ local.schemes.register(['http', 'https'], function(request, response) {
 		if (xhrRequest.readyState === XMLHttpRequest.DONE) {
 			if (streamPoller)
 				clearInterval(streamPoller);
-			if (response.status !== 0 && xhrRequest.status === 0) {
+			if (response.status !== 0 && xhrRequest.status === 0 && !xhrRequest.aborted) {
 				// a sudden switch to 0 (after getting a non-0) probably means a timeout
 				console.debug('XHR looks like it timed out; treating it as a premature close'); // just in case things get weird
 				response.close();
@@ -3245,11 +3487,12 @@ local.schemes.register('httpl', function(request, response) {
 		var peerd = local.parsePeerDomain(request.urld.authority);
 		if (peerd) {
 			// See if this is a default stream miss
-			if (peerd.stream === '0') {
-				if (request.urld.authority.slice(-2) == ':0') {
+			if (peerd.stream == 0) {
+				if (request.urld.authority.slice(-2) == '!0') {
 					server = local.getServer(request.urld.authority.slice(0,-2));
 				} else {
-					server = local.getServer(request.urld.authority + ':0');
+					request.urld.authority += '!0';
+					server = local.getServer(request.urld.authority);
 				}
 			}
 			if (!server) {
@@ -3270,8 +3513,9 @@ local.schemes.register('httpl', function(request, response) {
 	// Deserialize the headers
 	request.deserializeHeaders();
 
-	// Pull out and standardize the path
+	// Pull out and standardize the path & host
 	request.path = request.urld.path;
+	request.host = request.urld.authority;
 	if (!request.path) request.path = '/'; // no path, give a '/'
 	else request.path = request.path.replace(/(.)\/$/, '$1'); // otherwise, never end with a '/'
 
@@ -3316,7 +3560,7 @@ local.schemes.register('data', function(request, response) {
 	else data = decodeURIComponent(data);
 
 	// respond (async)
-	setTimeout(function() {
+	local.util.nextTick(function() {
 		response.writeHead(200, 'ok', {'content-type': contentType});
 		response.end(data);
 	});
@@ -3472,10 +3716,10 @@ local.dispatch = function dispatch(request) {
 	args.unshift(request);
 
 	// Wait until next tick, to make sure dispatch() is always async
-	setTimeout(function() {
+	local.util.nextTick(function() {
 		// Allow the wrapper to audit the message
 		webDispatchWrapper.apply(null, args);
-	}, 0);
+	});
 
 	response_.request = request;
 	return response_;
@@ -4759,11 +5003,20 @@ Agent.prototype.dispatch = function(req) {
 	if (this.requestDefaults)
 		copyDefaults(req, this.requestDefaults);
 
+	// If given a request, streaming may occur. Suspend events on the request until resolved, as the dispatcher wont wire up until after resolution.
+	if (req instanceof local.Request) {
+		req.suspendEvents();
+	}
+
 	// Resolve our target URL
 	return ((req.url) ? local.promise(req.url) : this.resolve({ noretry: req.noretry, nohead: true }))
 		.succeed(function(url) {
 			req.url = url;
-			return local.dispatch(req);
+			var res_ = local.dispatch(req);
+			if (req instanceof local.Request) {
+				req.resumeEvents();
+			}
+			return res_;
 		})
 		.succeed(function(res) {
 			// After every successful request, update our links and mark our context as good (in case it had been bad)
@@ -4783,6 +5036,7 @@ Agent.prototype.dispatch = function(req) {
 // Executes a GET text/event-stream request to our context
 Agent.prototype.subscribe = function(req) {
 	var self = this;
+	var eventStream;
 	if (!req) req = {};
 	return this.resolve({ nohead: true }).succeed(function(url) {
 		req.url = url;
@@ -4790,7 +5044,10 @@ Agent.prototype.subscribe = function(req) {
 		if (self.requestDefaults)
 			copyDefaults(req, self.requestDefaults);
 
-		return local.subscribe(req);
+		eventStream = local.subscribe(req);
+		return eventStream.response_;
+	}).then(function() {
+		return eventStream;
 	});
 };
 
@@ -5029,7 +5286,7 @@ local.addServer('hosts', function(req, res) {
 // ==================
 // pfraze 2013
 
-if (typeof self.window == 'undefined') {
+if (typeof self != 'undefined' && typeof self.window == 'undefined') {
 
 	if (typeof this.local.worker == 'undefined')
 		this.local.worker = {};
@@ -5093,7 +5350,7 @@ if (typeof self.window == 'undefined') {
 		} else if (server && server.handleRemoteRequest) {
 			server.handleRemoteRequest(request, response, this);
 		} else {
-			response.writeHead(500, 'not implemented');
+			response.writeHead(501, 'not implemented');
 			response.end();
 		}
 	};

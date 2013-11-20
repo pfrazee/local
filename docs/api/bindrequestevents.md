@@ -23,8 +23,8 @@ Local.js extracts request parameters from the HTML element attributes. Elements 
 <a href="httpl://foo">Foo</a>
 <!-- generates { url: 'httpl://foo' } -->
 
-<a href="httpl://foo" target="bar" type="application/json">Foo</a>
-<!-- generates { url: 'httpl://foo', target: 'bar', type: 'application/json' } -->
+<a href="httpl://foo" method="NOTIFY" target="bar" type="application/json">Foo</a>
+<!-- generates { url: 'httpl://foo', method: 'NOTIFY', target: 'bar', type: 'application/json' } -->
 
 <form action="httpl://foo" method="POST">
 	<input type="text" name="a" />

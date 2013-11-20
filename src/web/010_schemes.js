@@ -73,8 +73,10 @@ local.schemes.register(['http', 'https'], function(request, response) {
 
 	// abort on request close
 	request.on('close', function() {
-		if (xhrRequest.readyState !== XMLHttpRequest.DONE)
+		if (xhrRequest.readyState !== XMLHttpRequest.DONE) {
+			xhrRequest.aborted = true;
 			xhrRequest.abort();
+		}
 	});
 
 	// register response handlers
@@ -152,7 +154,7 @@ local.schemes.register(['http', 'https'], function(request, response) {
 		if (xhrRequest.readyState === XMLHttpRequest.DONE) {
 			if (streamPoller)
 				clearInterval(streamPoller);
-			if (response.status !== 0 && xhrRequest.status === 0) {
+			if (response.status !== 0 && xhrRequest.status === 0 && !xhrRequest.aborted) {
 				// a sudden switch to 0 (after getting a non-0) probably means a timeout
 				console.debug('XHR looks like it timed out; treating it as a premature close'); // just in case things get weird
 				response.close();
@@ -190,11 +192,12 @@ local.schemes.register('httpl', function(request, response) {
 		var peerd = local.parsePeerDomain(request.urld.authority);
 		if (peerd) {
 			// See if this is a default stream miss
-			if (peerd.stream === '0') {
-				if (request.urld.authority.slice(-2) == ':0') {
+			if (peerd.stream == 0) {
+				if (request.urld.authority.slice(-2) == '!0') {
 					server = local.getServer(request.urld.authority.slice(0,-2));
 				} else {
-					server = local.getServer(request.urld.authority + ':0');
+					request.urld.authority += '!0';
+					server = local.getServer(request.urld.authority);
 				}
 			}
 			if (!server) {
@@ -215,8 +218,9 @@ local.schemes.register('httpl', function(request, response) {
 	// Deserialize the headers
 	request.deserializeHeaders();
 
-	// Pull out and standardize the path
+	// Pull out and standardize the path & host
 	request.path = request.urld.path;
+	request.host = request.urld.authority;
 	if (!request.path) request.path = '/'; // no path, give a '/'
 	else request.path = request.path.replace(/(.)\/$/, '$1'); // otherwise, never end with a '/'
 
@@ -261,7 +265,7 @@ local.schemes.register('data', function(request, response) {
 	else data = decodeURIComponent(data);
 
 	// respond (async)
-	setTimeout(function() {
+	local.util.nextTick(function() {
 		response.writeHead(200, 'ok', {'content-type': contentType});
 		response.end(data);
 	});

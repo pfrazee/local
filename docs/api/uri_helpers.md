@@ -54,7 +54,7 @@ Converts a 'nav:' URI into an array of http/s/l URIs and link query objects.
 Breaks a peer domain (assigned by a Grimwire relay) into its constituent parts. Returns null if not a valid peer uri.
 
 ```javascript
-local.parsePeerDomain('bob@grimwire.net!chat.grimwire.com:123')
+local.parsePeerDomain('bob@grimwire.net!chat.grimwire.com!123')
 {
 	domain: 'bob@grimwire.net!chat.grimwire.com:123',
 	user: 'bob',
@@ -78,7 +78,7 @@ Constructs a peer domain from its constituent parts.
 
 ```javascript
 local.makePeerDomain('bob', 'grimwire.net', 'chat.grimwire.com', 123)
-// => bob@grimwire.net!chat.grimwire.com:123
+// => bob@grimwire.net!chat.grimwire.com!123
 ```
 
 ---

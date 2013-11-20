@@ -76,7 +76,7 @@ var relay = grimwidget.getRelay();
 
 Grimwire assigns a globally unique URL to every active stream using 4 pieces of information.
 
-<strong>httpl://<span style="color: rgb(216, 56, 56)">bob</span>@<span style="color: rgb(81, 129, 201)">grimwire.net</span>!<span style="color: rgb(81, 160, 37)">chat.grimwire.com</span>:<span style="color: rgb(216, 149, 31)">123</span>/</strong>
+<strong>httpl://<span style="color: rgb(216, 56, 56)">bob</span>@<span style="color: rgb(81, 129, 201)">grimwire.net</span>!<span style="color: rgb(81, 160, 37)">chat.grimwire.com</span>!<span style="color: rgb(216, 149, 31)">123</span>/</strong>
 
  1. <strong style="color: rgb(216, 56, 56)">User</strong>: the id of the account authenticated with the relay
  2. <strong style="color: rgb(81, 129, 201)">Provider Domain</strong>: the relay hosting the peer stream
@@ -99,7 +99,7 @@ function peerServerFn(req, res, peer) {
 	console.log(peer.getPeerInfo());
 	/* =>
 	{
-		domain: 'bob@grimwire.net!chat.grimwire.com:123',
+		domain: 'bob@grimwire.net!chat.grimwire.com!123',
 		user: 'bob',
 		relay: 'grimwire.net',
 		app: 'chat.grimwire.com',
@@ -127,10 +127,10 @@ To query the current index, use the relay's `agent()` function:
 relay.agent().follow({ rel: 'foobar.com/myservice' }).get();
 ```
 
-Peer links automatically have the `user`, `app`, `relay`, and `stream` attributes populated so that navigations can query against those values.
+Links automatically have the `relay_user` attribute populated with the id of the registering user. Additionally, when the link header is parsed, peer URIs have the `host_user`, `host_app`, `host_relay`, and `host_stream` attributes populated so that navigations can query against those values.
 
 ```javascript
-relay.agent().follow({ rel: 'foobar.com/myservice', user: 'bob', relay: 'grimwire.net' }).get();
+relay.agent().follow({ rel: 'foobar.com/myservice', relay_user: 'bob' }).get();
 ```
 
 ---

@@ -3,7 +3,11 @@ Relay
 
 ---
 
-Connects to a Grimwire peer relay and manages related `local.RTCBridgeServer` instances.
+Connects to a Grimwire peer relay and manages related `local.RTCBridgeServer` instances. Typically created with `local.joinRelay`:
+
+```javascript
+local.joinRelay('https://myrelay.com'); // => Relay instance
+```
 
 
 ### local.Relay(config)
@@ -39,9 +43,11 @@ If `token` is falsey and the relay previously had a token, "accessRemoved" is em
 
 ---
 
-### .requestAccessToken()
+### .requestAccessToken(<span class="muted">opts</span>)
 
-Creates a popup at the given relay provider asking the user to provide an access token.
+ - `opts.guestof`: optional string, the host userid providing the guest account. If specified, attempts to get a guest session.
+
+Creates a popup at the given relay provider asking the user to provide an access token. Note that, because this function spawns a popup, it is best to call it from within a "click" event handler to avoid popup-blockers.
 
  - If granted, emits the "accessGranted" event.
  - If denied, emits the "accessDenied" event.
@@ -82,11 +88,19 @@ Closes the stream to the relay, but leaves active peer-connections. Emits "notli
 
 ---
 
-### .getDomain()
+### .getAssignedDomain()
 
  - returns string
 
 Gets the domain assigned to the page by the relay.
+
+---
+
+### .getAssignedUrl()
+
+ - returns string
+
+Gets the full peer URI assigned to the page by the relay.
 
 ---
 
@@ -312,3 +326,11 @@ function() { }
 ```
 
 The requested stream id is in use, try to connect again with a different ID.
+
+### "outOfStreams"
+
+```
+function() { }
+```
+
+The relay account has used all of its allocated streams and can not allocate any more.

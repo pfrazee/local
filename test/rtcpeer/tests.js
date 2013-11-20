@@ -99,7 +99,7 @@ wait(function () { return done; }, 15000);
 pfraze
 dev.grimwire.com
 1
-pfraze@grimwire.net!dev.grimwire.com:1
+pfraze@grimwire.net!dev.grimwire.com!1
 object
 ready
 */
@@ -187,4 +187,16 @@ FOOBAR
 foobar
 FOOBAR
 foobar
+*/
+
+// Test: 404 on bad target
+
+done = false;
+startTime = Date.now();
+local.dispatch(relay1.makeDomain(relay1.getUserId(), window.location.host, 1337)).then(printErrorAndFinish, printSuccessAndFinish);
+wait(function () { return done; });
+
+/* =>
+success
+{body: "", headers: {}, reason: "not found", status: 404}
 */

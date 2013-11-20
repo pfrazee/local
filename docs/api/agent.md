@@ -108,6 +108,18 @@ myagent.follow({ rel: 'foobar.com/message', id: 500 }); // => httpl://foo/messag
 myagent.follow({ rel: 'item foobar.com/user' }); // => link not found
 ```
 
+Local.js does additional parsing on link headers to add the following queryable attributes:
+
+ - `host_domain`: the domain of the href, equivalent to `local.parseUri(link.href).authority`
+ - `host_user`: if a peer URI, the user id part of the URI
+ - `host_relay`: if a peer URI, the relay domain part of the URI
+ - `host_app`: if a peer URI, the app domain part of the URI
+ - `host_stream`: if a peer URI, the stream id part of the URI
+
+Additionally, links hosted on Grimwire relays include the following queryable attribite:
+
+ - `relay_user`: the id of the user who registered the link
+
 ---
 
 ### .dispatch(<span class="muted">request</span>)
@@ -159,6 +171,14 @@ bob.unresolve();
  - returns `local.Promise(local.EventStream)`
 
 Calls `local.subscribe()` on the agent's resolved URL, then fulfills the given promise with the resulting stream.
+
+---
+
+### .links
+
+An array of parsed links from the most recent successful request by the agent.
+
+---
 
 ## Dispatch sugars
 

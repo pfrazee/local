@@ -129,6 +129,11 @@ local.contentTypes.register('application/x-www-form-urlencoded',
 			isArray = /\[\]$/.test(key),
 			dictMatch = key.match(/^(.+)\[([^\]]+)\]$/);
 
+			// try to match the value to a bool or number type, if appropriate
+			if (value === 'true') value = true;
+			else if (value === 'false') value = false;
+			else if (+value == value) value = +value;
+
 			if (dictMatch) {
 				key = dictMatch[1];
 				var subkey = dictMatch[2];
@@ -149,9 +154,12 @@ local.contentTypes.register('application/x-www-form-urlencoded',
 );
 local.contentTypes.register('text/event-stream',
 	function (obj) {
+		var str = '';
+		if (typeof obj.event != 'undefined')
+			str += 'event: '+obj.event+'\r\n';
 		if (typeof obj.data != 'undefined')
-			return "event: "+obj.event+"\r\ndata: "+JSON.stringify(obj.data)+"\r\n\r\n";
-		return "event: "+obj.event+"\r\n\r\n";
+			str += 'data: '+JSON.stringify(obj.data)+'\r\n';
+		return str + '\r\n';
 	},
 	function (str) {
 		var m = {};

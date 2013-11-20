@@ -1,6 +1,47 @@
 Changes
 =======
+0.5.0
+
+2013/11/19 pfraze
+
+ - Added local.util.nextTick to optimize async
+
+
+2013/11/17 pfraze
+
+ - Changed relay.getDomain() to .getAssignedDomain() for clarity
+ - Added relay.getAssignedUrl()
+
+
+2013/11/15 pfraze
+
+ - Updated gwr.io protocols to no longer combine semantics (gwr.io/user item -> gwr.io/user/item)
+
+
+2013/11/14 pfraze
+
+ - Altered peer URI scheme to support ports in relay and application hosts
+ - Added "host" attribute to requests given to local servers
+ - Added non-standard "method" attr to requests extracted from anchor elements
+
+
+2013/11/12 pfraze
+
+ - Added opt.guestof to Relay requestAccessToken
+
+
+2013/11/11 pfraze
+
+ - Added Relay event "outOfStreams" to handle 420 response (no more allocatable streams)
+
+
+2013/11/08 pfraze
+
+ - Added local.patchXHR
+
+
 0.4.0
+=====
 
 2013/11/04 pfraze
 

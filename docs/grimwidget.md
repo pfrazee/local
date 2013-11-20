@@ -14,10 +14,7 @@ grimwidget.create({
 	halign: 'right',
 	render: function (el, links) {
 		// Render room list from available links
-		links = local.queryLinks(links, {
-			rel: 'chat.grimwire.com/-room',
-			href: '!httpl://'+grimwidget.getRelay().getDomain()+'/' // dont render self
-		});
+		links = local.queryLinks(links, { rel: 'chat.grimwire.com/room' });
 		if (links.length) {
 			// Remove duplicates
 			var added = {};
@@ -40,11 +37,12 @@ grimwidget.create({
 
 GrimWidget.js creates and manages a `Relay` instance for all widget instances. Use this function to get that relay.
 
-### .create({ triggerEl:, <span class="muted">render:</span>, <span class="muted">halign:</span> })
+### .create({ triggerEl:, <span class="muted">render:</span>, <span class="muted">halign:</span>, <span class="muted">hostuser:</span> })
 
  - `triggerEl`: required Element, the DOM node that, when clicked, will create the popup
  - `render`: optional function(listEl, links), overrides the link-rendering behavior when the popup is opened
  - `halign`: optional string, must be 'left' or 'right'
+ - `hostuser`: optional string, populates the "host user" field in case the user needs a guest account
  - returns `grimwidget.GrimWidget`
 
 ---

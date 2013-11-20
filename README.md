@@ -1,17 +1,17 @@
-Local 0.4.0dev
+Local 0.5.0dev
 ==============
 
 [<a href="https://github.com/grimwire/local">Repository</a> | <a href="https://github.com/grimwire/local/issues">Issues</a> | <a href="http://grimwire.com/local">Documentation</a>]
 
 ## Overview
 
-Local.js is an Ajax-to-anywhere messaging library for Web applications. It sends HTTP-style messages to functions in the document, Web Workers, WebRTC Peers, data URIs, and public Web servers, structuring the components of the application into a unified SOA.
+Local.js is a new Ajax messaging library for browser applications. It sends HTTP-style messages to functions in the document, Web Workers, WebRTC Peers, data URIs, and public Web servers, structuring the components of the application into a unified SOA.
 
- - Promises-based Ajax library with support for streams
- - Server-Sent Event APIs for distributed updates
- - A programmatic user-agent for navigating via link headers
+ - Promises- and streams-based dispatch()
+ - <a href="http://en.wikipedia.org/wiki/Server-sent_events" title="SSE">SSE</a> tools for distributed events
+ - A programmatic agent for navigating via link headers
 
-Local.js can be used with [Grimwire](https://github.com/grimwire/grimwire), a node.js Peer Relay, to establish sessions between apps for WebRTC.
+Local.js was developed with [Grimwire](https://github.com/grimwire/grimwire), a node.js application, to establish WebRTC sessions.
 
 ### Examples
 

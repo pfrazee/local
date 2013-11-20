@@ -3,7 +3,11 @@ WorkerBridgeServer
 
 ---
 
-Descends from `local.BridgeServer`. Creates a Web Worker and provides a server interface for exchanging requests.
+Descends from `local.BridgeServer`. Creates a Web Worker and provides a server interface for exchanging requests. Most applications will want to use `local.spawnWorkerServer` instead of instantiating this object directly.
+
+```javascript
+local.spawnWorkerServer('/js/myworker.js'); // => WorkerBridgeServer instance
+```
 
 ### local.WorkerBridgeServer(config)
 

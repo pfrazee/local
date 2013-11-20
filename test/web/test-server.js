@@ -16,6 +16,7 @@ var server = http.createServer(function(request, response) {
 		payload += chunk;
 	});
 	request.on('end', function() {
+		request.body = payload;
 		if (/^\/?$/.test(request.url)) {
 			serveHome(request, response);
 		} else if (/^\/foo\/?$/.test(request.url)) {
@@ -98,6 +99,9 @@ function serveFoo(request, response) {
 		case 'GET':
 			payload = serverData.foos;
 			break;
+		case 'POST':
+			payload = request.body;
+			break;
 		default:
 			return serveError(405, request, response);
 	}
@@ -115,7 +119,7 @@ function serveFoo(request, response) {
 
 	// send
 	response.writeHead(200, 'Ok', {
-		Allow:'OPTIONS, HEAD, GET, SUBSCRIBE',
+		Allow:'OPTIONS, HEAD, GET, POST, SUBSCRIBE',
 		Link:linkHeader,
 		'Access-Control-Allow-Origin'      : '*',
 		'Access-Control-Allow-Credentials' : 'true',

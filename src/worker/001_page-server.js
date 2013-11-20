@@ -57,7 +57,7 @@
 		} else if (server && server.handleRemoteRequest) {
 			server.handleRemoteRequest(request, response, this);
 		} else {
-			response.writeHead(500, 'not implemented');
+			response.writeHead(501, 'not implemented');
 			response.end();
 		}
 	};
