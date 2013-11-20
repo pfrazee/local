@@ -2330,8 +2330,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 (function() {
 
 	var peerConstraints = {
-		// optional: [{ RtpDataChannels: true }]
-		optional: [{DtlsSrtpKeyAgreement: true}]
+		optional: [/*{RtpDataChannels: true}, */{DtlsSrtpKeyAgreement: true}]
 	};
 	var defaultIceServers = { iceServers: [{ url: 'stun:stun.l.google.com:19302' }] };
 
@@ -2439,7 +2438,15 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 				data: msg
 			});
 		} else {
-			this.rtcDataChannel.send(msg);
+			try { // :DEBUG: as soon as WebRTC stabilizes some more, let's ditch this
+				this.rtcDataChannel.send(msg);
+			} catch (e) {
+				// Probably a NetworkError - one known cause, one party gets a dataChannel and the other doesnt
+				this.signal({
+					type: 'httpl',
+					data: msg
+				});
+			}
 		}
 	};
 
@@ -2470,22 +2477,15 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		console.log('Successfully established WebRTC session with', this.config.peer);
 		this.debugLog('HTTPL CHANNEL OPEN', e);
 
-		// :HACK: canary appears to drop packets for a short period after the datachannel is made ready
+		// Update state
+		this.isConnecting = false;
+		this.isConnected = true;
 
-		var self = this;
-		setTimeout(function() {
-			console.warn('using rtcDataChannel delay hack');
+		// Can now rely on sctp ordering
+		this.useMessageReordering(false);
 
-			// Update state
-			self.isConnecting = false;
-			self.isConnected = true;
-
-			// Can now rely on sctp ordering
-			self.useMessageReordering(false);
-
-			// Emit event
-			self.emit('connected', Object.create(self.peerInfo), self);
-		}, 1000);
+		// Emit event
+		this.emit('connected', Object.create(this.peerInfo), this);
 	}
 
 	function onHttplChannelClose(e) {
@@ -2761,7 +2761,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 	// Called by the RTCPeerConnection when we get a possible connection path
 	function onIceCandidate(e) {
-		if (e && e.candidate) {
+		if (e && !!e.candidate) {
 			this.debugLog('FOUND ICE CANDIDATE', e.candidate);
 			// send connection info to peers on the relay
 			this.signal({ type: 'candidate', candidate: e.candidate.candidate });
