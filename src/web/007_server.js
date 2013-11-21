@@ -139,7 +139,10 @@ BridgeServer.prototype.handleLocalRequest = function(request, response) {
 	var midCounter = msg.mid;
 	request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, body: data })); });
 	request.on('end', function()       { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, end: true })); });
-	request.on('close', function()     { delete this2.outgoingStreams[msg.sid]; });
+	request.on('close', function()     {
+		this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, close: true }));
+		delete this2.outgoingStreams[msg.sid];
+	});
 };
 
 // Called before server destruction
@@ -201,6 +204,7 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 				headers: msg.headers
 			});
 			var response = new local.Response();
+			request.on('close', function() { response.close(); });
 
 			// Wire response into the stream
 			var this2 = this;
@@ -218,8 +222,11 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 			response.on('data',  function(data) {
 				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, body: data }));
 			});
-			response.on('close', function() {
+			response.on('end', function() {
 				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, end: true }));
+			});
+			response.on('close', function() {
+				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, close: true }));
 				delete this2.outgoingStreams[resSid];
 			});
 
@@ -249,9 +256,13 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 		stream.write(msg.body);
 	}
 
-	// {end: true} -> close stream
+	// {end: true} -> end stream
 	if (msg.end) {
 		stream.end();
+	}
+
+	// {close: true} -> close stream
+	if (msg.close) {
 		stream.close();
 		delete this.incomingStreams[msg.sid];
 		delete this.incomingStreamsBuffer[msg.sid];

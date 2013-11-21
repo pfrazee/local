@@ -1,16 +1,20 @@
 Changes
 =======
-0.5.0
+0.5.1
 
 2013/11/21 pfraze
 
  - Improved agent documentation
+ - Added "close" message to HTTPL as a distinct event separate from "end". This enables the requester to close the stream after ending the request.
 
 
 2013/11/19 pfraze
 
  - Added local.util.nextTick to optimize async
 
+
+0.5.0
+=====
 
 2013/11/17 pfraze
 
