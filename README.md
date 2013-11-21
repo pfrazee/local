@@ -1,4 +1,4 @@
-Local 0.5.0dev
+Local 0.5.1dev
 ==============
 
 [<a href="https://github.com/grimwire/local">Repository</a> | <a href="https://github.com/grimwire/local/issues">Issues</a> | <a href="http://grimwire.com/local">Documentation</a>]
