@@ -2,6 +2,11 @@ Changes
 =======
 0.5.1
 
+2013/11/26 pfraze
+
+ - Added data-local-alias="a" to the request dom-events
+
+
 2013/11/21 pfraze
 
  - Improved agent documentation

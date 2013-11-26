@@ -419,6 +419,12 @@ findParentNode.byTag = function(node, tagName) {
 	});
 };
 
+findParentNode.byTagOrAlias = function(node, tagName) {
+	return findParentNode(node, function(elem) {
+		return elem.tagName == tagName || (elem.dataset && elem.dataset.localAlias && elem.dataset.localAlias.toUpperCase() == tagName);
+	});
+};
+
 findParentNode.byClass = function(node, className) {
 	return findParentNode(node, function(elem) {
 		return elem.classList && elem.classList.contains(className);
@@ -536,7 +542,7 @@ function extractRequest(targetElem, containerElem) {
 extractRequest.fromAnchor = function(node) {
 
 	// get the anchor
-	node = findParentNode.byTag(node, 'A');
+	node = findParentNode.byTagOrAlias(node, 'A');
 	if (!node || !node.attributes.href || node.attributes.href.value.charAt(0) == '#') { return null; }
 
 	// pull out params
@@ -1034,8 +1040,8 @@ local.parseUri.options = {
 		parser: /(?:^|&)([^&=]*)=?([^&]*)/g
 	},
 	parser: {
-		strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-		loose:  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+		strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+		loose:  /^(?:(?![^:@\/]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
 	}
 };
 
@@ -3794,7 +3800,7 @@ function parseScheme(url) {
 		if (url.indexOf('//') === 0)
 			return 'http';
 		else if (url.indexOf('||') === 0)
-			return 'rel';
+			return 'nav';
 		else
 			return 'httpl';
 	}

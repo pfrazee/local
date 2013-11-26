@@ -175,7 +175,7 @@ function parseScheme(url) {
 		if (url.indexOf('//') === 0)
 			return 'http';
 		else if (url.indexOf('||') === 0)
-			return 'rel';
+			return 'nav';
 		else
 			return 'httpl';
 	}
