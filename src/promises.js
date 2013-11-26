@@ -42,7 +42,7 @@ if (typeof this.local == 'undefined')
 						console.error(e, e.stack);
 					else console.log("Promise exception thrown", e, e.stack);
 				}
-				targetPromise.reject(e);
+				return targetPromise.reject(e);
 			}
 
 			if (isPromiselike(newValue))
