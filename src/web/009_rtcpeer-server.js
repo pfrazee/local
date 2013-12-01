@@ -688,7 +688,9 @@
 
 	// Creates a new agent with up-to-date links for the relay
 	Relay.prototype.agent = function() {
-		return this.relayService.follow({ rel: 'gwr.io/relay/coll', links: 1 });
+		if (this.relayService)
+			return this.relayService.follow({ rel: 'gwr.io/relay/coll', links: 1 });
+		return local.agent();
 	};
 
 	// Subscribes to the event relay and begins handling signals
