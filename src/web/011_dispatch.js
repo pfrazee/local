@@ -35,7 +35,9 @@ local.dispatch = function dispatch(request) {
 	var body = null, shouldAutoSendRequestBody = false;
 	if (!(request instanceof local.Request)) {
 		body = request.body;
+		var timeout = request.timeout;
 		request = new local.Request(request);
+		if (timeout) { request.setTimeout(timeout); }
 		shouldAutoSendRequestBody = true; // we're going to end()
 	}
 	Object.defineProperty(request, 'urld', { value: local.parseUri(request.url), configurable: true, enumerable: false, writable: true }); // (urld = url description)

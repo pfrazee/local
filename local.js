@@ -1701,9 +1701,16 @@ Request.prototype.removeHeader = function(k) { delete this.headers[k]; };
 // causes the request/response to abort after the given milliseconds
 Request.prototype.setTimeout = function(ms) {
 	var self = this;
-	setTimeout(function() {
-		if (self.isConnOpen) self.close();
-	}, ms);
+	if (this.__timeoutId) return;
+	Object.defineProperty(this, '__timeoutId', {
+		value: setTimeout(function() {
+			if (self.isConnOpen) { self.close(); }
+			delete self.__timeoutId;
+		}, ms),
+		configurable: true,
+		enumerable: false,
+		writable: true
+	});
 };
 
 // EXPORTED
@@ -3662,7 +3669,9 @@ local.dispatch = function dispatch(request) {
 	var body = null, shouldAutoSendRequestBody = false;
 	if (!(request instanceof local.Request)) {
 		body = request.body;
+		var timeout = request.timeout;
 		request = new local.Request(request);
+		if (timeout) { request.setTimeout(timeout); }
 		shouldAutoSendRequestBody = true; // we're going to end()
 	}
 	Object.defineProperty(request, 'urld', { value: local.parseUri(request.url), configurable: true, enumerable: false, writable: true }); // (urld = url description)

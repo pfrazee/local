@@ -84,9 +84,16 @@ Request.prototype.removeHeader = function(k) { delete this.headers[k]; };
 // causes the request/response to abort after the given milliseconds
 Request.prototype.setTimeout = function(ms) {
 	var self = this;
-	setTimeout(function() {
-		if (self.isConnOpen) self.close();
-	}, ms);
+	if (this.__timeoutId) return;
+	Object.defineProperty(this, '__timeoutId', {
+		value: setTimeout(function() {
+			if (self.isConnOpen) { self.close(); }
+			delete self.__timeoutId;
+		}, ms),
+		configurable: true,
+		enumerable: false,
+		writable: true
+	});
 };
 
 // EXPORTED

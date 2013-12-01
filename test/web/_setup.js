@@ -90,6 +90,11 @@ local.addServer('test.com', function(request, response) {
 			response.end({ event:'foo', data:{ c:5 }});
 		}, 50);
 	}
+	else if (request.path == '/timeout') {
+		setTimeout(function() {
+			response.writeHead(204).end();
+		}, 3000);
+	}
 	else if (request.path == '/pipe') {
 		var headerUpdate = function(headers) {
 			headers['content-type'] = 'text/piped+plain';

@@ -2,6 +2,11 @@ Changes
 =======
 0.5.1
 
+2013/12/01 pfraze
+
+ - Added timeout to requests
+
+
 2013/11/26 pfraze
 
  - Added data-local-alias="a" to the request dom-events
