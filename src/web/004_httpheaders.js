@@ -64,7 +64,7 @@ function httpheaders__find(header, fn) {
 // ===============
 
 var linkHeaderRE1 = /<(.*?)>(?:;[\s]*([^,]*))/g;
-var linkHeaderRE2 = /([\-a-z0-9\.]+)=?(?:(?:"([^"]+)")|([^;\s]+))?/g;
+var linkHeaderRE2 = /([\-a-z0-9_\.]+)=?(?:(?:"([^"]+)")|([^;\s]+))?/g;
 local.httpHeaders.register('link',
 	function (obj) {
 		var links = [];
