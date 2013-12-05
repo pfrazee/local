@@ -1647,7 +1647,7 @@ function Request(options) {
 	this.path = options.path || null;
 	this.host = options.host || null;
 	this.query = options.query || {};
-	this.headers = options.headers || {};
+	this.headers = lowercaseKeys(options.headers || {});
 	this.body = '';
 
 	// Guess the content-type if a full body is included in the message
@@ -1710,9 +1710,9 @@ function Request(options) {
 local.Request = Request;
 Request.prototype = Object.create(local.util.EventEmitter.prototype);
 
-Request.prototype.setHeader    = function(k, v) { this.headers[k] = v; };
-Request.prototype.getHeader    = function(k) { return this.headers[k]; };
-Request.prototype.removeHeader = function(k) { delete this.headers[k]; };
+Request.prototype.setHeader    = function(k, v) { this.headers[k.toLowerCase()] = v; };
+Request.prototype.getHeader    = function(k) { return this.headers[k.toLowerCase()]; };
+Request.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCase()]; };
 
 // causes the request/response to abort after the given milliseconds
 Request.prototype.setTimeout = function(ms) {
@@ -1789,7 +1789,16 @@ Request.prototype.close = function() {
 	// this.removeAllListeners('end');
 	// this.removeAllListeners('close');
 	return this;
-};// Response
+};
+
+// internal helper
+function lowercaseKeys(obj) {
+	var obj2 = {};
+	for (var k in obj) {
+		obj2[k.toLowerCase()] = obj[k];
+	}
+	return obj2;
+}// Response
 // ========
 // EXPORTED
 // Interface for receiving responses
@@ -1846,9 +1855,9 @@ function Response() {
 local.Response = Response;
 Response.prototype = Object.create(local.util.EventEmitter.prototype);
 
-Response.prototype.setHeader    = function(k, v) { this.headers[k] = v; };
-Response.prototype.getHeader    = function(k) { return this.headers[k]; };
-Response.prototype.removeHeader = function(k) { delete this.headers[k]; };
+Response.prototype.setHeader    = function(k, v) { this.headers[k.toLowerCase()] = v; };
+Response.prototype.getHeader    = function(k) { return this.headers[k.toLowerCase()]; };
+Response.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCase()]; };
 
 // EXPORTED
 // calls any registered header serialization functions

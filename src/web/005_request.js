@@ -14,7 +14,7 @@ function Request(options) {
 	this.path = options.path || null;
 	this.host = options.host || null;
 	this.query = options.query || {};
-	this.headers = options.headers || {};
+	this.headers = lowercaseKeys(options.headers || {});
 	this.body = '';
 
 	// Guess the content-type if a full body is included in the message
@@ -77,9 +77,9 @@ function Request(options) {
 local.Request = Request;
 Request.prototype = Object.create(local.util.EventEmitter.prototype);
 
-Request.prototype.setHeader    = function(k, v) { this.headers[k] = v; };
-Request.prototype.getHeader    = function(k) { return this.headers[k]; };
-Request.prototype.removeHeader = function(k) { delete this.headers[k]; };
+Request.prototype.setHeader    = function(k, v) { this.headers[k.toLowerCase()] = v; };
+Request.prototype.getHeader    = function(k) { return this.headers[k.toLowerCase()]; };
+Request.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCase()]; };
 
 // causes the request/response to abort after the given milliseconds
 Request.prototype.setTimeout = function(ms) {
@@ -157,3 +157,12 @@ Request.prototype.close = function() {
 	// this.removeAllListeners('close');
 	return this;
 };
+
+// internal helper
+function lowercaseKeys(obj) {
+	var obj2 = {};
+	for (var k in obj) {
+		obj2[k.toLowerCase()] = obj[k];
+	}
+	return obj2;
+}

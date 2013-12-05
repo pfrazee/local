@@ -33,7 +33,7 @@ local.addServer('test.com', function(request, response) {
 		if (request.method == 'POST') {
 			return request.body_
 				.then(function(body) {
-					response.writeHead(200, 'ok', { 'content-type': request.headers['content-type'] });
+					response.writeHead(200, 'ok', { 'Content-Type': request.headers['content-type'] });
 					response.end(body);
 				});
 		}

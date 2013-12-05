@@ -134,6 +134,29 @@ success
 }
 */
 
+// uppercase request headers
+
+done = false;
+startTime = Date.now();
+var res = local.dispatch({
+  method: 'post',
+  url: 'httpl://test.com/foo',
+  headers: { 'Content-Type': 'text/plain', 'Accept': 'text/plain' },
+  body: 'echo this, please'
+});
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "echo this, please",
+  headers: {"content-type": "text/plain"},
+  reason: "ok",
+  status: 200
+}
+*/
+
 // local request timeout
 
 done = false;
