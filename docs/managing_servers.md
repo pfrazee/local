@@ -37,7 +37,7 @@ Creates a Web Worker and a bridge server to the worker. Generates a local hostna
 
  - `providerUrl`: optional string, the relay provider
  - `config.app`: optional string, the app to join as (defaults to window.location.host)
- - `config.stream`: optional number, the stream id (defaults to pseudo-random)
+ - `config.sid`: optional number, the stream id (defaults to pseudo-random)
  - `config.ping`: optional number, sends a keepalive ping to self via the relay at the given interval (in ms)
    - set to false to disable keepalive pings
    - defaults to 45000

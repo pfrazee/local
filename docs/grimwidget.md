@@ -41,8 +41,12 @@ GrimWidget.js creates and manages a `Relay` instance for all widget instances. U
 
  - `triggerEl`: required Element, the DOM node that, when clicked, will create the popup
  - `render`: optional function(listEl, links), overrides the link-rendering behavior when the popup is opened
- - `halign`: optional string, must be 'left' or 'right'
+ - `renderLabel`: optional function(), overrides the text label-rendering behavior when the relay state's changes
+ - `halign`: optional string, must be 'left' or 'right' (default 'left')
+ - `valign`: optional string, must be 'top' or 'bottom' (default 'bottom')
+ - `width`: optional number, the width of the popup in pixels (default 300)
  - `hostuser`: optional string, populates the "host user" field in case the user needs a guest account
+ - `defaultOpen`: optional bool, opens the popup on load if true
  - returns `grimwidget.GrimWidget`
 
 ---

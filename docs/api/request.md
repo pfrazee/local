@@ -127,6 +127,12 @@ A boolean, should `dispatch()` fulfill its returned promise on the "headers" eve
 
 ---
 
+### .timeout
+
+A number, the amount of time (in ms) to wait until aborting the request.
+
+---
+
 ### .isConnOpen
 
 A boolean

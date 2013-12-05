@@ -60,18 +60,18 @@ local.parsePeerDomain('bob@grimwire.net!chat.grimwire.com!123')
 	user: 'bob',
 	relay: 'grimwire.net',
 	app: 'chat.grimwire.com',
-	stream: '123'
+	sid: '123'
 }
 ```
 
 ---
 
-### local.makePeerDomain(user, relay, app, stream)
+### local.makePeerDomain(user, relay, app, sid)
 
  - `user`: required string
  - `relay`: required string
  - `app`: required string
- - `stream`: required number
+ - `sid`: required number
  - returns string
 
 Constructs a peer domain from its constituent parts.
