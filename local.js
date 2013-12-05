@@ -42,7 +42,7 @@ if (typeof this.local == 'undefined')
 						console.error(e, e.stack);
 					else console.log("Promise exception thrown", e, e.stack);
 				}
-				targetPromise.reject(e);
+				return targetPromise.reject(e);
 			}
 
 			if (isPromiselike(newValue))
@@ -419,6 +419,12 @@ findParentNode.byTag = function(node, tagName) {
 	});
 };
 
+findParentNode.byTagOrAlias = function(node, tagName) {
+	return findParentNode(node, function(elem) {
+		return elem.tagName == tagName || (elem.dataset && elem.dataset.localAlias && elem.dataset.localAlias.toUpperCase() == tagName);
+	});
+};
+
 findParentNode.byClass = function(node, className) {
 	return findParentNode(node, function(elem) {
 		return elem.classList && elem.classList.contains(className);
@@ -536,7 +542,7 @@ function extractRequest(targetElem, containerElem) {
 extractRequest.fromAnchor = function(node) {
 
 	// get the anchor
-	node = findParentNode.byTag(node, 'A');
+	node = findParentNode.byTagOrAlias(node, 'A');
 	if (!node || !node.attributes.href || node.attributes.href.value.charAt(0) == '#') { return null; }
 
 	// pull out params
@@ -750,17 +756,33 @@ local.util.deepClone = function(obj) {
 	return JSON.parse(JSON.stringify(obj));
 };
 
-// https://github.com/timoxley/next-tick
+
 // fallback for other environments / postMessage behaves badly on IE8
 if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage) {
 	local.util.nextTick = function(fn) { setTimeout(fn, 0); };
 } else {
+	var nextTickIndex = 0, nextTickFns = {};
+	local.util.nextTick = function(fn) {
+		window.postMessage('nextTick'+nextTickIndex, '*');
+		nextTickFns['nextTick'+nextTickIndex] = fn;
+		nextTickIndex++;
+	};
+	window.addEventListener('message', function(evt){
+		var fn = nextTickFns[evt.data];
+		delete nextTickFns[evt.data];
+		fn();
+	}, true);
+
+	// The following is the original version by // https://github.com/timoxley/next-tick
+	// It was replaced by the above to avoid the try/catch block
+	/*
 	var nextTickQueue = [];
 	local.util.nextTick = function(fn) {
 		if (!nextTickQueue.length) window.postMessage('nextTick', '*');
 		nextTickQueue.push(fn);
 	};
-	window.addEventListener('message', function(){
+	window.addEventListener('message', function(evt){
+		if (evt.data != 'nextTick') { return; }
 		var i = 0;
 		while (i < nextTickQueue.length) {
 			try { nextTickQueue[i++](); }
@@ -772,6 +794,7 @@ if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage)
 		}
 		nextTickQueue.length = 0;
 	}, true);
+	*/
 }})();// Local HTTP
 // ==========
 // pfraze 2013
@@ -832,7 +855,7 @@ local.queryLink = function queryLink(link, query) {
 					return false;
 			}
 			else {
-				if (query[attr].indexOf('!') === 0) { // negation
+				if (query[attr] && query[attr].indexOf && query[attr].indexOf('!') === 0) { // negation
 					if (link[attr] == query[attr].slice(1))
 						return false;
 				} else {
@@ -1033,8 +1056,8 @@ local.parseUri.options = {
 		parser: /(?:^|&)([^&=]*)=?([^&]*)/g
 	},
 	parser: {
-		strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-		loose:  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+		strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+		loose:  /^(?:(?![^:@\/]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
 	}
 };
 
@@ -1078,8 +1101,7 @@ local.parseNavUri = function(str) {
 
 // EXPORTED
 // breaks a peer domain into its constituent parts
-// - returns { user:, relay:, provider:, app:, stream: }
-//   (relay == provider -- they are synonmyms)
+// - returns { user:, relay:, app:, sid: }
 var peerDomainRE = /^(.+)@([^!]+)!([^!\/]+)(?:!([\d]+))?$/i;
 local.parsePeerDomain = function parsePeerDomain(domain) {
 	var match = peerDomainRE.exec(domain);
@@ -1088,9 +1110,10 @@ local.parsePeerDomain = function parsePeerDomain(domain) {
 			domain: domain,
 			user: match[1],
 			relay: match[2],
-			provider: match[2],
+			provider: match[2], // :TODO: remove
 			app: match[3],
-			stream: match[4] || 0
+			stream: match[4] || 0, // :TODO: remove
+			sid: match[4] || 0
 		};
 	}
 	return null;
@@ -1099,8 +1122,8 @@ local.parsePeerDomain = function parsePeerDomain(domain) {
 // EXPORTED
 // constructs a peer domain from its constituent parts
 // - returns string
-local.makePeerDomain = function makePeerDomain(user, relay, app, stream) {
-	return user+'@'+relay+'!'+app+((stream) ? '!'+stream : '');
+local.makePeerDomain = function makePeerDomain(user, relay, app, sid) {
+	return user+'@'+relay+'!'+app+((sid) ? '!'+sid : '');
 };
 
 // EXPORTED
@@ -1521,7 +1544,7 @@ function httpheaders__find(header, fn) {
 // ===============
 
 var linkHeaderRE1 = /<(.*?)>(?:;[\s]*([^,]*))/g;
-var linkHeaderRE2 = /([\-a-z0-9\.]+)=?(?:(?:"([^"]+)")|([^;\s]+))?/g;
+var linkHeaderRE2 = /([\-a-z0-9_\.]+)=?(?:(?:"([^"]+)")|([^;\s]+))?/g;
 local.httpHeaders.register('link',
 	function (obj) {
 		var links = [];
@@ -1624,7 +1647,7 @@ function Request(options) {
 	this.path = options.path || null;
 	this.host = options.host || null;
 	this.query = options.query || {};
-	this.headers = options.headers || {};
+	this.headers = lowercaseKeys(options.headers || {});
 	this.body = '';
 
 	// Guess the content-type if a full body is included in the message
@@ -1687,16 +1710,23 @@ function Request(options) {
 local.Request = Request;
 Request.prototype = Object.create(local.util.EventEmitter.prototype);
 
-Request.prototype.setHeader    = function(k, v) { this.headers[k] = v; };
-Request.prototype.getHeader    = function(k) { return this.headers[k]; };
-Request.prototype.removeHeader = function(k) { delete this.headers[k]; };
+Request.prototype.setHeader    = function(k, v) { this.headers[k.toLowerCase()] = v; };
+Request.prototype.getHeader    = function(k) { return this.headers[k.toLowerCase()]; };
+Request.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCase()]; };
 
 // causes the request/response to abort after the given milliseconds
 Request.prototype.setTimeout = function(ms) {
 	var self = this;
-	setTimeout(function() {
-		if (self.isConnOpen) self.close();
-	}, ms);
+	if (this.__timeoutId) return;
+	Object.defineProperty(this, '__timeoutId', {
+		value: setTimeout(function() {
+			if (self.isConnOpen) { self.close(); }
+			delete self.__timeoutId;
+		}, ms),
+		configurable: true,
+		enumerable: false,
+		writable: true
+	});
 };
 
 // EXPORTED
@@ -1759,7 +1789,16 @@ Request.prototype.close = function() {
 	// this.removeAllListeners('end');
 	// this.removeAllListeners('close');
 	return this;
-};// Response
+};
+
+// internal helper
+function lowercaseKeys(obj) {
+	var obj2 = {};
+	for (var k in obj) {
+		obj2[k.toLowerCase()] = obj[k];
+	}
+	return obj2;
+}// Response
 // ========
 // EXPORTED
 // Interface for receiving responses
@@ -1816,9 +1855,9 @@ function Response() {
 local.Response = Response;
 Response.prototype = Object.create(local.util.EventEmitter.prototype);
 
-Response.prototype.setHeader    = function(k, v) { this.headers[k] = v; };
-Response.prototype.getHeader    = function(k) { return this.headers[k]; };
-Response.prototype.removeHeader = function(k) { delete this.headers[k]; };
+Response.prototype.setHeader    = function(k, v) { this.headers[k.toLowerCase()] = v; };
+Response.prototype.getHeader    = function(k) { return this.headers[k.toLowerCase()]; };
+Response.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCase()]; };
 
 // EXPORTED
 // calls any registered header serialization functions
@@ -2041,7 +2080,10 @@ BridgeServer.prototype.handleLocalRequest = function(request, response) {
 	var midCounter = msg.mid;
 	request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, body: data })); });
 	request.on('end', function()       { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, end: true })); });
-	request.on('close', function()     { delete this2.outgoingStreams[msg.sid]; });
+	request.on('close', function()     {
+		this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, close: true }));
+		delete this2.outgoingStreams[msg.sid];
+	});
 };
 
 // Called before server destruction
@@ -2103,6 +2145,7 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 				headers: msg.headers
 			});
 			var response = new local.Response();
+			request.on('close', function() { response.close(); });
 
 			// Wire response into the stream
 			var this2 = this;
@@ -2120,8 +2163,11 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 			response.on('data',  function(data) {
 				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, body: data }));
 			});
-			response.on('close', function() {
+			response.on('end', function() {
 				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, end: true }));
+			});
+			response.on('close', function() {
+				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, close: true }));
 				delete this2.outgoingStreams[resSid];
 			});
 
@@ -2151,9 +2197,13 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 		stream.write(msg.body);
 	}
 
-	// {end: true} -> close stream
+	// {end: true} -> end stream
 	if (msg.end) {
 		stream.end();
+	}
+
+	// {close: true} -> close stream
+	if (msg.close) {
 		stream.close();
 		delete this.incomingStreams[msg.sid];
 		delete this.incomingStreamsBuffer[msg.sid];
@@ -2329,8 +2379,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 (function() {
 
 	var peerConstraints = {
-		// optional: [{ RtpDataChannels: true }]
-		optional: [{DtlsSrtpKeyAgreement: true}]
+		optional: [/*{RtpDataChannels: true}, */{DtlsSrtpKeyAgreement: true}]
 	};
 	var defaultIceServers = { iceServers: [{ url: 'stun:stun.l.google.com:19302' }] };
 
@@ -2438,7 +2487,16 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 				data: msg
 			});
 		} else {
-			this.rtcDataChannel.send(msg);
+			try { // :DEBUG: as soon as WebRTC stabilizes some more, let's ditch this
+				this.rtcDataChannel.send(msg);
+			} catch (e) {
+				this.debugLog('NETWORK ERROR, BOUNCING', e);
+				// Probably a NetworkError - one known cause, one party gets a dataChannel and the other doesnt
+				this.signal({
+					type: 'httpl',
+					data: msg
+				});
+			}
 		}
 	};
 
@@ -2469,22 +2527,15 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		console.log('Successfully established WebRTC session with', this.config.peer);
 		this.debugLog('HTTPL CHANNEL OPEN', e);
 
-		// :HACK: canary appears to drop packets for a short period after the datachannel is made ready
+		// Update state
+		this.isConnecting = false;
+		this.isConnected = true;
 
-		var self = this;
-		setTimeout(function() {
-			console.warn('using rtcDataChannel delay hack');
+		// Can now rely on sctp ordering
+		this.useMessageReordering(false);
 
-			// Update state
-			self.isConnecting = false;
-			self.isConnected = true;
-
-			// Can now rely on sctp ordering
-			self.useMessageReordering(false);
-
-			// Emit event
-			self.emit('connected', Object.create(self.peerInfo), self);
-		}, 1000);
+		// Emit event
+		this.emit('connected', Object.create(this.peerInfo), this);
 	}
 
 	function onHttplChannelClose(e) {
@@ -2760,7 +2811,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 	// Called by the RTCPeerConnection when we get a possible connection path
 	function onIceCandidate(e) {
-		if (e && e.candidate) {
+		if (e && !!e.candidate) {
 			this.debugLog('FOUND ICE CANDIDATE', e.candidate);
 			// send connection info to peers on the relay
 			this.signal({ type: 'candidate', candidate: e.candidate.candidate });
@@ -2809,7 +2860,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// - `config.provider`: optional string, the relay provider
 	// - `config.serverFn`: optional function, the function for peerservers' handleRemoteRequest
 	// - `config.app`: optional string, the app to join as (defaults to window.location.host)
-	// - `config.stream`: optional number, the stream id (defaults to pseudo-random)
+	// - `config.sid`: optional number, the stream id (defaults to pseudo-random)
 	// - `config.ping`: optional number, sends a ping to self via the relay at the given interval (in ms) to keep the stream alive
 	//   - set to false to disable keepalive pings
 	//   - defaults to 45000
@@ -2819,7 +2870,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	function Relay(config) {
 		if (!config) config = {};
 		if (!config.app) config.app = window.location.host;
-		if (typeof config.stream == 'undefined') { config.stream = randomStreamId(); this.autoRetryStreamTaken = true; }
+		if (typeof config.sid == 'undefined') { config.sid = randomStreamId(); this.autoRetryStreamTaken = true; }
 		if (typeof config.ping == 'undefined') { config.ping = 45000; }
 		this.config = config;
 		local.util.mixinEventEmitter(this);
@@ -2876,28 +2927,31 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			// Store
 			this.userId = tokenParts[0];
 			this.accessToken = token;
-			this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
-			this.usersCollection.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
 
-			// Try to validate our access now
-			var self = this;
-			this.relayItem = this.relayService.follow({
-				rel:    'gwr.io/relay/item',
-				user:   this.getUserId(),
-				app:    this.getApp(),
-				stream: this.getStreamId(),
-				nc:     Date.now() // nocache
-			});
-			this.relayItem.resolve().then( // a successful HEAD request will verify access
-				function() {
-					// Emit an event
-					self.emit('accessGranted');
-				},
-				function(res) {
-					// Handle error
-					self.onRelayError({ event: 'error', data: res });
-				}
-			);
+			if (this.relayService) {
+				this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
+				this.usersCollection.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
+
+				// Try to validate our access now
+				var self = this;
+				this.relayItem = this.relayService.follow({
+					rel: 'gwr.io/relay',
+					user: this.getUserId(),
+					app: this.getApp(),
+					sid: this.getSid(),
+					nc: Date.now() // nocache
+				});
+				this.relayItem.resolve().then( // a successful HEAD request will verify access
+					function() {
+						// Emit an event
+						self.emit('accessGranted');
+					},
+					function(res) {
+						// Handle error
+						self.onRelayError({ event: 'error', data: res });
+					}
+				);
+			}
 		} else {
 			// Update state and emit event
 			var hadToken = !!this.accessToken;
@@ -2914,8 +2968,10 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	Relay.prototype.getUserId         = function() { return this.userId; };
 	Relay.prototype.getApp            = function() { return this.config.app; };
 	Relay.prototype.setApp            = function(v) { this.config.app = v; };
-	Relay.prototype.getStreamId       = function() { return this.config.stream; };
-	Relay.prototype.setStreamId       = function(stream) { this.config.stream = stream; };
+	Relay.prototype.getStreamId       = function() { return this.config.sid; };
+	Relay.prototype.getSid            = Relay.prototype.getStreamId;
+	Relay.prototype.setStreamId       = function(sid) { this.config.sid = sid; };
+	Relay.prototype.setSid            = Relay.prototype.setStreamId;
 	Relay.prototype.getAccessToken    = function() { return this.accessToken; };
 	Relay.prototype.getServer         = function() { return this.config.serverFn; };
 	Relay.prototype.setServer         = function(fn) { this.config.serverFn = fn; };
@@ -2933,7 +2989,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 		// Create APIs
 		this.relayService = local.agent(this.config.provider);
-		this.usersCollection = this.relayService.follow({ rel: 'gwr.io/user/coll' });
+		this.usersCollection = this.relayService.follow({ rel: 'gwr.io/users' });
 
 		if (this.accessToken) {
 			this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+this.accessToken }});
@@ -2948,14 +3004,13 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		// Start listening for messages from the popup
 		if (!this.messageFromAuthPopupHandler) {
 			this.messageFromAuthPopupHandler = (function(e) {
-				console.log('Received access token from '+e.origin);
-
 				// Make sure this is from our popup
 				var originUrld = local.parseUri(e.origin);
 				var providerUrld = local.parseUri(this.config.provider);
 				if (originUrld.authority !== providerUrld.authority) {
 					return;
 				}
+				console.log('Received access token from '+e.origin);
 
 				// Use this moment to switch to HTTPS, if we're using HTTP
 				// - this occurs when the provider domain is given without a protocol, and the server is HTTPS
@@ -2997,7 +3052,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	// Fetches a user from p2pw service
 	// - `userId`: string
 	Relay.prototype.getUser = function(userId) {
-		return this.usersCollection.follow({ rel: 'gwr.io/user/item', id: userId }).get({ accept: 'application/json' });
+		return this.usersCollection.follow({ rel: 'gwr.io/user', id: userId }).get({ accept: 'application/json' });
 	};
 
 	// Sends (or stores to send) links in the relay's registry
@@ -3010,7 +3065,9 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 
 	// Creates a new agent with up-to-date links for the relay
 	Relay.prototype.agent = function() {
-		return this.relayService.follow({ rel: 'gwr.io/relay/coll', links: 1 });
+		if (this.relayService)
+			return this.relayService.follow({ rel: 'gwr.io/relays', links: 1 });
+		return local.agent();
 	};
 
 	// Subscribes to the event relay and begins handling signals
@@ -3026,15 +3083,15 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			return;
 		}
 		// Record our peer domain
-		this.assignedDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.stream);
-		if (this.config.stream === 0) { this.assignedDomain += '!0'; } // full URI always
+		this.assignedDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.sid);
+		if (this.config.sid === 0) { this.assignedDomain += '!0'; } // full URI always
 		// Connect to the relay stream
 		this.relayItem = this.relayService.follow({
-			rel:    'gwr.io/relay/item',
-			user:   this.getUserId(),
-			app:    this.getApp(),
-			stream: this.getStreamId(),
-			nc:     Date.now() // nocache
+			rel: 'gwr.io/relay',
+			user: this.getUserId(),
+			app: this.getApp(),
+			sid: this.getSid(),
+			nc: Date.now() // nocache
 		});
 		this.connectionStatus = Relay.CONNECTING;
 		this.relayItem.subscribe()
@@ -3113,7 +3170,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		}
 
 		// Make sure the url has a stream id
-		if (peerd.stream === 0 && peerUrl.slice(-2) != '!0') {
+		if (peerd.sid === 0 && peerUrl.slice(-2) != '!0') {
 			peerUrl += '!0';
 		}
 
@@ -3204,7 +3261,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 				this.emit('streamTaken');
 			} else {
 				// Auto-retry
-				this.setStreamId(randomStreamId());
+				this.setSid(randomStreamId());
 				this.startListening();
 			}
 		} else if (e.data && e.data.status == 420) { // out of streams
@@ -3275,8 +3332,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		}
 	};
 
-	Relay.prototype.makeDomain = function(user, app, stream) {
-		return local.makePeerDomain(user, this.providerDomain, app, stream);
+	Relay.prototype.makeDomain = function(user, app, sid) {
+		return local.makePeerDomain(user, this.providerDomain, app, sid);
 	};
 
 	// :DEBUG: helper to deal with webrtc issues
@@ -3487,7 +3544,7 @@ local.schemes.register('httpl', function(request, response) {
 		var peerd = local.parsePeerDomain(request.urld.authority);
 		if (peerd) {
 			// See if this is a default stream miss
-			if (peerd.stream == 0) {
+			if (peerd.sid == 0) {
 				if (request.urld.authority.slice(-2) == '!0') {
 					server = local.getServer(request.urld.authority.slice(0,-2));
 				} else {
@@ -3639,7 +3696,9 @@ local.dispatch = function dispatch(request) {
 	var body = null, shouldAutoSendRequestBody = false;
 	if (!(request instanceof local.Request)) {
 		body = request.body;
+		var timeout = request.timeout;
 		request = new local.Request(request);
+		if (timeout) { request.setTimeout(timeout); }
 		shouldAutoSendRequestBody = true; // we're going to end()
 	}
 	Object.defineProperty(request, 'urld', { value: local.parseUri(request.url), configurable: true, enumerable: false, writable: true }); // (urld = url description)
@@ -3760,12 +3819,12 @@ function processResponseHeaders(request, response) {
 				link.host_user   = peerd.user;
 				link.host_relay  = peerd.relay;
 				link.host_app    = peerd.app;
-				link.host_stream = peerd.stream;
+				link.host_sid    = peerd.sid;
 			} else {
 				delete link.host_user;
 				delete link.host_relay;
 				delete link.host_app;
-				delete link.host_stream;
+				delete link.host_sid;
 			}
 		});
 	}
@@ -3779,7 +3838,7 @@ function parseScheme(url) {
 		if (url.indexOf('//') === 0)
 			return 'http';
 		else if (url.indexOf('||') === 0)
-			return 'rel';
+			return 'nav';
 		else
 			return 'httpl';
 	}

@@ -20,7 +20,7 @@ Typically created and managed by a `local.Relay` instance.
 
 ### .getPeerInfo()
 
- - returns `{ domain:, user:, relay:, app:, stream: }`
+ - returns `{ domain:, user:, relay:, app:, sid: }`
 
 ```javascript
 peerServer.getPeerInfo();
@@ -29,7 +29,7 @@ peerServer.getPeerInfo();
 	user: 'bob',
 	relay: 'grimwire.net',
 	app: 'chat.grimwire.com',
-	stream: '123'
+	sid: '123'
 } */
 ```
 

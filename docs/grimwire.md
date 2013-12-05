@@ -18,8 +18,8 @@ If the stream ID is taken - presumably by another instance of the application - 
 
 ```javascript
 // Get access to the relay
-var streamId = 0;
-var relay = local.joinRelay('https://grimwire.net', { stream: streamId }, peerServerFn);
+var sid = 0;
+var relay = local.joinRelay('https://grimwire.net', { sid: sid }, peerServerFn);
 
 // Handle authorization
 relay.requestAccessToken(); // this will prompt the user to authorize the app
@@ -32,7 +32,7 @@ relay.on('accessDenied', function() {
 
 // Deal with stream conflicts
 relay.on('streamTaken', function() {
-	relay.setStreamId(++streamId);
+	relay.setSid(++sid);
 	peerRelay.startListening();
 });
 
@@ -81,7 +81,7 @@ Grimwire assigns a globally unique URL to every active stream using 4 pieces of 
  1. <strong style="color: rgb(216, 56, 56)">User</strong>: the id of the account authenticated with the relay
  2. <strong style="color: rgb(81, 129, 201)">Provider Domain</strong>: the relay hosting the peer stream
  3. <strong style="color: rgb(81, 160, 37)">App Domain</strong>: the hostname of the application using the stream
- 4. <strong style="color: rgb(216, 149, 31)">Stream ID</strong>: the id of the app's stream to the relay (optional if 0)
+ 4. <strong style="color: rgb(216, 149, 31)">Stream ID (sid)</strong>: the id of the app's stream to the relay (optional if 0)
 
 Any request sent to an HTTPL address matching this scheme will automatically route to the peer (establishing a WebRTC connection in the process).
 
@@ -103,7 +103,7 @@ function peerServerFn(req, res, peer) {
 		user: 'bob',
 		relay: 'grimwire.net',
 		app: 'chat.grimwire.com',
-		stream: '123'
+		sid: '123'
 	}
 	*/
 }
@@ -127,7 +127,7 @@ To query the current index, use the relay's `agent()` function:
 relay.agent().follow({ rel: 'foobar.com/myservice' }).get();
 ```
 
-Links automatically have the `relay_user` attribute populated with the id of the registering user. Additionally, when the link header is parsed, peer URIs have the `host_user`, `host_app`, `host_relay`, and `host_stream` attributes populated so that navigations can query against those values.
+Links automatically have the `relay_user` attribute populated with the id of the registering user. Additionally, when the link header is parsed, peer URIs have the `host_user`, `host_app`, `host_relay`, and `host_sid` attributes populated so that navigations can query against those values.
 
 ```javascript
 relay.agent().follow({ rel: 'foobar.com/myservice', relay_user: 'bob' }).get();

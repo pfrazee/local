@@ -35,7 +35,9 @@ local.dispatch = function dispatch(request) {
 	var body = null, shouldAutoSendRequestBody = false;
 	if (!(request instanceof local.Request)) {
 		body = request.body;
+		var timeout = request.timeout;
 		request = new local.Request(request);
+		if (timeout) { request.setTimeout(timeout); }
 		shouldAutoSendRequestBody = true; // we're going to end()
 	}
 	Object.defineProperty(request, 'urld', { value: local.parseUri(request.url), configurable: true, enumerable: false, writable: true }); // (urld = url description)
@@ -156,12 +158,12 @@ function processResponseHeaders(request, response) {
 				link.host_user   = peerd.user;
 				link.host_relay  = peerd.relay;
 				link.host_app    = peerd.app;
-				link.host_stream = peerd.stream;
+				link.host_sid    = peerd.sid;
 			} else {
 				delete link.host_user;
 				delete link.host_relay;
 				delete link.host_app;
-				delete link.host_stream;
+				delete link.host_sid;
 			}
 		});
 	}
@@ -175,7 +177,7 @@ function parseScheme(url) {
 		if (url.indexOf('//') === 0)
 			return 'http';
 		else if (url.indexOf('||') === 0)
-			return 'rel';
+			return 'nav';
 		else
 			return 'httpl';
 	}

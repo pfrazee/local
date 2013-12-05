@@ -3,7 +3,7 @@ agent()
 
 ---
 
-A programmatic browser which follows links provided in response headers. Every navigation is lazy, waiting for a dispatch call before resolving the queries to URLs.
+A headless browser which navigates Web APIs by following links in response headers.
 
 ```javascript
 local.agent('httpl://myhost')
@@ -12,15 +12,19 @@ local.agent('httpl://myhost')
     .get({ accept: 'application/json' });
 ```
 
-Links are resolved by issuing HEAD requests, then searching the returned Link headers. Each navigation produces a new, unresolved `local.Agent` with a reference to its parent. To find its URL, the agent will resolve the parent, then search the resulting links.
+Navigations are made by issuing HEAD requests and querying the returned Link headers for the next destination. Each `follow()` produces a new `local.Agent` which stores its query and a reference to its parent. When asked to resolve (either due to a request or a `resolve()` call) the agent will resolve its parent, then search the parent's received links. The resolved URL is then cached for future requests.
 
-If a query fails, any resolving children will also fail, resulting in a `{status: 1}` "Link Not Found" response.
+<img src="assets/docs-agent-diagram.jpg" />
+
+If a `follow()` fails to find a matching link, any resolving children will also fail, resulting in a `{status: 1}` "Link Not Found" response.
+
+Agents will detect <a href="http://tools.ietf.org/html/rfc6570" title="RFC 6570 - URI Template">URI Template</a> tokens in the URI and treat them as a matching attribute in link queries. To resolve, the tokens are replaced by the values in the query. This is illustrated above with the "id" attribute.
 
 ---
 
-### local.agent(<span class="muted">query</span>)
+### local.agent(<span class="muted">location</span>)
 
- - `query`: optional URL|Array|local.Agent, the location for the agent to point to.
+ - `location`: optional URL|Array|local.Agent, the location for the agent to point to.
  - returns `local.Agent`
 
 Standard usage is to pass an absolute URL, setting the starting point for future navigations.
@@ -45,26 +49,17 @@ var bob = local.agent([
 
 ### Web Linking and Reltypes
 
-The protocol for agent navigations is defined in <a href="http://tools.ietf.org/html/rfc5988">RFC 5988 - Web Linking</a>. This is a relatively new standard with some adoption (eg, <a href="http://developer.github.com/v3/issues/">at GitHub</a>) and a history with the `<link>` element. The behavior is basically the same.
-
-```
-HTTP/1.1 200 OK
-Link: <httpl://myhost>; rel="service"; title="My Host", <httpl://myhost/users>; rel="collection"; id="users"
-```
-
-The Link header standardizes a link format outside of the response body, solving a common interoperability issue. Additionally, "relation types" can be used to label protocols in the Web API, guaranteeing specific behaviors to clients. This is commonly practiced with favicons and stylesheets:
+The protocol for agent navigations is defined in <a href="http://tools.ietf.org/html/rfc5988">RFC 5988 - Web Linking</a>. The standard defines a Link header with identical semantics to the `<link>` HTML element.
 
 ```markup
 <link rel="stylesheet" href="mypage.css" /> <!-- will provide styling content -->
 ```
 
-Links may use one or more reltype from the <a href="http://www.iana.org/assignments/link-relations/link-relations.xhtml#link-relations-1">IANA public registry</a>. If a custom reltype is needed, it should be a valid HTTP/S URL which hosts documentation on the reltype's protocol. This helps other developers implement the APIs.
+The Link header standardizes a link format outside of the response body, solving a common interoperability issue. "Relation types" stored in the `rel` attribute can be used to label protocols in the Web API, guaranteeing specific behaviors to clients. Links may use one or more reltype from the <a href="http://www.iana.org/assignments/link-relations/link-relations.xhtml#link-relations-1">IANA public registry</a>. If a custom reltype is needed, it should be a valid HTTP/S URL which hosts documentation on the reltype's protocol. This helps other developers implement the APIs.
 
-```
+```markup
 Link: <httpl://myhost/users>; rel="collection foobar.com/users foobar.com/paginated"; id="users"
 ```
-
-Multiple reltypes can be combined to provide different guarantees.
 
 ---
 
@@ -114,7 +109,7 @@ Local.js does additional parsing on link headers to add the following queryable 
  - `host_user`: if a peer URI, the user id part of the URI
  - `host_relay`: if a peer URI, the relay domain part of the URI
  - `host_app`: if a peer URI, the app domain part of the URI
- - `host_stream`: if a peer URI, the stream id part of the URI
+ - `host_sid`: if a peer URI, the stream id part of the URI
 
 Additionally, links hosted on Grimwire relays include the following queryable attribite:
 

@@ -4,8 +4,7 @@
 (function() {
 
 	var peerConstraints = {
-		// optional: [{ RtpDataChannels: true }]
-		optional: [{DtlsSrtpKeyAgreement: true}]
+		optional: [/*{RtpDataChannels: true}, */{DtlsSrtpKeyAgreement: true}]
 	};
 	var defaultIceServers = { iceServers: [{ url: 'stun:stun.l.google.com:19302' }] };
 
@@ -113,7 +112,16 @@
 				data: msg
 			});
 		} else {
-			this.rtcDataChannel.send(msg);
+			try { // :DEBUG: as soon as WebRTC stabilizes some more, let's ditch this
+				this.rtcDataChannel.send(msg);
+			} catch (e) {
+				this.debugLog('NETWORK ERROR, BOUNCING', e);
+				// Probably a NetworkError - one known cause, one party gets a dataChannel and the other doesnt
+				this.signal({
+					type: 'httpl',
+					data: msg
+				});
+			}
 		}
 	};
 
@@ -144,22 +152,15 @@
 		console.log('Successfully established WebRTC session with', this.config.peer);
 		this.debugLog('HTTPL CHANNEL OPEN', e);
 
-		// :HACK: canary appears to drop packets for a short period after the datachannel is made ready
+		// Update state
+		this.isConnecting = false;
+		this.isConnected = true;
 
-		var self = this;
-		setTimeout(function() {
-			console.warn('using rtcDataChannel delay hack');
+		// Can now rely on sctp ordering
+		this.useMessageReordering(false);
 
-			// Update state
-			self.isConnecting = false;
-			self.isConnected = true;
-
-			// Can now rely on sctp ordering
-			self.useMessageReordering(false);
-
-			// Emit event
-			self.emit('connected', Object.create(self.peerInfo), self);
-		}, 1000);
+		// Emit event
+		this.emit('connected', Object.create(this.peerInfo), this);
 	}
 
 	function onHttplChannelClose(e) {
@@ -435,7 +436,7 @@
 
 	// Called by the RTCPeerConnection when we get a possible connection path
 	function onIceCandidate(e) {
-		if (e && e.candidate) {
+		if (e && !!e.candidate) {
 			this.debugLog('FOUND ICE CANDIDATE', e.candidate);
 			// send connection info to peers on the relay
 			this.signal({ type: 'candidate', candidate: e.candidate.candidate });
@@ -484,7 +485,7 @@
 	// - `config.provider`: optional string, the relay provider
 	// - `config.serverFn`: optional function, the function for peerservers' handleRemoteRequest
 	// - `config.app`: optional string, the app to join as (defaults to window.location.host)
-	// - `config.stream`: optional number, the stream id (defaults to pseudo-random)
+	// - `config.sid`: optional number, the stream id (defaults to pseudo-random)
 	// - `config.ping`: optional number, sends a ping to self via the relay at the given interval (in ms) to keep the stream alive
 	//   - set to false to disable keepalive pings
 	//   - defaults to 45000
@@ -494,7 +495,7 @@
 	function Relay(config) {
 		if (!config) config = {};
 		if (!config.app) config.app = window.location.host;
-		if (typeof config.stream == 'undefined') { config.stream = randomStreamId(); this.autoRetryStreamTaken = true; }
+		if (typeof config.sid == 'undefined') { config.sid = randomStreamId(); this.autoRetryStreamTaken = true; }
 		if (typeof config.ping == 'undefined') { config.ping = 45000; }
 		this.config = config;
 		local.util.mixinEventEmitter(this);
@@ -551,28 +552,31 @@
 			// Store
 			this.userId = tokenParts[0];
 			this.accessToken = token;
-			this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
-			this.usersCollection.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
 
-			// Try to validate our access now
-			var self = this;
-			this.relayItem = this.relayService.follow({
-				rel:    'gwr.io/relay/item',
-				user:   this.getUserId(),
-				app:    this.getApp(),
-				stream: this.getStreamId(),
-				nc:     Date.now() // nocache
-			});
-			this.relayItem.resolve().then( // a successful HEAD request will verify access
-				function() {
-					// Emit an event
-					self.emit('accessGranted');
-				},
-				function(res) {
-					// Handle error
-					self.onRelayError({ event: 'error', data: res });
-				}
-			);
+			if (this.relayService) {
+				this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
+				this.usersCollection.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
+
+				// Try to validate our access now
+				var self = this;
+				this.relayItem = this.relayService.follow({
+					rel: 'gwr.io/relay',
+					user: this.getUserId(),
+					app: this.getApp(),
+					sid: this.getSid(),
+					nc: Date.now() // nocache
+				});
+				this.relayItem.resolve().then( // a successful HEAD request will verify access
+					function() {
+						// Emit an event
+						self.emit('accessGranted');
+					},
+					function(res) {
+						// Handle error
+						self.onRelayError({ event: 'error', data: res });
+					}
+				);
+			}
 		} else {
 			// Update state and emit event
 			var hadToken = !!this.accessToken;
@@ -589,8 +593,10 @@
 	Relay.prototype.getUserId         = function() { return this.userId; };
 	Relay.prototype.getApp            = function() { return this.config.app; };
 	Relay.prototype.setApp            = function(v) { this.config.app = v; };
-	Relay.prototype.getStreamId       = function() { return this.config.stream; };
-	Relay.prototype.setStreamId       = function(stream) { this.config.stream = stream; };
+	Relay.prototype.getStreamId       = function() { return this.config.sid; };
+	Relay.prototype.getSid            = Relay.prototype.getStreamId;
+	Relay.prototype.setStreamId       = function(sid) { this.config.sid = sid; };
+	Relay.prototype.setSid            = Relay.prototype.setStreamId;
 	Relay.prototype.getAccessToken    = function() { return this.accessToken; };
 	Relay.prototype.getServer         = function() { return this.config.serverFn; };
 	Relay.prototype.setServer         = function(fn) { this.config.serverFn = fn; };
@@ -608,7 +614,7 @@
 
 		// Create APIs
 		this.relayService = local.agent(this.config.provider);
-		this.usersCollection = this.relayService.follow({ rel: 'gwr.io/user/coll' });
+		this.usersCollection = this.relayService.follow({ rel: 'gwr.io/users' });
 
 		if (this.accessToken) {
 			this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+this.accessToken }});
@@ -623,14 +629,13 @@
 		// Start listening for messages from the popup
 		if (!this.messageFromAuthPopupHandler) {
 			this.messageFromAuthPopupHandler = (function(e) {
-				console.log('Received access token from '+e.origin);
-
 				// Make sure this is from our popup
 				var originUrld = local.parseUri(e.origin);
 				var providerUrld = local.parseUri(this.config.provider);
 				if (originUrld.authority !== providerUrld.authority) {
 					return;
 				}
+				console.log('Received access token from '+e.origin);
 
 				// Use this moment to switch to HTTPS, if we're using HTTP
 				// - this occurs when the provider domain is given without a protocol, and the server is HTTPS
@@ -672,7 +677,7 @@
 	// Fetches a user from p2pw service
 	// - `userId`: string
 	Relay.prototype.getUser = function(userId) {
-		return this.usersCollection.follow({ rel: 'gwr.io/user/item', id: userId }).get({ accept: 'application/json' });
+		return this.usersCollection.follow({ rel: 'gwr.io/user', id: userId }).get({ accept: 'application/json' });
 	};
 
 	// Sends (or stores to send) links in the relay's registry
@@ -685,7 +690,9 @@
 
 	// Creates a new agent with up-to-date links for the relay
 	Relay.prototype.agent = function() {
-		return this.relayService.follow({ rel: 'gwr.io/relay/coll', links: 1 });
+		if (this.relayService)
+			return this.relayService.follow({ rel: 'gwr.io/relays', links: 1 });
+		return local.agent();
 	};
 
 	// Subscribes to the event relay and begins handling signals
@@ -701,15 +708,15 @@
 			return;
 		}
 		// Record our peer domain
-		this.assignedDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.stream);
-		if (this.config.stream === 0) { this.assignedDomain += '!0'; } // full URI always
+		this.assignedDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.sid);
+		if (this.config.sid === 0) { this.assignedDomain += '!0'; } // full URI always
 		// Connect to the relay stream
 		this.relayItem = this.relayService.follow({
-			rel:    'gwr.io/relay/item',
-			user:   this.getUserId(),
-			app:    this.getApp(),
-			stream: this.getStreamId(),
-			nc:     Date.now() // nocache
+			rel: 'gwr.io/relay',
+			user: this.getUserId(),
+			app: this.getApp(),
+			sid: this.getSid(),
+			nc: Date.now() // nocache
 		});
 		this.connectionStatus = Relay.CONNECTING;
 		this.relayItem.subscribe()
@@ -788,7 +795,7 @@
 		}
 
 		// Make sure the url has a stream id
-		if (peerd.stream === 0 && peerUrl.slice(-2) != '!0') {
+		if (peerd.sid === 0 && peerUrl.slice(-2) != '!0') {
 			peerUrl += '!0';
 		}
 
@@ -879,7 +886,7 @@
 				this.emit('streamTaken');
 			} else {
 				// Auto-retry
-				this.setStreamId(randomStreamId());
+				this.setSid(randomStreamId());
 				this.startListening();
 			}
 		} else if (e.data && e.data.status == 420) { // out of streams
@@ -950,8 +957,8 @@
 		}
 	};
 
-	Relay.prototype.makeDomain = function(user, app, stream) {
-		return local.makePeerDomain(user, this.providerDomain, app, stream);
+	Relay.prototype.makeDomain = function(user, app, sid) {
+		return local.makePeerDomain(user, this.providerDomain, app, sid);
 	};
 
 	// :DEBUG: helper to deal with webrtc issues

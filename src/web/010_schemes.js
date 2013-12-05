@@ -192,7 +192,7 @@ local.schemes.register('httpl', function(request, response) {
 		var peerd = local.parsePeerDomain(request.urld.authority);
 		if (peerd) {
 			// See if this is a default stream miss
-			if (peerd.stream == 0) {
+			if (peerd.sid == 0) {
 				if (request.urld.authority.slice(-2) == '!0') {
 					server = local.getServer(request.urld.authority.slice(0,-2));
 				} else {

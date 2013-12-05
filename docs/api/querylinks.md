@@ -52,7 +52,7 @@ Local.js does additional parsing on link headers to add the following queryable 
  - `host_user`: if a peer URI, the user id part of the URI
  - `host_relay`: if a peer URI, the relay domain part of the URI
  - `host_app`: if a peer URI, the app domain part of the URI
- - `host_stream`: if a peer URI, the stream id part of the URI
+ - `host_sid`: if a peer URI, the stream id part of the URI
 
 Additionally, links hosted on Grimwire relays include the following queryable attribite:
 

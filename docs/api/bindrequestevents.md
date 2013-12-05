@@ -72,6 +72,20 @@ Each of the buttons in this example will produce a different request.
 
 ---
 
+### Element Aliases
+
+If you want a non-`<a>` element to generate requests, use the `data-local-alias` attribute.
+
+```markup
+<p data-local-alias="a" href="httpl://foo" method="NOTIFY" target="bar" type="application/json">Foo</p>
+<!-- handles a click event the same as: -->
+<a href="httpl://foo" method="NOTIFY" target="bar" type="application/json">Foo</a>
+```
+
+Currently, "a" is the only supported alias, but "button" is planned for future releases to add form-submit behavior to arbitrary elements.
+
+---
+
 ### File Uploads
 
 If a form includes an `<input type="file">`, Local.js will use the `FileReader` API to load the file and include it in the request body. This is an asyncronous process, so you should call `finishPayloadFileReads()` before dispatching the request.

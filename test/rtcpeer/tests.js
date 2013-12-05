@@ -3,8 +3,8 @@ done = false;
 startTime = Date.now();
 
 // Create peerweb relay streams
-var relay1 = local.joinRelay('https://grimwire.net', { stream: 0 }, peer1ServerFn);
-var relay2 = local.joinRelay('https://grimwire.net', { stream: 1 }, peer2ServerFn);
+var relay1 = local.joinRelay('https://grimwire.net', { sid: 0, log: true }, peer1ServerFn);
+var relay2 = local.joinRelay('https://grimwire.net', { sid: 1 }, peer2ServerFn);
 
 relay1.on('accessGranted', function() {
 	sessionStorage.setItem('access-token', relay1.getAccessToken());

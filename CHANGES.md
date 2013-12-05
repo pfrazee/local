@@ -1,11 +1,36 @@
 Changes
 =======
-0.5.0
+0.5.1
+
+2013/12/05 pfraze
+
+ - Altered webrtc peer URI semantics to always refer to the 4th item as the 'sid' (instead of the ambiguous 'stream' or 'streamId')
+ - Simplified gwr.io reltypes
+
+
+2013/12/01 pfraze
+
+ - Added timeout to requests
+
+
+2013/11/26 pfraze
+
+ - Added data-local-alias="a" to the request dom-events
+
+
+2013/11/21 pfraze
+
+ - Improved agent documentation
+ - Added "close" message to HTTPL as a distinct event separate from "end". This enables the requester to close the stream after ending the request.
+
 
 2013/11/19 pfraze
 
  - Added local.util.nextTick to optimize async
 
+
+0.5.0
+=====
 
 2013/11/17 pfraze
 

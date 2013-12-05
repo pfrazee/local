@@ -1,4 +1,4 @@
-Local 0.5.0dev
+Local 0.5.1dev
 ==============
 
 [<a href="https://github.com/grimwire/local">Repository</a> | <a href="https://github.com/grimwire/local/issues">Issues</a> | <a href="http://grimwire.com/local">Documentation</a>]
@@ -77,7 +77,7 @@ events.on('foo', function(e) { console.log(e); }) // => { event: "foo", data: ..
 events.on('bar', function(e) { console.log(e); }) // => { event: "bar", data: ... }
 ```
 
-### Programmatic Navigation
+### User Agents
 
 The `local.Agent` is a headless browser that travels Web APIs. It issues HEAD requests to hosts, then runs queries against the returned Link headers to navigate. The navigation queries allow applications to reason about remote hosts and make strong assumptions based on reltypes. This protocol is outlined in the [Web Linking spec](http://tools.ietf.org/html/rfc5988).
 
