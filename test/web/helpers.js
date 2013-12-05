@@ -152,6 +152,10 @@ print(local.queryLinks(links, { rel: '!whatever.com/rel/collection item' }).leng
 // => 2
 print(local.queryLinks(links, { rel: 'other.com/-item', user: 'bob' }).length);
 // => 1
+print(local.queryLinks(links, { rel: 'other.com/-item', user: null }).length);
+// => 0
+print(local.queryLinks(links, { rel: 'other.com/-item', user: false }).length);
+// => 0
 finishTest();
 
 

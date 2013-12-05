@@ -855,7 +855,7 @@ local.queryLink = function queryLink(link, query) {
 					return false;
 			}
 			else {
-				if (query[attr].indexOf('!') === 0) { // negation
+				if (query[attr] && query[attr].indexOf && query[attr].indexOf('!') === 0) { // negation
 					if (link[attr] == query[attr].slice(1))
 						return false;
 				} else {
