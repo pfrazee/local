@@ -291,8 +291,7 @@ local.parseNavUri = function(str) {
 
 // EXPORTED
 // breaks a peer domain into its constituent parts
-// - returns { user:, relay:, provider:, app:, stream: }
-//   (relay == provider -- they are synonmyms)
+// - returns { user:, relay:, app:, sid: }
 var peerDomainRE = /^(.+)@([^!]+)!([^!\/]+)(?:!([\d]+))?$/i;
 local.parsePeerDomain = function parsePeerDomain(domain) {
 	var match = peerDomainRE.exec(domain);
@@ -301,9 +300,10 @@ local.parsePeerDomain = function parsePeerDomain(domain) {
 			domain: domain,
 			user: match[1],
 			relay: match[2],
-			provider: match[2],
+			provider: match[2], // :TODO: remove
 			app: match[3],
-			stream: match[4] || 0
+			stream: match[4] || 0, // :TODO: remove
+			sid: match[4] || 0
 		};
 	}
 	return null;
@@ -312,8 +312,8 @@ local.parsePeerDomain = function parsePeerDomain(domain) {
 // EXPORTED
 // constructs a peer domain from its constituent parts
 // - returns string
-local.makePeerDomain = function makePeerDomain(user, relay, app, stream) {
-	return user+'@'+relay+'!'+app+((stream) ? '!'+stream : '');
+local.makePeerDomain = function makePeerDomain(user, relay, app, sid) {
+	return user+'@'+relay+'!'+app+((sid) ? '!'+sid : '');
 };
 
 // EXPORTED

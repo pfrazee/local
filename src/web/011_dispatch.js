@@ -158,12 +158,12 @@ function processResponseHeaders(request, response) {
 				link.host_user   = peerd.user;
 				link.host_relay  = peerd.relay;
 				link.host_app    = peerd.app;
-				link.host_stream = peerd.stream;
+				link.host_sid    = peerd.sid;
 			} else {
 				delete link.host_user;
 				delete link.host_relay;
 				delete link.host_app;
-				delete link.host_stream;
+				delete link.host_sid;
 			}
 		});
 	}

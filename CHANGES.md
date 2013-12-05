@@ -2,6 +2,11 @@ Changes
 =======
 0.5.1
 
+2013/12/05 pfraze
+
+ - Altered webrtc peer URI semantics to always refer to the 4th item as the 'sid' (instead of the ambiguous 'stream' or 'streamId')
+
+
 2013/12/01 pfraze
 
  - Added timeout to requests

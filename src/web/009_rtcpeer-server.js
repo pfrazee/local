@@ -485,7 +485,7 @@
 	// - `config.provider`: optional string, the relay provider
 	// - `config.serverFn`: optional function, the function for peerservers' handleRemoteRequest
 	// - `config.app`: optional string, the app to join as (defaults to window.location.host)
-	// - `config.stream`: optional number, the stream id (defaults to pseudo-random)
+	// - `config.sid`: optional number, the stream id (defaults to pseudo-random)
 	// - `config.ping`: optional number, sends a ping to self via the relay at the given interval (in ms) to keep the stream alive
 	//   - set to false to disable keepalive pings
 	//   - defaults to 45000
@@ -495,7 +495,7 @@
 	function Relay(config) {
 		if (!config) config = {};
 		if (!config.app) config.app = window.location.host;
-		if (typeof config.stream == 'undefined') { config.stream = randomStreamId(); this.autoRetryStreamTaken = true; }
+		if (typeof config.sid == 'undefined') { config.sid = randomStreamId(); this.autoRetryStreamTaken = true; }
 		if (typeof config.ping == 'undefined') { config.ping = 45000; }
 		this.config = config;
 		local.util.mixinEventEmitter(this);
@@ -560,11 +560,11 @@
 				// Try to validate our access now
 				var self = this;
 				this.relayItem = this.relayService.follow({
-					rel:    'gwr.io/relay/item',
-					user:   this.getUserId(),
-					app:    this.getApp(),
-					stream: this.getStreamId(),
-					nc:     Date.now() // nocache
+					rel: 'gwr.io/relay/item',
+					user: this.getUserId(),
+					app: this.getApp(),
+					sid: this.getSid(),
+					nc: Date.now() // nocache
 				});
 				this.relayItem.resolve().then( // a successful HEAD request will verify access
 					function() {
@@ -593,8 +593,10 @@
 	Relay.prototype.getUserId         = function() { return this.userId; };
 	Relay.prototype.getApp            = function() { return this.config.app; };
 	Relay.prototype.setApp            = function(v) { this.config.app = v; };
-	Relay.prototype.getStreamId       = function() { return this.config.stream; };
-	Relay.prototype.setStreamId       = function(stream) { this.config.stream = stream; };
+	Relay.prototype.getStreamId       = function() { return this.config.sid; };
+	Relay.prototype.getSid            = Relay.prototype.getStreamId;
+	Relay.prototype.setStreamId       = function(sid) { this.config.sid = sid; };
+	Relay.prototype.setSid            = Relay.prototype.setStreamId;
 	Relay.prototype.getAccessToken    = function() { return this.accessToken; };
 	Relay.prototype.getServer         = function() { return this.config.serverFn; };
 	Relay.prototype.setServer         = function(fn) { this.config.serverFn = fn; };
@@ -706,15 +708,15 @@
 			return;
 		}
 		// Record our peer domain
-		this.assignedDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.stream);
-		if (this.config.stream === 0) { this.assignedDomain += '!0'; } // full URI always
+		this.assignedDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.sid);
+		if (this.config.sid === 0) { this.assignedDomain += '!0'; } // full URI always
 		// Connect to the relay stream
 		this.relayItem = this.relayService.follow({
-			rel:    'gwr.io/relay/item',
-			user:   this.getUserId(),
-			app:    this.getApp(),
-			stream: this.getStreamId(),
-			nc:     Date.now() // nocache
+			rel: 'gwr.io/relay/item',
+			user: this.getUserId(),
+			app: this.getApp(),
+			sid: this.getSid(),
+			nc: Date.now() // nocache
 		});
 		this.connectionStatus = Relay.CONNECTING;
 		this.relayItem.subscribe()
@@ -793,7 +795,7 @@
 		}
 
 		// Make sure the url has a stream id
-		if (peerd.stream === 0 && peerUrl.slice(-2) != '!0') {
+		if (peerd.sid === 0 && peerUrl.slice(-2) != '!0') {
 			peerUrl += '!0';
 		}
 
@@ -884,7 +886,7 @@
 				this.emit('streamTaken');
 			} else {
 				// Auto-retry
-				this.setStreamId(randomStreamId());
+				this.setSid(randomStreamId());
 				this.startListening();
 			}
 		} else if (e.data && e.data.status == 420) { // out of streams
@@ -955,8 +957,8 @@
 		}
 	};
 
-	Relay.prototype.makeDomain = function(user, app, stream) {
-		return local.makePeerDomain(user, this.providerDomain, app, stream);
+	Relay.prototype.makeDomain = function(user, app, sid) {
+		return local.makePeerDomain(user, this.providerDomain, app, sid);
 	};
 
 	// :DEBUG: helper to deal with webrtc issues
