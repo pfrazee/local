@@ -560,7 +560,7 @@
 				// Try to validate our access now
 				var self = this;
 				this.relayItem = this.relayService.follow({
-					rel: 'gwr.io/relay/item',
+					rel: 'gwr.io/relay',
 					user: this.getUserId(),
 					app: this.getApp(),
 					sid: this.getSid(),
@@ -614,7 +614,7 @@
 
 		// Create APIs
 		this.relayService = local.agent(this.config.provider);
-		this.usersCollection = this.relayService.follow({ rel: 'gwr.io/user/coll' });
+		this.usersCollection = this.relayService.follow({ rel: 'gwr.io/users' });
 
 		if (this.accessToken) {
 			this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+this.accessToken }});
@@ -677,7 +677,7 @@
 	// Fetches a user from p2pw service
 	// - `userId`: string
 	Relay.prototype.getUser = function(userId) {
-		return this.usersCollection.follow({ rel: 'gwr.io/user/item', id: userId }).get({ accept: 'application/json' });
+		return this.usersCollection.follow({ rel: 'gwr.io/user', id: userId }).get({ accept: 'application/json' });
 	};
 
 	// Sends (or stores to send) links in the relay's registry
@@ -691,7 +691,7 @@
 	// Creates a new agent with up-to-date links for the relay
 	Relay.prototype.agent = function() {
 		if (this.relayService)
-			return this.relayService.follow({ rel: 'gwr.io/relay/coll', links: 1 });
+			return this.relayService.follow({ rel: 'gwr.io/relays', links: 1 });
 		return local.agent();
 	};
 
@@ -712,7 +712,7 @@
 		if (this.config.sid === 0) { this.assignedDomain += '!0'; } // full URI always
 		// Connect to the relay stream
 		this.relayItem = this.relayService.follow({
-			rel: 'gwr.io/relay/item',
+			rel: 'gwr.io/relay',
 			user: this.getUserId(),
 			app: this.getApp(),
 			sid: this.getSid(),

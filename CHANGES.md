@@ -5,6 +5,7 @@ Changes
 2013/12/05 pfraze
 
  - Altered webrtc peer URI semantics to always refer to the 4th item as the 'sid' (instead of the ambiguous 'stream' or 'streamId')
+ - Simplified gwr.io reltypes
 
 
 2013/12/01 pfraze
