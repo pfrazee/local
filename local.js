@@ -3902,6 +3902,8 @@ EventStream.prototype.connect = function(response_) {
 				}
 				// Hold onto any lefovers
 				buffer = payload;
+				// Clear the response' buffer
+				response.body = '';
 			});
 			response.on('end', function() { self.close(); });
 			response.on('close', function() { if (self.isConnOpen) { self.reconnect(); } });
@@ -4018,6 +4020,9 @@ EventHost.prototype.emitTo = function(responseStream, eventName, data) {
 		responseStream = this.streams[responseStream];
 	}
 	responseStream.write({ event: eventName, data: data });
+
+	// Clear the response's buffer, as the data is handled on emit
+	responseStream.body = '';
 };/*
  UriTemplate Copyright (c) 2012-2013 Franz Antesberger. All Rights Reserved.
  Available via the MIT license.
@@ -5276,13 +5281,14 @@ function makeDispWBodySugar(method) {
 		return this.dispatch(req);
 	};
 }
-Agent.prototype.head   = makeDispSugar('HEAD');
-Agent.prototype.get    = makeDispSugar('GET');
-Agent.prototype.delete = makeDispSugar('DELETE');
-Agent.prototype.post   = makeDispWBodySugar('POST');
-Agent.prototype.put    = makeDispWBodySugar('PUT');
-Agent.prototype.patch  = makeDispWBodySugar('PATCH');
-Agent.prototype.notify = makeDispWBodySugar('NOTIFY');
+Agent.prototype.SUBSCRIBE = makeDispSugar('SUBSCRIBE');
+Agent.prototype.HEAD   = Agent.prototype.head   = makeDispSugar('HEAD');
+Agent.prototype.GET    = Agent.prototype.get    = makeDispSugar('GET');
+Agent.prototype.DELETE = Agent.prototype.delete = makeDispSugar('DELETE');
+Agent.prototype.POST   = Agent.prototype.post   = makeDispWBodySugar('POST');
+Agent.prototype.PUT    = Agent.prototype.put    = makeDispWBodySugar('PUT');
+Agent.prototype.PATCH  = Agent.prototype.patch  = makeDispWBodySugar('PATCH');
+Agent.prototype.NOTIFY = Agent.prototype.notify = makeDispWBodySugar('NOTIFY');
 
 // Builder
 // =======

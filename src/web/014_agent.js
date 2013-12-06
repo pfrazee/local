@@ -384,13 +384,14 @@ function makeDispWBodySugar(method) {
 		return this.dispatch(req);
 	};
 }
-Agent.prototype.head   = makeDispSugar('HEAD');
-Agent.prototype.get    = makeDispSugar('GET');
-Agent.prototype.delete = makeDispSugar('DELETE');
-Agent.prototype.post   = makeDispWBodySugar('POST');
-Agent.prototype.put    = makeDispWBodySugar('PUT');
-Agent.prototype.patch  = makeDispWBodySugar('PATCH');
-Agent.prototype.notify = makeDispWBodySugar('NOTIFY');
+Agent.prototype.SUBSCRIBE = makeDispSugar('SUBSCRIBE');
+Agent.prototype.HEAD   = Agent.prototype.head   = makeDispSugar('HEAD');
+Agent.prototype.GET    = Agent.prototype.get    = makeDispSugar('GET');
+Agent.prototype.DELETE = Agent.prototype.delete = makeDispSugar('DELETE');
+Agent.prototype.POST   = Agent.prototype.post   = makeDispWBodySugar('POST');
+Agent.prototype.PUT    = Agent.prototype.put    = makeDispWBodySugar('PUT');
+Agent.prototype.PATCH  = Agent.prototype.patch  = makeDispWBodySugar('PATCH');
+Agent.prototype.NOTIFY = Agent.prototype.notify = makeDispWBodySugar('NOTIFY');
 
 // Builder
 // =======

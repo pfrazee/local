@@ -57,6 +57,8 @@ EventStream.prototype.connect = function(response_) {
 				}
 				// Hold onto any lefovers
 				buffer = payload;
+				// Clear the response' buffer
+				response.body = '';
 			});
 			response.on('end', function() { self.close(); });
 			response.on('close', function() { if (self.isConnOpen) { self.reconnect(); } });
@@ -173,4 +175,7 @@ EventHost.prototype.emitTo = function(responseStream, eventName, data) {
 		responseStream = this.streams[responseStream];
 	}
 	responseStream.write({ event: eventName, data: data });
+
+	// Clear the response's buffer, as the data is handled on emit
+	responseStream.body = '';
 };
