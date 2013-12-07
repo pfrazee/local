@@ -763,6 +763,7 @@ if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage)
 } else {
 	var nextTickIndex = 0, nextTickFns = {};
 	local.util.nextTick = function(fn) {
+		if (typeof fn != 'function') { throw "Invalid function provided to nextTick"; }
 		window.postMessage('nextTick'+nextTickIndex, '*');
 		nextTickFns['nextTick'+nextTickIndex] = fn;
 		nextTickIndex++;
