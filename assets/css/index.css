@@ -1,4 +1,8 @@
 
 #viewer-nav { width: 190px; float: left; margin-left: 25px; }
-#viewer { margin: 30px 120px 0 280px; max-width: 960px; }
+#viewer { margin: 30px 20px 0 280px; max-width: 960px; }
 #viewer:empty { background: center 200px no-repeat url(../ajax_spinner.gif); min-height: 300px; }
+@media (max-width: 1300px) {
+	#viewer-nav { width: 140px; margin-left: 0; }
+	#viewer { margin: 30px 20px 0 190px; max-width: 960px; }
+}
