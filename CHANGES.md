@@ -2,6 +2,11 @@ Changes
 =======
 0.5.2
 
+2013/12/13 pfraze
+
+ - Added support for upper-cased methods/url pairs in request options
+
+
 2013/12/12 pfraze
 
  - Added support for upper-cased headers in request and response options

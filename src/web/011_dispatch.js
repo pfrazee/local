@@ -21,6 +21,18 @@ local.dispatch = function dispatch(request) {
 	if (!request) { throw new Error("No request provided to dispatch()"); }
 	if (typeof request == 'string')
 		request = { url: request };
+
+	// Create the request if needed
+	var body = null, shouldAutoSendRequestBody = false;
+	if (!(request instanceof local.Request)) {
+		body = request.body;
+		shouldAutoSendRequestBody = true; // we're going to end()
+
+		var timeout = request.timeout;
+		request = new local.Request(request);
+		if (timeout) { request.setTimeout(timeout); } // :TODO: should this be in the request constructor?
+	}
+
 	if (!request.url) { throw new Error("No url on request"); }
 
 	// If given a nav: scheme, spawn a agent to handle it
@@ -31,15 +43,7 @@ local.dispatch = function dispatch(request) {
 		return local.agent(url).dispatch(request);
 	}
 
-	// Prepare the request
-	var body = null, shouldAutoSendRequestBody = false;
-	if (!(request instanceof local.Request)) {
-		body = request.body;
-		var timeout = request.timeout;
-		request = new local.Request(request);
-		if (timeout) { request.setTimeout(timeout); }
-		shouldAutoSendRequestBody = true; // we're going to end()
-	}
+	// Prep request
 	Object.defineProperty(request, 'urld', { value: local.parseUri(request.url), configurable: true, enumerable: false, writable: true }); // (urld = url description)
 	if (request.urld.query) {
 		// Extract URL query parameters into the request's query object
