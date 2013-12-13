@@ -157,6 +157,50 @@ success
 }
 */
 
+// uppercase request headers mixed into options
+
+done = false;
+startTime = Date.now();
+var res = local.dispatch({
+  method: 'POST', Accept: 'text/plain',
+  url: 'httpl://test.com/foo',
+  body: 'echo this, please', 'Content-Type': 'text/plain'
+});
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "echo this, please",
+  headers: {"content-type": "text/plain"},
+  reason: "ok",
+  status: 200
+}
+*/
+
+// uppercase underscores in headers to avoid quotes
+
+done = false;
+startTime = Date.now();
+var res = local.dispatch({
+  method: 'POST', Accept: 'text/plain',
+  url: 'httpl://test.com/foo',
+  body: 'echo this, please', Content_Type: 'text/plain',
+});
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "echo this, please",
+  headers: {"content-type": "text/plain"},
+  reason: "ok",
+  status: 200
+}
+*/
+
 // local request timeout
 
 done = false;

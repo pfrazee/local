@@ -9,12 +9,15 @@ function Request(options) {
 	if (typeof options == 'string')
 		options = { url: options };
 
+	var headers = options.headers || {};
+	extractUppercaseKeys(options, headers);
+
 	this.method = options.method ? options.method.toUpperCase() : 'GET';
 	this.url = options.url || null;
 	this.path = options.path || null;
 	this.host = options.host || null;
 	this.query = options.query || {};
-	this.headers = lowercaseKeys(options.headers || {});
+	this.headers = lowercaseKeys(headers);
 	this.body = '';
 
 	// Guess the content-type if a full body is included in the message
@@ -162,7 +165,21 @@ Request.prototype.close = function() {
 function lowercaseKeys(obj) {
 	var obj2 = {};
 	for (var k in obj) {
-		obj2[k.toLowerCase()] = obj[k];
+		if (obj.hasOwnProperty(k))
+			obj2[k.toLowerCase()] = obj[k];
 	}
 	return obj2;
+}
+
+// internal helper - has side-effects
+var underscoreRegEx = /_/g;
+function extractUppercaseKeys(/*mutable*/ org, /*mutable*/ dst) {
+	for (var k in org) {
+		var kc = k.charAt(0);
+		if (org.hasOwnProperty(k) && kc === kc.toUpperCase()) {
+			var k2 = k.replace(underscoreRegEx, '-');
+			dst[k2] = org[k];
+			delete org[k];
+		}
+	}
 }

@@ -1,6 +1,14 @@
 Changes
 =======
+0.5.2
+
+2013/12/12 pfraze
+
+ - Added support for upper-cased headers in request options
+
+
 0.5.1
+=====
 
 2013/12/05 pfraze
 
