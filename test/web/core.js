@@ -201,6 +201,22 @@ success
 }
 */
 
+// uppercase headers in responses
+
+done = false;
+startTime = Date.now();
+var res = local.dispatch({ method: 'GET', Accept: 'text/plain', url: 'httpl://test.com' });
+res.then(
+  function(res) { print('success'); print(res['Content-Type']); print(res.Content_Type); },
+  printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+text/plain
+text/plain
+*/
+
 // local request timeout
 
 done = false;

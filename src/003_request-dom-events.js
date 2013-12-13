@@ -50,7 +50,7 @@ function unbindRequestEvents(container) {
 // transforms click events into request events
 function Local__clickHandler(e) {
 	if (e.button !== 0) { return; } // handle left-click only
-	var request = local.util.extractRequest.fromAnchor(e.target);
+	var request = local.util.extractRequest.fromAnchor(e.orgtarget || e.target);
 	if (request && ['_top','_blank'].indexOf(request.target) !== -1) { return; }
 	if (request) {
 		e.preventDefault();

@@ -4,6 +4,7 @@
 // Interface for receiving responses
 // - usually created internally and returned by `dispatch`
 function Response() {
+	var self = this;
 	local.util.EventEmitter.call(this);
 
 	this.status = 0;
@@ -31,6 +32,20 @@ function Response() {
 		writable: true
 	});
 
+	// header mixin
+	this.on('headers', function() {
+		for (var k in self.headers) {
+			var k2 = titlecaseHeader(k);
+			if (typeof self[k2] == 'undefined') {
+				Object.defineProperty(self, k2, { value: self.headers[k], configurable: true, enumerable: false, writable: true });
+			}
+			var k3 = underscorifyHeader(k2);
+			if (typeof self[k3] == 'undefined') {
+				Object.defineProperty(self, k3, { value: self.headers[k], configurable: true, enumerable: false, writable: true });
+			}
+		}
+	});
+
 	// response buffering
 	Object.defineProperty(this, 'body_', {
 		value: local.promise(),
@@ -38,19 +53,17 @@ function Response() {
 		enumerable: false,
 		writable: false
 	});
-	(function buffer(self) {
-		self.on('data', function(data) {
-			if (data instanceof ArrayBuffer)
-				self.body = data; // browsers buffer binary responses, so dont try to stream
-			else
-				self.body += data;
-		});
-		self.on('end', function() {
-			if (self.headers['content-type'])
-				self.body = local.contentTypes.deserialize(self.headers['content-type'], self.body);
-			self.body_.fulfill(self.body);
-		});
-	})(this);
+	this.on('data', function(data) {
+		if (data instanceof ArrayBuffer)
+			self.body = data; // browsers buffer binary responses, so dont try to stream
+		else
+			self.body += data;
+	});
+	this.on('end', function() {
+		if (self.headers['content-type'])
+			self.body = local.contentTypes.deserialize(self.headers['content-type'], self.body);
+		self.body_.fulfill(self.body);
+	});
 }
 local.Response = Response;
 Response.prototype = Object.create(local.util.EventEmitter.prototype);
@@ -140,3 +153,15 @@ Response.prototype.close = function() {
 	// this.removeAllListeners('close');
 	return this;
 };
+
+// internal helper
+var titlecaseRegExp = /(^(.))|(\-(.))/g;
+function titlecaseHeader(v) {
+	return v.replace(titlecaseRegExp, function(v) { return v.toUpperCase(); });
+}
+
+// internal helper
+var dashRegExp = /\-/g;
+function underscorifyHeader(v) {
+	return v.replace(dashRegExp, '_');
+}
