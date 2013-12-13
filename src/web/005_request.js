@@ -9,26 +9,13 @@ function Request(options) {
 	if (typeof options == 'string')
 		options = { url: options };
 
-	// If there are any fully-uppercase keys, treat it like the method/url pair
-	if (!options.method && !options.url) {
+	// If there are any fully-uppercase keys, treat it like the method/body pair
+	if (!options.method && !options.body) {
 		for (var k in options) {
-			// 'METHOD url'
-			if (k.indexOf(' ') !== -1) {
-				var kparts = k.split(' ');
-				if (kparts.length !== 2) {
-					console.warn('Invalid request key:', k, this);
-					continue;
-				}
-				options.method = kparts[0];
-				options.url = kparts[1];
-				options.body = options[k];
-				delete options[k];
-				break;
-			}
-			// 'METHOD'
-			else if (k.toUpperCase() == k) {
+			// METHOD: body
+			if (k.toUpperCase() == k) {
 				options.method = k;
-				options.url = options[k];
+				options.body = options[k];
 				delete options[k];
 				break;
 			}

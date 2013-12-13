@@ -206,28 +206,8 @@ success
 done = false;
 startTime = Date.now();
 var res = local.dispatch({
-  POST: 'httpl://test.com/foo', Accept: 'text/plain',
-  body: 'echo this, please', Content_Type: 'text/plain'
-});
-res.then(printSuccess, printError).always(finishTest);
-wait(function () { return done; });
-
-/* =>
-success
-{
-  body: "echo this, please",
-  headers: {"content-type": "text/plain"},
-  reason: "ok",
-  status: 200
-}
-*/
-
-// 'METHOD url': body
-
-done = false;
-startTime = Date.now();
-var res = local.dispatch({
-  'POST httpl://test.com/foo': 'echo this, please',
+  POST: 'echo this, please',
+  url: 'httpl://test.com/foo',
   Accept: 'text/plain', Content_Type: 'text/plain'
 });
 res.then(printSuccess, printError).always(finishTest);
