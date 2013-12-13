@@ -25,14 +25,16 @@ local.dispatch = function dispatch(request) {
 	// Create the request if needed
 	var body = null, shouldAutoSendRequestBody = false;
 	if (!(request instanceof local.Request)) {
-		body = request.body;
-		shouldAutoSendRequestBody = true; // we're going to end()
+		shouldAutoSendRequestBody = true; // we're going to end() because we were given a object literal
 
 		var timeout = request.timeout;
 		request = new local.Request(request);
 		if (timeout) { request.setTimeout(timeout); } // :TODO: should this be in the request constructor?
-	}
 
+		// pull out body for us to send
+		body = request.body;
+		request.body = '';
+	}
 	if (!request.url) { throw new Error("No url on request"); }
 
 	// If given a nav: scheme, spawn a agent to handle it

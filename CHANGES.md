@@ -5,6 +5,7 @@ Changes
 2013/12/13 pfraze
 
  - Added support for upper-cased methods/url pairs in request options
+ - Added support for 'METHOD url':body triplets in request options
 
 
 2013/12/12 pfraze

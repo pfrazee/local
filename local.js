@@ -1648,7 +1648,21 @@ function Request(options) {
 	// If there are any fully-uppercase keys, treat it like the method/url pair
 	if (!options.method && !options.url) {
 		for (var k in options) {
-			if (k.toUpperCase() == k) {
+			// 'METHOD url'
+			if (k.indexOf(' ') !== -1) {
+				var kparts = k.split(' ');
+				if (kparts.length !== 2) {
+					console.warn('Invalid request key:', k, this);
+					continue;
+				}
+				options.method = kparts[0];
+				options.url = kparts[1];
+				options.body = options[k];
+				delete options[k];
+				break;
+			}
+			// 'METHOD'
+			else if (k.toUpperCase() == k) {
 				options.method = k;
 				options.url = options[k];
 				delete options[k];
@@ -1667,7 +1681,6 @@ function Request(options) {
 	this.host = options.host || null;
 	this.query = options.query || {};
 	this.headers = lowercaseKeys(headers);
-	this.body = '';
 
 	// Guess the content-type if a full body is included in the message
 	if (options.body && !this.headers['content-type']) {
@@ -1686,7 +1699,7 @@ function Request(options) {
 		writable: true
 	});
 	Object.defineProperty(this, 'body', {
-		value: '',
+		value: options.body || '',
 		configurable: true,
 		enumerable: false,
 		writable: true
@@ -3750,14 +3763,16 @@ local.dispatch = function dispatch(request) {
 	// Create the request if needed
 	var body = null, shouldAutoSendRequestBody = false;
 	if (!(request instanceof local.Request)) {
-		body = request.body;
-		shouldAutoSendRequestBody = true; // we're going to end()
+		shouldAutoSendRequestBody = true; // we're going to end() because we were given a object literal
 
 		var timeout = request.timeout;
 		request = new local.Request(request);
 		if (timeout) { request.setTimeout(timeout); } // :TODO: should this be in the request constructor?
-	}
 
+		// pull out body for us to send
+		body = request.body;
+		request.body = '';
+	}
 	if (!request.url) { throw new Error("No url on request"); }
 
 	// If given a nav: scheme, spawn a agent to handle it
