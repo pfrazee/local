@@ -42,7 +42,9 @@ local.dispatch = function dispatch(request) {
 	if (scheme == 'nav') {
 		var url = request.url;
 		delete request.url;
-		return local.agent(url).dispatch(request);
+		var response_ = local.agent(url).dispatch(request);
+		if (shouldAutoSendRequestBody) request.end(body);
+		return response_;
 	}
 
 	// Prep request
