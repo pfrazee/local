@@ -368,17 +368,15 @@ Agent.prototype.lookupLink = function(context) {
 // Dispatch Sugars
 // ===============
 function makeDispSugar(method) {
-	return function(headers, options) {
+	return function(options) {
 		var req = options || {};
-		req.headers = headers || {};
 		req.method = method;
 		return this.dispatch(req);
 	};
 }
 function makeDispWBodySugar(method) {
-	return function(body, headers, options) {
+	return function(body, options) {
 		var req = options || {};
-		req.headers = headers || {};
 		req.method = method;
 		req.body = body;
 		return this.dispatch(req);

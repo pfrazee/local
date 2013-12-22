@@ -9,19 +9,6 @@ function Request(options) {
 	if (typeof options == 'string')
 		options = { url: options };
 
-	// If there are any fully-uppercase keys, treat it like the method/body pair
-	if (!options.method && !options.body) {
-		for (var k in options) {
-			// METHOD: body
-			if (k.toUpperCase() == k) {
-				options.method = k;
-				options.body = options[k];
-				delete options[k];
-				break;
-			}
-		}
-	}
-
 	// Pull any header-like keys into the headers object
 	var headers = options.headers || {};
 	extractUppercaseKeys(options, headers); // Foo_Bar or Foo-Bar

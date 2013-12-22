@@ -1645,19 +1645,6 @@ function Request(options) {
 	if (typeof options == 'string')
 		options = { url: options };
 
-	// If there are any fully-uppercase keys, treat it like the method/body pair
-	if (!options.method && !options.body) {
-		for (var k in options) {
-			// METHOD: body
-			if (k.toUpperCase() == k) {
-				options.method = k;
-				options.body = options[k];
-				delete options[k];
-				break;
-			}
-		}
-	}
-
 	// Pull any header-like keys into the headers object
 	var headers = options.headers || {};
 	extractUppercaseKeys(options, headers); // Foo_Bar or Foo-Bar
@@ -3108,13 +3095,13 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			opts.rel = 'self';
 			api = api.follow(opts);
 		}
-		return api.get({ accept: 'application/json' });
+		return api.get({ Accept: 'application/json' });
 	};
 
 	// Fetches a user from p2pw service
 	// - `userId`: string
 	Relay.prototype.getUser = function(userId) {
-		return this.usersCollection.follow({ rel: 'gwr.io/user', id: userId }).get({ accept: 'application/json' });
+		return this.usersCollection.follow({ rel: 'gwr.io/user', id: userId }).get({ Accept: 'application/json' });
 	};
 
 	// Sends (or stores to send) links in the relay's registry
@@ -3915,7 +3902,38 @@ function parseScheme(url) {
 			return 'httpl';
 	}
 	return schemeMatch[1];
-}// Events
+}
+
+
+function makeDispSugar(method) {
+	return function(options) {
+		var req = options || {};
+		if (typeof req == 'string') {
+			req = { url: req };
+		}
+		req.method = method;
+		return this.dispatch(req);
+	};
+}
+function makeDispWBodySugar(method) {
+	return function(body, options) {
+		var req = options || {};
+		if (typeof req == 'string') {
+			req = { url: req };
+		}
+		req.method = method;
+		req.body = body;
+		return this.dispatch(req);
+	};
+}
+local.SUBSCRIBE = makeDispSugar('SUBSCRIBE');
+local.HEAD      = makeDispSugar('HEAD');
+local.GET       = makeDispSugar('GET');
+local.DELETE    = makeDispSugar('DELETE');
+local.POST      = makeDispWBodySugar('POST');
+local.PUT       = makeDispWBodySugar('PUT');
+local.PATCH     = makeDispWBodySugar('PATCH');
+local.NOTIFY    = makeDispWBodySugar('NOTIFY');// Events
 // ======
 
 // subscribe()
@@ -5337,17 +5355,15 @@ Agent.prototype.lookupLink = function(context) {
 // Dispatch Sugars
 // ===============
 function makeDispSugar(method) {
-	return function(headers, options) {
+	return function(options) {
 		var req = options || {};
-		req.headers = headers || {};
 		req.method = method;
 		return this.dispatch(req);
 	};
 }
 function makeDispWBodySugar(method) {
-	return function(body, headers, options) {
+	return function(body, options) {
 		var req = options || {};
-		req.headers = headers || {};
 		req.method = method;
 		req.body = body;
 		return this.dispatch(req);

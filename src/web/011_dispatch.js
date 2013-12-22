@@ -191,3 +191,34 @@ function parseScheme(url) {
 	}
 	return schemeMatch[1];
 }
+
+
+function makeDispSugar(method) {
+	return function(options) {
+		var req = options || {};
+		if (typeof req == 'string') {
+			req = { url: req };
+		}
+		req.method = method;
+		return this.dispatch(req);
+	};
+}
+function makeDispWBodySugar(method) {
+	return function(body, options) {
+		var req = options || {};
+		if (typeof req == 'string') {
+			req = { url: req };
+		}
+		req.method = method;
+		req.body = body;
+		return this.dispatch(req);
+	};
+}
+local.SUBSCRIBE = makeDispSugar('SUBSCRIBE');
+local.HEAD      = makeDispSugar('HEAD');
+local.GET       = makeDispSugar('GET');
+local.DELETE    = makeDispSugar('DELETE');
+local.POST      = makeDispWBodySugar('POST');
+local.PUT       = makeDispWBodySugar('PUT');
+local.PATCH     = makeDispWBodySugar('PATCH');
+local.NOTIFY    = makeDispWBodySugar('NOTIFY');

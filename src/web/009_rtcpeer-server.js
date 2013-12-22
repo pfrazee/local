@@ -675,13 +675,13 @@
 			opts.rel = 'self';
 			api = api.follow(opts);
 		}
-		return api.get({ accept: 'application/json' });
+		return api.get({ Accept: 'application/json' });
 	};
 
 	// Fetches a user from p2pw service
 	// - `userId`: string
 	Relay.prototype.getUser = function(userId) {
-		return this.usersCollection.follow({ rel: 'gwr.io/user', id: userId }).get({ accept: 'application/json' });
+		return this.usersCollection.follow({ rel: 'gwr.io/user', id: userId }).get({ Accept: 'application/json' });
 	};
 
 	// Sends (or stores to send) links in the relay's registry

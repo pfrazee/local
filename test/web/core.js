@@ -201,14 +201,35 @@ success
 }
 */
 
-// allcaps methods
+// request sugar (GET)
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({
-  POST: 'echo this, please',
+var res = local.GET('httpl://test.com');
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "service resource",
+  headers: {
+    "content-type": "text/plain",
+    link: "</>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
+  },
+  reason: "ok",
+  status: 200
+}
+*/
+
+// request sugar (POST)
+
+done = false;
+startTime = Date.now();
+var res = local.POST('echo this, please', {
   url: 'httpl://test.com/foo',
-  Accept: 'text/plain', Content_Type: 'text/plain'
+  Accept: 'text/plain',
+  Content_Type: 'text/plain',
 });
 res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
