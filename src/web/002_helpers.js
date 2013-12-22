@@ -41,8 +41,11 @@ local.queryLink = function queryLink(link, query) {
 		else {
 			if (typeof link[attr] == 'undefined') {
 				// Attribute not explicitly set -- is it present in the href as a URI token?
-				if (RegExp('\\{[^\\}]*'+attr+'[^\\{]*\\}','i').test(link.href) === false)
-					return false;
+				if (RegExp('\\{[^\\}]*'+attr+'[^\\{]*\\}','i').test(link.href) === true)
+					continue;
+				// Is the test value not falsey?
+				if (!!query[attr])
+					return false; // specific value needed
 			}
 			else {
 				if (query[attr] && query[attr].indexOf && query[attr].indexOf('!') === 0) { // negation
