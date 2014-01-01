@@ -193,6 +193,7 @@ function parseScheme(url) {
 }
 
 
+(function() {
 function makeDispSugar(method) {
 	return function(options) {
 		var req = options || {};
@@ -222,3 +223,4 @@ local.POST      = makeDispWBodySugar('POST');
 local.PUT       = makeDispWBodySugar('PUT');
 local.PATCH     = makeDispWBodySugar('PATCH');
 local.NOTIFY    = makeDispWBodySugar('NOTIFY');
+})();

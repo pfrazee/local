@@ -3908,6 +3908,7 @@ function parseScheme(url) {
 }
 
 
+(function() {
 function makeDispSugar(method) {
 	return function(options) {
 		var req = options || {};
@@ -3936,7 +3937,8 @@ local.DELETE    = makeDispSugar('DELETE');
 local.POST      = makeDispWBodySugar('POST');
 local.PUT       = makeDispWBodySugar('PUT');
 local.PATCH     = makeDispWBodySugar('PATCH');
-local.NOTIFY    = makeDispWBodySugar('NOTIFY');// Events
+local.NOTIFY    = makeDispWBodySugar('NOTIFY');
+})();// Events
 // ======
 
 // subscribe()
@@ -5414,7 +5416,7 @@ local.addServer('hosts', function(req, res) {
 
 	var responses_ = [];
 	var domains = [], links = [];
-	links.push({ href: '/', rel: 'self service via', id: 'hosts' });
+	links.push({ href: '/', rel: 'self service via', id: 'hosts', title: 'This Browser' });
 	for (var domain in localHosts) {
 		if (domain == 'hosts')
 			continue;
