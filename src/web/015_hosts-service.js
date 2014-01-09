@@ -10,7 +10,7 @@ local.addServer('hosts', function(req, res) {
 
 	var responses_ = [];
 	var domains = [], links = [];
-	links.push({ href: '/', rel: 'self service via', id: 'hosts', title: 'This Browser' });
+	links.push({ href: '/', rel: 'self service via', id: 'hosts', title: 'Page' });
 	for (var domain in localHosts) {
 		if (domain == 'hosts')
 			continue;

@@ -37,6 +37,13 @@ print(local.httpHeaders.deserialize('link', '</foo>; id="foo"; rel="what ever", 
   {href: "/bar", id: "bar", rel: "what ever"}
 ]
 */
+print(local.httpHeaders.deserialize('link', '</foo>; id="foo"; rel="what, like, ever", </bar>; id="bar"; rel="what ever"'));
+/* =>
+[
+  {href: "/foo", id: "foo", rel: "what, like, ever"},
+  {href: "/bar", id: "bar", rel: "what ever"}
+]
+*/
 print(local.httpHeaders.serialize('link', [
   {href: "/foo", id: "foo", rel: "what ever"},
   {href: "/bar", id: "bar", rel: "what ever"}
@@ -234,7 +241,7 @@ success
 {
   body: "",
   headers: {
-    link: "</>; rel=\"self service via\"; id=\"hosts\"; title=\"This Browser\", <httpl://_worker.js/>; rel=\" current\"; host_domain=\"_worker.js\", <httpl://test.com/>; rel=\" current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\"; host_domain=\"test.com\""
+    link: "</>; rel=\"self service via\"; id=\"hosts\"; title=\"Page\", <httpl://_worker.js/>; rel=\" current\"; host_domain=\"_worker.js\", <httpl://test.com/>; rel=\" current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\"; host_domain=\"test.com\""
   },
   reason: "ok, no content",
   status: 204
