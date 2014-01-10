@@ -63,7 +63,12 @@ function httpheaders__find(header, fn) {
 // Default Headers
 // ===============
 
-var linkHeaderRE1 = /<(.*?)>(?:;[\s]*(.*?)((,(?=[\s]*<))|$))/g; // /<(.*?)>(?:;[\s]*([^,]*))/g;
+//                                KV params
+//                  "</foo>"  "; "    \/   ", <" or eol
+//                   ------- -------- ---  ----------------
+var linkHeaderRE1 = /<(.*?)>(?:;[\s]*(.*?)((,(?=[\s]*<))|$))/g;
+//                        "key"     "="      \""val\""    "val"
+//                    -------------- -       ---------   -------
 var linkHeaderRE2 = /([\-a-z0-9_\.]+)=?(?:(?:"([^"]+)")|([^;\s]+))?/g;
 local.httpHeaders.register('link',
 	function (obj) {

@@ -1549,7 +1549,12 @@ function httpheaders__find(header, fn) {
 // Default Headers
 // ===============
 
-var linkHeaderRE1 = /<(.*?)>(?:;[\s]*(.*?)((,(?=[\s]*<))|$))/g; // /<(.*?)>(?:;[\s]*([^,]*))/g;
+//                                KV params
+//                  "</foo>"  "; "    \/   ", <" or eol
+//                   ------- -------- ---  ----------------
+var linkHeaderRE1 = /<(.*?)>(?:;[\s]*(.*?)((,(?=[\s]*<))|$))/g;
+//                        "key"     "="      \""val\""    "val"
+//                    -------------- -       ---------   -------
 var linkHeaderRE2 = /([\-a-z0-9_\.]+)=?(?:(?:"([^"]+)")|([^;\s]+))?/g;
 local.httpHeaders.register('link',
 	function (obj) {
@@ -5416,7 +5421,7 @@ local.addServer('hosts', function(req, res) {
 
 	var responses_ = [];
 	var domains = [], links = [];
-	links.push({ href: '/', rel: 'self service via', id: 'hosts', title: 'Page' });
+	links.push({ href: '/', rel: 'self service via', id: 'hosts', title: 'Page Hosts' });
 	for (var domain in localHosts) {
 		if (domain == 'hosts')
 			continue;
