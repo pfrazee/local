@@ -67,9 +67,6 @@
 			this.isOfferExchanged = true;
 			onHttplChannelOpen.call(this);
 		} else {
-			// Reorder messages until the WebRTC session is established
-			this.useMessageReordering(true);
-
 			if (this.config.initiate) {
 				// Initiate event will be picked up by the peer
 				// If they want to connect, they'll send an answer back
@@ -321,6 +318,9 @@
 			this.rtcPeerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
 			this.rtcPeerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
 			this.rtcPeerConn.ondatachannel              = onDataChannel.bind(this);
+
+			// Reorder messages until the WebRTC session is established
+			this.useMessageReordering(true);
 		}
 	};
 
