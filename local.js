@@ -2193,6 +2193,7 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 			// Create request & response
 			var request = new local.Request({
 				method: msg.method,
+				host: msg.host,
 				path: msg.path,
 				query: msg.query,
 				headers: msg.headers
