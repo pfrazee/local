@@ -2540,6 +2540,11 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		} else {
 			try { // :DEBUG: as soon as WebRTC stabilizes some more, let's ditch this
 				this.rtcDataChannel.send(msg);
+
+				// Can now rely on sctp ordering
+				if (this.isReorderingMessages) {
+					this.useMessageReordering(false);
+				}
 			} catch (e) {
 				this.debugLog('NETWORK ERROR, BOUNCING', e);
 				// Probably a NetworkError - one known cause, one party gets a dataChannel and the other doesnt
@@ -2582,8 +2587,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		this.isConnecting = false;
 		this.isConnected = true;
 
-		// Can now rely on sctp ordering
-		this.useMessageReordering(false);
+		// Can now rely on sctp ordering :WRONG: it appears "open" get fired assymetrically
+		// this.useMessageReordering(false);
 
 		// Emit event
 		this.emit('connected', Object.create(this.peerInfo), this);
