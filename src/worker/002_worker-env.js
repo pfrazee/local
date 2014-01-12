@@ -95,6 +95,7 @@ if (!self.btoa) {
 
 local.worker.setServer = function(fn) {
 	local.worker.serverFn = fn;
+	local.addServer('self', fn);
 };
 
 local.worker.pages = [];
