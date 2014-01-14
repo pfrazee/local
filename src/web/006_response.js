@@ -93,6 +93,33 @@ Response.prototype.deserializeHeaders = function() {
 	}
 };
 
+// EXPORTED
+// Makes sure response header links are absolute and extracts additional attributes
+//var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
+Response.prototype.processHeaders = function(request) {
+	var self = this;
+	if (self.parsedHeaders.link) {
+		self.parsedHeaders.link.forEach(function(link) {
+			// if (isUrlAbsoluteRE.test(link.href) === false)
+			if (!local.isAbsUri(link.href))
+				link.href = local.joinRelPath(request.urld, link.href);
+			link.host_domain = local.parseUri(link.href).authority;
+			var peerd = local.parsePeerDomain(link.host_domain);
+			if (peerd) {
+				link.host_user   = peerd.user;
+				link.host_relay  = peerd.relay;
+				link.host_app    = peerd.app;
+				link.host_sid    = peerd.sid;
+			} else {
+				delete link.host_user;
+				delete link.host_relay;
+				delete link.host_app;
+				delete link.host_sid;
+			}
+		});
+	}
+};
+
 // writes the header to the response
 // - emits the 'headers' event
 Response.prototype.writeHead = function(status, reason, headers) {

@@ -141,10 +141,12 @@ local.joinUri = function joinUri() {
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
 // - eg http://foo.com, //foo.com, httpl://bar.app
-var isAbsUriRE = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)/;
+var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)/;
 local.isAbsUri = function(url) {
-	if (isAbsUriRE.test(url))
+	// Has a scheme?
+	if (hasSchemeRegex.test(url))
 		return true;
+	// No scheme, is it a local server or a global URI?
 	var urld = local.parseUri(url);
 	return !!local.getServer(urld.authority) || !!local.parsePeerDomain(urld.authority);
 };

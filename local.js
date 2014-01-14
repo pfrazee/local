@@ -952,10 +952,12 @@ local.joinUri = function joinUri() {
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
 // - eg http://foo.com, //foo.com, httpl://bar.app
-var isAbsUriRE = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)/;
+var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)/;
 local.isAbsUri = function(url) {
-	if (isAbsUriRE.test(url))
+	// Has a scheme?
+	if (hasSchemeRegex.test(url))
 		return true;
+	// No scheme, is it a local server or a global URI?
 	var urld = local.parseUri(url);
 	return !!local.getServer(urld.authority) || !!local.parsePeerDomain(urld.authority);
 };
@@ -1918,6 +1920,33 @@ Response.prototype.deserializeHeaders = function() {
 		if (parsedHeader && typeof parsedHeader != 'string') {
 			this.parsedHeaders[k] = parsedHeader;
 		}
+	}
+};
+
+// EXPORTED
+// Makes sure response header links are absolute and extracts additional attributes
+//var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
+Response.prototype.processHeaders = function(request) {
+	var self = this;
+	if (self.parsedHeaders.link) {
+		self.parsedHeaders.link.forEach(function(link) {
+			// if (isUrlAbsoluteRE.test(link.href) === false)
+			if (!local.isAbsUri(link.href))
+				link.href = local.joinRelPath(request.urld, link.href);
+			link.host_domain = local.parseUri(link.href).authority;
+			var peerd = local.parsePeerDomain(link.host_domain);
+			if (peerd) {
+				link.host_user   = peerd.user;
+				link.host_relay  = peerd.relay;
+				link.host_app    = peerd.app;
+				link.host_sid    = peerd.sid;
+			} else {
+				delete link.host_user;
+				delete link.host_relay;
+				delete link.host_app;
+				delete link.host_sid;
+			}
+		});
 	}
 };
 
@@ -3792,7 +3821,7 @@ local.dispatch = function dispatch(request) {
 	request.on('close', function() { response.close(); });
 	response.on('headers', function() {
 		response.deserializeHeaders();
-		processResponseHeaders(request, response);
+		response.processHeaders(request);
 	});
 	response.on('close', function() {
 		// Track latency
@@ -3877,31 +3906,6 @@ local.setDispatchWrapper = function(wrapperFn) {
 local.setDispatchWrapper(function(request, response, dispatch) {
 	dispatch(request, response);
 });
-
-// INTERNAL
-// Makes sure response header links are absolute and extracts additional attributes
-var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
-function processResponseHeaders(request, response) {
-	if (response.parsedHeaders.link) {
-		response.parsedHeaders.link.forEach(function(link) {
-			if (isUrlAbsoluteRE.test(link.href) === false)
-				link.href = local.joinRelPath(request.urld, link.href);
-			link.host_domain = local.parseUri(link.href).authority;
-			var peerd = local.parsePeerDomain(link.host_domain);
-			if (peerd) {
-				link.host_user   = peerd.user;
-				link.host_relay  = peerd.relay;
-				link.host_app    = peerd.app;
-				link.host_sid    = peerd.sid;
-			} else {
-				delete link.host_user;
-				delete link.host_relay;
-				delete link.host_app;
-				delete link.host_sid;
-			}
-		});
-	}
-}
 
 // INTERNAL
 function parseScheme(url) {

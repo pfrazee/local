@@ -66,7 +66,7 @@ local.dispatch = function dispatch(request) {
 	request.on('close', function() { response.close(); });
 	response.on('headers', function() {
 		response.deserializeHeaders();
-		processResponseHeaders(request, response);
+		response.processHeaders(request);
 	});
 	response.on('close', function() {
 		// Track latency
@@ -151,31 +151,6 @@ local.setDispatchWrapper = function(wrapperFn) {
 local.setDispatchWrapper(function(request, response, dispatch) {
 	dispatch(request, response);
 });
-
-// INTERNAL
-// Makes sure response header links are absolute and extracts additional attributes
-var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
-function processResponseHeaders(request, response) {
-	if (response.parsedHeaders.link) {
-		response.parsedHeaders.link.forEach(function(link) {
-			if (isUrlAbsoluteRE.test(link.href) === false)
-				link.href = local.joinRelPath(request.urld, link.href);
-			link.host_domain = local.parseUri(link.href).authority;
-			var peerd = local.parsePeerDomain(link.host_domain);
-			if (peerd) {
-				link.host_user   = peerd.user;
-				link.host_relay  = peerd.relay;
-				link.host_app    = peerd.app;
-				link.host_sid    = peerd.sid;
-			} else {
-				delete link.host_user;
-				delete link.host_relay;
-				delete link.host_app;
-				delete link.host_sid;
-			}
-		});
-	}
-}
 
 // INTERNAL
 function parseScheme(url) {
