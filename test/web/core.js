@@ -478,3 +478,35 @@ success
   status: 200
 }
 */
+
+// proxy to proxy to local server
+
+done = false;
+startTime = Date.now();
+var res = local.dispatch({ method:'get', url:'httpl://proxy/httpl://proxy/httpl://test.com' });
+res.then(function(res) {
+  res.parsedHeaders.link.forEach(function(link) {
+    var props = Object.getOwnPropertyNames(link);
+    print(props.map(function(prop){ return prop+'="'+link[prop]+'"'; }).join('; '));
+  });
+  return res;
+}).then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+href="httpl://proxy/httpl%3A%2F%2Fproxy%2Fhttpl%253A%252F%252Ftest.com%252F"; rel="self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"; host_domain="test.com"; host_proxy="httpl://proxy/httpl%3A%2F%2Fproxy"
+href="httpl://proxy/httpl%3A%2F%2Fproxy%2Fhttpl%253A%252F%252Ftest.com%252Fevents"; rel="collection"; id="events"; host_domain="test.com"; host_proxy="httpl://proxy/httpl%3A%2F%2Fproxy"
+href="httpl://proxy/httpl%3A%2F%2Fproxy%2Fhttpl%253A%252F%252Ftest.com%252Ffoo"; rel="collection"; id="foo"; host_domain="test.com"; host_proxy="httpl://proxy/httpl%3A%2F%2Fproxy"
+href="httpl://proxy/httpl%3A%2F%2Fproxy%2Fhttpl%253A%252F%252Ftest.com%252F%257Bid%257D"; rel="collection"; host_domain="test.com"; host_proxy="httpl://proxy/httpl%3A%2F%2Fproxy"
+success
+{
+  body: "service resource",
+  headers: {
+    "content-type": "text/plain",
+    link: "</httpl%3A%2F%2Fproxy%2Fhttpl%253A%252F%252Ftest.com%252F>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", </httpl%3A%2F%2Fproxy%2Fhttpl%253A%252F%252Ftest.com%252Fevents>; rel=\"collection\"; id=\"events\", </httpl%3A%2F%2Fproxy%2Fhttpl%253A%252F%252Ftest.com%252Ffoo>; rel=\"collection\"; id=\"foo\", </httpl%3A%2F%2Fproxy%2Fhttpl%253A%252F%252Ftest.com%252F%257Bid%257D>; rel=\"collection\"",
+    via: "httpl/1.0 proxy, httpl/1.0 proxy"
+  },
+  reason: "ok",
+  status: 200
+}
+*/

@@ -101,15 +101,8 @@ Response.prototype.processHeaders = function(request) {
 
 	// Construct the base URLd out of the via headers
 	var via = self.parsedHeaders.via;
+	var nproxies = (via) ? via.length : 0;
 	var host_proxy = local.viaToUri(via);
-
-	// Helper function to percent-decode the number of times necesssary
-	var decodeSubURI = function(str) {
-		//
-		for (var i=0; i < via.length; i++)
-			str = decodeURIComponent(str);
-		return str;
-	};
 
 	// Update the link headers
 	if (self.parsedHeaders.link) {
@@ -121,15 +114,16 @@ Response.prototype.processHeaders = function(request) {
 			// Extract host domain
 			var host_domain = null;
 			if (host_proxy && link.href.indexOf(host_proxy) === 0) {
-				// A suburi of the proxy? See if its an abs uri
-				var suburi = decodeSubURI(link.href.slice(host_proxy.length));
-				if (suburi == '/') {
-					// No subpath? Must be the terminal proxy
-					host_domain = via[via.length - 1].hostname;
+				// A suburi of the proxy
+				var proxyd = local.parseProxyUri(link.href);
+				if (!proxyd[nproxies]) {
+					// No endpoint? Must be the terminal proxy
+					host_domain = via[nproxies - 1].hostname;
 				} else {
-					suburi = suburi.slice(1); // trim preceding slash
-					if (/^http(s|l)?:\/\//.test(suburi)) {
-						host_domain = local.parseUri(suburi).authority;
+					// Does the endpoint have a scheme?
+					if (/^http(s|l)?:\/\//.test(proxyd[nproxies])) {
+						// Valid endpoint, use as host
+						host_domain = local.parseUri(proxyd[nproxies]).authority;
 					}
 				}
 			}

@@ -198,7 +198,7 @@ var links = [
   { rel: 'foo service via', href: 'http://whatever.com', id: 'whatever', title: 'Whatever' },
   { rel: 'foo collection whatever.com/rel/collection', href: 'http://whatever.com/stuff', id: 'stuff', title: 'Whatever Stuff' },
   { rel: 'foo item http://whatever.com/rel/item other.com/-item', href: 'http://whatever.com/stuff/{id}', title: 'Whatever Item' },
-  { rel: 'foo item other.com/-item', href: 'http://whatever.com/stuff/{id}', title: 'Whatever Item', user: 'bob' },
+  { rel: 'foo item other.com/-item', href: 'http://whatever.com/stuff/{id}{?q1}', title: 'Whatever Item', user: 'bob' },
 ];
 print(local.queryLink(links[0], { rel: 'foo' }));
 // => true
@@ -235,6 +235,8 @@ print(local.queryLinks(links, { rel: 'other.com/-item', user: 'bob' }).length);
 print(local.queryLinks(links, { rel: 'other.com/-item', user: null }).length);
 // => 1
 print(local.queryLinks(links, { rel: 'other.com/-item', user: false }).length);
+// => 1
+print(local.queryLinks(links, { rel: 'other.com/-item', q1: true }).length);
 // => 1
 finishTest();
 

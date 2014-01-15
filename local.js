@@ -835,6 +835,8 @@ local.queryLinks = function queryLinks(links, query) {
 //   - rel: can take multiple values, space-separated, which are ANDed logically
 //   - rel: will ignore the preceding scheme and trailing slash on URI values
 //   - rel: items preceded by an exclamation-point (!) will invert (logical NOT)
+var uriTokenStart = '\\{[\\+\\#\\.\\/\\;\\?\\&]?';
+var uriTokenEnd = '(\\,|\\})';
 local.queryLink = function queryLink(link, query) {
 	for (var attr in query) {
 		if (attr == 'rel') {
@@ -852,7 +854,7 @@ local.queryLink = function queryLink(link, query) {
 		else {
 			if (typeof link[attr] == 'undefined') {
 				// Attribute not explicitly set -- is it present in the href as a URI token?
-				if (RegExp('\\{[^\\}]*'+attr+'[^\\{]*\\}','i').test(link.href) === true)
+				if (RegExp(uriTokenStart+attr+uriTokenEnd,'i').test(link.href) === true)
 					continue;
 				// Is the test value not falsey?
 				if (!!query[attr])
@@ -1151,6 +1153,37 @@ local.viaToUri = function(via) {
 		uri = via.map(function(proxy) {
 			return encode((proxy.proto.name||'http').toLowerCase() + '://' + proxy.hostname);
 		}).join('/');
+	}
+	return uri;
+};
+
+// EXPORTED
+// breaks a proxy URI into the different parts
+// eg 'httpl://0.page/httpl%3A%2F%2Ffoo%2Fhttpl%253A%252F%252Fmy_worker.js%252F'
+// -> ['httpl://0.page/', 'httpl://foo/', 'httpl://my_worker.js/']
+local.parseProxyUri = function(uri) {
+	var parts = [];
+	var re = /^http(l|s)?/;
+	while (re.exec(uri)) {
+		var end = uri.indexOf('http', 8); // skip 8 to skip 'http(l|s)://'. If just http://, will skip 1 too many, but that shouldnt matter
+		if (end == -1)
+			break;
+		parts.push(uri.slice(0, end));
+		uri = decodeURIComponent(uri.slice(end));
+	}
+	parts.push(uri);
+	return parts;
+};
+
+// EXPORTED
+// builds a proxy URI out of an array of parts
+// eg ['httpl://0.page/', 'httpl://foo/', 'httpl://my_worker.js/']
+// -> 'httpl://0.page/httpl%3A%2F%2Ffoo%2Fhttpl%253A%252F%252Fmy_worker.js%252F'
+local.makeProxyUri = function(parts) {
+	var uri = 0;
+	for (var i=parts.length-1; i >= 0; i--) {
+		if (!uri) uri = parts[i];
+		else uri = local.joinUri(parts[i], encodeURIComponent(uri));
 	}
 	return uri;
 };
@@ -1986,15 +2019,8 @@ Response.prototype.processHeaders = function(request) {
 
 	// Construct the base URLd out of the via headers
 	var via = self.parsedHeaders.via;
+	var nproxies = (via) ? via.length : 0;
 	var host_proxy = local.viaToUri(via);
-
-	// Helper function to percent-decode the number of times necesssary
-	var decodeSubURI = function(str) {
-		//
-		for (var i=0; i < via.length; i++)
-			str = decodeURIComponent(str);
-		return str;
-	};
 
 	// Update the link headers
 	if (self.parsedHeaders.link) {
@@ -2006,15 +2032,16 @@ Response.prototype.processHeaders = function(request) {
 			// Extract host domain
 			var host_domain = null;
 			if (host_proxy && link.href.indexOf(host_proxy) === 0) {
-				// A suburi of the proxy? See if its an abs uri
-				var suburi = decodeSubURI(link.href.slice(host_proxy.length));
-				if (suburi == '/') {
-					// No subpath? Must be the terminal proxy
-					host_domain = via[via.length - 1].hostname;
+				// A suburi of the proxy
+				var proxyd = local.parseProxyUri(link.href);
+				if (!proxyd[nproxies]) {
+					// No endpoint? Must be the terminal proxy
+					host_domain = via[nproxies - 1].hostname;
 				} else {
-					suburi = suburi.slice(1); // trim preceding slash
-					if (/^http(s|l)?:\/\//.test(suburi)) {
-						host_domain = local.parseUri(suburi).authority;
+					// Does the endpoint have a scheme?
+					if (/^http(s|l)?:\/\//.test(proxyd[nproxies])) {
+						// Valid endpoint, use as host
+						host_domain = local.parseUri(proxyd[nproxies]).authority;
 					}
 				}
 			}
