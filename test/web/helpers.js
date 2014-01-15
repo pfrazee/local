@@ -114,6 +114,79 @@ print(local.httpHeaders.serialize('accept', [
   }
 ]));
 // => text/html; q=0.5; foo=bar, application/json; q=0.2
+print(local.httpHeaders.deserialize('via', '1.1 foo.com'));
+/* => [
+  {
+    comment: undefined,
+    hostname: "foo.com",
+    proto: {name: undefined, version: "1.1"}
+  }
+]*/
+print(local.httpHeaders.deserialize('via', '1.1 foo.com (Apache/2.0)'));
+/* => [
+  {
+    comment: "(Apache/2.0)",
+    hostname: "foo.com",
+    proto: {name: undefined, version: "1.1"}
+  }
+]*/
+print(local.httpHeaders.deserialize('via', '1.1 foo.com (Apache/2.0), 1.0 bar.com'));
+/* => [
+  {
+    comment: "(Apache/2.0)",
+    hostname: "foo.com",
+    proto: {name: undefined, version: "1.1"}
+  },
+  {
+    comment: undefined,
+    hostname: "bar.com",
+    proto: {name: undefined, version: "1.0"}
+  }
+]*/
+print(local.httpHeaders.deserialize('via', 'HTTPL/1.1 foo.com (Apache/2.0), HTTPS/1.0 bar.com'));
+/* => [
+  {
+    comment: "(Apache/2.0)",
+    hostname: "foo.com",
+    proto: {name: "HTTPL", version: "1.1"}
+  },
+  {
+    comment: undefined,
+    hostname: "bar.com",
+    proto: {name: "HTTPS", version: "1.0"}
+  }
+]*/
+print(local.httpHeaders.serialize('via', [{ hostname: "foo.com", proto: {version: "1.1"} }]));
+// => 1.1 foo.com
+print(local.httpHeaders.serialize('via', [{ comment: "(Apache/2.0)", hostname: "foo.com", proto: {version: "1.1"} }]));
+// => 1.1 foo.com (Apache/2.0)
+print(local.httpHeaders.serialize('via', [
+  {
+    comment: "(Apache/2.0)",
+    hostname: "foo.com",
+    proto: {name: undefined, version: "1.1"}
+  },
+  {
+    comment: undefined,
+    hostname: "bar.com",
+    proto: {name: undefined, version: "1.0"}
+  }
+]));
+// => 1.1 foo.com (Apache/2.0), 1.0 bar.com
+print(local.httpHeaders.serialize('via', [
+  {
+    comment: "(Apache/2.0)",
+    hostname: "foo.com",
+    proto: {name: "HTTPL", version: "1.1"}
+  },
+  {
+    comment: undefined,
+    hostname: "bar.com",
+    proto: {name: "HTTPS", version: "1.0"}
+  }
+]));
+// => HTTPL/1.1 foo.com (Apache/2.0), HTTPS/1.0 bar.com
+
 
 finishTest();
 
@@ -241,7 +314,7 @@ success
 {
   body: "",
   headers: {
-    link: "</>; rel=\"self service via\"; id=\"hosts\"; title=\"Page\", <httpl://_worker.js/>; rel=\" current\"; host_domain=\"_worker.js\", <httpl://test.com/>; rel=\" current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\"; host_domain=\"test.com\""
+    link: "</>; rel=\"self service via\"; id=\"hosts\"; title=\"Page Hosts\", <httpl://_worker.js/>; rel=\" current\"; host_domain=\"_worker.js\", <httpl://test.com/>; rel=\" current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\"; host_domain=\"test.com\""
   },
   reason: "ok, no content",
   status: 204
