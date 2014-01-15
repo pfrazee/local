@@ -122,9 +122,15 @@ Response.prototype.processHeaders = function(request) {
 			var host_domain = null;
 			if (host_proxy && link.href.indexOf(host_proxy) === 0) {
 				// A suburi of the proxy? See if its an abs uri
-				var suburi = decodeSubURI(link.href.slice(host_proxy.length)).slice(1);
-				if (/^http(s|l)?:\/\//.test(suburi)) {
-					host_domain = local.parseUri(suburi).authority;
+				var suburi = decodeSubURI(link.href.slice(host_proxy.length));
+				if (suburi == '/') {
+					// No subpath? Must be the terminal proxy
+					host_domain = via[via.length - 1].hostname;
+				} else {
+					suburi = suburi.slice(1); // trim preceding slash
+					if (/^http(s|l)?:\/\//.test(suburi)) {
+						host_domain = local.parseUri(suburi).authority;
+					}
 				}
 			}
 			if (!host_domain) {

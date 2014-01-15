@@ -1137,6 +1137,8 @@ local.makePeerDomain = function makePeerDomain(user, relay, app, sid) {
 local.viaToUri = function(via) {
 	var uri = '';
 	if (via && via.length) {
+		// Add a helper that encodes the parts progressively more frequently
+		// - 0 the first time, once the second, twice the third...
 		var enc_iters = 0;
 		var encode = function(str) {
 			for (var i = 0; i < enc_iters; i++)
@@ -1144,6 +1146,8 @@ local.viaToUri = function(via) {
 			enc_iters++;
 			return str;
 		};
+
+		// Create the URI
 		uri = via.map(function(proxy) {
 			return encode((proxy.proto.name||'http').toLowerCase() + '://' + proxy.hostname);
 		}).join('/');
@@ -1983,7 +1987,10 @@ Response.prototype.processHeaders = function(request) {
 	// Construct the base URLd out of the via headers
 	var via = self.parsedHeaders.via;
 	var host_proxy = local.viaToUri(via);
-	var decode = function(str) {
+
+	// Helper function to percent-decode the number of times necesssary
+	var decodeSubURI = function(str) {
+		//
 		for (var i=0; i < via.length; i++)
 			str = decodeURIComponent(str);
 		return str;
@@ -2000,9 +2007,15 @@ Response.prototype.processHeaders = function(request) {
 			var host_domain = null;
 			if (host_proxy && link.href.indexOf(host_proxy) === 0) {
 				// A suburi of the proxy? See if its an abs uri
-				var suburi = decode(link.href.slice(host_proxy.length)).slice(1);
-				if (/^http(s|l)?:\/\//.test(suburi)) {
-					host_domain = local.parseUri(suburi).authority;
+				var suburi = decodeSubURI(link.href.slice(host_proxy.length));
+				if (suburi == '/') {
+					// No subpath? Must be the terminal proxy
+					host_domain = via[via.length - 1].hostname;
+				} else {
+					suburi = suburi.slice(1); // trim preceding slash
+					if (/^http(s|l)?:\/\//.test(suburi)) {
+						host_domain = local.parseUri(suburi).authority;
+					}
 				}
 			}
 			if (!host_domain) {
