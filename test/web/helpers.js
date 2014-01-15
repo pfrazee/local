@@ -119,7 +119,7 @@ print(local.httpHeaders.deserialize('via', '1.1 foo.com'));
   {
     comment: undefined,
     hostname: "foo.com",
-    proto: {name: undefined, version: "1.1"}
+    proto: {name: 'http', version: "1.1"}
   }
 ]*/
 print(local.httpHeaders.deserialize('via', '1.1 foo.com (Apache/2.0)'));
@@ -127,7 +127,7 @@ print(local.httpHeaders.deserialize('via', '1.1 foo.com (Apache/2.0)'));
   {
     comment: "(Apache/2.0)",
     hostname: "foo.com",
-    proto: {name: undefined, version: "1.1"}
+    proto: {name: 'http', version: "1.1"}
   }
 ]*/
 print(local.httpHeaders.deserialize('via', '1.1 foo.com (Apache/2.0), 1.0 bar.com'));
@@ -135,12 +135,12 @@ print(local.httpHeaders.deserialize('via', '1.1 foo.com (Apache/2.0), 1.0 bar.co
   {
     comment: "(Apache/2.0)",
     hostname: "foo.com",
-    proto: {name: undefined, version: "1.1"}
+    proto: {name: 'http', version: "1.1"}
   },
   {
     comment: undefined,
     hostname: "bar.com",
-    proto: {name: undefined, version: "1.0"}
+    proto: {name: 'http', version: "1.0"}
   }
 ]*/
 print(local.httpHeaders.deserialize('via', 'HTTPL/1.1 foo.com (Apache/2.0), HTTPS/1.0 bar.com'));

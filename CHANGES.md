@@ -4,7 +4,6 @@ Changes
 
 2014/01/15 pfraze
 
- - Added local.viaToUri for proxy URI construction
  - Added Via header parsing
  - Added local.parseProxyUri and local.makeProxyUri
 

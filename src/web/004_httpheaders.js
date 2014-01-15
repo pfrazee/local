@@ -183,7 +183,7 @@ local.httpHeaders.register('via',
 	function (str) {
 		var vias = [], match;
 		while ((match = viaregex.exec(str))) {
-			var via = { proto: { name: match[1], version: match[2] }, hostname: match[3], comment: match[4] };
+			var via = { proto: { name: (match[1]||'http'), version: match[2] }, hostname: match[3], comment: match[4] };
 			vias.push(via);
 		}
 		return vias;

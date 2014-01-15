@@ -133,13 +133,7 @@ local.addServer('proxy', function(req, res) {
 
 	var res2_ = local.dispatch(req2);
 	res2_.always(function(res2) {
-		// Convert URIs to our proxy format
-		var links = res2.parsedHeaders.link || [];
-		links.forEach(function(link) {
-			link.href = '/'+encodeURIComponent(link.href);
-		});
-
-		// Reserialize for the next response
+		// Reserialize Link so that it uses updated (absolute) uris
 		res2.headers.link = local.httpHeaders.serialize('link', res2.parsedHeaders.link);
 
 		// Set res via

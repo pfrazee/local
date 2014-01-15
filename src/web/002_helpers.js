@@ -324,29 +324,6 @@ local.makePeerDomain = function makePeerDomain(user, relay, app, sid) {
 };
 
 // EXPORTED
-// constructs a base proxy URL from a via header
-local.viaToUri = function(via) {
-	var uri = '';
-	if (via && via.length) {
-		// Add a helper that encodes the parts progressively more frequently
-		// - 0 the first time, once the second, twice the third...
-		var enc_iters = 0;
-		var encode = function(str) {
-			for (var i = 0; i < enc_iters; i++)
-				str = encodeURIComponent(str);
-			enc_iters++;
-			return str;
-		};
-
-		// Create the URI
-		uri = via.map(function(proxy) {
-			return encode((proxy.proto.name||'http').toLowerCase() + '://' + proxy.hostname);
-		}).join('/');
-	}
-	return uri;
-};
-
-// EXPORTED
 // breaks a proxy URI into the different parts
 // eg 'httpl://0.page/httpl%3A%2F%2Ffoo%2Fhttpl%253A%252F%252Fmy_worker.js%252F'
 // -> ['httpl://0.page/', 'httpl://foo/', 'httpl://my_worker.js/']
@@ -371,8 +348,11 @@ local.parseProxyUri = function(uri) {
 local.makeProxyUri = function(parts) {
 	var uri = 0;
 	for (var i=parts.length-1; i >= 0; i--) {
-		if (!uri) uri = parts[i];
-		else uri = local.joinUri(parts[i], encodeURIComponent(uri));
+		var part = parts[i];
+		if (part.hostname && part.proto) // parsed via header
+			part = part.proto.name.toLowerCase() + '://' + part.hostname;
+		if (!uri) uri = part;
+		else uri = local.joinUri(part, encodeURIComponent(uri));
 	}
 	return uri;
 };

@@ -99,10 +99,6 @@ Response.prototype.deserializeHeaders = function() {
 Response.prototype.processHeaders = function(request) {
 	var self = this;
 
-	// Construct the base URLd out of the via headers
-	var via = self.parsedHeaders.via;
-	var nproxies = (via) ? via.length : 0;
-	var host_proxy = local.viaToUri(via);
 
 	// Update the link headers
 	if (self.parsedHeaders.link) {
@@ -111,28 +107,8 @@ Response.prototype.processHeaders = function(request) {
 			if (!local.isAbsUri(link.href))
 				link.href = local.joinRelPath(request.urld, link.href);
 
-			// Extract host domain
-			var host_domain = null;
-			if (host_proxy && link.href.indexOf(host_proxy) === 0) {
-				// A suburi of the proxy
-				var proxyd = local.parseProxyUri(link.href);
-				if (!proxyd[nproxies]) {
-					// No endpoint? Must be the terminal proxy
-					host_domain = via[nproxies - 1].hostname;
-				} else {
-					// Does the endpoint have a scheme?
-					if (/^http(s|l)?:\/\//.test(proxyd[nproxies])) {
-						// Valid endpoint, use as host
-						host_domain = local.parseUri(proxyd[nproxies]).authority;
-					}
-				}
-			}
-			if (!host_domain) {
-				// Not a proxied request, handle as is
-				host_domain = local.parseUri(link.href).authority;
-			}
-
-			// Set host data
+			// Extract host data
+			var host_domain = local.parseUri(link.href).authority;
 			Object.defineProperty(link, 'host_domain', { enumerable: false, configurable: true, writable: true, value: host_domain });
 			var peerd = local.parsePeerDomain(link.host_domain);
 			if (peerd) {
@@ -145,13 +121,6 @@ Response.prototype.processHeaders = function(request) {
 				delete link.host_relay;
 				delete link.host_app;
 				delete link.host_sid;
-			}
-
-			// Add proxy
-			if (host_proxy) {
-				Object.defineProperty(link, 'host_proxy', { enumerable: false, configurable: true, writable: true, value: host_proxy });
-			} else {
-				delete link.host_proxy;
 			}
 		});
 	}
