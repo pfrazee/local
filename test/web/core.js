@@ -443,3 +443,38 @@ wait(function () { return done; });
 success
 {body: "", headers: {"content-type": "text/html"}, reason: "ok", status: 200}
 */
+
+
+// == SECTION core - proxy requests
+
+// proxy to local server
+
+done = false;
+startTime = Date.now();
+var res = local.dispatch({ method:'get', url:'httpl://proxy/httpl://test.com' });
+res.then(function(res) {
+  res.parsedHeaders.link.forEach(function(link) {
+    var props = Object.getOwnPropertyNames(link);
+    print(props.map(function(prop){ return prop+'="'+link[prop]+'"'; }).join('; '));
+  });
+  return res;
+}).then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+href="httpl://proxy/httpl%3A%2F%2Ftest.com%2F"; rel="self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"; host_domain="test.com"; host_proxy="httpl://proxy"
+href="httpl://proxy/httpl%3A%2F%2Ftest.com%2Fevents"; rel="collection"; id="events"; host_domain="test.com"; host_proxy="httpl://proxy"
+href="httpl://proxy/httpl%3A%2F%2Ftest.com%2Ffoo"; rel="collection"; id="foo"; host_domain="test.com"; host_proxy="httpl://proxy"
+href="httpl://proxy/httpl%3A%2F%2Ftest.com%2F%7Bid%7D"; rel="collection"; host_domain="test.com"; host_proxy="httpl://proxy"
+success
+{
+  body: "service resource",
+  headers: {
+    "content-type": "text/plain",
+    link: "</httpl%3A%2F%2Ftest.com%2F>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", </httpl%3A%2F%2Ftest.com%2Fevents>; rel=\"collection\"; id=\"events\", </httpl%3A%2F%2Ftest.com%2Ffoo>; rel=\"collection\"; id=\"foo\", </httpl%3A%2F%2Ftest.com%2F%7Bid%7D>; rel=\"collection\"",
+    via: "httpl/1.0 proxy"
+  },
+  reason: "ok",
+  status: 200
+}
+*/

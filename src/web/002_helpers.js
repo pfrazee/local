@@ -322,6 +322,29 @@ local.makePeerDomain = function makePeerDomain(user, relay, app, sid) {
 };
 
 // EXPORTED
+// constructs a base proxy URL from a via header
+local.viaToUri = function(via) {
+	var uri = '';
+	if (via && via.length) {
+		// Add a helper that encodes the parts progressively more frequently
+		// - 0 the first time, once the second, twice the third...
+		var enc_iters = 0;
+		var encode = function(str) {
+			for (var i = 0; i < enc_iters; i++)
+				str = encodeURIComponent(str);
+			enc_iters++;
+			return str;
+		};
+
+		// Create the URI
+		uri = via.map(function(proxy) {
+			return encode((proxy.proto.name||'http').toLowerCase() + '://' + proxy.hostname);
+		}).join('/');
+	}
+	return uri;
+};
+
+// EXPORTED
 // sends the given response back verbatim
 // - if `writeHead` has been previously called, it will not change
 // - params:

@@ -171,9 +171,9 @@ protocol-version  = token
 received-by       = ( host [ ":" port ] ) | pseudonym
 pseudonym         = token
 */
-//                  proto-name  proto-v   received-by      comment
-//                  ------      -------   ------------     -------
-var viaregex = /(?:([A-z]+)\/)?([\d\.]+) ([-A-z:\d\.]*)(?: ([^,]+))?/g;
+//                  proto-name  proto-v   received-by        comment
+//                  ------      -------   --------------     ------
+var viaregex = /(?:([A-z]+)\/)?([\d\.]+) ([-A-z:\d\.@!]*)(?: ([^,]+))?/g;
 local.httpHeaders.register('via',
 	function (obj) {
 		return obj.map(function(via) {

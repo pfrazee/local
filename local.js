@@ -1133,6 +1133,25 @@ local.makePeerDomain = function makePeerDomain(user, relay, app, sid) {
 };
 
 // EXPORTED
+// constructs a base proxy URL from a via header
+local.viaToUri = function(via) {
+	var uri = '';
+	if (via && via.length) {
+		var enc_iters = 0;
+		var encode = function(str) {
+			for (var i = 0; i < enc_iters; i++)
+				str = encodeURIComponent(str);
+			enc_iters++;
+			return str;
+		};
+		uri = via.map(function(proxy) {
+			return encode((proxy.proto.name||'http').toLowerCase() + '://' + proxy.hostname);
+		}).join('/');
+	}
+	return uri;
+};
+
+// EXPORTED
 // sends the given response back verbatim
 // - if `writeHead` has been previously called, it will not change
 // - params:
@@ -1659,9 +1678,9 @@ protocol-version  = token
 received-by       = ( host [ ":" port ] ) | pseudonym
 pseudonym         = token
 */
-//                  proto-name  proto-v   received-by      comment
-//                  ------      -------   ------------     -------
-var viaregex = /(?:([A-z]+)\/)?([\d\.]+) ([-A-z:\d\.]*)(?: ([^,]+))?/g;
+//                  proto-name  proto-v   received-by        comment
+//                  ------      -------   --------------     ------
+var viaregex = /(?:([A-z]+)\/)?([\d\.]+) ([-A-z:\d\.@!]*)(?: ([^,]+))?/g;
 local.httpHeaders.register('via',
 	function (obj) {
 		return obj.map(function(via) {
@@ -1960,23 +1979,57 @@ Response.prototype.deserializeHeaders = function() {
 //var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
 Response.prototype.processHeaders = function(request) {
 	var self = this;
+
+	// Construct the base URLd out of the via headers
+	var via = self.parsedHeaders.via;
+	var host_proxy = local.viaToUri(via);
+	var decode = function(str) {
+		for (var i=0; i < via.length; i++)
+			str = decodeURIComponent(str);
+		return str;
+	};
+
+	// Update the link headers
 	if (self.parsedHeaders.link) {
 		self.parsedHeaders.link.forEach(function(link) {
-			// if (isUrlAbsoluteRE.test(link.href) === false)
+			// Convert relative paths to absolute uris
 			if (!local.isAbsUri(link.href))
 				link.href = local.joinRelPath(request.urld, link.href);
-			link.host_domain = local.parseUri(link.href).authority;
+
+			// Extract host domain
+			var host_domain = null;
+			if (host_proxy && link.href.indexOf(host_proxy) === 0) {
+				// A suburi of the proxy? See if its an abs uri
+				var suburi = decode(link.href.slice(host_proxy.length)).slice(1);
+				if (/^http(s|l)?:\/\//.test(suburi)) {
+					host_domain = local.parseUri(suburi).authority;
+				}
+			}
+			if (!host_domain) {
+				// Not a proxied request, handle as is
+				host_domain = local.parseUri(link.href).authority;
+			}
+
+			// Set host data
+			Object.defineProperty(link, 'host_domain', { enumerable: false, configurable: true, writable: true, value: host_domain });
 			var peerd = local.parsePeerDomain(link.host_domain);
 			if (peerd) {
-				link.host_user   = peerd.user;
-				link.host_relay  = peerd.relay;
-				link.host_app    = peerd.app;
-				link.host_sid    = peerd.sid;
+				Object.defineProperty(link, 'host_user', { enumerable: false, configurable: true, writable: true, value: peerd.user });
+				Object.defineProperty(link, 'host_relay', { enumerable: false, configurable: true, writable: true, value: peerd.relay });
+				Object.defineProperty(link, 'host_app', { enumerable: false, configurable: true, writable: true, value: peerd.app });
+				Object.defineProperty(link, 'host_sid', { enumerable: false, configurable: true, writable: true, value: peerd.sid });
 			} else {
 				delete link.host_user;
 				delete link.host_relay;
 				delete link.host_app;
 				delete link.host_sid;
+			}
+
+			// Add proxy
+			if (host_proxy) {
+				Object.defineProperty(link, 'host_proxy', { enumerable: false, configurable: true, writable: true, value: host_proxy });
+			} else {
+				delete link.host_proxy;
 			}
 		});
 	}

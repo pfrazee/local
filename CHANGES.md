@@ -1,6 +1,26 @@
 Changes
 =======
+0.6.0
+
+2014/01/15 pfraze
+
+ - Added local.viaToUri for proxy URI construction
+ - Added Via header parsing
+
+
+2014/01/14 pfraze
+
+ - Added response.prototype.processHeaders
+
+
+2014/01/11 pfraze
+
+ - Added httpl://self to workers
+
+
+
 0.5.2
+=====
 
 2013/12/13 pfraze
 
