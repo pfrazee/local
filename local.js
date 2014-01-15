@@ -835,10 +835,9 @@ local.queryLinks = function queryLinks(links, query) {
 //   - rel: can take multiple values, space-separated, which are ANDed logically
 //   - rel: will ignore the preceding scheme and trailing slash on URI values
 //   - rel: items preceded by an exclamation-point (!) will invert (logical NOT)
-var uriTokenStart = '\\{[\\+\\#\\.\\/\\;\\?\\&]?';
+var uriTokenStart = '\\{([^\\}]*)[\\+\\#\\.\\/\\;\\?\\&]?';
 var uriTokenEnd = '(\\,|\\})';
 local.queryLink = function queryLink(link, query) {
-	var href = (link.__proxyd) ? (link.__proxyd[link.__proxyd.length - 1]) : link.href;
 	for (var attr in query) {
 		if (attr == 'rel') {
 			var terms = query.rel.split(/\s+/);

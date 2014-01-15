@@ -24,7 +24,7 @@ local.queryLinks = function queryLinks(links, query) {
 //   - rel: can take multiple values, space-separated, which are ANDed logically
 //   - rel: will ignore the preceding scheme and trailing slash on URI values
 //   - rel: items preceded by an exclamation-point (!) will invert (logical NOT)
-var uriTokenStart = '\\{[\\+\\#\\.\\/\\;\\?\\&]?';
+var uriTokenStart = '\\{([^\\}]*)[\\+\\#\\.\\/\\;\\?\\&]?';
 var uriTokenEnd = '(\\,|\\})';
 local.queryLink = function queryLink(link, query) {
 	for (var attr in query) {
