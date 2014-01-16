@@ -122,7 +122,6 @@ BridgeServer.prototype.handleLocalRequest = function(request, response) {
 		mid: (this.isReorderingMessages) ? 1 : undefined,
 		method: request.method,
 		path: request.path,
-		host: request.host,
 		query: request.query,
 		headers: request.headers
 	};
@@ -199,7 +198,6 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 			// Create request & response
 			var request = new local.Request({
 				method: msg.method,
-				host: msg.host,
 				path: msg.path,
 				query: msg.query,
 				headers: msg.headers

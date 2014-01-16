@@ -220,7 +220,7 @@ local.schemes.register('httpl', function(request, response) {
 
 	// Pull out and standardize the path & host
 	request.path = request.urld.path;
-	request.host = request.urld.authority;
+	request.headers.host = request.urld.authority;
 	if (!request.path) request.path = '/'; // no path, give a '/'
 	else request.path = request.path.replace(/(.)\/$/, '$1'); // otherwise, never end with a '/'
 

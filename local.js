@@ -1014,7 +1014,7 @@ local.joinRelPath = function(urld, relpath) {
 local.parseUri = function parseUri(str) {
 	if (typeof str === 'object') {
 		if (str.url) { str = str.url; }
-		else if (str.host || str.path) { str = local.joinUri(req.host, req.path); }
+		else if ((str.headers && str.headers.host) || str.path) { str = local.joinUri(str.headers.host, str.path); }
 	}
 
 	// handle data-uris specially
@@ -1730,9 +1730,11 @@ function Request(options) {
 	this.method = options.method ? options.method.toUpperCase() : 'GET';
 	this.url = options.url || null;
 	this.path = options.path || null;
-	this.host = options.host || null;
 	this.query = options.query || {};
 	this.headers = lowercaseKeys(headers);
+	if (!this.headers.host && options.host) {
+		this.headers.host = options.host;
+	}
 
 	// Guess the content-type if a full body is included in the message
 	if (options.body && !this.headers['content-type']) {
@@ -2219,7 +2221,6 @@ BridgeServer.prototype.handleLocalRequest = function(request, response) {
 		mid: (this.isReorderingMessages) ? 1 : undefined,
 		method: request.method,
 		path: request.path,
-		host: request.host,
 		query: request.query,
 		headers: request.headers
 	};
@@ -2296,7 +2297,6 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 			// Create request & response
 			var request = new local.Request({
 				method: msg.method,
-				host: msg.host,
 				path: msg.path,
 				query: msg.query,
 				headers: msg.headers
@@ -3740,7 +3740,7 @@ local.schemes.register('httpl', function(request, response) {
 
 	// Pull out and standardize the path & host
 	request.path = request.urld.path;
-	request.host = request.urld.authority;
+	request.headers.host = request.urld.authority;
 	if (!request.path) request.path = '/'; // no path, give a '/'
 	else request.path = request.path.replace(/(.)\/$/, '$1'); // otherwise, never end with a '/'
 

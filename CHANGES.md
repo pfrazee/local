@@ -5,6 +5,7 @@ Changes
 2014/01/16 pfraze
 
  - Added data scheme to isAbsUri
+ - Moved the request.host attribute into request.headers in order to conform with HTTP/1.1.
 
 
 2014/01/15 pfraze

@@ -203,7 +203,7 @@ local.joinRelPath = function(urld, relpath) {
 local.parseUri = function parseUri(str) {
 	if (typeof str === 'object') {
 		if (str.url) { str = str.url; }
-		else if (str.host || str.path) { str = local.joinUri(req.host, req.path); }
+		else if ((str.headers && str.headers.host) || str.path) { str = local.joinUri(str.headers.host, str.path); }
 	}
 
 	// handle data-uris specially

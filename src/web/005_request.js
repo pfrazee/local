@@ -16,9 +16,11 @@ function Request(options) {
 	this.method = options.method ? options.method.toUpperCase() : 'GET';
 	this.url = options.url || null;
 	this.path = options.path || null;
-	this.host = options.host || null;
 	this.query = options.query || {};
 	this.headers = lowercaseKeys(headers);
+	if (!this.headers.host && options.host) {
+		this.headers.host = options.host;
+	}
 
 	// Guess the content-type if a full body is included in the message
 	if (options.body && !this.headers['content-type']) {
