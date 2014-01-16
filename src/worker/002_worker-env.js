@@ -107,6 +107,7 @@ function addConnection(port) {
 	// Track new connection
 	if (isHost) {
 		local.worker.hostPage = page;
+		local.addServer('host.page', page);
 	}
 	local.worker.pages.push(page);
 	local.addServer(page.id+'.page', page);
