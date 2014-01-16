@@ -5406,7 +5406,7 @@ Agent.prototype.resolve = function(options) {
 
 					// Error - Link not found
 					var response = new local.Response();
-					response.writeHead(local.LINK_NOT_FOUND, 'link query failed to match').end();
+					response.writeHead(local.LINK_NOT_FOUND, 'Link Query Failed to Match').end();
 					throw response;
 				})
 				.fail(function(error) {
