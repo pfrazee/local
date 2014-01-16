@@ -2,6 +2,11 @@ Changes
 =======
 0.6.0
 
+2014/01/16 pfraze
+
+ - Added data scheme to isAbsUri
+
+
 2014/01/15 pfraze
 
  - Added Via header parsing

@@ -954,7 +954,7 @@ local.joinUri = function joinUri() {
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
 // - eg http://foo.com, //foo.com, httpl://bar.app
-var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)/;
+var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)|(data:)/;
 local.isAbsUri = function(url) {
 	// Has a scheme?
 	if (hasSchemeRegex.test(url))
