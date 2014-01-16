@@ -15,7 +15,7 @@ local.addServer('hosts', function(req, res) {
 		if (domain == 'hosts')
 			continue;
 		domains.push(domain);
-		responses_.push(local.dispatch({ method: 'HEAD', url: 'httpl://'+domain }));
+		responses_.push(local.dispatch({ method: 'HEAD', url: 'httpl://'+domain, timeout: 500 }));
 	}
 
 	local.promise.bundle(responses_).then(function(ress) {
