@@ -3841,8 +3841,8 @@ local.dispatch = function dispatch(request) {
 
 	// Create the request if needed
 	var body = null, shouldAutoSendRequestBody = false;
-	if (!(request instanceof local.Request)) {
-		shouldAutoSendRequestBody = true; // we're going to end() because we were given a object literal
+	if (!(request instanceof local.Request) || request.body) {
+		shouldAutoSendRequestBody = true; // we're going to end() with req.body
 
 		var timeout = request.timeout;
 		request = new local.Request(request);
