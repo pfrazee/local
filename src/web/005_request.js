@@ -82,6 +82,11 @@ function Request(options) {
 local.Request = Request;
 Request.prototype = Object.create(local.util.EventEmitter.prototype);
 
+Request.prototype.header = function(k, v) {
+	if (typeof v != 'undefined')
+		return this.setHeader(k, v);
+	return this.getHeader(k);
+};
 Request.prototype.setHeader    = function(k, v) { this.headers[k.toLowerCase()] = v; };
 Request.prototype.getHeader    = function(k) { return this.headers[k.toLowerCase()]; };
 Request.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCase()]; };

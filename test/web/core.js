@@ -244,14 +244,16 @@ success
 }
 */
 
-// uppercase headers in responses
+// header() function
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method: 'GET', Accept: 'text/plain', url: 'httpl://test.com' });
-res.then(
-  function(res) { print('success'); print(res['Content-Type']); print(res.Content_Type); },
-  printError).always(finishTest);
+var req = new local.Request({ method: 'GET', url: 'httpl://test.com' });
+req.header('Accept', 'text/plain');
+local.dispatch(req).then(
+  function(res) { print('success'); print(res.header('Content-Type')); print(res.header('content-type')); },
+  printError
+).always(finishTest);
 wait(function () { return done; });
 
 /* =>

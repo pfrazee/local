@@ -5,6 +5,7 @@ Changes
 2014/01/17 pfraze
 
  - Limited nav:|| URIs to 5 navigations to mitigate flooding attacks
+ - Added request.header() and response.header() to simplify header access (was having issues of case-sensitivity)
 
 
 2014/01/16 pfraze

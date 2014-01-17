@@ -32,20 +32,6 @@ function Response() {
 		writable: true
 	});
 
-	// header mixin
-	this.on('headers', function() {
-		for (var k in self.headers) {
-			var k2 = titlecaseHeader(k);
-			if (typeof self[k2] == 'undefined') {
-				Object.defineProperty(self, k2, { value: self.headers[k], configurable: true, enumerable: false, writable: true });
-			}
-			var k3 = underscorifyHeader(k2);
-			if (typeof self[k3] == 'undefined') {
-				Object.defineProperty(self, k3, { value: self.headers[k], configurable: true, enumerable: false, writable: true });
-			}
-		}
-	});
-
 	// response buffering
 	Object.defineProperty(this, 'body_', {
 		value: local.promise(),
@@ -68,6 +54,11 @@ function Response() {
 local.Response = Response;
 Response.prototype = Object.create(local.util.EventEmitter.prototype);
 
+Response.prototype.header = function(k, v) {
+	if (typeof v != 'undefined')
+		return this.setHeader(k, v);
+	return this.getHeader(k);
+};
 Response.prototype.setHeader    = function(k, v) { this.headers[k.toLowerCase()] = v; };
 Response.prototype.getHeader    = function(k) { return this.headers[k.toLowerCase()]; };
 Response.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCase()]; };
@@ -186,15 +177,3 @@ Response.prototype.close = function() {
 	// this.removeAllListeners('close');
 	return this;
 };
-
-// internal helper
-var titlecaseRegExp = /(^(.))|(\-(.))/g;
-function titlecaseHeader(v) {
-	return v.replace(titlecaseRegExp, function(v) { return v.toUpperCase(); });
-}
-
-// internal helper
-var dashRegExp = /\-/g;
-function underscorifyHeader(v) {
-	return v.replace(dashRegExp, '_');
-}
