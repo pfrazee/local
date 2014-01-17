@@ -6,6 +6,7 @@ Changes
 
  - Limited nav:|| URIs to 5 navigations to mitigate flooding attacks
  - Added request.header() and response.header() to simplify header access (was having issues of case-sensitivity)
+ - Added function attributes to queryLink() queries
 
 
 2014/01/16 pfraze

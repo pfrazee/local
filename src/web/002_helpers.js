@@ -21,6 +21,7 @@ local.queryLinks = function queryLinks(links, query) {
 //   - if a query attribute is not present on the link, and is not present in the href as a URI Template token, returns false
 //   - otherwise, returns true
 //   - query values preceded by an exclamation-point (!) will invert (logical NOT)
+//   - query values may be a function which receive (value, key) and return true if matching
 //   - rel: can take multiple values, space-separated, which are ANDed logically
 //   - rel: will ignore the preceding scheme and trailing slash on URI values
 //   - rel: items preceded by an exclamation-point (!) will invert (logical NOT)
@@ -28,7 +29,11 @@ var uriTokenStart = '\\{([^\\}]*)[\\+\\#\\.\\/\\;\\?\\&]?';
 var uriTokenEnd = '(\\,|\\})';
 local.queryLink = function queryLink(link, query) {
 	for (var attr in query) {
-		if (attr == 'rel') {
+		if (typeof query[attr] == 'function') {
+			if (!query[attr].call(null, link[attr], attr)) {
+				return false;
+			}
+		} else if (attr == 'rel') {
 			var terms = query.rel.split(/\s+/);
 			for (var i=0; i < terms.length; i++) {
 				var desiredBool = true;

@@ -839,7 +839,11 @@ var uriTokenStart = '\\{([^\\}]*)[\\+\\#\\.\\/\\;\\?\\&]?';
 var uriTokenEnd = '(\\,|\\})';
 local.queryLink = function queryLink(link, query) {
 	for (var attr in query) {
-		if (attr == 'rel') {
+		if (typeof query[attr] == 'function') {
+			if (!query[attr].call(null, link[attr], attr)) {
+				return false;
+			}
+		} else if (attr == 'rel') {
 			var terms = query.rel.split(/\s+/);
 			for (var i=0; i < terms.length; i++) {
 				var desiredBool = true;

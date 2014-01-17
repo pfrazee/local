@@ -238,6 +238,8 @@ print(local.queryLinks(links, { rel: 'other.com/-item', user: false }).length);
 // => 1
 print(local.queryLinks(links, { rel: 'other.com/-item', q1: true }).length);
 // => 1
+print(local.queryLinks(links, { rel: function(v, k) { return v == 'foo service via' && k == 'rel'; } }).length);
+// => 1
 finishTest();
 
 
