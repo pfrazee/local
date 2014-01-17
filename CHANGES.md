@@ -2,6 +2,11 @@ Changes
 =======
 0.6.0
 
+2014/01/17 pfraze
+
+ - Limited nav:|| URIs to 5 navigations to mitigate flooding attacks
+
+
 2014/01/16 pfraze
 
  - Added data scheme to isAbsUri

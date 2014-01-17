@@ -1100,6 +1100,10 @@ local.parseNavUri = function(str) {
 		parts[i] = query;
 	}
 
+	// Limit to 5 navigations (and 1 base)
+	if (parts.length > 6)
+		parts.length = 6;
+
 	// Drop first entry if empty (a relative nav uri)
 	if (!parts[0])
 		parts.shift();

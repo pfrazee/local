@@ -300,6 +300,16 @@ print(local.parseNavUri('nav:||http://foo.com|bar=baz,a=b,c=f%20g'));
 // => ["http://foo.com", {a: "b", c: "f g", id: "baz", rel: "bar"}]
 print(local.parseNavUri('nav:||http://foo.com|bar=baz|faa=feh'));
 // => ["http://foo.com", {id: "baz", rel: "bar"}, {id: "feh", rel: "faa"}]
+print(local.parseNavUri('nav:||http://foo.com|foo|foo|foo|foo|foo|foo|foo|foo|foo'));
+/* => [
+  "http://foo.com",
+  {rel: "foo"},
+  {rel: "foo"},
+  {rel: "foo"},
+  {rel: "foo"},
+  {rel: "foo"}
+]*/
+// ^ limited to 5 navs
 finishTest();
 
 
