@@ -1169,8 +1169,10 @@ local.makeProxyUri = function(parts) {
 	var uri = 0;
 	for (var i=parts.length-1; i >= 0; i--) {
 		var part = parts[i];
-		if (part.hostname && part.proto) // parsed via header
-			part = part.proto.name.toLowerCase() + '://' + part.hostname;
+		if (part.hostname && part.proto) { // parsed via header
+			var proto = part.proto.name.toLowerCase();
+			part = ((proto&&(i===0||proto!='httpl'))?(proto+'://'):'') + part.hostname;
+		}
 		if (!uri) uri = part;
 		else uri = local.joinUri(part, encodeURIComponent(uri));
 	}
