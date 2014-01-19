@@ -832,6 +832,7 @@ local.queryLinks = function queryLinks(links, query) {
 //   - if a query attribute is not present on the link, and is not present in the href as a URI Template token, returns false
 //   - otherwise, returns true
 //   - query values preceded by an exclamation-point (!) will invert (logical NOT)
+//   - query values may be a function which receive (value, key) and return true if matching
 //   - rel: can take multiple values, space-separated, which are ANDed logically
 //   - rel: will ignore the preceding scheme and trailing slash on URI values
 //   - rel: items preceded by an exclamation-point (!) will invert (logical NOT)
@@ -2293,6 +2294,7 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 				query: msg.query,
 				headers: msg.headers
 			});
+			request.deserializeHeaders();
 			var response = new local.Response();
 			request.on('close', function() { response.close(); });
 

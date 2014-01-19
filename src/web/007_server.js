@@ -202,6 +202,7 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 				query: msg.query,
 				headers: msg.headers
 			});
+			request.deserializeHeaders();
 			var response = new local.Response();
 			request.on('close', function() { response.close(); });
 
