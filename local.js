@@ -3865,6 +3865,7 @@ local.dispatch = function dispatch(request) {
 	// If given a nav: scheme, spawn a agent to handle it
 	var scheme = parseScheme(request.url);
 	if (scheme == 'nav') {
+		request = new Request(request); // clone before modifying
 		var url = request.url;
 		delete request.url;
 		var response_ = local.agent(url).dispatch(request);
