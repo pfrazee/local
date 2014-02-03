@@ -114,7 +114,8 @@ local.addServer('test.com', function(request, response) {
 // proxy server
 local.addServer('proxy', function(req, res) {
 	if (req.path == '/') {
-		res.setHeader('Link', [{ href: '/', rel: 'self service' }, { href: '/{uri}', rel: 'service' }]);
+		res.header('Link', [{ href: '/', rel: 'self service', noproxy: true }, {href: 'httpl://test.com', rel:'service'}, { href: '/{uri}', rel: 'service', noproxy: true }]);
+		res.header('Proxy-Tmpl', 'httpl://proxy/{uri}');
 		res.writeHead(204, 'ok, no content').end();
 		return;
 	}
@@ -122,7 +123,7 @@ local.addServer('proxy', function(req, res) {
 	// Proxy the request through
 	var req2 = new local.Request({
 		method: req.method,
-		url: req.path.slice(1),
+		url: decodeURIComponent(req.path.slice(1)),
 		query: local.util.deepClone(req.query),
 		headers: local.util.deepClone(req.headers),
 		stream: true
@@ -138,6 +139,7 @@ local.addServer('proxy', function(req, res) {
 
 		// Set res via
 		res2.headers['Via'] = (res2.parsedHeaders.via||[]).concat([{proto: {version:'1.0', name:'httpl'}, hostname: 'proxy'}]);
+		res2.headers['Proxy-Tmpl'] = ((res2.header('Proxy-Tmpl')||'') + ' httpl://proxy/{uri}').trim();
 
 		// Pipe back
 		res.writeHead(res2.status, res2.reason, res2.headers);

@@ -302,7 +302,7 @@ print(local.parseNavUri('nav:||http://foo.com|bar=baz,a=b,c=f%20g'));
 // => ["http://foo.com", {a: "b", c: "f g", id: "baz", rel: "bar"}]
 print(local.parseNavUri('nav:||http://foo.com|bar=baz|faa=feh'));
 // => ["http://foo.com", {id: "baz", rel: "bar"}, {id: "feh", rel: "faa"}]
-print(local.parseNavUri('nav:||http://foo.com|foo|foo|foo|foo|foo|foo|foo|foo|foo'));
+print(local.parseNavUri('nav:||http://foo.com|foo|foo|foo|foo|foo|foo|foo|foo|foo')); // limited to 5 navs
 /* => [
   "http://foo.com",
   {rel: "foo"},
@@ -311,7 +311,6 @@ print(local.parseNavUri('nav:||http://foo.com|foo|foo|foo|foo|foo|foo|foo|foo|fo
   {rel: "foo"},
   {rel: "foo"}
 ]*/
-// ^ limited to 5 navs
 finishTest();
 
 
@@ -328,7 +327,7 @@ success
 {
   body: "",
   headers: {
-    link: "</>; rel=\"self service via\"; id=\"hosts\"; title=\"Page Hosts\", <httpl://_worker.js/>; rel=\" current\", <httpl://test.com/>; rel=\" current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", <httpl://proxy/>; rel=\" service\""
+    link: "</>; rel=\"self service via\"; id=\"hosts\"; title=\"Page Hosts\", <httpl://_worker.js/>; rel=\" current\", <httpl://test.com/>; rel=\" current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", <httpl://proxy/>; rel=\" service\"; noproxy"
   },
   reason: "ok, no content",
   status: 204

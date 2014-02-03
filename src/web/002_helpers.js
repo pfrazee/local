@@ -333,37 +333,14 @@ local.makePeerDomain = function makePeerDomain(user, relay, app, sid) {
 };
 
 // EXPORTED
-// breaks a proxy URI into the different parts
-// eg 'httpl://0.page/httpl%3A%2F%2Ffoo%2Fhttpl%253A%252F%252Fmy_worker.js%252F'
-// -> ['httpl://0.page/', 'httpl://foo/', 'httpl://my_worker.js/']
-local.parseProxyUri = function(uri) {
-	var parts = [];
-	var re = /^http(l|s)?/;
-	while (re.exec(uri)) {
-		var end = uri.indexOf('http', 8); // skip 8 to skip 'http(l|s)://'. If just http://, will skip 1 too many, but that shouldnt matter
-		if (end == -1)
-			break;
-		parts.push(uri.slice(0, end));
-		uri = decodeURIComponent(uri.slice(end));
-	}
-	parts.push(uri);
-	return parts;
-};
-
-// EXPORTED
-// builds a proxy URI out of an array of parts
-// eg ['httpl://0.page/', 'httpl://foo/', 'httpl://my_worker.js/']
-// -> 'httpl://0.page/httpl%3A%2F%2Ffoo%2Fhttpl%253A%252F%252Fmy_worker.js%252F'
-local.makeProxyUri = function(parts) {
-	var uri = 0;
-	for (var i=parts.length-1; i >= 0; i--) {
-		var part = parts[i];
-		if (part.hostname && part.proto) { // parsed via header
-			var proto = part.proto.name.toLowerCase();
-			part = ((proto&&(i===0||proto!='httpl'))?(proto+'://'):'') + part.hostname;
-		}
-		if (!uri) uri = part;
-		else uri = local.joinUri(part, encodeURIComponent(uri));
+// builds a proxy URI out of an array of templates
+// eg ('httpl://my_worker.js/', ['httpl://0.page/{uri}', 'httpl://foo/{?uri}'])
+// -> "httpl://0.page/httpl%3A%2F%2Ffoo%2F%3Furi%3Dhttpl%253A%252F%252Fmy_worker.js%252F"
+local.makeProxyUri = function(uri, templates) {
+	if (!Array.isArray(templates)) templates = [templates];
+	for (var i=templates.length-1; i >= 0; i--) {
+		var tmpl = templates[i];
+		uri = local.UriTemplate.parse(tmpl).expand({ uri: uri });
 	}
 	return uri;
 };

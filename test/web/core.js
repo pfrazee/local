@@ -474,6 +474,7 @@ success
   headers: {
     "content-type": "text/plain",
     link: "<httpl://test.com/>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", <httpl://test.com/events>; rel=\"collection\"; id=\"events\", <httpl://test.com/foo>; rel=\"collection\"; id=\"foo\", <httpl://test.com/{id}>; rel=\"collection\"",
+    "proxy-tmpl": "httpl://proxy/{uri}",
     via: "httpl/1.0 proxy"
   },
   reason: "ok",
@@ -506,9 +507,107 @@ success
   headers: {
     "content-type": "text/plain",
     link: "<httpl://test.com/>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", <httpl://test.com/events>; rel=\"collection\"; id=\"events\", <httpl://test.com/foo>; rel=\"collection\"; id=\"foo\", <httpl://test.com/{id}>; rel=\"collection\"",
+    "proxy-tmpl": "httpl://proxy/{uri} httpl://proxy/{uri}",
     via: "httpl/1.0 proxy, httpl/1.0 proxy"
   },
   reason: "ok",
   status: 200
+}
+*/
+
+// Proxy-Tmpl header
+
+done = false;
+startTime = Date.now();
+var proxyagent = local.agent('httpl://proxy/httpl://test.com');
+var res = proxyagent.follow({ rel: 'collection', id: 'foo' }).GET();
+res.then(function(res) {
+  res.parsedHeaders.link.forEach(function(link) {
+    var props = Object.getOwnPropertyNames(link);
+    print(props.map(function(prop){ return prop+'="'+link[prop]+'"'; }).join('; '));
+  });
+  return res;
+}).then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+href="httpl://test.com/"; rel="up via service"; host_domain="test.com"
+href="httpl://test.com/foo"; rel="self current"; host_domain="test.com"
+href="httpl://test.com/foo/{id}"; rel="item"; host_domain="test.com"
+success
+{
+  body: ["bar", "baz", "blah"],
+  headers: {
+    "content-type": "application/json",
+    link: "<httpl://test.com/>; rel=\"up via service\", <httpl://test.com/foo>; rel=\"self current\", <httpl://test.com/foo/{id}>; rel=\"item\"",
+    "proxy-tmpl": "httpl://proxy/{uri}",
+    via: "httpl/1.0 proxy"
+  },
+  reason: "ok",
+  status: 200
+}
+*/
+
+// Proxy-Tmpl header through the proxy-proxy
+
+done = false;
+startTime = Date.now();
+var proxyagent = local.agent('httpl://proxy/httpl://proxy/httpl://test.com');
+var res = proxyagent.follow({ rel: 'collection', id: 'foo' }).GET();
+res.then(function(res) {
+  res.parsedHeaders.link.forEach(function(link) {
+    var props = Object.getOwnPropertyNames(link);
+    print(props.map(function(prop){ return prop+'="'+link[prop]+'"'; }).join('; '));
+  });
+  return res;
+}).then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+href="httpl://test.com/"; rel="up via service"; host_domain="test.com"
+href="httpl://test.com/foo"; rel="self current"; host_domain="test.com"
+href="httpl://test.com/foo/{id}"; rel="item"; host_domain="test.com"
+success
+{
+  body: ["bar", "baz", "blah"],
+  headers: {
+    "content-type": "application/json",
+    link: "<httpl://test.com/>; rel=\"up via service\", <httpl://test.com/foo>; rel=\"self current\", <httpl://test.com/foo/{id}>; rel=\"item\"",
+    "proxy-tmpl": "httpl://proxy/{uri} httpl://proxy/{uri}",
+    via: "httpl/1.0 proxy, httpl/1.0 proxy"
+  },
+  reason: "ok",
+  status: 200
+}
+*/
+
+// Proxy-Tmpl header w/noproxy links
+
+done = false;
+startTime = Date.now();
+var proxyagent = local.agent('httpl://proxy');
+var res = proxyagent.follow({ rel: 'self' }).GET();
+res.then(function(res) {
+  res.parsedHeaders.link.forEach(function(link) {
+    var props = Object.getOwnPropertyNames(link);
+    print(props.map(function(prop){ return prop+'="'+link[prop]+'"'; }).join('; '));
+  });
+  return res;
+}).then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+href="httpl://proxy/"; rel="self service"; noproxy="true"; host_domain="proxy"
+href="httpl://test.com"; rel="service"; host_domain="test.com"
+href="httpl://proxy/{uri}"; rel="service"; noproxy="true"; host_domain="proxy"
+success
+{
+  body: "",
+  headers: {
+    link: "</>; rel=\"self service\"; noproxy, <httpl://test.com>; rel=\"service\", </{uri}>; rel=\"service\"; noproxy",
+    "proxy-tmpl": "httpl://proxy/{uri}"
+  },
+  reason: "ok, no content",
+  status: 204
 }
 */

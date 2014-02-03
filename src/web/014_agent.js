@@ -130,7 +130,7 @@ function Agent(context, parentAgent) {
 	this.context         = context         || null;
 	this.parentAgent = parentAgent || null;
 	this.links           = null;
-	// this.via             = null;
+	this.proxyTmpl       = null;
 	this.requestDefaults = null;
 }
 local.Agent = Agent;
@@ -191,7 +191,7 @@ Agent.prototype.dispatch = function(req) {
 			self.context.setResolved();
 			if (res.parsedHeaders.link) self.links = res.parsedHeaders.link;
 			else self.links = self.links || []; // cache an empty link list so we dont keep trying during resolution
-			// self.via = (res.parsedHeaders.via || null);
+			self.proxyTmpl = (res.header('Proxy-Tmpl')) ? res.header('Proxy-Tmpl').split(' ') : null;
 			return res;
 		})
 		.fail(function(res) {
@@ -256,7 +256,7 @@ Agent.prototype.follow = function(query) {
 Agent.prototype.unresolve = function() {
 	this.context.resetResolvedState();
 	this.links = null;
-	// this.via = null;
+	this.proxyTmpl = null;
 	return this;
 };
 
@@ -356,8 +356,8 @@ Agent.prototype.lookupLink = function(context) {
 			var link = local.queryLinks(this.links, context.query)[0];
 			if (link) {
 				var uri = local.UriTemplate.parse(link.href).expand(context.query);
-				// if (this.via)
-					// uri = local.makeProxyUri(this.via.concat(uri));
+				if (this.proxyTmpl && !link.noproxy)
+					uri = local.makeProxyUri(uri, this.proxyTmpl);
 				return uri;
 			}
 		}

@@ -2,6 +2,11 @@ Changes
 =======
 0.6.0
 
+2014/02/03 pfraze
+
+ - Added Proxy-Tmpl (and noproxy link attr) support to agents for automated proxy URI construction
+
+
 2014/01/17 pfraze
 
  - Limited nav:|| URIs to 5 navigations to mitigate flooding attacks
@@ -18,7 +23,7 @@ Changes
 2014/01/15 pfraze
 
  - Added Via header parsing
- - Added local.parseProxyUri and local.makeProxyUri
+ - Added local.makeProxyUri
 
 
 2014/01/14 pfraze
