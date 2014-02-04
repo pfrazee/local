@@ -63,6 +63,26 @@ Link: <httpl://myhost/users>; rel="collection foobar.com/users foobar.com/pagina
 
 ---
 
+### Proxy Links
+
+Proxies are commonly used in Local.js - for instance, when a worker wants to reach a server on the page that's not its dedicated server. Because proxied URLs include two full URIs (the proxy's and the upstream target's) it's necessary to percent-encode the upstream. However, percent-encoding keeps the agent from recognizing URI templates in the links.
+
+To solve this, proxies can set the 'Proxy-Tmpl' response header with a template to construct the final URI. Any URIs in the Link header should then only include the upstream. If multiple proxies are in use, then each should include a template (space-separated) with the first proxy showing first in the header.
+
+```javascript
+res.setHeader('Uri-Template', 'httpl://myproxy/{uri}');
+res.setHeader('Link', [
+	{ href: '/', rel: 'self service via', title: 'Host Page', noproxy: true },
+	// ^ the noproxy link attribute will exclude Proxy-Tmpl from being applied on that link
+	{ href: 'httpl://upstream.server', rel: 'service', title: 'Some Upstream Service' }
+	// ^ this link will resolve to "httpl://myproxy/httpl%3A%2F%2Fupstream.server"
+]);
+```
+
+The proxy templates should only include the `{uri}` token.
+
+---
+
 ## local.Agent
 
 ### .follow(query)
