@@ -1,13 +1,13 @@
-Local 0.5.1dev
+Local 0.6.0dev
 ==============
 
 [<a href="https://github.com/grimwire/local">Repository</a> | <a href="https://github.com/grimwire/local/issues">Issues</a> | <a href="http://grimwire.com/local">Documentation</a>]
 
 ## Overview
 
-Local.js is a promises-based Ajax messaging library for browsers. It emulates HTTP streams on the page so javascript functions can respond to requests. It also defines a links-based directory protocol so that APIs that can be programatically navigated by user-agents.
+Local.js is an Ajax library that implements <a href="https://github.com/grimwire/grimwire/wiki/HTTPL%3A-JSON-encoded-message-streams-with-HTTP-semantics" title="HTTP Local">HTTPLocal, a client-side variation of HTTP</a>. It can be used to communicate with Web Workers, WebRTC peers, and other messaging channels.
 
-Local.js was developed with [Grimwire](https://github.com/grimwire/grimwire), a node.js application for brokering WebRTC sessions.
+Local.js also includes a directory protocol to exchange links, discover services, and navigate with user-agents.
 
 ### Examples
 
@@ -33,7 +33,7 @@ local.spawnWorkerServer('http://myhost.com/myworker.js', function(req, res) {
 local.dispatch({ method: 'GET', url: 'httpl://myworker.js' });
 ```
 
-Run servers for other users on Grimwire:
+Run servers over WebRTC:
 
 ```javascript
 var network = local.joinRelay('https://grimwire.net', function (req, res, peer) {
@@ -100,7 +100,7 @@ Special thanks to [Goodybag.com](http://goodybag.com) for their support during t
 ### License
 
 The MIT License (MIT)
-Copyright (c) 2013 Paul Frazee
+Copyright (c) 2014 Paul Frazee
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
