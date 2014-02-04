@@ -486,22 +486,15 @@ function trackFormSubmitter(node) {
 // EXPORTED
 // extracts request from any given element
 function extractRequest(targetElem, containerElem) {
-	var requests = { form:{}, fieldset:{}, elem:{} };
-	var fieldset = null, form = null;
-
-	// find parent fieldset
-	if (targetElem.tagName === 'FIELDSET') {
-		fieldset = targetElem;
-	} else if (targetElem.tagName !== 'FORM') {
-		fieldset = findParentNode.byTag(targetElem, 'FIELDSET');
-	}
+	var requests = { form:{}, elem:{} };
+	var form = null;
 
 	// find parent form
 	if (targetElem.tagName === 'FORM') {
 		form = targetElem;
 	} else {
 		// :TODO: targetElem.form may be a simpler alternative
-		var formId = targetElem.getAttribute('form') || (fieldset ? fieldset.getAttribute('form') : null);
+		var formId = targetElem.getAttribute('form');
 		if (formId) {
 			form = containerElem.querySelector('#'+formId);
 		}
@@ -518,11 +511,6 @@ function extractRequest(targetElem, containerElem) {
 		requests.form = extractRequest.fromForm(form, targetElem);
 	}
 
-	// extract fieldset headers
-	if (fieldset) {
-		requests.fieldset = extractRequest.fromFormElement(fieldset);
-	}
-
 	// extract element headers
 	if (targetElem.tagName === 'A') {
 		requests.elem = extractRequest.fromAnchor(targetElem);
@@ -531,7 +519,7 @@ function extractRequest(targetElem, containerElem) {
 	}
 
 	// combine then all, with precedence given to rightmost objects in param list
-	var req = reduceObjects(requests.form, requests.fieldset, requests.elem);
+	var req = reduceObjects(requests.form, requests.elem);
 	var payloadWrapper = {};
 	payloadWrapper[/GET/i.test(req.method) ? 'query' : 'body'] = payload;
 	return reduceObjects(req, payloadWrapper);
@@ -590,7 +578,7 @@ extractRequest.fromForm = function(form, submittingElem) {
 		}
 	}
 
-	var requests = { submitter:{}, form:{} };
+	var requests = { submitter:{}, fieldset:{}, form:{} };
 	// extract submitting element headers
 	if (submittingElem) {
 		requests.submitter = {
@@ -602,6 +590,20 @@ extractRequest.fromForm = function(form, submittingElem) {
 				accept         : submittingElem.getAttribute('formaccept')
 			}
 		};
+
+		// find fieldset(s)
+		var fieldsetEl = submittingElem;
+		var fieldsetTest = function(elem) { return elem.tagName == 'FIELDSET' || elem.tagName == 'FORM'; };
+		while ((fieldsetEl = findParentNode(fieldsetEl.parentNode, fieldsetTest))) {
+			if (fieldsetEl.tagName == 'FORM') {
+				break; // Stop at the form
+			}
+
+			// extract fieldset headers
+			if (fieldsetEl) {
+				requests.fieldset = reduceObjects(extractRequest.fromFormElement(fieldsetEl), requests.fieldset);
+			}
+		}
 	}
 	// extract form headers
 	requests.form = {
@@ -616,7 +618,7 @@ extractRequest.fromForm = function(form, submittingElem) {
 	if (form.acceptCharset) { requests.form.headers.accept = form.acceptCharset; }
 
 	// combine, with precedence to the submitting element
-	var request = reduceObjects(requests.form, requests.submitter);
+	var request = reduceObjects(requests.form, requests.fieldset, requests.submitter);
 
 	// strip the base URI
 	// :TODO: needed?
