@@ -37,6 +37,16 @@ request.end();
 
 ---
 
+### .header(header, <span class="muted">value</span>)
+
+ - `header`: required string, the header key/name
+ - `value`: optional string|object
+ - returns string|object or undefined
+
+If `value` is given, will update the value of `header` and returns undefined. Otherwise, returns the current value.
+
+---
+
 ### .setTimeout(ms)
 
  - `ms`: required number, the timeout duration in milliseconds
