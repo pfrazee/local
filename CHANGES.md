@@ -2,6 +2,10 @@ Changes
 =======
 0.6.0
 
+2014/02/04 pfraze
+
+ - Removed {query:} from HTTPL messages; params are now serialized in the path as in HTTP/S
+
 2014/02/03 pfraze
 
  - Added Proxy-Tmpl (and noproxy link attr) support to agents for automated proxy URI construction

@@ -333,6 +333,27 @@ success
 }
 */
 
+// query params
+
+done = false;
+startTime = Date.now();
+var res = local.dispatch({ method:'get', url:'httpl://_worker.js', query: { foo: 'bar' } });
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "service resource {\"foo\":\"bar\"}",
+  headers: {
+    "content-type": "text/plain",
+    link: "</>; rel=\"self current\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
+  },
+  reason: "ok",
+  status: 200
+}
+*/
+
 // == SECTION core - nav-uri requests
 
 // successful local requests

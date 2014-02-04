@@ -2188,12 +2188,12 @@ BridgeServer.prototype.channelSendMsgWhenReady = function(msg) {
 BridgeServer.prototype.handleLocalRequest = function(request, response) {
 	// Build message
 	var sid = this.sidCounter++;
+	var query_part = local.contentTypes.serialize('application/x-www-form-urlencoded', request.query);
 	var msg = {
 		sid: sid,
 		mid: (this.isReorderingMessages) ? 1 : undefined,
 		method: request.method,
-		path: request.path,
-		query: request.query,
+		path: request.path + ((query_part) ? ('?'+query_part) : ''),
 		headers: request.headers
 	};
 
@@ -2266,11 +2266,19 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 	if (!stream) {
 		// Incoming requests have a positive sid
 		if (msg.sid > 0) {
+			// Extracy query
+			var query = null;
+			var pathparts = (msg.path||'').split('?');
+			msg.path = pathparts[0];
+			if (pathparts[1]) {
+				query = local.contentTypes.deserialize('application/x-www-form-urlencoded', pathparts[1]);
+			}
+
 			// Create request & response
 			var request = new local.Request({
 				method: msg.method,
 				path: msg.path,
-				query: msg.query,
+				query: query,
 				headers: msg.headers
 			});
 			request.deserializeHeaders();
