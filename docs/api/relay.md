@@ -58,6 +58,14 @@ Closes the stream to the relay, but leaves active peer-connections. Emits "notli
 
 ---
 
+### .isListening()
+
+ - returns bool
+
+Returns true if there is an active connection to the relay that is arranging new peer connections.
+
+---
+
 ### .registerLinks(links)
 
  - `links`: required array
