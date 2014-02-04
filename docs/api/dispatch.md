@@ -42,6 +42,23 @@ All requests are sent on the next tick.
 
 <a href="#docs/api/request.md">&raquo; Request</a>, <a href="#docs/api/response.md">&raquo; Response</a>
 
+Local includes the following common request sugars:
+
+ - `local.HEAD(request)`
+ - `local.GET(request)`
+ - `local.DELETE(request)`
+ - `local.SUBSCRIBE(request)`
+ - `local.POST(body, request)`
+ - `local.PUT(body, request)`
+ - `local.PATCH(body, request)`
+ - `local.NOTIFY(body, request)`
+
+Any capitalized attributes in the request object are treated as headers and moved into the `headers` object on dispatch. Underscores are converted into dashes:
+
+```javascript
+local.POST(mydata, { url: 'http://grimwire.com', Content_Type: 'application/json', Accept: 'text/html' })
+```
+
 ---
 
 ### Server Functions
