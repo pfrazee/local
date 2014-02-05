@@ -9,13 +9,18 @@ function Request(options) {
 	if (typeof options == 'string')
 		options = { url: options };
 
+	// Pull any header-like keys into the headers object
+	var headers = options.headers || {};
+	extractUppercaseKeys(options, headers); // Foo_Bar or Foo-Bar
+
 	this.method = options.method ? options.method.toUpperCase() : 'GET';
 	this.url = options.url || null;
 	this.path = options.path || null;
-	this.host = options.host || null;
 	this.query = options.query || {};
-	this.headers = lowercaseKeys(options.headers || {});
-	this.body = '';
+	this.headers = lowercaseKeys(headers);
+	if (!this.headers.host && options.host) {
+		this.headers.host = options.host;
+	}
 
 	// Guess the content-type if a full body is included in the message
 	if (options.body && !this.headers['content-type']) {
@@ -34,7 +39,7 @@ function Request(options) {
 		writable: true
 	});
 	Object.defineProperty(this, 'body', {
-		value: '',
+		value: options.body || '',
 		configurable: true,
 		enumerable: false,
 		writable: true
@@ -77,6 +82,11 @@ function Request(options) {
 local.Request = Request;
 Request.prototype = Object.create(local.util.EventEmitter.prototype);
 
+Request.prototype.header = function(k, v) {
+	if (typeof v != 'undefined')
+		return this.setHeader(k, v);
+	return this.getHeader(k);
+};
 Request.prototype.setHeader    = function(k, v) { this.headers[k.toLowerCase()] = v; };
 Request.prototype.getHeader    = function(k) { return this.headers[k.toLowerCase()]; };
 Request.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCase()]; };
@@ -162,7 +172,21 @@ Request.prototype.close = function() {
 function lowercaseKeys(obj) {
 	var obj2 = {};
 	for (var k in obj) {
-		obj2[k.toLowerCase()] = obj[k];
+		if (obj.hasOwnProperty(k))
+			obj2[k.toLowerCase()] = obj[k];
 	}
 	return obj2;
+}
+
+// internal helper - has side-effects
+var underscoreRegEx = /_/g;
+function extractUppercaseKeys(/*mutable*/ org, /*mutable*/ dst) {
+	for (var k in org) {
+		var kc = k.charAt(0);
+		if (org.hasOwnProperty(k) && kc === kc.toUpperCase()) {
+			var k2 = k.replace(underscoreRegEx, '-');
+			dst[k2] = org[k];
+			delete org[k];
+		}
+	}
 }

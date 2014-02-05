@@ -95,6 +95,7 @@ if (!self.btoa) {
 
 local.worker.setServer = function(fn) {
 	local.worker.serverFn = fn;
+	local.addServer('self', fn);
 };
 
 local.worker.pages = [];
@@ -106,6 +107,7 @@ function addConnection(port) {
 	// Track new connection
 	if (isHost) {
 		local.worker.hostPage = page;
+		local.addServer('host.page', page);
 	}
 	local.worker.pages.push(page);
 	local.addServer(page.id+'.page', page);

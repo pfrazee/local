@@ -1,17 +1,13 @@
-Local 0.5.1dev
+Local 0.6.0dev
 ==============
 
 [<a href="https://github.com/grimwire/local">Repository</a> | <a href="https://github.com/grimwire/local/issues">Issues</a> | <a href="http://grimwire.com/local">Documentation</a>]
 
 ## Overview
 
-Local.js is a new Ajax messaging library for browser applications. It sends HTTP-style messages to functions in the document, Web Workers, WebRTC Peers, data URIs, and public Web servers, structuring the components of the application into a unified SOA.
+Local.js is an Ajax library that implements <a href="https://github.com/grimwire/grimwire/wiki/HTTPL%3A-JSON-encoded-message-streams-with-HTTP-semantics" title="HTTP Local">HTTPLocal, a client-side variation of HTTP</a>. It can be used to communicate with Web Workers, WebRTC peers, and other messaging channels.
 
- - Promises- and streams-based dispatch()
- - <a href="http://en.wikipedia.org/wiki/Server-sent_events" title="SSE">SSE</a> tools for distributed events
- - A programmatic agent for navigating via link headers
-
-Local.js was developed with [Grimwire](https://github.com/grimwire/grimwire), a node.js application, to establish WebRTC sessions.
+Local.js also includes a directory protocol to exchange links, discover services, and navigate with user-agents.
 
 ### Examples
 
@@ -19,8 +15,9 @@ Run servers in the document:
 
 ```javascript
 local.addServer('foobar', function(req, res) {
-    res.writeHead(200, 'ok', { 'content-type': 'text/plain' })
-    res.end('Hello, world!');
+    // Handles incoming requests from the application
+    res.writeHead(200, 'ok', { 'Content-Type': 'text/plain' });
+    res.end('Hello, application!');
 });
 local.dispatch({ method: 'GET', url: 'httpl://foobar' }).then(handle2or3xx, handle4or5xx);
 ```
@@ -28,29 +25,23 @@ local.dispatch({ method: 'GET', url: 'httpl://foobar' }).then(handle2or3xx, hand
 Run servers in Web Workers:
 
 ```javascript
-local.spawnWorkerServer('http://myhost.com/myworker.js');
-local.dispatch({ method: 'GET', url: 'httpl://myworker.js' }).then(/* ... */);
+local.spawnWorkerServer('http://myhost.com/myworker.js', function(req, res) {
+    // Handles incoming requests from the worker
+    res.writeHead(200, 'ok', { 'Content-Type': 'text/plain' });
+    res.end('Hello, worker!');
+});
+local.dispatch({ method: 'GET', url: 'httpl://myworker.js' });
 ```
 
-Run servers for other users on Grimwire:
+Run servers over WebRTC:
 
 ```javascript
-// Get access to the relay
-var relay = local.joinRelay('https://grimwire.net', peerServerFn);
-relay.requestAccessToken(); // this will prompt the user to authorize the app
-relay.on('accessGranted', function() {
-    peerRelay.startListening();
-});
-
-// Serve peers
-function peerServerFn(req, res, peer) {
-    res.writeHead(200, 'ok', { 'content-type': 'text/plain' })
+var network = local.joinRelay('https://grimwire.net', function (req, res, peer) {
+    // Handles incoming requests from `peer`
+    res.writeHead(200, 'ok', { 'Content-Type': 'text/plain' });
     res.end('Hello, '+peer.getPeerInfo().user);
-}
-
-// Contact peers on the relay
-local.dispatch({ method: 'GET', url: 'httpl://bob@grimwire.net!bobs-app.com' })
-    .then(/* ... */);
+});
+local.dispatch({ method: 'GET', url: 'httpl://bob@grimwire.net!bobs-app.com' });
 ```
 
 <br/>
@@ -61,64 +52,18 @@ The core of Local.js is a message router which adds a new scheme, `httpl://`, fo
 
 <img src="assets/docs-messaging-diagram.png" />
 
-This diagram illustrates how Local.js' HTTPL messages are routed. Note: any time a bridge server receives a request from within its own application, it pipes that request directly to its remote environment to be fulfilled. Likewise, a request that arrives from the remote environment is handled by the bridge server and sent directly back.
-
- > Read more in the <a href="#docs/api/dispatch.md">dispatch()</a> documentation.
-
-### Server-Sent Events
-
-SSE streams are responses which remain open for a long period to deliver updates in named chunks. They can be used with HTTP and HTTPL to broadcast realtime events.
-
-> Read more in the <a href="#docs/api/subscribe.md">subscribe()</a> documentation.
-
-```javascript
-var events = local.subscribe('httpl://ssehost');
-events.on('foo', function(e) { console.log(e); }) // => { event: "foo", data: ... }
-events.on('bar', function(e) { console.log(e); }) // => { event: "bar", data: ... }
-```
-
-### User Agents
+## User Agents
 
 The `local.Agent` is a headless browser that travels Web APIs. It issues HEAD requests to hosts, then runs queries against the returned Link headers to navigate. The navigation queries allow applications to reason about remote hosts and make strong assumptions based on reltypes. This protocol is outlined in the [Web Linking spec](http://tools.ietf.org/html/rfc5988).
 
 > Read more in the <a href="#docs/api/agent.md">agent()</a> documentation.
 
 ```javascript
-// Register an in-document server:
-local.addServer('foo', function(req, res) {
-    if (req.path == '/') {
-        res.writeHead(200, 'ok', {
-            'content-type': 'text/plain',
-            'link': [
-                { href: '/', rel: 'self service' },
-                { href: '/bar', rel: 'item', id: 'bar' }
-            ]
-        });
-        res.end('Hello from /');
-    } else if (req.path == '/bar') {
-        res.writeHead(200, 'ok', {
-            'content-type': 'text/plain',
-            'link': [
-                { href: '/', rel: 'up service' },
-                { href: '/bar', rel: 'self item', id: 'bar' }
-            ]
-        });
-        res.end('Hello from /bar');
-    } else {
-        res.writeHead(404, 'not found').end();
-    }
-});
-
-// Create an agent for the server and dispatch a GET:
-var fooAPI = local.agent('httpl://foo');
-fooAPI.get(); // => "Hello from /"
-
-// Navigate by searching the link header of the response:
-var fooBarItem = fooAPI.follow({ rel: 'item', id: 'bar' });
-fooBarItem.get(); // => "Hello from /bar"
-
-// Follow the "up" link back to the root:
-fooBarItem.follow({ rel: 'up' }).get(); // => "Hello from /"
+// Fetch the profile of bob@foo.com
+local.agent('http://foo.com')
+    .follow({ rel: 'gwr.io/users' }) // documented at http://gwr.io/users
+    .follow({ rel: 'item', id: 'bob' })
+    .GET({ Accept: 'application/json' })
 ```
 
 <br/>
@@ -128,10 +73,6 @@ fooBarItem.follow({ rel: 'up' }).get(); // => "Hello from /"
 Download <a href="//github.com/grimwire/local">local.js or local.min.js from the repository</a>. If you're developing for Grimwire, download <a href="//github.com/grimwire/grimwire">grimwidget.js from the Grimwire repo</a> and read the documentation on <a href="#docs/grimwire.md">Using Grimwire</a>.
 
 For an introduction to writing Local.js apps, read <a href="#docs/todosoa.md">Intro: TodoSOA</a>.
-
-### BETA STATUS
-
-The Local.js and Grimwire APIs are not feature-stable. <a href="//github.com/grimwire/local/issues">Suggestions and bug reports are welcome</a>.
 
 ### Getting Help
 
@@ -159,7 +100,7 @@ Special thanks to [Goodybag.com](http://goodybag.com) for their support during t
 ### License
 
 The MIT License (MIT)
-Copyright (c) 2013 Paul Frazee
+Copyright (c) 2014 Paul Frazee
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 

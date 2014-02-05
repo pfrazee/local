@@ -9,7 +9,7 @@ Agent navigations can be serialized into 'nav:' URIs, allowing you to embed them
 local.agent('httpl://myhost')
     .follow({ rel: 'collection', id: 'users' })
     .follow({ rel: 'item', id: 'bob' })
-    .get({ accept: 'application/json' });
+    .get({ Accept: 'application/json' });
 
 // has the same result as:
 local.dispatch({
@@ -47,5 +47,5 @@ Agents can use relative nav URIs in its `follow()` calls.
 ```javascript
 local.agent('httpl://myhost')
 	.follow('|collection=users|item=bob')
-	.get({ accept: 'application/json' });
+	.get({ Accept: 'application/json' });
 ```

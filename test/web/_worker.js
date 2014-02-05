@@ -6,6 +6,9 @@ local.worker.setServer(function(request, response) {
 		if (request.method === 'GET') {
 			payload = 'service resource';
 		}
+		if (Object.keys(request.query).length > 0) {
+			payload += ' '+JSON.stringify(request.query);
+		}
 		linkHeader = [
 			{ rel:'self current', href:'/' },
 			{ rel:'collection', href:'/events', id:'events' },

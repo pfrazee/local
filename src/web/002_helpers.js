@@ -21,12 +21,19 @@ local.queryLinks = function queryLinks(links, query) {
 //   - if a query attribute is not present on the link, and is not present in the href as a URI Template token, returns false
 //   - otherwise, returns true
 //   - query values preceded by an exclamation-point (!) will invert (logical NOT)
+//   - query values may be a function which receive (value, key) and return true if matching
 //   - rel: can take multiple values, space-separated, which are ANDed logically
 //   - rel: will ignore the preceding scheme and trailing slash on URI values
 //   - rel: items preceded by an exclamation-point (!) will invert (logical NOT)
+var uriTokenStart = '\\{([^\\}]*)[\\+\\#\\.\\/\\;\\?\\&]?';
+var uriTokenEnd = '(\\,|\\})';
 local.queryLink = function queryLink(link, query) {
 	for (var attr in query) {
-		if (attr == 'rel') {
+		if (typeof query[attr] == 'function') {
+			if (!query[attr].call(null, link[attr], attr)) {
+				return false;
+			}
+		} else if (attr == 'rel') {
 			var terms = query.rel.split(/\s+/);
 			for (var i=0; i < terms.length; i++) {
 				var desiredBool = true;
@@ -41,8 +48,11 @@ local.queryLink = function queryLink(link, query) {
 		else {
 			if (typeof link[attr] == 'undefined') {
 				// Attribute not explicitly set -- is it present in the href as a URI token?
-				if (RegExp('\\{[^\\}]*'+attr+'[^\\{]*\\}','i').test(link.href) === false)
-					return false;
+				if (RegExp(uriTokenStart+attr+uriTokenEnd,'i').test(link.href) === true)
+					continue;
+				// Is the test value not falsey?
+				if (!!query[attr])
+					return false; // specific value needed
 			}
 			else {
 				if (query[attr] && query[attr].indexOf && query[attr].indexOf('!') === 0) { // negation
@@ -138,10 +148,12 @@ local.joinUri = function joinUri() {
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
 // - eg http://foo.com, //foo.com, httpl://bar.app
-var isAbsUriRE = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)/;
+var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)|(data:)/;
 local.isAbsUri = function(url) {
-	if (isAbsUriRE.test(url))
+	// Has a scheme?
+	if (hasSchemeRegex.test(url))
 		return true;
+	// No scheme, is it a local server or a global URI?
 	var urld = local.parseUri(url);
 	return !!local.getServer(urld.authority) || !!local.parsePeerDomain(urld.authority);
 };
@@ -196,7 +208,7 @@ local.joinRelPath = function(urld, relpath) {
 local.parseUri = function parseUri(str) {
 	if (typeof str === 'object') {
 		if (str.url) { str = str.url; }
-		else if (str.host || str.path) { str = local.joinUri(req.host, req.path); }
+		else if ((str.headers && str.headers.host) || str.path) { str = local.joinUri(str.headers.host, str.path); }
 	}
 
 	// handle data-uris specially
@@ -282,6 +294,10 @@ local.parseNavUri = function(str) {
 		parts[i] = query;
 	}
 
+	// Limit to 5 navigations (and 1 base)
+	if (parts.length > 6)
+		parts.length = 6;
+
 	// Drop first entry if empty (a relative nav uri)
 	if (!parts[0])
 		parts.shift();
@@ -314,6 +330,19 @@ local.parsePeerDomain = function parsePeerDomain(domain) {
 // - returns string
 local.makePeerDomain = function makePeerDomain(user, relay, app, sid) {
 	return user+'@'+relay+'!'+app+((sid) ? '!'+sid : '');
+};
+
+// EXPORTED
+// builds a proxy URI out of an array of templates
+// eg ('httpl://my_worker.js/', ['httpl://0.page/{uri}', 'httpl://foo/{?uri}'])
+// -> "httpl://0.page/httpl%3A%2F%2Ffoo%2F%3Furi%3Dhttpl%253A%252F%252Fmy_worker.js%252F"
+local.makeProxyUri = function(uri, templates) {
+	if (!Array.isArray(templates)) templates = [templates];
+	for (var i=templates.length-1; i >= 0; i--) {
+		var tmpl = templates[i];
+		uri = local.UriTemplate.parse(tmpl).expand({ uri: uri });
+	}
+	return uri;
 };
 
 // EXPORTED

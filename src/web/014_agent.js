@@ -130,6 +130,7 @@ function Agent(context, parentAgent) {
 	this.context         = context         || null;
 	this.parentAgent = parentAgent || null;
 	this.links           = null;
+	this.proxyTmpl       = null;
 	this.requestDefaults = null;
 }
 local.Agent = Agent;
@@ -190,6 +191,7 @@ Agent.prototype.dispatch = function(req) {
 			self.context.setResolved();
 			if (res.parsedHeaders.link) self.links = res.parsedHeaders.link;
 			else self.links = self.links || []; // cache an empty link list so we dont keep trying during resolution
+			self.proxyTmpl = (res.header('Proxy-Tmpl')) ? res.header('Proxy-Tmpl').split(' ') : null;
 			return res;
 		})
 		.fail(function(res) {
@@ -254,6 +256,7 @@ Agent.prototype.follow = function(query) {
 Agent.prototype.unresolve = function() {
 	this.context.resetResolvedState();
 	this.links = null;
+	this.proxyTmpl = null;
 	return this;
 };
 
@@ -322,7 +325,7 @@ Agent.prototype.resolve = function(options) {
 
 					// Error - Link not found
 					var response = new local.Response();
-					response.writeHead(local.LINK_NOT_FOUND, 'link query failed to match').end();
+					response.writeHead(local.LINK_NOT_FOUND, 'Link Query Failed to Match').end();
 					throw response;
 				})
 				.fail(function(error) {
@@ -351,8 +354,12 @@ Agent.prototype.lookupLink = function(context) {
 		if (typeof context.query == 'object') {
 			// Try to find a link that matches
 			var link = local.queryLinks(this.links, context.query)[0];
-			if (link)
-				return local.UriTemplate.parse(link.href).expand(context.query);
+			if (link) {
+				var uri = local.UriTemplate.parse(link.href).expand(context.query);
+				if (this.proxyTmpl && !link.noproxy)
+					uri = local.makeProxyUri(uri, this.proxyTmpl);
+				return uri;
+			}
 		}
 		else if (typeof context.query == 'string') {
 			// A URL
@@ -368,29 +375,28 @@ Agent.prototype.lookupLink = function(context) {
 // Dispatch Sugars
 // ===============
 function makeDispSugar(method) {
-	return function(headers, options) {
+	return function(options) {
 		var req = options || {};
-		req.headers = headers || {};
 		req.method = method;
 		return this.dispatch(req);
 	};
 }
 function makeDispWBodySugar(method) {
-	return function(body, headers, options) {
+	return function(body, options) {
 		var req = options || {};
-		req.headers = headers || {};
 		req.method = method;
 		req.body = body;
 		return this.dispatch(req);
 	};
 }
-Agent.prototype.head   = makeDispSugar('HEAD');
-Agent.prototype.get    = makeDispSugar('GET');
-Agent.prototype.delete = makeDispSugar('DELETE');
-Agent.prototype.post   = makeDispWBodySugar('POST');
-Agent.prototype.put    = makeDispWBodySugar('PUT');
-Agent.prototype.patch  = makeDispWBodySugar('PATCH');
-Agent.prototype.notify = makeDispWBodySugar('NOTIFY');
+Agent.prototype.SUBSCRIBE = makeDispSugar('SUBSCRIBE');
+Agent.prototype.HEAD   = Agent.prototype.head   = makeDispSugar('HEAD');
+Agent.prototype.GET    = Agent.prototype.get    = makeDispSugar('GET');
+Agent.prototype.DELETE = Agent.prototype.delete = makeDispSugar('DELETE');
+Agent.prototype.POST   = Agent.prototype.post   = makeDispWBodySugar('POST');
+Agent.prototype.PUT    = Agent.prototype.put    = makeDispWBodySugar('PUT');
+Agent.prototype.PATCH  = Agent.prototype.patch  = makeDispWBodySugar('PATCH');
+Agent.prototype.NOTIFY = Agent.prototype.notify = makeDispWBodySugar('NOTIFY');
 
 // Builder
 // =======

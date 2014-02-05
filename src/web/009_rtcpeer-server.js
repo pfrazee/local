@@ -67,9 +67,6 @@
 			this.isOfferExchanged = true;
 			onHttplChannelOpen.call(this);
 		} else {
-			// Reorder messages until the WebRTC session is established
-			this.useMessageReordering(true);
-
 			if (this.config.initiate) {
 				// Initiate event will be picked up by the peer
 				// If they want to connect, they'll send an answer back
@@ -114,6 +111,11 @@
 		} else {
 			try { // :DEBUG: as soon as WebRTC stabilizes some more, let's ditch this
 				this.rtcDataChannel.send(msg);
+
+				// Can now rely on sctp ordering
+				if (this.isReorderingMessages) {
+					this.useMessageReordering(false);
+				}
 			} catch (e) {
 				this.debugLog('NETWORK ERROR, BOUNCING', e);
 				// Probably a NetworkError - one known cause, one party gets a dataChannel and the other doesnt
@@ -156,8 +158,8 @@
 		this.isConnecting = false;
 		this.isConnected = true;
 
-		// Can now rely on sctp ordering
-		this.useMessageReordering(false);
+		// Can now rely on sctp ordering :WRONG: it appears "open" get fired assymetrically
+		// this.useMessageReordering(false);
 
 		// Emit event
 		this.emit('connected', Object.create(this.peerInfo), this);
@@ -299,7 +301,11 @@
 			if (res.status == 404 && !self.isTerminated) {
 				// Peer not online, shut down for now. We can try to reconnect later
 				for (var k in self.incomingStreams) {
-					self.incomingStreams[k].writeHead(404, 'not found').end();
+					try {
+						self.incomingStreams[k].writeHead(404, 'not found').end();
+					} catch (e) {
+						console.error('That weird peer 404 error', e, self.incomingStreams[k]);
+					}
 				}
 				self.terminate({ noSignal: true });
 				local.removeServer(self.config.domain);
@@ -317,6 +323,9 @@
 			this.rtcPeerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
 			this.rtcPeerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
 			this.rtcPeerConn.ondatachannel              = onDataChannel.bind(this);
+
+			// Reorder messages until the WebRTC session is established
+			this.useMessageReordering(true);
 		}
 	};
 
@@ -671,13 +680,13 @@
 			opts.rel = 'self';
 			api = api.follow(opts);
 		}
-		return api.get({ accept: 'application/json' });
+		return api.get({ Accept: 'application/json' });
 	};
 
 	// Fetches a user from p2pw service
 	// - `userId`: string
 	Relay.prototype.getUser = function(userId) {
-		return this.usersCollection.follow({ rel: 'gwr.io/user', id: userId }).get({ accept: 'application/json' });
+		return this.usersCollection.follow({ rel: 'gwr.io/user', id: userId }).get({ Accept: 'application/json' });
 	};
 
 	// Sends (or stores to send) links in the relay's registry
@@ -899,6 +908,8 @@
 		} else if (e.data && (e.data.status == 401 || e.data.status == 403)) { // unauthorized
 			// Remove bad access token to stop reconnect attempts
 			this.setAccessToken(null);
+			this.connectedToRelay = false;
+
 			// Fire event
 			this.emit('accessInvalid');
 		} else if (e.data && (e.data.status === 0 || e.data.status == 404 || e.data.status >= 500)) { // connection lost, looks like server fault?

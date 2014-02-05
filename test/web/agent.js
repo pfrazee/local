@@ -288,7 +288,7 @@ success
 
 done = false;
 startTime = Date.now();
-testLocal.follow({ rel: 'collection', id: 'foo' }).get(null, { stream: true })
+testLocal.follow({ rel: 'collection', id: 'foo' }).get({ stream: true })
   .succeed(printSuccess)
   .succeed(function(res) {
     print('---');

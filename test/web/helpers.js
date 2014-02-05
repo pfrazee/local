@@ -37,6 +37,13 @@ print(local.httpHeaders.deserialize('link', '</foo>; id="foo"; rel="what ever", 
   {href: "/bar", id: "bar", rel: "what ever"}
 ]
 */
+print(local.httpHeaders.deserialize('link', '</foo>; id="foo"; rel="what, like, ever", </bar>; id="bar"; rel="what ever"'));
+/* =>
+[
+  {href: "/foo", id: "foo", rel: "what, like, ever"},
+  {href: "/bar", id: "bar", rel: "what ever"}
+]
+*/
 print(local.httpHeaders.serialize('link', [
   {href: "/foo", id: "foo", rel: "what ever"},
   {href: "/bar", id: "bar", rel: "what ever"}
@@ -107,6 +114,79 @@ print(local.httpHeaders.serialize('accept', [
   }
 ]));
 // => text/html; q=0.5; foo=bar, application/json; q=0.2
+print(local.httpHeaders.deserialize('via', '1.1 foo.com'));
+/* => [
+  {
+    comment: undefined,
+    hostname: "foo.com",
+    proto: {name: 'http', version: "1.1"}
+  }
+]*/
+print(local.httpHeaders.deserialize('via', '1.1 foo.com (Apache/2.0)'));
+/* => [
+  {
+    comment: "(Apache/2.0)",
+    hostname: "foo.com",
+    proto: {name: 'http', version: "1.1"}
+  }
+]*/
+print(local.httpHeaders.deserialize('via', '1.1 foo.com (Apache/2.0), 1.0 bar.com'));
+/* => [
+  {
+    comment: "(Apache/2.0)",
+    hostname: "foo.com",
+    proto: {name: 'http', version: "1.1"}
+  },
+  {
+    comment: undefined,
+    hostname: "bar.com",
+    proto: {name: 'http', version: "1.0"}
+  }
+]*/
+print(local.httpHeaders.deserialize('via', 'HTTPL/1.1 foo.com (Apache/2.0), HTTPS/1.0 bar.com'));
+/* => [
+  {
+    comment: "(Apache/2.0)",
+    hostname: "foo.com",
+    proto: {name: "HTTPL", version: "1.1"}
+  },
+  {
+    comment: undefined,
+    hostname: "bar.com",
+    proto: {name: "HTTPS", version: "1.0"}
+  }
+]*/
+print(local.httpHeaders.serialize('via', [{ hostname: "foo.com", proto: {version: "1.1"} }]));
+// => 1.1 foo.com
+print(local.httpHeaders.serialize('via', [{ comment: "(Apache/2.0)", hostname: "foo.com", proto: {version: "1.1"} }]));
+// => 1.1 foo.com (Apache/2.0)
+print(local.httpHeaders.serialize('via', [
+  {
+    comment: "(Apache/2.0)",
+    hostname: "foo.com",
+    proto: {name: undefined, version: "1.1"}
+  },
+  {
+    comment: undefined,
+    hostname: "bar.com",
+    proto: {name: undefined, version: "1.0"}
+  }
+]));
+// => 1.1 foo.com (Apache/2.0), 1.0 bar.com
+print(local.httpHeaders.serialize('via', [
+  {
+    comment: "(Apache/2.0)",
+    hostname: "foo.com",
+    proto: {name: "HTTPL", version: "1.1"}
+  },
+  {
+    comment: undefined,
+    hostname: "bar.com",
+    proto: {name: "HTTPS", version: "1.0"}
+  }
+]));
+// => HTTPL/1.1 foo.com (Apache/2.0), HTTPS/1.0 bar.com
+
 
 finishTest();
 
@@ -118,7 +198,7 @@ var links = [
   { rel: 'foo service via', href: 'http://whatever.com', id: 'whatever', title: 'Whatever' },
   { rel: 'foo collection whatever.com/rel/collection', href: 'http://whatever.com/stuff', id: 'stuff', title: 'Whatever Stuff' },
   { rel: 'foo item http://whatever.com/rel/item other.com/-item', href: 'http://whatever.com/stuff/{id}', title: 'Whatever Item' },
-  { rel: 'foo item other.com/-item', href: 'http://whatever.com/stuff/{id}', title: 'Whatever Item', user: 'bob' },
+  { rel: 'foo item other.com/-item', href: 'http://whatever.com/stuff/{id}{?q1}', title: 'Whatever Item', user: 'bob' },
 ];
 print(local.queryLink(links[0], { rel: 'foo' }));
 // => true
@@ -153,9 +233,13 @@ print(local.queryLinks(links, { rel: '!whatever.com/rel/collection item' }).leng
 print(local.queryLinks(links, { rel: 'other.com/-item', user: 'bob' }).length);
 // => 1
 print(local.queryLinks(links, { rel: 'other.com/-item', user: null }).length);
-// => 0
+// => 1
 print(local.queryLinks(links, { rel: 'other.com/-item', user: false }).length);
-// => 0
+// => 1
+print(local.queryLinks(links, { rel: 'other.com/-item', q1: true }).length);
+// => 1
+print(local.queryLinks(links, { rel: function(v, k) { return v == 'foo service via' && k == 'rel'; } }).length);
+// => 1
 finishTest();
 
 
@@ -218,6 +302,15 @@ print(local.parseNavUri('nav:||http://foo.com|bar=baz,a=b,c=f%20g'));
 // => ["http://foo.com", {a: "b", c: "f g", id: "baz", rel: "bar"}]
 print(local.parseNavUri('nav:||http://foo.com|bar=baz|faa=feh'));
 // => ["http://foo.com", {id: "baz", rel: "bar"}, {id: "feh", rel: "faa"}]
+print(local.parseNavUri('nav:||http://foo.com|foo|foo|foo|foo|foo|foo|foo|foo|foo')); // limited to 5 navs
+/* => [
+  "http://foo.com",
+  {rel: "foo"},
+  {rel: "foo"},
+  {rel: "foo"},
+  {rel: "foo"},
+  {rel: "foo"}
+]*/
 finishTest();
 
 
@@ -234,7 +327,7 @@ success
 {
   body: "",
   headers: {
-    link: "</>; rel=\"self service via\"; id=\"hosts\", <httpl://_worker.js/>; rel=\"current\"; host_domain=\"_worker.js\", <httpl://test.com/>; rel=\"current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\"; host_domain=\"test.com\""
+    link: "</>; rel=\"self service via\"; id=\"hosts\"; title=\"Page Hosts\", <httpl://_worker.js/>; rel=\" current\", <httpl://test.com/>; rel=\" current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", <httpl://proxy/>; rel=\" service\"; noproxy"
   },
   reason: "ok, no content",
   status: 204

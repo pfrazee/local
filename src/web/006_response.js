@@ -4,6 +4,7 @@
 // Interface for receiving responses
 // - usually created internally and returned by `dispatch`
 function Response() {
+	var self = this;
 	local.util.EventEmitter.call(this);
 
 	this.status = 0;
@@ -38,23 +39,26 @@ function Response() {
 		enumerable: false,
 		writable: false
 	});
-	(function buffer(self) {
-		self.on('data', function(data) {
-			if (data instanceof ArrayBuffer)
-				self.body = data; // browsers buffer binary responses, so dont try to stream
-			else
-				self.body += data;
-		});
-		self.on('end', function() {
-			if (self.headers['content-type'])
-				self.body = local.contentTypes.deserialize(self.headers['content-type'], self.body);
-			self.body_.fulfill(self.body);
-		});
-	})(this);
+	this.on('data', function(data) {
+		if (data instanceof ArrayBuffer)
+			self.body = data; // browsers buffer binary responses, so dont try to stream
+		else
+			self.body += data;
+	});
+	this.on('end', function() {
+		if (self.headers['content-type'])
+			self.body = local.contentTypes.deserialize(self.headers['content-type'], self.body);
+		self.body_.fulfill(self.body);
+	});
 }
 local.Response = Response;
 Response.prototype = Object.create(local.util.EventEmitter.prototype);
 
+Response.prototype.header = function(k, v) {
+	if (typeof v != 'undefined')
+		return this.setHeader(k, v);
+	return this.getHeader(k);
+};
 Response.prototype.setHeader    = function(k, v) { this.headers[k.toLowerCase()] = v; };
 Response.prototype.getHeader    = function(k) { return this.headers[k.toLowerCase()]; };
 Response.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCase()]; };
@@ -77,6 +81,39 @@ Response.prototype.deserializeHeaders = function() {
 		if (parsedHeader && typeof parsedHeader != 'string') {
 			this.parsedHeaders[k] = parsedHeader;
 		}
+	}
+};
+
+// EXPORTED
+// Makes sure response header links are absolute and extracts additional attributes
+//var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
+Response.prototype.processHeaders = function(request) {
+	var self = this;
+
+
+	// Update the link headers
+	if (self.parsedHeaders.link) {
+		self.parsedHeaders.link.forEach(function(link) {
+			// Convert relative paths to absolute uris
+			if (!local.isAbsUri(link.href))
+				link.href = local.joinRelPath(request.urld, link.href);
+
+			// Extract host data
+			var host_domain = local.parseUri(link.href).authority;
+			Object.defineProperty(link, 'host_domain', { enumerable: false, configurable: true, writable: true, value: host_domain });
+			var peerd = local.parsePeerDomain(link.host_domain);
+			if (peerd) {
+				Object.defineProperty(link, 'host_user', { enumerable: false, configurable: true, writable: true, value: peerd.user });
+				Object.defineProperty(link, 'host_relay', { enumerable: false, configurable: true, writable: true, value: peerd.relay });
+				Object.defineProperty(link, 'host_app', { enumerable: false, configurable: true, writable: true, value: peerd.app });
+				Object.defineProperty(link, 'host_sid', { enumerable: false, configurable: true, writable: true, value: peerd.sid });
+			} else {
+				delete link.host_user;
+				delete link.host_relay;
+				delete link.host_app;
+				delete link.host_sid;
+			}
+		});
 	}
 };
 

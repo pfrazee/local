@@ -20,7 +20,12 @@ function httpheaders__serialize(header, obj) {
 	if (!fn) {
 		return obj;
 	}
-	return fn(obj);
+	try {
+		return fn(obj);
+	} catch (e) {
+		console.warn('Failed to serialize header', header, obj);
+		return obj;
+	}
 }
 
 // EXPORTED
@@ -36,7 +41,7 @@ function httpheaders__deserialize(header, str) {
 	try {
 		return fn(str);
 	} catch (e) {
-		console.warn('Failed to deserialize content', header, str);
+		console.warn('Failed to deserialize header', header, str);
 		return str;
 	}
 }
@@ -63,7 +68,12 @@ function httpheaders__find(header, fn) {
 // Default Headers
 // ===============
 
-var linkHeaderRE1 = /<(.*?)>(?:;[\s]*([^,]*))/g;
+//                                KV params
+//                  "</foo>"  "; "    \/   ", <" or eol
+//                   ------- -------- ---  ----------------
+var linkHeaderRE1 = /<(.*?)>(?:;[\s]*(.*?)((,(?=[\s]*<))|$))/g;
+//                        "key"     "="      \""val\""    "val"
+//                    -------------- -       ---------   -------
 var linkHeaderRE2 = /([\-a-z0-9_\.]+)=?(?:(?:"([^"]+)")|([^;\s]+))?/g;
 local.httpHeaders.register('link',
 	function (obj) {
@@ -152,3 +162,30 @@ function parseMediaType(s) {
 		full: full
 	};
 }
+
+/*
+Via =  "Via" ":" 1#( received-protocol received-by [ comment ] )
+received-protocol = [ protocol-name "/" ] protocol-version
+protocol-name     = token
+protocol-version  = token
+received-by       = ( host [ ":" port ] ) | pseudonym
+pseudonym         = token
+*/
+//                  proto-name  proto-v   received-by        comment
+//                  ------      -------   --------------     ------
+var viaregex = /(?:([A-z]+)\/)?([\d\.]+) ([-A-z:\d\.@!]*)(?: ([^,]+))?/g;
+local.httpHeaders.register('via',
+	function (obj) {
+		return obj.map(function(via) {
+			return ((via.proto.name) ? (via.proto.name+'/') : '') + via.proto.version+' '+via.hostname+((via.comment) ? (' '+via.comment) : '');
+		}).join(', ');
+	},
+	function (str) {
+		var vias = [], match;
+		while ((match = viaregex.exec(str))) {
+			var via = { proto: { name: (match[1]||'http'), version: match[2] }, hostname: match[3], comment: match[4] };
+			vias.push(via);
+		}
+		return vias;
+	}
+);

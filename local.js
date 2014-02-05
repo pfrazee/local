@@ -486,22 +486,15 @@ function trackFormSubmitter(node) {
 // EXPORTED
 // extracts request from any given element
 function extractRequest(targetElem, containerElem) {
-	var requests = { form:{}, fieldset:{}, elem:{} };
-	var fieldset = null, form = null;
-
-	// find parent fieldset
-	if (targetElem.tagName === 'FIELDSET') {
-		fieldset = targetElem;
-	} else if (targetElem.tagName !== 'FORM') {
-		fieldset = findParentNode.byTag(targetElem, 'FIELDSET');
-	}
+	var requests = { form:{}, elem:{} };
+	var form = null;
 
 	// find parent form
 	if (targetElem.tagName === 'FORM') {
 		form = targetElem;
 	} else {
 		// :TODO: targetElem.form may be a simpler alternative
-		var formId = targetElem.getAttribute('form') || (fieldset ? fieldset.getAttribute('form') : null);
+		var formId = targetElem.getAttribute('form');
 		if (formId) {
 			form = containerElem.querySelector('#'+formId);
 		}
@@ -518,11 +511,6 @@ function extractRequest(targetElem, containerElem) {
 		requests.form = extractRequest.fromForm(form, targetElem);
 	}
 
-	// extract fieldset headers
-	if (fieldset) {
-		requests.fieldset = extractRequest.fromFormElement(fieldset);
-	}
-
 	// extract element headers
 	if (targetElem.tagName === 'A') {
 		requests.elem = extractRequest.fromAnchor(targetElem);
@@ -531,7 +519,7 @@ function extractRequest(targetElem, containerElem) {
 	}
 
 	// combine then all, with precedence given to rightmost objects in param list
-	var req = reduceObjects(requests.form, requests.fieldset, requests.elem);
+	var req = reduceObjects(requests.form, requests.elem);
 	var payloadWrapper = {};
 	payloadWrapper[/GET/i.test(req.method) ? 'query' : 'body'] = payload;
 	return reduceObjects(req, payloadWrapper);
@@ -590,7 +578,7 @@ extractRequest.fromForm = function(form, submittingElem) {
 		}
 	}
 
-	var requests = { submitter:{}, form:{} };
+	var requests = { submitter:{}, fieldset:{}, form:{} };
 	// extract submitting element headers
 	if (submittingElem) {
 		requests.submitter = {
@@ -602,6 +590,20 @@ extractRequest.fromForm = function(form, submittingElem) {
 				accept         : submittingElem.getAttribute('formaccept')
 			}
 		};
+
+		// find fieldset(s)
+		var fieldsetEl = submittingElem;
+		var fieldsetTest = function(elem) { return elem.tagName == 'FIELDSET' || elem.tagName == 'FORM'; };
+		while ((fieldsetEl = findParentNode(fieldsetEl.parentNode, fieldsetTest))) {
+			if (fieldsetEl.tagName == 'FORM') {
+				break; // Stop at the form
+			}
+
+			// extract fieldset headers
+			if (fieldsetEl) {
+				requests.fieldset = reduceObjects(extractRequest.fromFormElement(fieldsetEl), requests.fieldset);
+			}
+		}
 	}
 	// extract form headers
 	requests.form = {
@@ -616,7 +618,7 @@ extractRequest.fromForm = function(form, submittingElem) {
 	if (form.acceptCharset) { requests.form.headers.accept = form.acceptCharset; }
 
 	// combine, with precedence to the submitting element
-	var request = reduceObjects(requests.form, requests.submitter);
+	var request = reduceObjects(requests.form, requests.fieldset, requests.submitter);
 
 	// strip the base URI
 	// :TODO: needed?
@@ -763,6 +765,7 @@ if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage)
 } else {
 	var nextTickIndex = 0, nextTickFns = {};
 	local.util.nextTick = function(fn) {
+		if (typeof fn != 'function') { throw "Invalid function provided to nextTick"; }
 		window.postMessage('nextTick'+nextTickIndex, '*');
 		nextTickFns['nextTick'+nextTickIndex] = fn;
 		nextTickIndex++;
@@ -831,12 +834,19 @@ local.queryLinks = function queryLinks(links, query) {
 //   - if a query attribute is not present on the link, and is not present in the href as a URI Template token, returns false
 //   - otherwise, returns true
 //   - query values preceded by an exclamation-point (!) will invert (logical NOT)
+//   - query values may be a function which receive (value, key) and return true if matching
 //   - rel: can take multiple values, space-separated, which are ANDed logically
 //   - rel: will ignore the preceding scheme and trailing slash on URI values
 //   - rel: items preceded by an exclamation-point (!) will invert (logical NOT)
+var uriTokenStart = '\\{([^\\}]*)[\\+\\#\\.\\/\\;\\?\\&]?';
+var uriTokenEnd = '(\\,|\\})';
 local.queryLink = function queryLink(link, query) {
 	for (var attr in query) {
-		if (attr == 'rel') {
+		if (typeof query[attr] == 'function') {
+			if (!query[attr].call(null, link[attr], attr)) {
+				return false;
+			}
+		} else if (attr == 'rel') {
 			var terms = query.rel.split(/\s+/);
 			for (var i=0; i < terms.length; i++) {
 				var desiredBool = true;
@@ -851,8 +861,11 @@ local.queryLink = function queryLink(link, query) {
 		else {
 			if (typeof link[attr] == 'undefined') {
 				// Attribute not explicitly set -- is it present in the href as a URI token?
-				if (RegExp('\\{[^\\}]*'+attr+'[^\\{]*\\}','i').test(link.href) === false)
-					return false;
+				if (RegExp(uriTokenStart+attr+uriTokenEnd,'i').test(link.href) === true)
+					continue;
+				// Is the test value not falsey?
+				if (!!query[attr])
+					return false; // specific value needed
 			}
 			else {
 				if (query[attr] && query[attr].indexOf && query[attr].indexOf('!') === 0) { // negation
@@ -948,10 +961,12 @@ local.joinUri = function joinUri() {
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
 // - eg http://foo.com, //foo.com, httpl://bar.app
-var isAbsUriRE = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)/;
+var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)|(data:)/;
 local.isAbsUri = function(url) {
-	if (isAbsUriRE.test(url))
+	// Has a scheme?
+	if (hasSchemeRegex.test(url))
 		return true;
+	// No scheme, is it a local server or a global URI?
 	var urld = local.parseUri(url);
 	return !!local.getServer(urld.authority) || !!local.parsePeerDomain(urld.authority);
 };
@@ -1006,7 +1021,7 @@ local.joinRelPath = function(urld, relpath) {
 local.parseUri = function parseUri(str) {
 	if (typeof str === 'object') {
 		if (str.url) { str = str.url; }
-		else if (str.host || str.path) { str = local.joinUri(req.host, req.path); }
+		else if ((str.headers && str.headers.host) || str.path) { str = local.joinUri(str.headers.host, str.path); }
 	}
 
 	// handle data-uris specially
@@ -1092,6 +1107,10 @@ local.parseNavUri = function(str) {
 		parts[i] = query;
 	}
 
+	// Limit to 5 navigations (and 1 base)
+	if (parts.length > 6)
+		parts.length = 6;
+
 	// Drop first entry if empty (a relative nav uri)
 	if (!parts[0])
 		parts.shift();
@@ -1124,6 +1143,19 @@ local.parsePeerDomain = function parsePeerDomain(domain) {
 // - returns string
 local.makePeerDomain = function makePeerDomain(user, relay, app, sid) {
 	return user+'@'+relay+'!'+app+((sid) ? '!'+sid : '');
+};
+
+// EXPORTED
+// builds a proxy URI out of an array of templates
+// eg ('httpl://my_worker.js/', ['httpl://0.page/{uri}', 'httpl://foo/{?uri}'])
+// -> "httpl://0.page/httpl%3A%2F%2Ffoo%2F%3Furi%3Dhttpl%253A%252F%252Fmy_worker.js%252F"
+local.makeProxyUri = function(uri, templates) {
+	if (!Array.isArray(templates)) templates = [templates];
+	for (var i=templates.length-1; i >= 0; i--) {
+		var tmpl = templates[i];
+		uri = local.UriTemplate.parse(tmpl).expand({ uri: uri });
+	}
+	return uri;
 };
 
 // EXPORTED
@@ -1470,8 +1502,10 @@ local.contentTypes.register('text/event-stream',
 			if (!kv[0]) return; // comment lines have nothing before the colon
 			m[kv[0]] = kv[1];
 		});
-		try { m.data = JSON.parse(m.data); }
-		catch(e) {}
+		if (m.data) {
+			try { m.data = JSON.parse(m.data); }
+			catch(e) {}
+		}
 		return m;
 	}
 );
@@ -1500,7 +1534,12 @@ function httpheaders__serialize(header, obj) {
 	if (!fn) {
 		return obj;
 	}
-	return fn(obj);
+	try {
+		return fn(obj);
+	} catch (e) {
+		console.warn('Failed to serialize header', header, obj);
+		return obj;
+	}
 }
 
 // EXPORTED
@@ -1516,7 +1555,7 @@ function httpheaders__deserialize(header, str) {
 	try {
 		return fn(str);
 	} catch (e) {
-		console.warn('Failed to deserialize content', header, str);
+		console.warn('Failed to deserialize header', header, str);
 		return str;
 	}
 }
@@ -1543,7 +1582,12 @@ function httpheaders__find(header, fn) {
 // Default Headers
 // ===============
 
-var linkHeaderRE1 = /<(.*?)>(?:;[\s]*([^,]*))/g;
+//                                KV params
+//                  "</foo>"  "; "    \/   ", <" or eol
+//                   ------- -------- ---  ----------------
+var linkHeaderRE1 = /<(.*?)>(?:;[\s]*(.*?)((,(?=[\s]*<))|$))/g;
+//                        "key"     "="      \""val\""    "val"
+//                    -------------- -       ---------   -------
 var linkHeaderRE2 = /([\-a-z0-9_\.]+)=?(?:(?:"([^"]+)")|([^;\s]+))?/g;
 local.httpHeaders.register('link',
 	function (obj) {
@@ -1631,7 +1675,34 @@ function parseMediaType(s) {
 		q: q,
 		full: full
 	};
-}// Request
+}
+
+/*
+Via =  "Via" ":" 1#( received-protocol received-by [ comment ] )
+received-protocol = [ protocol-name "/" ] protocol-version
+protocol-name     = token
+protocol-version  = token
+received-by       = ( host [ ":" port ] ) | pseudonym
+pseudonym         = token
+*/
+//                  proto-name  proto-v   received-by        comment
+//                  ------      -------   --------------     ------
+var viaregex = /(?:([A-z]+)\/)?([\d\.]+) ([-A-z:\d\.@!]*)(?: ([^,]+))?/g;
+local.httpHeaders.register('via',
+	function (obj) {
+		return obj.map(function(via) {
+			return ((via.proto.name) ? (via.proto.name+'/') : '') + via.proto.version+' '+via.hostname+((via.comment) ? (' '+via.comment) : '');
+		}).join(', ');
+	},
+	function (str) {
+		var vias = [], match;
+		while ((match = viaregex.exec(str))) {
+			var via = { proto: { name: (match[1]||'http'), version: match[2] }, hostname: match[3], comment: match[4] };
+			vias.push(via);
+		}
+		return vias;
+	}
+);// Request
 // =======
 // EXPORTED
 // Interface for sending requests
@@ -1642,13 +1713,18 @@ function Request(options) {
 	if (typeof options == 'string')
 		options = { url: options };
 
+	// Pull any header-like keys into the headers object
+	var headers = options.headers || {};
+	extractUppercaseKeys(options, headers); // Foo_Bar or Foo-Bar
+
 	this.method = options.method ? options.method.toUpperCase() : 'GET';
 	this.url = options.url || null;
 	this.path = options.path || null;
-	this.host = options.host || null;
 	this.query = options.query || {};
-	this.headers = lowercaseKeys(options.headers || {});
-	this.body = '';
+	this.headers = lowercaseKeys(headers);
+	if (!this.headers.host && options.host) {
+		this.headers.host = options.host;
+	}
 
 	// Guess the content-type if a full body is included in the message
 	if (options.body && !this.headers['content-type']) {
@@ -1667,7 +1743,7 @@ function Request(options) {
 		writable: true
 	});
 	Object.defineProperty(this, 'body', {
-		value: '',
+		value: options.body || '',
 		configurable: true,
 		enumerable: false,
 		writable: true
@@ -1710,6 +1786,11 @@ function Request(options) {
 local.Request = Request;
 Request.prototype = Object.create(local.util.EventEmitter.prototype);
 
+Request.prototype.header = function(k, v) {
+	if (typeof v != 'undefined')
+		return this.setHeader(k, v);
+	return this.getHeader(k);
+};
 Request.prototype.setHeader    = function(k, v) { this.headers[k.toLowerCase()] = v; };
 Request.prototype.getHeader    = function(k) { return this.headers[k.toLowerCase()]; };
 Request.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCase()]; };
@@ -1795,15 +1876,30 @@ Request.prototype.close = function() {
 function lowercaseKeys(obj) {
 	var obj2 = {};
 	for (var k in obj) {
-		obj2[k.toLowerCase()] = obj[k];
+		if (obj.hasOwnProperty(k))
+			obj2[k.toLowerCase()] = obj[k];
 	}
 	return obj2;
+}
+
+// internal helper - has side-effects
+var underscoreRegEx = /_/g;
+function extractUppercaseKeys(/*mutable*/ org, /*mutable*/ dst) {
+	for (var k in org) {
+		var kc = k.charAt(0);
+		if (org.hasOwnProperty(k) && kc === kc.toUpperCase()) {
+			var k2 = k.replace(underscoreRegEx, '-');
+			dst[k2] = org[k];
+			delete org[k];
+		}
+	}
 }// Response
 // ========
 // EXPORTED
 // Interface for receiving responses
 // - usually created internally and returned by `dispatch`
 function Response() {
+	var self = this;
 	local.util.EventEmitter.call(this);
 
 	this.status = 0;
@@ -1838,23 +1934,26 @@ function Response() {
 		enumerable: false,
 		writable: false
 	});
-	(function buffer(self) {
-		self.on('data', function(data) {
-			if (data instanceof ArrayBuffer)
-				self.body = data; // browsers buffer binary responses, so dont try to stream
-			else
-				self.body += data;
-		});
-		self.on('end', function() {
-			if (self.headers['content-type'])
-				self.body = local.contentTypes.deserialize(self.headers['content-type'], self.body);
-			self.body_.fulfill(self.body);
-		});
-	})(this);
+	this.on('data', function(data) {
+		if (data instanceof ArrayBuffer)
+			self.body = data; // browsers buffer binary responses, so dont try to stream
+		else
+			self.body += data;
+	});
+	this.on('end', function() {
+		if (self.headers['content-type'])
+			self.body = local.contentTypes.deserialize(self.headers['content-type'], self.body);
+		self.body_.fulfill(self.body);
+	});
 }
 local.Response = Response;
 Response.prototype = Object.create(local.util.EventEmitter.prototype);
 
+Response.prototype.header = function(k, v) {
+	if (typeof v != 'undefined')
+		return this.setHeader(k, v);
+	return this.getHeader(k);
+};
 Response.prototype.setHeader    = function(k, v) { this.headers[k.toLowerCase()] = v; };
 Response.prototype.getHeader    = function(k) { return this.headers[k.toLowerCase()]; };
 Response.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCase()]; };
@@ -1877,6 +1976,39 @@ Response.prototype.deserializeHeaders = function() {
 		if (parsedHeader && typeof parsedHeader != 'string') {
 			this.parsedHeaders[k] = parsedHeader;
 		}
+	}
+};
+
+// EXPORTED
+// Makes sure response header links are absolute and extracts additional attributes
+//var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
+Response.prototype.processHeaders = function(request) {
+	var self = this;
+
+
+	// Update the link headers
+	if (self.parsedHeaders.link) {
+		self.parsedHeaders.link.forEach(function(link) {
+			// Convert relative paths to absolute uris
+			if (!local.isAbsUri(link.href))
+				link.href = local.joinRelPath(request.urld, link.href);
+
+			// Extract host data
+			var host_domain = local.parseUri(link.href).authority;
+			Object.defineProperty(link, 'host_domain', { enumerable: false, configurable: true, writable: true, value: host_domain });
+			var peerd = local.parsePeerDomain(link.host_domain);
+			if (peerd) {
+				Object.defineProperty(link, 'host_user', { enumerable: false, configurable: true, writable: true, value: peerd.user });
+				Object.defineProperty(link, 'host_relay', { enumerable: false, configurable: true, writable: true, value: peerd.relay });
+				Object.defineProperty(link, 'host_app', { enumerable: false, configurable: true, writable: true, value: peerd.app });
+				Object.defineProperty(link, 'host_sid', { enumerable: false, configurable: true, writable: true, value: peerd.sid });
+			} else {
+				delete link.host_user;
+				delete link.host_relay;
+				delete link.host_app;
+				delete link.host_sid;
+			}
+		});
 	}
 };
 
@@ -2058,13 +2190,12 @@ BridgeServer.prototype.channelSendMsgWhenReady = function(msg) {
 BridgeServer.prototype.handleLocalRequest = function(request, response) {
 	// Build message
 	var sid = this.sidCounter++;
+	var query_part = local.contentTypes.serialize('application/x-www-form-urlencoded', request.query);
 	var msg = {
 		sid: sid,
 		mid: (this.isReorderingMessages) ? 1 : undefined,
 		method: request.method,
-		path: request.path,
-		host: request.host,
-		query: request.query,
+		path: request.path + ((query_part) ? ('?'+query_part) : ''),
 		headers: request.headers
 	};
 
@@ -2137,13 +2268,22 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 	if (!stream) {
 		// Incoming requests have a positive sid
 		if (msg.sid > 0) {
+			// Extracy query
+			var query = null;
+			var pathparts = (msg.path||'').split('?');
+			msg.path = pathparts[0];
+			if (pathparts[1]) {
+				query = local.contentTypes.deserialize('application/x-www-form-urlencoded', pathparts[1]);
+			}
+
 			// Create request & response
 			var request = new local.Request({
 				method: msg.method,
 				path: msg.path,
-				query: msg.query,
+				query: query,
 				headers: msg.headers
 			});
+			request.deserializeHeaders();
 			var response = new local.Response();
 			request.on('close', function() { response.close(); });
 
@@ -2442,9 +2582,6 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			this.isOfferExchanged = true;
 			onHttplChannelOpen.call(this);
 		} else {
-			// Reorder messages until the WebRTC session is established
-			this.useMessageReordering(true);
-
 			if (this.config.initiate) {
 				// Initiate event will be picked up by the peer
 				// If they want to connect, they'll send an answer back
@@ -2489,6 +2626,11 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		} else {
 			try { // :DEBUG: as soon as WebRTC stabilizes some more, let's ditch this
 				this.rtcDataChannel.send(msg);
+
+				// Can now rely on sctp ordering
+				if (this.isReorderingMessages) {
+					this.useMessageReordering(false);
+				}
 			} catch (e) {
 				this.debugLog('NETWORK ERROR, BOUNCING', e);
 				// Probably a NetworkError - one known cause, one party gets a dataChannel and the other doesnt
@@ -2531,8 +2673,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		this.isConnecting = false;
 		this.isConnected = true;
 
-		// Can now rely on sctp ordering
-		this.useMessageReordering(false);
+		// Can now rely on sctp ordering :WRONG: it appears "open" get fired assymetrically
+		// this.useMessageReordering(false);
 
 		// Emit event
 		this.emit('connected', Object.create(this.peerInfo), this);
@@ -2674,7 +2816,11 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			if (res.status == 404 && !self.isTerminated) {
 				// Peer not online, shut down for now. We can try to reconnect later
 				for (var k in self.incomingStreams) {
-					self.incomingStreams[k].writeHead(404, 'not found').end();
+					try {
+						self.incomingStreams[k].writeHead(404, 'not found').end();
+					} catch (e) {
+						console.error('That weird peer 404 error', e, self.incomingStreams[k]);
+					}
 				}
 				self.terminate({ noSignal: true });
 				local.removeServer(self.config.domain);
@@ -2692,6 +2838,9 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			this.rtcPeerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
 			this.rtcPeerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
 			this.rtcPeerConn.ondatachannel              = onDataChannel.bind(this);
+
+			// Reorder messages until the WebRTC session is established
+			this.useMessageReordering(true);
 		}
 	};
 
@@ -3046,13 +3195,13 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			opts.rel = 'self';
 			api = api.follow(opts);
 		}
-		return api.get({ accept: 'application/json' });
+		return api.get({ Accept: 'application/json' });
 	};
 
 	// Fetches a user from p2pw service
 	// - `userId`: string
 	Relay.prototype.getUser = function(userId) {
-		return this.usersCollection.follow({ rel: 'gwr.io/user', id: userId }).get({ accept: 'application/json' });
+		return this.usersCollection.follow({ rel: 'gwr.io/user', id: userId }).get({ Accept: 'application/json' });
 	};
 
 	// Sends (or stores to send) links in the relay's registry
@@ -3274,6 +3423,8 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 		} else if (e.data && (e.data.status == 401 || e.data.status == 403)) { // unauthorized
 			// Remove bad access token to stop reconnect attempts
 			this.setAccessToken(null);
+			this.connectedToRelay = false;
+
 			// Fire event
 			this.emit('accessInvalid');
 		} else if (e.data && (e.data.status === 0 || e.data.status == 404 || e.data.status >= 500)) { // connection lost, looks like server fault?
@@ -3572,7 +3723,7 @@ local.schemes.register('httpl', function(request, response) {
 
 	// Pull out and standardize the path & host
 	request.path = request.urld.path;
-	request.host = request.urld.authority;
+	request.headers.host = request.urld.authority;
 	if (!request.path) request.path = '/'; // no path, give a '/'
 	else request.path = request.path.replace(/(.)\/$/, '$1'); // otherwise, never end with a '/'
 
@@ -3682,25 +3833,36 @@ local.dispatch = function dispatch(request) {
 	if (!request) { throw new Error("No request provided to dispatch()"); }
 	if (typeof request == 'string')
 		request = { url: request };
+
+	// Create the request if needed
+	var body = null, shouldAutoSendRequestBody = false;
+	if (!(request instanceof local.Request)) {
+		shouldAutoSendRequestBody = true; // we're going to end() with req.body
+
+		var timeout = request.timeout;
+		request = new local.Request(request);
+		if (timeout) { request.setTimeout(timeout); } // :TODO: should this be in the request constructor?
+
+		// pull out body for us to send
+		body = request.body;
+		request.body = '';
+	}
 	if (!request.url) { throw new Error("No url on request"); }
 
 	// If given a nav: scheme, spawn a agent to handle it
 	var scheme = parseScheme(request.url);
 	if (scheme == 'nav') {
-		var url = request.url;
-		delete request.url;
-		return local.agent(url).dispatch(request);
+		var request2 = new Request(request); // clone before modifying
+		var url = request2.url;
+		delete request2.url;
+		var response_ = local.agent(url).dispatch(request2);
+		request.on('data', request2.write.bind(request2));
+		request.on('end', request2.end.bind(request2));
+		if (shouldAutoSendRequestBody) request.end(body);
+		return response_;
 	}
 
-	// Prepare the request
-	var body = null, shouldAutoSendRequestBody = false;
-	if (!(request instanceof local.Request)) {
-		body = request.body;
-		var timeout = request.timeout;
-		request = new local.Request(request);
-		if (timeout) { request.setTimeout(timeout); }
-		shouldAutoSendRequestBody = true; // we're going to end()
-	}
+	// Prep request
 	Object.defineProperty(request, 'urld', { value: local.parseUri(request.url), configurable: true, enumerable: false, writable: true }); // (urld = url description)
 	if (request.urld.query) {
 		// Extract URL query parameters into the request's query object
@@ -3719,7 +3881,7 @@ local.dispatch = function dispatch(request) {
 	request.on('close', function() { response.close(); });
 	response.on('headers', function() {
 		response.deserializeHeaders();
-		processResponseHeaders(request, response);
+		response.processHeaders(request);
 	});
 	response.on('close', function() {
 		// Track latency
@@ -3806,31 +3968,6 @@ local.setDispatchWrapper(function(request, response, dispatch) {
 });
 
 // INTERNAL
-// Makes sure response header links are absolute and extracts additional attributes
-var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
-function processResponseHeaders(request, response) {
-	if (response.parsedHeaders.link) {
-		response.parsedHeaders.link.forEach(function(link) {
-			if (isUrlAbsoluteRE.test(link.href) === false)
-				link.href = local.joinRelPath(request.urld, link.href);
-			link.host_domain = local.parseUri(link.href).authority;
-			var peerd = local.parsePeerDomain(link.host_domain);
-			if (peerd) {
-				link.host_user   = peerd.user;
-				link.host_relay  = peerd.relay;
-				link.host_app    = peerd.app;
-				link.host_sid    = peerd.sid;
-			} else {
-				delete link.host_user;
-				delete link.host_relay;
-				delete link.host_app;
-				delete link.host_sid;
-			}
-		});
-	}
-}
-
-// INTERNAL
 function parseScheme(url) {
 	var schemeMatch = /^([^.^:]*):/.exec(url);
 	if (!schemeMatch) {
@@ -3843,7 +3980,40 @@ function parseScheme(url) {
 			return 'httpl';
 	}
 	return schemeMatch[1];
-}// Events
+}
+
+
+(function() {
+function makeDispSugar(method) {
+	return function(options) {
+		var req = options || {};
+		if (typeof req == 'string') {
+			req = { url: req };
+		}
+		req.method = method;
+		return this.dispatch(req);
+	};
+}
+function makeDispWBodySugar(method) {
+	return function(body, options) {
+		var req = options || {};
+		if (typeof req == 'string') {
+			req = { url: req };
+		}
+		req.method = method;
+		req.body = body;
+		return this.dispatch(req);
+	};
+}
+local.SUBSCRIBE = makeDispSugar('SUBSCRIBE');
+local.HEAD      = makeDispSugar('HEAD');
+local.GET       = makeDispSugar('GET');
+local.DELETE    = makeDispSugar('DELETE');
+local.POST      = makeDispWBodySugar('POST');
+local.PUT       = makeDispWBodySugar('PUT');
+local.PATCH     = makeDispWBodySugar('PATCH');
+local.NOTIFY    = makeDispWBodySugar('NOTIFY');
+})();// Events
 // ======
 
 // subscribe()
@@ -3902,6 +4072,8 @@ EventStream.prototype.connect = function(response_) {
 				}
 				// Hold onto any lefovers
 				buffer = payload;
+				// Clear the response' buffer
+				response.body = '';
 			});
 			response.on('end', function() { self.close(); });
 			response.on('close', function() { if (self.isConnOpen) { self.reconnect(); } });
@@ -4018,6 +4190,9 @@ EventHost.prototype.emitTo = function(responseStream, eventName, data) {
 		responseStream = this.streams[responseStream];
 	}
 	responseStream.write({ event: eventName, data: data });
+
+	// Clear the response's buffer, as the data is handled on emit
+	responseStream.body = '';
 };/*
  UriTemplate Copyright (c) 2012-2013 Franz Antesberger. All Rights Reserved.
  Available via the MIT license.
@@ -5022,6 +5197,7 @@ function Agent(context, parentAgent) {
 	this.context         = context         || null;
 	this.parentAgent = parentAgent || null;
 	this.links           = null;
+	this.proxyTmpl       = null;
 	this.requestDefaults = null;
 }
 local.Agent = Agent;
@@ -5082,6 +5258,7 @@ Agent.prototype.dispatch = function(req) {
 			self.context.setResolved();
 			if (res.parsedHeaders.link) self.links = res.parsedHeaders.link;
 			else self.links = self.links || []; // cache an empty link list so we dont keep trying during resolution
+			self.proxyTmpl = (res.header('Proxy-Tmpl')) ? res.header('Proxy-Tmpl').split(' ') : null;
 			return res;
 		})
 		.fail(function(res) {
@@ -5146,6 +5323,7 @@ Agent.prototype.follow = function(query) {
 Agent.prototype.unresolve = function() {
 	this.context.resetResolvedState();
 	this.links = null;
+	this.proxyTmpl = null;
 	return this;
 };
 
@@ -5214,7 +5392,7 @@ Agent.prototype.resolve = function(options) {
 
 					// Error - Link not found
 					var response = new local.Response();
-					response.writeHead(local.LINK_NOT_FOUND, 'link query failed to match').end();
+					response.writeHead(local.LINK_NOT_FOUND, 'Link Query Failed to Match').end();
 					throw response;
 				})
 				.fail(function(error) {
@@ -5243,8 +5421,12 @@ Agent.prototype.lookupLink = function(context) {
 		if (typeof context.query == 'object') {
 			// Try to find a link that matches
 			var link = local.queryLinks(this.links, context.query)[0];
-			if (link)
-				return local.UriTemplate.parse(link.href).expand(context.query);
+			if (link) {
+				var uri = local.UriTemplate.parse(link.href).expand(context.query);
+				if (this.proxyTmpl && !link.noproxy)
+					uri = local.makeProxyUri(uri, this.proxyTmpl);
+				return uri;
+			}
 		}
 		else if (typeof context.query == 'string') {
 			// A URL
@@ -5260,29 +5442,28 @@ Agent.prototype.lookupLink = function(context) {
 // Dispatch Sugars
 // ===============
 function makeDispSugar(method) {
-	return function(headers, options) {
+	return function(options) {
 		var req = options || {};
-		req.headers = headers || {};
 		req.method = method;
 		return this.dispatch(req);
 	};
 }
 function makeDispWBodySugar(method) {
-	return function(body, headers, options) {
+	return function(body, options) {
 		var req = options || {};
-		req.headers = headers || {};
 		req.method = method;
 		req.body = body;
 		return this.dispatch(req);
 	};
 }
-Agent.prototype.head   = makeDispSugar('HEAD');
-Agent.prototype.get    = makeDispSugar('GET');
-Agent.prototype.delete = makeDispSugar('DELETE');
-Agent.prototype.post   = makeDispWBodySugar('POST');
-Agent.prototype.put    = makeDispWBodySugar('PUT');
-Agent.prototype.patch  = makeDispWBodySugar('PATCH');
-Agent.prototype.notify = makeDispWBodySugar('NOTIFY');
+Agent.prototype.SUBSCRIBE = makeDispSugar('SUBSCRIBE');
+Agent.prototype.HEAD   = Agent.prototype.head   = makeDispSugar('HEAD');
+Agent.prototype.GET    = Agent.prototype.get    = makeDispSugar('GET');
+Agent.prototype.DELETE = Agent.prototype.delete = makeDispSugar('DELETE');
+Agent.prototype.POST   = Agent.prototype.post   = makeDispWBodySugar('POST');
+Agent.prototype.PUT    = Agent.prototype.put    = makeDispWBodySugar('PUT');
+Agent.prototype.PATCH  = Agent.prototype.patch  = makeDispWBodySugar('PATCH');
+Agent.prototype.NOTIFY = Agent.prototype.notify = makeDispWBodySugar('NOTIFY');
 
 // Builder
 // =======
@@ -5317,12 +5498,12 @@ local.addServer('hosts', function(req, res) {
 
 	var responses_ = [];
 	var domains = [], links = [];
-	links.push({ href: '/', rel: 'self service via', id: 'hosts' });
+	links.push({ href: '/', rel: 'self service via', id: 'hosts', title: 'Page Hosts' });
 	for (var domain in localHosts) {
 		if (domain == 'hosts')
 			continue;
 		domains.push(domain);
-		responses_.push(local.dispatch({ method: 'HEAD', url: 'httpl://'+domain }));
+		responses_.push(local.dispatch({ method: 'HEAD', url: 'httpl://'+domain, timeout: 500 }));
 	}
 
 	local.promise.bundle(responses_).then(function(ress) {
@@ -5331,7 +5512,7 @@ local.addServer('hosts', function(req, res) {
 			if (!selfLink) {
 				selfLink = { rel: 'service', id: domains[i], href: 'httpl://'+domains[i] };
 			}
-			selfLink.rel = (selfLink.rel) ? selfLink.rel.replace(/(^|\s)self(\s|$)/i, '') : 'service';
+			selfLink.rel = (selfLink.rel) ? selfLink.rel.replace(/(^|\b)(self|up|via)(\b|$)/gi, '') : 'service';
 			links.push(selfLink);
 		});
 
@@ -5520,6 +5701,7 @@ if (!self.btoa) {
 
 local.worker.setServer = function(fn) {
 	local.worker.serverFn = fn;
+	local.addServer('self', fn);
 };
 
 local.worker.pages = [];
@@ -5531,6 +5713,7 @@ function addConnection(port) {
 	// Track new connection
 	if (isHost) {
 		local.worker.hostPage = page;
+		local.addServer('host.page', page);
 	}
 	local.worker.pages.push(page);
 	local.addServer(page.id+'.page', page);
@@ -5666,7 +5849,7 @@ function unbindRequestEvents(container) {
 // transforms click events into request events
 function Local__clickHandler(e) {
 	if (e.button !== 0) { return; } // handle left-click only
-	var request = local.util.extractRequest.fromAnchor(e.target);
+	var request = local.util.extractRequest.fromAnchor(e.orgtarget || e.target);
 	if (request && ['_top','_blank'].indexOf(request.target) !== -1) { return; }
 	if (request) {
 		e.preventDefault();

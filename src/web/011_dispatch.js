@@ -21,25 +21,36 @@ local.dispatch = function dispatch(request) {
 	if (!request) { throw new Error("No request provided to dispatch()"); }
 	if (typeof request == 'string')
 		request = { url: request };
+
+	// Create the request if needed
+	var body = null, shouldAutoSendRequestBody = false;
+	if (!(request instanceof local.Request)) {
+		shouldAutoSendRequestBody = true; // we're going to end() with req.body
+
+		var timeout = request.timeout;
+		request = new local.Request(request);
+		if (timeout) { request.setTimeout(timeout); } // :TODO: should this be in the request constructor?
+
+		// pull out body for us to send
+		body = request.body;
+		request.body = '';
+	}
 	if (!request.url) { throw new Error("No url on request"); }
 
 	// If given a nav: scheme, spawn a agent to handle it
 	var scheme = parseScheme(request.url);
 	if (scheme == 'nav') {
-		var url = request.url;
-		delete request.url;
-		return local.agent(url).dispatch(request);
+		var request2 = new Request(request); // clone before modifying
+		var url = request2.url;
+		delete request2.url;
+		var response_ = local.agent(url).dispatch(request2);
+		request.on('data', request2.write.bind(request2));
+		request.on('end', request2.end.bind(request2));
+		if (shouldAutoSendRequestBody) request.end(body);
+		return response_;
 	}
 
-	// Prepare the request
-	var body = null, shouldAutoSendRequestBody = false;
-	if (!(request instanceof local.Request)) {
-		body = request.body;
-		var timeout = request.timeout;
-		request = new local.Request(request);
-		if (timeout) { request.setTimeout(timeout); }
-		shouldAutoSendRequestBody = true; // we're going to end()
-	}
+	// Prep request
 	Object.defineProperty(request, 'urld', { value: local.parseUri(request.url), configurable: true, enumerable: false, writable: true }); // (urld = url description)
 	if (request.urld.query) {
 		// Extract URL query parameters into the request's query object
@@ -58,7 +69,7 @@ local.dispatch = function dispatch(request) {
 	request.on('close', function() { response.close(); });
 	response.on('headers', function() {
 		response.deserializeHeaders();
-		processResponseHeaders(request, response);
+		response.processHeaders(request);
 	});
 	response.on('close', function() {
 		// Track latency
@@ -145,31 +156,6 @@ local.setDispatchWrapper(function(request, response, dispatch) {
 });
 
 // INTERNAL
-// Makes sure response header links are absolute and extracts additional attributes
-var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
-function processResponseHeaders(request, response) {
-	if (response.parsedHeaders.link) {
-		response.parsedHeaders.link.forEach(function(link) {
-			if (isUrlAbsoluteRE.test(link.href) === false)
-				link.href = local.joinRelPath(request.urld, link.href);
-			link.host_domain = local.parseUri(link.href).authority;
-			var peerd = local.parsePeerDomain(link.host_domain);
-			if (peerd) {
-				link.host_user   = peerd.user;
-				link.host_relay  = peerd.relay;
-				link.host_app    = peerd.app;
-				link.host_sid    = peerd.sid;
-			} else {
-				delete link.host_user;
-				delete link.host_relay;
-				delete link.host_app;
-				delete link.host_sid;
-			}
-		});
-	}
-}
-
-// INTERNAL
 function parseScheme(url) {
 	var schemeMatch = /^([^.^:]*):/.exec(url);
 	if (!schemeMatch) {
@@ -183,3 +169,36 @@ function parseScheme(url) {
 	}
 	return schemeMatch[1];
 }
+
+
+(function() {
+function makeDispSugar(method) {
+	return function(options) {
+		var req = options || {};
+		if (typeof req == 'string') {
+			req = { url: req };
+		}
+		req.method = method;
+		return this.dispatch(req);
+	};
+}
+function makeDispWBodySugar(method) {
+	return function(body, options) {
+		var req = options || {};
+		if (typeof req == 'string') {
+			req = { url: req };
+		}
+		req.method = method;
+		req.body = body;
+		return this.dispatch(req);
+	};
+}
+local.SUBSCRIBE = makeDispSugar('SUBSCRIBE');
+local.HEAD      = makeDispSugar('HEAD');
+local.GET       = makeDispSugar('GET');
+local.DELETE    = makeDispSugar('DELETE');
+local.POST      = makeDispWBodySugar('POST');
+local.PUT       = makeDispWBodySugar('PUT');
+local.PATCH     = makeDispWBodySugar('PATCH');
+local.NOTIFY    = makeDispWBodySugar('NOTIFY');
+})();

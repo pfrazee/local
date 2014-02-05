@@ -83,6 +83,22 @@ local.makePeerDomain('bob', 'grimwire.net', 'chat.grimwire.com', 123)
 
 ---
 
+### local.makeProxyUri(uri, templates)
+
+ - `uri`: required string
+ - `templates`: required [string]
+ - returns string
+
+Builds a proxy URI out of an array of templates.
+
+```javascript
+local.makePemakeProxyUrierDomain('httpl://my_worker.js/', ['httpl://0.page/{uri}', 'httpl://foo/{?uri}'])
+// => httpl://0.page/httpl://foo/?uri=httpl://my_worker.js/
+//    ^ actual output will be percent-encoded
+```
+
+---
+
 ### local.joinUri(uris...)
 
  - `uris`: a list of URI fragments

@@ -3,7 +3,7 @@ Example: Markdown Viewer
 
 ---
 
-The documentation site of Local.js is a Markdown viewer built using <a href="https://github.com/chjj/marked">Marked, by Christopher Jeffrey</a>, and <a href="https://github.com/LeaVerou/prism">Prism, by Lea Verou</a>.
+This docs site is a Markdown viewer built with <a href="https://github.com/chjj/marked">Marked, by Christopher Jeffrey</a>, and <a href="https://github.com/LeaVerou/prism">Prism, by Lea Verou</a>.
 
 The page consists of a static sidenav and a content area. It loads a markdown-to-html proxy into a Web Worker, then interprets hash-changes as load events for the given path.
 
@@ -30,7 +30,7 @@ function getContent() {
 	viewNav.querySelector('a[href="#'+path+'"]').parentNode.classList.add('active');
 
 	// Send request
-	local.dispatch('httpl://mdworker.js/'+path).then(
+	local.GET('httpl://mdworker.js/'+path).then(
 		function (res) {
 			viewer.innerHTML = res.body;
 			Prism.highlightAll();
@@ -54,7 +54,7 @@ marked.setOptions({ gfm: true, tables: true });
 
 local.worker.setServer(function (request, response) {
 	var url = local.worker.config.baseUrl + request.path;
-	var mdresponse_ = local.dispatch({ url: url, headers: { accept:'text/plain' }});
+	var mdresponse_ = local.GET({ url: url, headers: { accept:'text/plain' }});
 	local.pipe(response, mdresponse_,
 		function (headers) {
 			headers['content-type'] = 'text/html';

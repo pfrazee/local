@@ -110,3 +110,43 @@ local.addServer('test.com', function(request, response) {
 		response.end();
 	}
 });
+
+// proxy server
+local.addServer('proxy', function(req, res) {
+	if (req.path == '/') {
+		res.header('Link', [{ href: '/', rel: 'self service', noproxy: true }, {href: 'httpl://test.com', rel:'service'}, { href: '/{uri}', rel: 'service', noproxy: true }]);
+		res.header('Proxy-Tmpl', 'httpl://proxy/{uri}');
+		res.writeHead(204, 'ok, no content').end();
+		return;
+	}
+
+	// Proxy the request through
+	var req2 = new local.Request({
+		method: req.method,
+		url: decodeURIComponent(req.path.slice(1)),
+		query: local.util.deepClone(req.query),
+		headers: local.util.deepClone(req.headers),
+		stream: true
+	});
+
+	// Set req via
+	req2.headers['Via'] = (req.parsedHeaders.via||[]).concat([{proto: {version:'1.0', name:'httpl'}, hostname: 'proxy'}]);
+
+	var res2_ = local.dispatch(req2);
+	res2_.always(function(res2) {
+		// Reserialize Link so that it uses updated (absolute) uris
+		res2.headers.link = local.httpHeaders.serialize('link', res2.parsedHeaders.link);
+
+		// Set res via
+		res2.headers['Via'] = (res2.parsedHeaders.via||[]).concat([{proto: {version:'1.0', name:'httpl'}, hostname: 'proxy'}]);
+		res2.headers['Proxy-Tmpl'] = ((res2.header('Proxy-Tmpl')||'') + ' httpl://proxy/{uri}').trim();
+
+		// Pipe back
+		res.writeHead(res2.status, res2.reason, res2.headers);
+		res2.on('data', function(chunk) { res.write(chunk); });
+		res2.on('end', function() { res.end(); });
+		res2.on('close', function() { res.close(); });
+	});
+	req.on('data', function(chunk) { req2.write(chunk); });
+	req.on('end', function() { req2.end(); });
+});

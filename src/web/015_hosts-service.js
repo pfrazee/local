@@ -10,12 +10,12 @@ local.addServer('hosts', function(req, res) {
 
 	var responses_ = [];
 	var domains = [], links = [];
-	links.push({ href: '/', rel: 'self service via', id: 'hosts' });
+	links.push({ href: '/', rel: 'self service via', id: 'hosts', title: 'Page Hosts' });
 	for (var domain in localHosts) {
 		if (domain == 'hosts')
 			continue;
 		domains.push(domain);
-		responses_.push(local.dispatch({ method: 'HEAD', url: 'httpl://'+domain }));
+		responses_.push(local.dispatch({ method: 'HEAD', url: 'httpl://'+domain, timeout: 500 }));
 	}
 
 	local.promise.bundle(responses_).then(function(ress) {
@@ -24,7 +24,7 @@ local.addServer('hosts', function(req, res) {
 			if (!selfLink) {
 				selfLink = { rel: 'service', id: domains[i], href: 'httpl://'+domains[i] };
 			}
-			selfLink.rel = (selfLink.rel) ? selfLink.rel.replace(/(^|\s)self(\s|$)/i, '') : 'service';
+			selfLink.rel = (selfLink.rel) ? selfLink.rel.replace(/(^|\b)(self|up|via)(\b|$)/gi, '') : 'service';
 			links.push(selfLink);
 		});
 

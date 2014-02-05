@@ -1,6 +1,61 @@
 Changes
 =======
+0.6.0
+
+2014/02/04 pfraze
+
+ - Removed {query:} from HTTPL messages; params are now serialized in the path as in HTTP/S
+
+2014/02/03 pfraze
+
+ - Added Proxy-Tmpl (and noproxy link attr) support to agents for automated proxy URI construction
+
+
+2014/01/17 pfraze
+
+ - Limited nav:|| URIs to 5 navigations to mitigate flooding attacks
+ - Added request.header() and response.header() to simplify header access (was having issues of case-sensitivity)
+ - Added function attributes to queryLink() queries
+
+
+2014/01/16 pfraze
+
+ - Added data scheme to isAbsUri
+ - Moved the request.host attribute into request.headers in order to conform with HTTP/1.1.
+
+
+2014/01/15 pfraze
+
+ - Added Via header parsing
+ - Added local.makeProxyUri
+
+
+2014/01/14 pfraze
+
+ - Added response.prototype.processHeaders
+
+
+2014/01/11 pfraze
+
+ - Added httpl://self to workers
+
+
+
+0.5.2
+=====
+
+2013/12/13 pfraze
+
+ - Added support for upper-cased method/body pairs in request options
+
+
+2013/12/12 pfraze
+
+ - Added support for upper-cased headers in request and response options
+
+
 0.5.1
+=====
 
 2013/12/05 pfraze
 

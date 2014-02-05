@@ -157,6 +157,111 @@ success
 }
 */
 
+// uppercase request headers mixed into options
+
+done = false;
+startTime = Date.now();
+var res = local.dispatch({
+  method: 'POST', Accept: 'text/plain',
+  url: 'httpl://test.com/foo',
+  body: 'echo this, please', 'Content-Type': 'text/plain'
+});
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "echo this, please",
+  headers: {"content-type": "text/plain"},
+  reason: "ok",
+  status: 200
+}
+*/
+
+// uppercase underscores in headers to avoid quotes
+
+done = false;
+startTime = Date.now();
+var res = local.dispatch({
+  method: 'POST', Accept: 'text/plain',
+  url: 'httpl://test.com/foo',
+  body: 'echo this, please', Content_Type: 'text/plain',
+});
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "echo this, please",
+  headers: {"content-type": "text/plain"},
+  reason: "ok",
+  status: 200
+}
+*/
+
+// request sugar (GET)
+
+done = false;
+startTime = Date.now();
+var res = local.GET('httpl://test.com');
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "service resource",
+  headers: {
+    "content-type": "text/plain",
+    link: "</>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
+  },
+  reason: "ok",
+  status: 200
+}
+*/
+
+// request sugar (POST)
+
+done = false;
+startTime = Date.now();
+var res = local.POST('echo this, please', {
+  url: 'httpl://test.com/foo',
+  Accept: 'text/plain',
+  Content_Type: 'text/plain',
+});
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "echo this, please",
+  headers: {"content-type": "text/plain"},
+  reason: "ok",
+  status: 200
+}
+*/
+
+// header() function
+
+done = false;
+startTime = Date.now();
+var req = new local.Request({ method: 'GET', url: 'httpl://test.com' });
+req.header('Accept', 'text/plain');
+local.dispatch(req).then(
+  function(res) { print('success'); print(res.header('Content-Type')); print(res.header('content-type')); },
+  printError
+).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+text/plain
+text/plain
+*/
+
 // local request timeout
 
 done = false;
@@ -223,6 +328,27 @@ success
 {
   body: "[object Object]",
   headers: {"content-type": "text/faketype"},
+  reason: "ok",
+  status: 200
+}
+*/
+
+// query params
+
+done = false;
+startTime = Date.now();
+var res = local.dispatch({ method:'get', url:'httpl://_worker.js', query: { foo: 'bar' } });
+res.then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "service resource {\"foo\":\"bar\"}",
+  headers: {
+    "content-type": "text/plain",
+    link: "</>; rel=\"self current\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
+  },
   reason: "ok",
   status: 200
 }
@@ -339,4 +465,170 @@ wait(function () { return done; });
 /* =>
 success
 {body: "", headers: {"content-type": "text/html"}, reason: "ok", status: 200}
+*/
+
+
+// == SECTION core - proxy requests
+
+// proxy to local server
+
+done = false;
+startTime = Date.now();
+var res = local.dispatch({ method:'get', url:'httpl://proxy/httpl://test.com' });
+res.then(function(res) {
+  res.parsedHeaders.link.forEach(function(link) {
+    var props = Object.getOwnPropertyNames(link);
+    print(props.map(function(prop){ return prop+'="'+link[prop]+'"'; }).join('; '));
+  });
+  return res;
+}).then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+href="httpl://test.com/"; rel="self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"; host_domain="test.com"
+href="httpl://test.com/events"; rel="collection"; id="events"; host_domain="test.com"
+href="httpl://test.com/foo"; rel="collection"; id="foo"; host_domain="test.com"
+href="httpl://test.com/{id}"; rel="collection"; host_domain="test.com"
+success
+{
+  body: "service resource",
+  headers: {
+    "content-type": "text/plain",
+    link: "<httpl://test.com/>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", <httpl://test.com/events>; rel=\"collection\"; id=\"events\", <httpl://test.com/foo>; rel=\"collection\"; id=\"foo\", <httpl://test.com/{id}>; rel=\"collection\"",
+    "proxy-tmpl": "httpl://proxy/{uri}",
+    via: "httpl/1.0 proxy"
+  },
+  reason: "ok",
+  status: 200
+}
+*/
+
+// proxy to proxy to local server
+
+done = false;
+startTime = Date.now();
+var res = local.dispatch({ method:'get', url:'httpl://proxy/httpl://proxy/httpl://test.com' });
+res.then(function(res) {
+  res.parsedHeaders.link.forEach(function(link) {
+    var props = Object.getOwnPropertyNames(link);
+    print(props.map(function(prop){ return prop+'="'+link[prop]+'"'; }).join('; '));
+  });
+  return res;
+}).then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+href="httpl://test.com/"; rel="self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"; host_domain="test.com"
+href="httpl://test.com/events"; rel="collection"; id="events"; host_domain="test.com"
+href="httpl://test.com/foo"; rel="collection"; id="foo"; host_domain="test.com"
+href="httpl://test.com/{id}"; rel="collection"; host_domain="test.com"
+success
+{
+  body: "service resource",
+  headers: {
+    "content-type": "text/plain",
+    link: "<httpl://test.com/>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", <httpl://test.com/events>; rel=\"collection\"; id=\"events\", <httpl://test.com/foo>; rel=\"collection\"; id=\"foo\", <httpl://test.com/{id}>; rel=\"collection\"",
+    "proxy-tmpl": "httpl://proxy/{uri} httpl://proxy/{uri}",
+    via: "httpl/1.0 proxy, httpl/1.0 proxy"
+  },
+  reason: "ok",
+  status: 200
+}
+*/
+
+// Proxy-Tmpl header
+
+done = false;
+startTime = Date.now();
+var proxyagent = local.agent('httpl://proxy/httpl://test.com');
+var res = proxyagent.follow({ rel: 'collection', id: 'foo' }).GET();
+res.then(function(res) {
+  res.parsedHeaders.link.forEach(function(link) {
+    var props = Object.getOwnPropertyNames(link);
+    print(props.map(function(prop){ return prop+'="'+link[prop]+'"'; }).join('; '));
+  });
+  return res;
+}).then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+href="httpl://test.com/"; rel="up via service"; host_domain="test.com"
+href="httpl://test.com/foo"; rel="self current"; host_domain="test.com"
+href="httpl://test.com/foo/{id}"; rel="item"; host_domain="test.com"
+success
+{
+  body: ["bar", "baz", "blah"],
+  headers: {
+    "content-type": "application/json",
+    link: "<httpl://test.com/>; rel=\"up via service\", <httpl://test.com/foo>; rel=\"self current\", <httpl://test.com/foo/{id}>; rel=\"item\"",
+    "proxy-tmpl": "httpl://proxy/{uri}",
+    via: "httpl/1.0 proxy"
+  },
+  reason: "ok",
+  status: 200
+}
+*/
+
+// Proxy-Tmpl header through the proxy-proxy
+
+done = false;
+startTime = Date.now();
+var proxyagent = local.agent('httpl://proxy/httpl://proxy/httpl://test.com');
+var res = proxyagent.follow({ rel: 'collection', id: 'foo' }).GET();
+res.then(function(res) {
+  res.parsedHeaders.link.forEach(function(link) {
+    var props = Object.getOwnPropertyNames(link);
+    print(props.map(function(prop){ return prop+'="'+link[prop]+'"'; }).join('; '));
+  });
+  return res;
+}).then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+href="httpl://test.com/"; rel="up via service"; host_domain="test.com"
+href="httpl://test.com/foo"; rel="self current"; host_domain="test.com"
+href="httpl://test.com/foo/{id}"; rel="item"; host_domain="test.com"
+success
+{
+  body: ["bar", "baz", "blah"],
+  headers: {
+    "content-type": "application/json",
+    link: "<httpl://test.com/>; rel=\"up via service\", <httpl://test.com/foo>; rel=\"self current\", <httpl://test.com/foo/{id}>; rel=\"item\"",
+    "proxy-tmpl": "httpl://proxy/{uri} httpl://proxy/{uri}",
+    via: "httpl/1.0 proxy, httpl/1.0 proxy"
+  },
+  reason: "ok",
+  status: 200
+}
+*/
+
+// Proxy-Tmpl header w/noproxy links
+
+done = false;
+startTime = Date.now();
+var proxyagent = local.agent('httpl://proxy');
+var res = proxyagent.follow({ rel: 'self' }).GET();
+res.then(function(res) {
+  res.parsedHeaders.link.forEach(function(link) {
+    var props = Object.getOwnPropertyNames(link);
+    print(props.map(function(prop){ return prop+'="'+link[prop]+'"'; }).join('; '));
+  });
+  return res;
+}).then(printSuccess, printError).always(finishTest);
+wait(function () { return done; });
+
+/* =>
+href="httpl://proxy/"; rel="self service"; noproxy="true"; host_domain="proxy"
+href="httpl://test.com"; rel="service"; host_domain="test.com"
+href="httpl://proxy/{uri}"; rel="service"; noproxy="true"; host_domain="proxy"
+success
+{
+  body: "",
+  headers: {
+    link: "</>; rel=\"self service\"; noproxy, <httpl://test.com>; rel=\"service\", </{uri}>; rel=\"service\"; noproxy",
+    "proxy-tmpl": "httpl://proxy/{uri}"
+  },
+  reason: "ok, no content",
+  status: 204
+}
 */

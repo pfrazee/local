@@ -58,9 +58,17 @@ Closes the stream to the relay, but leaves active peer-connections. Emits "notli
 
 ---
 
+### .isListening()
+
+ - returns bool
+
+Returns true if there is an active connection to the relay that is arranging new peer connections.
+
+---
+
 ### .registerLinks(links)
 
- - `v`: required array
+ - `links`: required array
 
 Sends a list of links to the relay to broadcast to other peers. If relative URLs are given, the relay will automatically prepend the application's assigned hostname.
 
@@ -80,13 +88,26 @@ Provides an agent which points at the relay's peer index. Can be used to navigat
 
 Fetches the user list from the relay.
 
+```javascript
+relay.getUsers().then(function(res) {
+	console.log(res.body.rows.bob); // => { id: "bob", avatar: "user.png", created_at: "2013-09-23T23:08:44.615Z", online: true }
+});
+```
+
 ---
 
 ### .getUser(userId)
 
+ - `userId`: required string
  - returns promise(response)
 
 Fetches the given user info from the relay.
+
+```javascript
+relay.getUser('bob').then(function(res) {
+	console.log(res.body.item); // => { id: "bob", avatar: "user.png", created_at: "2013-09-23T23:08:44.615Z", online: true }
+});
+```
 
 ---
 

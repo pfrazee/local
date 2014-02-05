@@ -9,7 +9,7 @@ A headless browser which navigates Web APIs by following links in response heade
 local.agent('httpl://myhost')
     .follow({ rel: 'collection', id: 'users' })
     .follow({ rel: 'item', id: 'bob' })
-    .get({ accept: 'application/json' });
+    .get({ Accept: 'application/json' });
 ```
 
 Navigations are made by issuing HEAD requests and querying the returned Link headers for the next destination. Each `follow()` produces a new `local.Agent` which stores its query and a reference to its parent. When asked to resolve (either due to a request or a `resolve()` call) the agent will resolve its parent, then search the parent's received links. The resolved URL is then cached for future requests.
@@ -60,6 +60,26 @@ The Link header standardizes a link format outside of the response body, solving
 ```markup
 Link: <httpl://myhost/users>; rel="collection foobar.com/users foobar.com/paginated"; id="users"
 ```
+
+---
+
+### Proxy Links
+
+Proxies are commonly used in Local.js - for instance, when a worker wants to reach a server on the page that's not its dedicated server. Because proxied URLs include two full URIs (the proxy's and the upstream target's) it's necessary to percent-encode the upstream. However, percent-encoding keeps the agent from recognizing URI templates in the links.
+
+To solve this, proxies can set the 'Proxy-Tmpl' response header with a template to construct the final URI. Any URIs in the Link header should then only include the upstream. If multiple proxies are in use, then each should include a template (space-separated) with the first proxy showing first in the header.
+
+```javascript
+res.setHeader('Uri-Template', 'httpl://myproxy/{uri}');
+res.setHeader('Link', [
+	{ href: '/', rel: 'self service via', title: 'Host Page', noproxy: true },
+	// ^ the noproxy link attribute will exclude Proxy-Tmpl from being applied on that link
+	{ href: 'httpl://upstream.server', rel: 'service', title: 'Some Upstream Service' }
+	// ^ this link will resolve to "httpl://myproxy/httpl%3A%2F%2Fupstream.server"
+]);
+```
+
+The proxy templates should only include the `{uri}` token.
 
 ---
 
@@ -177,29 +197,31 @@ An array of parsed links from the most recent successful request by the agent.
 
 ## Dispatch sugars
 
-In all of the following functions, the `headers` and `body` parameters are mixed into the (optional) `request` object.
+In all of the following functions, the `body` parameter is mixed into `options`.
 
 ```javascript
-myagent.post({ foo: 'bar' }, { accept: 'text/html' }, { stream: true });
+myagent.POST({ foo: 'bar' }, { Accept: 'text/html', stream: true });
 // equivalent to:
 myagent.dispatch({
 	method: 'POST',
-	headers: { accept: 'text/html' },
+	headers: { accept: 'text/html', 'content-type': 'application/json' },
 	body: { foo: 'bar' },
 	stream: true
 });
 ```
 
-### .head(<span class="muted">headers</span>, <span class="muted">request</span>)
+### .HEAD(<span class="muted">options</span>)
 
-### .get(<span class="muted">headers</span>, <span class="muted">request</span>)
+### .GET(<span class="muted">options</span>)
 
-### .delete(<span class="muted">headers</span>, <span class="muted">request</span>)
+### .DELETE(<span class="muted">options</span>)
 
-### .post(<span class="muted">body</span>, <span class="muted">headers</span>, <span class="muted">request</span>)
+### .POST(<span class="muted">body</span>, <span class="muted">options</span>)
 
-### .put(<span class="muted">body</span>, <span class="muted">headers</span>, <span class="muted">request</span>)
+### .PUT(<span class="muted">body</span>, <span class="muted">options</span>)
 
-### .patch(<span class="muted">body</span>, <span class="muted">headers</span>, <span class="muted">request</span>)
+### .PATCH(<span class="muted">body</span>, <span class="muted">options</span>)
 
-### .notify(<span class="muted">body</span>, <span class="muted">headers</span>, <span class="muted">request</span>)
+### .NOTIFY(<span class="muted">body</span>, <span class="muted">options</span>)
+
+### .SUBSCRIBE(<span class="muted">body</span>, <span class="muted">options</span>)

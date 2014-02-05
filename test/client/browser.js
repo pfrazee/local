@@ -130,6 +130,37 @@ wait(function () { return done; });
 }
 */
 
+// test: basic form, button in a fieldset
+done = false;
+startTime = Date.now();
+
+var clickEvent = document.createEvent('MouseEvents');
+clickEvent.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+document.getElementById('form1submit3').dispatchEvent(clickEvent);
+
+wait(function () { return done; });
+
+/* =>
+{
+  body: {
+    check1: ["b"],
+    form1submit3: "form1submit3 value",
+    radio1: "radio1 value1",
+    radio2: "radio2 value2",
+    select1: "select1 value1",
+    select2: "select2 value2",
+    select3: "select3 value3",
+    text1: "text1 value",
+    text2: "text2 value",
+    textarea1: "textarea 1 value"
+  },
+  headers: {"content-type": "application/json"},
+  method: "patch",
+  target: "target1",
+  url: "http://www.form1.com/foobaz"
+}
+*/
+
 // test: detailed form
 done = false;
 startTime = Date.now();

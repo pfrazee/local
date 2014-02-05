@@ -170,8 +170,10 @@ local.contentTypes.register('text/event-stream',
 			if (!kv[0]) return; // comment lines have nothing before the colon
 			m[kv[0]] = kv[1];
 		});
-		try { m.data = JSON.parse(m.data); }
-		catch(e) {}
+		if (m.data) {
+			try { m.data = JSON.parse(m.data); }
+			catch(e) {}
+		}
 		return m;
 	}
 );

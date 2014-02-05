@@ -48,6 +48,16 @@ Header values may be objects if a serialization function is registered with `loc
 
 ---
 
+### .header(header, <span class="muted">value</span>)
+
+ - `header`: required string, the header key/name
+ - `value`: optional string|object
+ - returns string|object or undefined
+
+If `value` is given, will update the value of `header` and returns undefined. Otherwise, returns the current value.
+
+---
+
 ### .write(data)
 
  - `data`: required string|object

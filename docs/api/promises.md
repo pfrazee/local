@@ -3,13 +3,33 @@ Promises
 
 ---
 
-Asyncronous wrapper for values which are not yet available.
+A placeholder object for values which are not available yet due to asyncronous processes (such as Ajax requests). Callbacks can be registered to receive the value if it was successfully fulfilled or the "rejected" (error) state if it is not. The handlers can be chained, and the return values of callbacks are passed on to subsequent handlers. If a promise is returned, the next handler will be called after it is resolved (fulfilled or rejected).
 
 ```javascript
-local.promise(local.http.dispatch(request))
-  .succeed(updateUI)
-  .fail(goErrorState)
-  .always(respond);
+var p = local.promise();
+p.then(function(v) {
+	console.log('Success:', v);
+});
+p.fail(function(err) {
+	console.log('Failure:', err);
+});
+setTimeout(function() {
+	p.fulfill('foo');
+	// In 1 second, this will cause "Success: foo" to be logged
+}, 1000);
+
+var p2 = local.promise();
+local.promise.all([p, p2]).then(
+	function(values) { console.log('Success: ', values); },
+	function(values) { console.log('Failure: ', values); }
+);
+p2.reject('bar');
+// In 1 second, this will cause "Failure: ['foo', 'bar']"
+
+var p3 = local.promise();
+p3.then(function(v) { return v+1; }).then(console.log.bind(console));
+p3.fulfill(27);
+// This will cause "28" to be logged
 ```
 
 ### local.promise(<span class="muted">value</span>)
