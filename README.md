@@ -1,4 +1,4 @@
-Local 0.6.0
+Local 0.6.1
 ===========
 
 [<a href="https://github.com/grimwire/local">Repository</a> | <a href="https://github.com/grimwire/local/issues">Issues</a> | <a href="http://grimwire.com/local">Documentation</a>]
