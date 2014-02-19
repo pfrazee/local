@@ -3,8 +3,9 @@ local.spawnWorkerServer('/test/worker/worker1.js', { myname: 'alice' }, function
 	console.log(me.config.domain);
 	res.writeHead(200, 'ok', { 'content-type': 'text/plain' }).end('yes, hello '+req.query.foo+' '+req.query.bar);
 });
-local.spawnWorkerServer('/test/worker/worker2.js', { myname: 'bob' }, function(req, res, me) {
-	console.log(me.config.domain);
+local.spawnWorkerServer('/test/worker/worker2.js', { myname: 'bob' });
+local.addServer('worker-bridge', function(req, res, worker) {
+	console.log(worker.config.domain);
 	res.writeHead(200, 'ok', { 'content-type': 'text/plain' }).end('no, bye '+req.query.foo+' '+req.query.bar);
 });
 

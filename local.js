@@ -5885,8 +5885,12 @@ WorkerBridgeServer.prototype.channelSendMsg = function(msg) {
 // Remote request handler
 // - should be overridden
 BridgeServer.prototype.handleRemoteRequest = function(request, response) {
+	var httpl = require('./httpl.js');
 	if (this.configServerFn) {
 		this.configServerFn.call(this, request, response, this);
+	} else if (httpl.getServer('worker-bridge')) {
+		var server = httpl.getServer('worker-bridge');
+		server.fn.call(server.context, request, response, this);
 	} else {
 		response.writeHead(501, 'server not implemented');
 		response.end();
@@ -5926,7 +5930,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			break;
 	}
 };
-},{"./bridge-server.js":11}],26:[function(require,module,exports){
+},{"./bridge-server.js":11,"./httpl.js":16}],26:[function(require,module,exports){
 module.exports = {
 	serverFn: null
 };
