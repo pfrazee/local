@@ -1,40 +1,7 @@
-// Server
-// ======
-// EXPORTED
-// core type for all servers
-// - should be used as a prototype
-function Server(config) {
-	this.config = { domain: null, log: false };
-	if (config) {
-		for (var k in config)
-			this.config[k] = config[k];
-	}
-}
-local.Server = Server;
-
-Server.prototype.getDomain = function() { return this.config.domain; };
-Server.prototype.getUrl = function() { return 'httpl://' + this.config.domain; };
-
-Server.prototype.debugLog = function() {
-	if (!this.config.log) return;
-	var args = [this.config.domain].concat([].slice.call(arguments));
-	console.debug.apply(console, args);
-};
-
-// Local request handler
-// - should be overridden
-Server.prototype.handleLocalRequest = function(request, response) {
-	console.warn('handleLocalRequest not defined', this);
-	response.writeHead(501, 'server not implemented');
-	response.end();
-};
-
-// Called before server destruction
-// - may be overridden
-// - executes syncronously; does not wait for cleanup to finish
-Server.prototype.terminate = function() {
-};
-
+var Request = require('./request.js');
+var Response = require('./response.js');
+var Server = require('./server.js');
+var contentTypes = require('./content-types.js');
 
 // BridgeServer
 // ============
@@ -61,7 +28,7 @@ function BridgeServer(config) {
 	this.isReorderingMessages = false;
 }
 BridgeServer.prototype = Object.create(Server.prototype);
-local.BridgeServer = BridgeServer;
+module.exports = BridgeServer;
 
 // Turns on/off message numbering and the HOL-blocking reorder protocol
 BridgeServer.prototype.useMessageReordering = function(v) {
@@ -117,7 +84,7 @@ BridgeServer.prototype.channelSendMsgWhenReady = function(msg) {
 BridgeServer.prototype.handleLocalRequest = function(request, response) {
 	// Build message
 	var sid = this.sidCounter++;
-	var query_part = local.contentTypes.serialize('application/x-www-form-urlencoded', request.query);
+	var query_part = contentTypes.serialize('application/x-www-form-urlencoded', request.query);
 	var msg = {
 		sid: sid,
 		mid: (this.isReorderingMessages) ? 1 : undefined,
@@ -200,18 +167,18 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 			var pathparts = (msg.path||'').split('?');
 			msg.path = pathparts[0];
 			if (pathparts[1]) {
-				query = local.contentTypes.deserialize('application/x-www-form-urlencoded', pathparts[1]);
+				query = contentTypes.deserialize('application/x-www-form-urlencoded', pathparts[1]);
 			}
 
 			// Create request & response
-			var request = new local.Request({
+			var request = new Request({
 				method: msg.method,
 				path: msg.path,
 				query: query,
 				headers: msg.headers
 			});
 			request.deserializeHeaders();
-			var response = new local.Response();
+			var response = new Response();
 			request.on('close', function() { response.close(); });
 
 			// Wire response into the stream

@@ -1,6 +1,10 @@
 // Helpers to create servers
 // -
 
+var httpl = require('./web/httpl.js');
+var WorkerBridgeServer = require('./web/worker-bridge-server.js');
+var Relay = require('./web/relay.js');
+
 // EXPORTED
 // Creates a Web Worker and a bridge server to the worker
 // eg `local.spawnWorkerServer('http://foo.com/myworker.js', localServerFn, )
@@ -11,14 +15,14 @@
 // - `config.namespace`: optional string, what should the shared worker be named?
 //   - defaults to `config.src` if undefined
 // - `serverFn`: optional function, a response generator for requests from the worker
-local.spawnWorkerServer = function(src, config, serverFn) {
+function spawnWorkerServer(src, config, serverFn) {
 	if (typeof config == 'function') { serverFn = config; config = null; }
 	if (!config) { config = {}; }
 	config.src = src;
 	config.serverFn = serverFn;
 
 	// Create the server
-	var server = new local.WorkerBridgeServer(config);
+	var server = new WorkerBridgeServer(config);
 
 	// Find an open domain and register
 	var domain = config.domain;
@@ -29,23 +33,23 @@ local.spawnWorkerServer = function(src, config, serverFn) {
 			domain = getAvailableLocalDomain(src.split('/').pop().toLowerCase() + '{n}');
 		}
 	}
-	local.addServer(domain, server);
+	httpl.addServer(domain, server);
 
 	return server;
-};
+}
 
 // EXPORTED
 // Opens a stream to a peer relay
 // - `providerUrl`: optional string, the relay provider
 // - `config.app`: optional string, the app to join as (defaults to window.location.host)
 // - `serverFn`: optional function, a response generator for requests from connected peers
-local.joinRelay = function(providerUrl, config, serverFn) {
+function joinRelay(providerUrl, config, serverFn) {
 	if (typeof config == 'function') { serverFn = config; config = null; }
 	if (!config) config = {};
 	config.provider = providerUrl;
 	config.serverFn = serverFn;
-	return new local.Relay(config);
-};
+	return new Relay(config);
+}
 
 // helper for name assignment
 function getAvailableLocalDomain(base) {
@@ -53,6 +57,11 @@ function getAvailableLocalDomain(base) {
 	do {
 		str = base.replace('{n}', i);
 		i = (!i) ? 2 : i + 1;
-	} while (local.getServer(str));
+	} while (httpl.getServer(str));
 	return str;
 }
+
+module.exports = {
+	spawnWorkerServer: spawnWorkerServer,
+	joinRelay: joinRelay
+};

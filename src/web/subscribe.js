@@ -1,5 +1,10 @@
 // Events
 // ======
+var util = require('../util');
+var dispatch = require('./dispatch.js').dispatch;
+var Request = require('./request.js');
+var Response = require('./response.js');
+var contentTypes = require('./content-types.js');
 
 // subscribe()
 // ===========
@@ -8,7 +13,7 @@
 // - sends a GET request with 'text/event-stream' as the Accept header
 // - `request`: request object, formed as in `dispatch()`
 // - returns a `EventStream` object
-local.subscribe = function subscribe(request) {
+function subscribe(request) {
 	if (typeof request == 'string')
 		request = { url: request };
 	request.stream = true; // stream the response
@@ -16,9 +21,9 @@ local.subscribe = function subscribe(request) {
 	if (!request.headers) request.headers = { accept : 'text/event-stream' };
 	if (!request.headers.accept) request.headers.accept = 'text/event-stream';
 
-	var response_ = local.dispatch(request);
+	var response_ = dispatch(request);
 	return new EventStream(response_.request, response_);
-};
+}
 
 
 // EventStream
@@ -26,7 +31,7 @@ local.subscribe = function subscribe(request) {
 // EXPORTED
 // wraps a response to emit the events
 function EventStream(request, response_) {
-	local.util.EventEmitter.call(this);
+	util.EventEmitter.call(this);
 	this.request = request;
 	this.response = null;
 	this.response_ = null;
@@ -35,8 +40,7 @@ function EventStream(request, response_) {
 
 	this.connect(response_);
 }
-local.EventStream = EventStream;
-EventStream.prototype = Object.create(local.util.EventEmitter.prototype);
+EventStream.prototype = Object.create(util.EventEmitter.prototype);
 EventStream.prototype.getUrl = function() { return this.request.url; };
 EventStream.prototype.connect = function(response_) {
 	var self = this;
@@ -82,15 +86,15 @@ EventStream.prototype.reconnect = function() {
 	}
 
 	// Hold off if the app is tearing down (Firefox will succeed in the request and then hold onto the stream)
-	if (local.util.isAppClosing) {
+	if (util.isAppClosing) {
 		return;
 	}
 
 	// Re-establish the connection
-	this.request = new local.Request(this.request);
+	this.request = new Request(this.request);
 	if (!this.request.headers) this.request.headers = {};
 	if (this.lastEventId) this.request.headers['last-event-id'] = this.lastEventId;
-	this.connect(local.dispatch(this.request));
+	this.connect(dispatch(this.request));
 	this.request.end();
 };
 EventStream.prototype.close = function() {
@@ -105,7 +109,7 @@ function emitError(e) {
 	this.emit('error', e);
 }
 function emitEvent(e) {
-	e = local.contentTypes.deserialize('text/event-stream', e);
+	e = contentTypes.deserialize('text/event-stream', e);
 	var id = parseInt(e.id, 10);
 	if (typeof id != 'undefined' && id > this.lastEventId)
 		this.lastEventId = id;
@@ -121,7 +125,6 @@ function emitEvent(e) {
 function EventHost() {
 	this.streams = [];
 }
-local.EventHost = EventHost;
 
 // listener management
 EventHost.prototype.addStream = function(responseStream) {
@@ -155,7 +158,7 @@ EventHost.prototype.emit = function(eventName, data, opts) {
 		}
 		// Convert to ids
 		opts.exclude = opts.exclude.map(function(v) {
-			if (v instanceof local.Response) {
+			if (v instanceof Response) {
 				return v.broadcastStreamId;
 			}
 			return v;
@@ -178,4 +181,10 @@ EventHost.prototype.emitTo = function(responseStream, eventName, data) {
 
 	// Clear the response's buffer, as the data is handled on emit
 	responseStream.body = '';
+};
+
+module.exports = {
+	subscribe: subscribe,
+	EventStream: EventStream,
+	EventHost: EventHost
 };
