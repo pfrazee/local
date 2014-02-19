@@ -2,7 +2,7 @@ var viewer = document.getElementById('viewer');
 var viewNav = document.getElementById('viewer-nav');
 
 // Load the markdown conversion worker
-local.spawnWorkerServer('assets/mdworker.js', { baseUrl: (location.origin||(location.protocol+'//'+location.host))+location.pathname.slice(0,-1) });
+local.spawnWorkerServer('assets/mdworker.js', { domain: 'mdworker.js', baseUrl: (location.origin||(location.protocol+'//'+location.host))+location.pathname.slice(0,-1) });
 
 function getContent() {
 	var path = window.location.hash.slice(1) || 'README.md';
