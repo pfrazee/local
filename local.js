@@ -2917,49 +2917,23 @@ var Server = require('./server.js');
 
 // HTTPL
 // =====
-var localNotFoundServer = {
-	fn: function(request, response) {
-		response.writeHead(404, 'server not found');
-		response.end();
-	},
-	context: null
+var hostLookupFn;
+var localNotFoundServer = function(request, response) {
+	response.writeHead(404, 'server not found');
+	response.end();
 };
-var localRelayNotOnlineServer = {
-	fn: function(request, response) {
-		response.writeHead(407, 'peer relay not authenticated');
-		response.end();
-	},
-	context: null
+var localRelayNotOnlineServer = function(request, response) {
+	response.writeHead(407, 'peer relay not authenticated');
+	response.end();
 };
 schemes.register('httpl', function(request, response) {
 	// Find the local server
 	var server = getServer(request.urld.authority);
 	if (!server) {
-		// Check if this is a peerweb URI
-		var peerd = helpers.parsePeerDomain(request.urld.authority);
-		if (peerd) {
-			// See if this is a default stream miss
-			if (peerd.sid == 0) {
-				if (request.urld.authority.slice(-2) == '!0') {
-					server = getServer(request.urld.authority.slice(0,-2));
-				} else {
-					request.urld.authority += '!0';
-					server = getServer(request.urld.authority);
-				}
-			}
-			if (!server) {
-				// Not a default stream miss
-				if (peerd.relay in __peer_relay_registry) {
-					// Try connecting to the peer
-					__peer_relay_registry[peerd.relay].connect(request.urld.authority);
-					server = getServer(request.urld.authority);
-				} else {
-					// We're not connected to the relay
-					server = localRelayNotOnlineServer;
-				}
-			}
-		} else
+		server = hostLookupFn(request, response);
+		if (!server) {
 			server = localNotFoundServer;
+		}
 	}
 
 	// Deserialize the headers
@@ -2985,7 +2959,48 @@ schemes.register('httpl', function(request, response) {
 		console.warn('Got HTTPL request with binary=true - sorry, not currently supported', request);
 
 	// Pass on to the server
-	server.fn.call(server.context, request, response);
+	if (server.fn) {
+		server.fn.call(server.context, request, response);
+	} else if (server.handleLocalRequest) {
+		server.handleLocalRequest(request, response);
+	} else if (typeof server == 'function') {
+		server(request, response);
+	} else {
+		throw "Invalid server";
+	}
+});
+
+// EXPORTED
+function setHostLookup(fn) {
+	hostLookupFn = fn;
+}
+
+setHostLookup(function(request, response) {
+	// Check if this is a peerweb URI
+	var peerd = helpers.parsePeerDomain(request.urld.authority);
+	if (peerd) {
+		// See if this is a default stream miss
+		if (peerd.sid == 0) {
+			if (request.urld.authority.slice(-2) == '!0') {
+				server = getServer(request.urld.authority.slice(0,-2));
+			} else {
+				request.urld.authority += '!0';
+				server = getServer(request.urld.authority);
+			}
+		}
+		if (!server) {
+			// Not a default stream miss
+			if (peerd.relay in __peer_relay_registry) {
+				// Try connecting to the peer
+				__peer_relay_registry[peerd.relay].connect(request.urld.authority);
+				return getServer(request.urld.authority);
+			} else {
+				// We're not connected to the relay
+				return localRelayNotOnlineServer;
+			}
+		}
+	}
+	return false;
 });
 
 // Local Server Registry

@@ -8,6 +8,17 @@ local.addServer('foo', function(req, res) { /* ... */ });
 local.addServer('bar', new BarServer());
 local.spawnWorkerServer('/js/myworker.js');
 local.joinRelay('https://myrelay.com');
+
+local.setHostLookup(function(req, res) {
+	// httpl: host not found in names map
+	// (optionally load and) return a server to use, or return false for 404
+
+	if (local.parseUri(req).authority == 'specialhost') {
+		return local.addServer('specialhost', function(req, res) { /* ... */ });
+	}
+
+	return false; // 404
+});
 ```
 
 ### local.addServer(domain, server, <span class="muted">context</span>)
@@ -66,3 +77,11 @@ Gets the server registered at the given hostname.
  - returns `[{ fn:, context: }, ...]`
 
 Get the entire local hostmap.
+
+### local.setHostLookup(fn)
+
+ - `fn`: required function(local.Request, local.Response), the function to handle host-not-found
+
+Sets a hook function which is called when a request is sent to a hostname which is not in the HTTPL hostmap. Applications can use this to load services on-demand.
+
+The given function should return a server (as a function, a `local.Server` object, or a `{fn:,context:}` literal). It is not necessary that the server is added to the hostmap first.
