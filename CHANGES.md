@@ -1,6 +1,21 @@
 Changes
 =======
+0.6.1
+
+2014/02/19 pfraze
+
+ - Added httpl://worker-bridge as global default server to workers
+ - Added setHostLookup() to handle worker and webrtc bridge auto-spawning
+ - Added automatic worker spawning
+ - Added the host 'source path' to URL parsing
+
+2014/02/18 pfraze
+
+ - Browserified!
+
+
 0.6.0
+=====
 
 2014/02/04 pfraze
 
@@ -43,10 +58,6 @@ Changes
 
 0.5.2
 =====
-
-2013/12/13 pfraze
-
- - Added support for upper-cased method/body pairs in request options
 
 
 2013/12/12 pfraze
