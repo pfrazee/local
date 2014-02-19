@@ -1,3 +1,9 @@
+var util = require('../util');
+var promise = require('../promises.js').promise;
+var helpers = require('./helpers.js');
+var contentTypes = require('./content-types.js');
+var httpHeaders = require('./http-headers.js');
+
 // Response
 // ========
 // EXPORTED
@@ -5,7 +11,7 @@
 // - usually created internally and returned by `dispatch`
 function Response() {
 	var self = this;
-	local.util.EventEmitter.call(this);
+	util.EventEmitter.call(this);
 
 	this.status = 0;
 	this.reason = null;
@@ -34,7 +40,7 @@ function Response() {
 
 	// response buffering
 	Object.defineProperty(this, 'body_', {
-		value: local.promise(),
+		value: promise(),
 		configurable: true,
 		enumerable: false,
 		writable: false
@@ -47,12 +53,12 @@ function Response() {
 	});
 	this.on('end', function() {
 		if (self.headers['content-type'])
-			self.body = local.contentTypes.deserialize(self.headers['content-type'], self.body);
+			self.body = contentTypes.deserialize(self.headers['content-type'], self.body);
 		self.body_.fulfill(self.body);
 	});
 }
-local.Response = Response;
-Response.prototype = Object.create(local.util.EventEmitter.prototype);
+module.exports = Response;
+Response.prototype = Object.create(util.EventEmitter.prototype);
 
 Response.prototype.header = function(k, v) {
 	if (typeof v != 'undefined')
@@ -68,7 +74,7 @@ Response.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCas
 // - enables apps to use objects during their operation, but remain conformant with specs during transfer
 Response.prototype.serializeHeaders = function() {
 	for (var k in this.headers) {
-		this.headers[k] = local.httpHeaders.serialize(k, this.headers[k]);
+		this.headers[k] = httpHeaders.serialize(k, this.headers[k]);
 	}
 };
 
@@ -77,7 +83,7 @@ Response.prototype.serializeHeaders = function() {
 // - enables apps to use objects during their operation, but remain conformant with specs during transfer
 Response.prototype.deserializeHeaders = function() {
 	for (var k in this.headers) {
-		var parsedHeader = local.httpHeaders.deserialize(k, this.headers[k]);
+		var parsedHeader = httpHeaders.deserialize(k, this.headers[k]);
 		if (parsedHeader && typeof parsedHeader != 'string') {
 			this.parsedHeaders[k] = parsedHeader;
 		}
@@ -95,13 +101,13 @@ Response.prototype.processHeaders = function(request) {
 	if (self.parsedHeaders.link) {
 		self.parsedHeaders.link.forEach(function(link) {
 			// Convert relative paths to absolute uris
-			if (!local.isAbsUri(link.href))
-				link.href = local.joinRelPath(request.urld, link.href);
+			if (!helpers.isAbsUri(link.href))
+				link.href = helpers.joinRelPath(request.urld, link.href);
 
 			// Extract host data
-			var host_domain = local.parseUri(link.href).authority;
+			var host_domain = helpers.parseUri(link.href).authority;
 			Object.defineProperty(link, 'host_domain', { enumerable: false, configurable: true, writable: true, value: host_domain });
-			var peerd = local.parsePeerDomain(link.host_domain);
+			var peerd = helpers.parsePeerDomain(link.host_domain);
 			if (peerd) {
 				Object.defineProperty(link, 'host_user', { enumerable: false, configurable: true, writable: true, value: peerd.user });
 				Object.defineProperty(link, 'host_relay', { enumerable: false, configurable: true, writable: true, value: peerd.relay });
@@ -142,7 +148,7 @@ Response.prototype.write = function(data) {
 	if (!this.isConnOpen)
 		return this;
 	if (typeof data != 'string') {
-		data = local.contentTypes.serialize(this.headers['content-type'], data);
+		data = contentTypes.serialize(this.headers['content-type'], data);
 	}
 	this.emit('data', data);
 	return this;

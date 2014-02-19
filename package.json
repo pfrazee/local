@@ -1,0 +1,17 @@
+{
+  "name": "local",
+  "version": "0.7.0",
+  "author": "Paul Frazee <pfrazee@gmail.com>",
+  "description": "Ajax library that implements a client-side variation of HTTP",
+  "main": "./local.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/grimwire/local.git"
+  },
+  "keywords": [
+    "ajax",
+    "http",
+    "httpl"
+  ],
+  "license": "MIT"
+}

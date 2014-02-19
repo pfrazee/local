@@ -1,16 +1,20 @@
 // Helpers
 // =======
 
+var httpHeaders = require('./http-headers.js');
+var promise = require('../promises.js').promise;
+var UriTemplate = require('./uri-template.js');
+
 // EXPORTED
 // takes parsed a link header and a query object, produces an array of matching links
 // - `links`: [object]/object, either the parsed array of links or the request/response object
 // - `query`: object
-local.queryLinks = function queryLinks(links, query) {
+function queryLinks(links, query) {
 	if (!links) return [];
 	if (links.parsedHeaders) links = links.parsedHeaders.link; // actually a request or response object
 	if (!Array.isArray(links)) return [];
-	return links.filter(function(link) { return local.queryLink(link, query); });
-};
+	return links.filter(function(link) { return queryLink(link, query); });
+}
 
 // EXPORTED
 // takes parsed link and a query object, produces boolean `isMatch`
@@ -27,7 +31,7 @@ local.queryLinks = function queryLinks(links, query) {
 //   - rel: items preceded by an exclamation-point (!) will invert (logical NOT)
 var uriTokenStart = '\\{([^\\}]*)[\\+\\#\\.\\/\\;\\?\\&]?';
 var uriTokenEnd = '(\\,|\\})';
-local.queryLink = function queryLink(link, query) {
+function queryLink(link, query) {
 	for (var attr in query) {
 		if (typeof query[attr] == 'function') {
 			if (!query[attr].call(null, link[attr], attr)) {
@@ -66,7 +70,7 @@ local.queryLink = function queryLink(link, query) {
 		}
 	}
 	return true;
-};
+}
 
 // <https://github.com/federomero/negotiator>
 // thanks to ^ for the content negotation helpers below
@@ -99,14 +103,51 @@ function specify(type, spec) {
 }
 
 // EXPORTED
+// thanks to https://github.com/federomero/negotiator
+function parseMediaType(s) {
+	var match = s.match(/\s*(\S+)\/([^;\s]+)\s*(?:;(.*))?/);
+	if (!match) return null;
+
+	var type = match[1];
+	var subtype = match[2];
+	var full = "" + type + "/" + subtype;
+	var params = {}, q = 1;
+
+	if (match[3]) {
+		params = match[3].split(';')
+			.map(function(s) { return s.trim().split('='); })
+			.reduce(function (set, p) { set[p[0]] = p[1]; return set; }, params);
+
+		if (params.q !== null) {
+			q = parseFloat(params.q);
+			delete params.q;
+		}
+	}
+
+	return {
+		type: type,
+		subtype: subtype,
+		params: params,
+		q: q,
+		full: full
+	};
+}
+
+function parseAcceptHeader(str) {
+	return str.split(',')
+		.map(function(e) { return parseMediaType(e.trim()); })
+		.filter(function(e) { return e && e.q > 0; });
+}
+
+// EXPORTED
 // returns an array of preferred media types ordered by priority from a list of available media types
 // - `accept`: string/object, given accept header or request object
 // - `provided`: optional [string], allowed media types
-local.preferredTypes = function preferredTypes(accept, provided) {
+function preferredTypes(accept, provided) {
 	if (typeof accept == 'object') {
 		accept = accept.headers.accept;
 	}
-	accept = local.httpHeaders.deserialize('accept', accept || '');
+	accept = parseAcceptHeader(accept || '');
 	if (provided) {
 		if (!Array.isArray(provided)) {
 			provided = [provided];
@@ -118,21 +159,21 @@ local.preferredTypes = function preferredTypes(accept, provided) {
 			.map(function(pair) { return pair[0]; });
 	}
 	return accept.map(function(type) { return type.full; });
-};
+}
 
 // EXPORTED
 // returns the top preferred media type from a list of available media types
 // - `accept`: string/object, given accept header or request object
 // - `provided`: optional [string], allowed media types
-local.preferredType = function preferredType(accept, provided) {
-	return local.preferredTypes(accept, provided)[0];
-};
+function preferredType(accept, provided) {
+	return preferredTypes(accept, provided)[0];
+}
 // </https://github.com/federomero/negotiator>
 
 // EXPORTED
 // correctly joins together all url segments given in the arguments
 // eg joinUri('/foo/', '/bar', '/baz/') -> '/foo/bar/baz/'
-local.joinUri = function joinUri() {
+function joinUri() {
 	var parts = Array.prototype.map.call(arguments, function(arg, i) {
 		arg = ''+arg;
 		var lo = 0, hi = arg.length;
@@ -142,36 +183,36 @@ local.joinUri = function joinUri() {
 		return arg.substring(lo, hi);
 	});
 	return parts.join('/');
-};
+}
 
 // EXPORTED
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
 // - eg http://foo.com, //foo.com, httpl://bar.app
 var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)|(data:)/;
-local.isAbsUri = function(url) {
+function isAbsUri(url) {
 	// Has a scheme?
 	if (hasSchemeRegex.test(url))
 		return true;
 	// No scheme, is it a local server or a global URI?
-	var urld = local.parseUri(url);
-	return !!local.getServer(urld.authority) || !!local.parsePeerDomain(urld.authority);
-};
+	var urld = parseUri(url);
+	return !!require('./httpl.js').getServer(urld.authority) || !!parsePeerDomain(urld.authority);
+}
 
 // EXPORTED
 // tests to see if a URL is using the nav scheme
 var isNavSchemeUriRE = /^(nav:)?\|?\|/i;
-local.isNavSchemeUri = function(v) {
+function isNavSchemeUri(v) {
 	return isNavSchemeUriRE.test(v);
-};
+}
 
 
 // EXPORTED
 // takes a context url and a relative path and forms a new valid url
 // eg joinRelPath('http://grimwire.com/foo/bar', '../fuz/bar') -> 'http://grimwire.com/foo/fuz/bar'
-local.joinRelPath = function(urld, relpath) {
+function joinRelPath(urld, relpath) {
 	if (typeof urld == 'string') {
-		urld = local.parseUri(urld);
+		urld = parseUri(urld);
 	}
 	var protocol = (urld.protocol) ? urld.protocol + '://' : false;
 	if (!protocol) {
@@ -200,15 +241,15 @@ local.joinRelPath = function(urld, relpath) {
 		else
 			hostpathParts.push(relpathParts[i]);
 	}
-	return local.joinUri(protocol + urld.authority, hostpathParts.join('/'));
-};
+	return joinUri(protocol + urld.authority, hostpathParts.join('/'));
+}
 
 // EXPORTED
 // parseUri 1.2.2, (c) Steven Levithan <stevenlevithan.com>, MIT License
-local.parseUri = function parseUri(str) {
+function parseUri(str) {
 	if (typeof str === 'object') {
 		if (str.url) { str = str.url; }
-		else if ((str.headers && str.headers.host) || str.path) { str = local.joinUri(str.headers.host, str.path); }
+		else if ((str.headers && str.headers.host) || str.path) { str = joinUri(str.headers.host, str.path); }
 	}
 
 	// handle data-uris specially
@@ -221,11 +262,11 @@ local.parseUri = function parseUri(str) {
 		var schemeSepI = str.indexOf('//');
 		var firstSlashI = str.indexOf('/', schemeSepI+2);
 		var peerdomain = str.slice((schemeSepI !== -1) ? schemeSepI+2 : 0, (firstSlashI !== -1) ? firstSlashI : str.length);
-		var peerd = local.parsePeerDomain(peerdomain);
+		var peerd = parsePeerDomain(peerdomain);
 		if (peerd) {
 			var urld = {};
 			if (firstSlashI !== -1 && str.slice(firstSlashI)) {
-				urld = local.parseUri(str.slice(firstSlashI));
+				urld = parseUri(str.slice(firstSlashI));
 			}
 			urld.protocol = 'httpl';
 			urld.host = urld.authority = peerdomain;
@@ -235,37 +276,43 @@ local.parseUri = function parseUri(str) {
 		}
 	}
 
-	var	o   = local.parseUri.options,
+	var	o   = parseUri.options,
 		m   = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
 		uri = {},
-		i   = 14;
+		i   = 15;
 
 	while (i--) uri[o.key[i]] = m[i] || "";
 
 	uri[o.q.name] = {};
-	uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
+	uri[o.key[13]].replace(o.q.parser, function ($0, $1, $2) {
 		if ($1) uri[o.q.name][$1] = $2;
 	});
 
 	return uri;
-};
+}
 
-local.parseUri.options = {
+parseUri.options = {
 	strictMode: false,
-	key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
+	key: ["source","protocol","authority","userInfo","user","password","host","port","srcPath","relative","path","directory","file","query","anchor"],
 	q:   {
 		name:   "queryKey",
 		parser: /(?:^|&)([^&=]*)=?([^&]*)/g
 	},
 	parser: {
 		strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-		loose:  /^(?:(?![^:@\/]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+		loose:  /^(?:(?![^:@\/]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/\[?#]*)(?::(\d*))?(?:\[([^\]]+)\])?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+	//             -------------------------------------   ------   ----------------------------------------------------------------------------  ===================================relative=============================================
+	//                --------------------  ==scheme==               --------------------------------   ====host===  --------   --------------     ======================path===================================  -----------   -------
+	//                                                                  ========userInfo========                         ===         ======         ===================directory====================   ==file==        =====        ==
+	//                                                                   ==user==   -----------                      port^    srcPath^                 ----------------------------------------                   query^      anchor^
+	//                                                                                 ==pass=                                                                 -------------------------------
+	//                                                                                                                                                                                -------
 	}
 };
 
 // EXPORTED
 // Converts a 'nav:' URI into an array of http/s/l URIs and link query objects
-local.parseNavUri = function(str) {
+function parseNavUri(str) {
 	if (!str) return [];
 
 	// Check (and strip out) scheme
@@ -303,13 +350,13 @@ local.parseNavUri = function(str) {
 		parts.shift();
 
 	return parts;
-};
+}
 
 // EXPORTED
 // breaks a peer domain into its constituent parts
 // - returns { user:, relay:, app:, sid: }
 var peerDomainRE = /^(.+)@([^!]+)!([^!\/]+)(?:!([\d]+))?$/i;
-local.parsePeerDomain = function parsePeerDomain(domain) {
+function parsePeerDomain(domain) {
 	var match = peerDomainRE.exec(domain);
 	if (match) {
 		return {
@@ -323,27 +370,27 @@ local.parsePeerDomain = function parsePeerDomain(domain) {
 		};
 	}
 	return null;
-};
+}
 
 // EXPORTED
 // constructs a peer domain from its constituent parts
 // - returns string
-local.makePeerDomain = function makePeerDomain(user, relay, app, sid) {
+function makePeerDomain(user, relay, app, sid) {
 	return user+'@'+relay+'!'+app+((sid) ? '!'+sid : '');
-};
+}
 
 // EXPORTED
 // builds a proxy URI out of an array of templates
 // eg ('httpl://my_worker.js/', ['httpl://0.page/{uri}', 'httpl://foo/{?uri}'])
 // -> "httpl://0.page/httpl%3A%2F%2Ffoo%2F%3Furi%3Dhttpl%253A%252F%252Fmy_worker.js%252F"
-local.makeProxyUri = function(uri, templates) {
+function makeProxyUri(uri, templates) {
 	if (!Array.isArray(templates)) templates = [templates];
 	for (var i=templates.length-1; i >= 0; i--) {
 		var tmpl = templates[i];
-		uri = local.UriTemplate.parse(tmpl).expand({ uri: uri });
+		uri = UriTemplate.parse(tmpl).expand({ uri: uri });
 	}
 	return uri;
-};
+}
 
 // EXPORTED
 // sends the given response back verbatim
@@ -353,10 +400,10 @@ local.makeProxyUri = function(uri, templates) {
 //   - `source`: the response to pull data from
 //   - `headersCb`: (optional) takes `(headers)` from source and responds updated headers for target
 //   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for target
-local.pipe = function(target, source, headersCB, bodyCb) {
+function pipe(target, source, headersCB, bodyCb) {
 	headersCB = headersCB || function(v) { return v; };
 	bodyCb = bodyCb || function(v) { return v; };
-	return local.promise(source)
+	return promise(source)
 		.succeed(function(source) {
 			if (!target.status) {
 				// copy the header if we don't have one yet
@@ -385,11 +432,11 @@ local.pipe = function(target, source, headersCB, bodyCb) {
 			target.end(body);
 			throw source;
 		});
-};
+}
 
 // EXPORTED
 // modifies XMLHttpRequest to support HTTPL
-local.patchXHR = function() {
+function patchXHR() {
 	// Store references to original methods
 	var orgXHR = XMLHttpRequest;
 	var orgPrototype = XMLHttpRequest.prototype;
@@ -403,14 +450,15 @@ local.patchXHR = function() {
 
 	localXMLHttpRequest.prototype.open = function(method, url, async, user, password) {
 		// Is HTTPL?
-		var urld = local.parseUri(url);
+		var urld = parseUri(url);
 		if (urld.protocol != 'httpl') {
 			Object.defineProperty(this, '__xhr_request', { value: new orgXHR() });
 			return this.__xhr_request.open(method, url, async, user, password);
 		}
 
 		// Construct request
-		Object.defineProperty(this, '__local_request', { value: new local.Request({ method: method, url: url, stream: true }) });
+		var Request = require('./request.js');;
+		Object.defineProperty(this, '__local_request', { value: new Request({ method: method, url: url, stream: true }) });
 		if (user) {
 			this.__local_request.setHeader('Authorization', 'Basic '+btoa(user+':'+password));
 		}
@@ -426,7 +474,7 @@ local.patchXHR = function() {
 		var this2 = this;
 		if (this.__local_request) {
 			// Dispatch and send data
-			var res_ = local.dispatch(this.__local_request);
+			var res_ = require('./dispatch.js').dispatch(this.__local_request);
 			this.__local_request.end(data);
 
 			// Wire up events
@@ -517,4 +565,30 @@ local.patchXHR = function() {
 			return this.__xhr_request.getResponseHeader(k);
 		}
 	};
+}
+
+module.exports = {
+	queryLinks: queryLinks,
+	queryLink: queryLink,
+
+	preferredTypes: preferredTypes,
+	preferredType: preferredType,
+	parseMediaType: parseMediaType,
+	parseAcceptHeader: parseAcceptHeader,
+
+	joinUri: joinUri,
+	joinRelPath: joinRelPath,
+
+	isAbsUri: isAbsUri,
+	isNavSchemeUri: isNavSchemeUri,
+
+	parseUri: parseUri,
+	parseNavUri: parseNavUri,
+	parsePeerDomain: parsePeerDomain,
+	makePeerDomain: makePeerDomain,
+	makeProxyUri: makeProxyUri,
+
+	pipe: pipe,
+
+	patchXHR: patchXHR
 };

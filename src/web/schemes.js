@@ -1,3 +1,7 @@
+var util = require('../util');
+var helpers = require('./helpers.js');
+var contentTypes = require('./content-types.js');
+
 // schemes
 // =======
 // EXPORTED
@@ -8,7 +12,7 @@ var schemes = {
 	get: schemes__get
 };
 var schemes__registry = {};
-local.schemes = schemes;
+module.exports = schemes;
 
 function schemes__register(scheme, handler) {
 	if (scheme && Array.isArray(scheme)) {
@@ -29,13 +33,13 @@ function schemes__get(scheme) {
 
 // HTTP
 // ====
-local.schemes.register(['http', 'https'], function(request, response) {
+schemes.register(['http', 'https'], function(request, response) {
 	// parse URL
-	var urld = local.parseUri(request.url);
+	var urld = helpers.parseUri(request.url);
 
 	// if a query was given in the options, mix it into the urld
 	if (request.query) {
-		var q = local.contentTypes.serialize('application/x-www-form-urlencoded', request.query);
+		var q = contentTypes.serialize('application/x-www-form-urlencoded', request.query);
 		if (q) {
 			if (urld.query) {
 				urld.query    += '&' + q;
@@ -168,83 +172,9 @@ local.schemes.register(['http', 'https'], function(request, response) {
 });
 
 
-// HTTPL
-// =====
-var localNotFoundServer = {
-	fn: function(request, response) {
-		response.writeHead(404, 'server not found');
-		response.end();
-	},
-	context: null
-};
-var localRelayNotOnlineServer = {
-	fn: function(request, response) {
-		response.writeHead(407, 'peer relay not authenticated');
-		response.end();
-	},
-	context: null
-};
-local.schemes.register('httpl', function(request, response) {
-	// Find the local server
-	var server = local.getServer(request.urld.authority);
-	if (!server) {
-		// Check if this is a peerweb URI
-		var peerd = local.parsePeerDomain(request.urld.authority);
-		if (peerd) {
-			// See if this is a default stream miss
-			if (peerd.sid == 0) {
-				if (request.urld.authority.slice(-2) == '!0') {
-					server = local.getServer(request.urld.authority.slice(0,-2));
-				} else {
-					request.urld.authority += '!0';
-					server = local.getServer(request.urld.authority);
-				}
-			}
-			if (!server) {
-				// Not a default stream miss
-				if (peerd.relay in __peer_relay_registry) {
-					// Try connecting to the peer
-					__peer_relay_registry[peerd.relay].connect(request.urld.authority);
-					server = local.getServer(request.urld.authority);
-				} else {
-					// We're not connected to the relay
-					server = localRelayNotOnlineServer;
-				}
-			}
-		} else
-			server = localNotFoundServer;
-	}
-
-	// Deserialize the headers
-	request.deserializeHeaders();
-
-	// Pull out and standardize the path & host
-	request.path = request.urld.path;
-	request.headers.host = request.urld.authority;
-	if (!request.path) request.path = '/'; // no path, give a '/'
-	else request.path = request.path.replace(/(.)\/$/, '$1'); // otherwise, never end with a '/'
-
-	// Pull out any query params in the path
-	if (request.urld.query) {
-		var query = local.contentTypes.deserialize('application/x-www-form-urlencoded', request.urld.query);
-		if (!request.query) { request.query = {}; }
-		for (var k in query) {
-			request.query[k] = query[k];
-		}
-	}
-
-	// Support warnings
-	if (request.binary)
-		console.warn('Got HTTPL request with binary=true - sorry, not currently supported', request);
-
-	// Pass on to the server
-	server.fn.call(server.context, request, response);
-});
-
-
 // Data
 // ====
-local.schemes.register('data', function(request, response) {
+schemes.register('data', function(request, response) {
 	var firstColonIndex = request.url.indexOf(':');
 	var firstCommaIndex = request.url.indexOf(',');
 
@@ -265,45 +195,8 @@ local.schemes.register('data', function(request, response) {
 	else data = decodeURIComponent(data);
 
 	// respond (async)
-	local.util.nextTick(function() {
+	util.nextTick(function() {
 		response.writeHead(200, 'ok', {'content-type': contentType});
 		response.end(data);
 	});
 });
-
-
-// Local Server Registry
-// =====================
-var __httpl_registry = {};
-var __peer_relay_registry = {}; // populated by PeerWebRelay startListening() and stopListening()
-
-// EXPORTED
-local.addServer = function addServer(domain, server, serverContext) {
-	if (__httpl_registry[domain]) throw new Error("server already registered at domain given to addServer");
-
-	var isServerObj = (server instanceof local.Server);
-	if (isServerObj) {
-		serverContext = server;
-		server = server.handleLocalRequest;
-		serverContext.config.domain = domain;
-	}
-
-	__httpl_registry[domain] = { fn: server, context: serverContext };
-};
-
-// EXPORTED
-local.removeServer = function removeServer(domain) {
-	if (__httpl_registry[domain]) {
-		delete __httpl_registry[domain];
-	}
-};
-
-// EXPORTED
-local.getServer = function getServer(domain) {
-	return __httpl_registry[domain];
-};
-
-// EXPORTED
-local.getServers = function getServers() {
-	return __httpl_registry;
-};

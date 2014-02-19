@@ -1,3 +1,5 @@
+var helpers = require('./helpers.js');
+
 // headers
 // =======
 // EXPORTED
@@ -8,7 +10,7 @@ var httpHeaders = {
 	register    : httpheaders__register
 };
 var httpheaders__registry = {};
-local.httpHeaders = httpHeaders;
+module.exports = httpHeaders;
 
 // EXPORTED
 // serializes an object into a string
@@ -75,7 +77,7 @@ var linkHeaderRE1 = /<(.*?)>(?:;[\s]*(.*?)((,(?=[\s]*<))|$))/g;
 //                        "key"     "="      \""val\""    "val"
 //                    -------------- -       ---------   -------
 var linkHeaderRE2 = /([\-a-z0-9_\.]+)=?(?:(?:"([^"]+)")|([^;\s]+))?/g;
-local.httpHeaders.register('link',
+httpHeaders.register('link',
 	function (obj) {
 		var links = [];
 		obj.forEach(function(link) {
@@ -114,7 +116,7 @@ local.httpHeaders.register('link',
 	}
 );
 
-local.httpHeaders.register('accept',
+httpHeaders.register('accept',
 	function (obj) {
 		return obj.map(function(type) {
 			var parts = [type.full];
@@ -127,41 +129,8 @@ local.httpHeaders.register('accept',
 			return parts.join('; ');
 		}).join(', ');
 	},
-	function (str) {
-		return str.split(',')
-			.map(function(e) { return parseMediaType(e.trim()); })
-			.filter(function(e) { return e && e.q > 0; });
-	}
+	helpers.parseAcceptHeader
 );
-// thanks to https://github.com/federomero/negotiator
-function parseMediaType(s) {
-	var match = s.match(/\s*(\S+)\/([^;\s]+)\s*(?:;(.*))?/);
-	if (!match) return null;
-
-	var type = match[1];
-	var subtype = match[2];
-	var full = "" + type + "/" + subtype;
-	var params = {}, q = 1;
-
-	if (match[3]) {
-		params = match[3].split(';')
-			.map(function(s) { return s.trim().split('='); })
-			.reduce(function (set, p) { set[p[0]] = p[1]; return set; }, params);
-
-		if (params.q !== null) {
-			q = parseFloat(params.q);
-			delete params.q;
-		}
-	}
-
-	return {
-		type: type,
-		subtype: subtype,
-		params: params,
-		q: q,
-		full: full
-	};
-}
 
 /*
 Via =  "Via" ":" 1#( received-protocol received-by [ comment ] )
@@ -174,7 +143,7 @@ pseudonym         = token
 //                  proto-name  proto-v   received-by        comment
 //                  ------      -------   --------------     ------
 var viaregex = /(?:([A-z]+)\/)?([\d\.]+) ([-A-z:\d\.@!]*)(?: ([^,]+))?/g;
-local.httpHeaders.register('via',
+httpHeaders.register('via',
 	function (obj) {
 		return obj.map(function(via) {
 			return ((via.proto.name) ? (via.proto.name+'/') : '') + via.proto.version+' '+via.hostname+((via.comment) ? (' '+via.comment) : '');

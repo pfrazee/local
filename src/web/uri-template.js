@@ -868,6 +868,5 @@ var UriTemplate = (function () {
     exportCallback(UriTemplate);
 
 }(function (UriTemplate) {
-        "use strict";
-        local.UriTemplate = UriTemplate;
+    module.exports = UriTemplate;
 }));

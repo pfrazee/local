@@ -12,14 +12,6 @@ if (typeof CustomEvent === 'undefined') {
 	};
 }
 
-// Track window close event
-local.util.isAppClosing = false;
-if (typeof window != 'undefined') {
-	window.addEventListener('beforeunload', function() {
-		local.util.isAppClosing = true;
-	});
-}
-
 // EXPORTED
 // searches up the node tree for an element
 function findParentNode(node, test) {
@@ -334,7 +326,7 @@ function readFile(data, elem, file, index) {
 }
 function readFileLoadEnd(data, elem, file, index) {
 	// ^ this avoids a closure circular reference
-	var promise = local.promise();
+	var promise = require('../promises.js').promise();
 	data.__fileReads.push(promise);
 	return function(e) {
 		var obj = {
@@ -353,7 +345,7 @@ function readFileLoadEnd(data, elem, file, index) {
 function finishPayloadFileReads(request) {
 	var fileReads = (request.body) ? request.body.__fileReads :
 					((request.query) ? request.query.__fileReads : []);
-	return local.promise.bundle(fileReads).then(function(files) {
+	return require('../promises.js').promise.bundle(fileReads).then(function(files) {
 		if (request.body) delete request.body.__fileReads;
 		if (request.query) delete request.query.__fileReads;
 		files.forEach(function(file) {
@@ -365,9 +357,11 @@ function finishPayloadFileReads(request) {
 	});
 }
 
-local.util.findParentNode = findParentNode;
-local.util.trackFormSubmitter = trackFormSubmitter;
-local.util.dispatchRequestEvent = dispatchRequestEvent;
-local.util.extractRequest = extractRequest;
-local.util.extractRequestPayload = extractRequestPayload;
-local.util.finishPayloadFileReads = finishPayloadFileReads;
+module.exports = {
+	findParentNode: findParentNode,
+	trackFormSubmitter: trackFormSubmitter,
+	dispatchRequestEvent: dispatchRequestEvent,
+	extractRequest: extractRequest,
+	extractRequestPayload: extractRequestPayload,
+	finishPayloadFileReads: finishPayloadFileReads
+};

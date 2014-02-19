@@ -6,7 +6,7 @@ local.setDispatchWrapper(function(request, response, dispatch) {
 
 
 // worker local scaffold server
-local.spawnWorkerServer('web/_worker.js', { log: true });
+local.spawnWorkerServer('/test/web/_worker.js', { log: true });
 
 // document local scaffold server
 

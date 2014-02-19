@@ -1,9 +1,14 @@
+var util = require('../util');
+var promise = require('../promises.js').promise;
+var contentTypes = require('./content-types.js');
+var httpHeaders = require('./http-headers.js');
+
 // Request
 // =======
 // EXPORTED
 // Interface for sending requests
 function Request(options) {
-	local.util.EventEmitter.call(this);
+	util.EventEmitter.call(this);
 
 	if (!options) options = {};
 	if (typeof options == 'string')
@@ -65,7 +70,7 @@ function Request(options) {
 
 	// request buffering
 	Object.defineProperty(this, 'body_', {
-		value: local.promise(),
+		value: promise(),
 		configurable: true,
 		enumerable: false,
 		writable: false
@@ -74,13 +79,13 @@ function Request(options) {
 		self.on('data', function(data) { self.body += data; });
 		self.on('end', function() {
 			if (self.headers['content-type'])
-				self.body = local.contentTypes.deserialize(self.headers['content-type'], self.body);
+				self.body = contentTypes.deserialize(self.headers['content-type'], self.body);
 			self.body_.fulfill(self.body);
 		});
 	})(this);
 }
-local.Request = Request;
-Request.prototype = Object.create(local.util.EventEmitter.prototype);
+module.exports = Request;
+Request.prototype = Object.create(util.EventEmitter.prototype);
 
 Request.prototype.header = function(k, v) {
 	if (typeof v != 'undefined')
@@ -111,7 +116,7 @@ Request.prototype.setTimeout = function(ms) {
 // - enables apps to use objects during their operation, but remain conformant with specs during transfer
 Request.prototype.serializeHeaders = function() {
 	for (var k in this.headers) {
-		this.headers[k] = local.httpHeaders.serialize(k, this.headers[k]);
+		this.headers[k] = httpHeaders.serialize(k, this.headers[k]);
 	}
 };
 
@@ -120,7 +125,7 @@ Request.prototype.serializeHeaders = function() {
 // - enables apps to use objects during their operation, but remain conformant with specs during transfer
 Request.prototype.deserializeHeaders = function() {
 	for (var k in this.headers) {
-		var parsedHeader = local.httpHeaders.deserialize(k, this.headers[k]);
+		var parsedHeader = httpHeaders.deserialize(k, this.headers[k]);
 		if (parsedHeader && typeof parsedHeader != 'string') {
 			this.parsedHeaders[k] = parsedHeader;
 		}
@@ -133,7 +138,7 @@ Request.prototype.write = function(data) {
 	if (!this.isConnOpen)
 		return this;
 	if (typeof data != 'string')
-		data = local.contentTypes.serialize(this.headers['content-type'], data);
+		data = contentTypes.serialize(this.headers['content-type'], data);
 	this.emit('data', data);
 	return this;
 };

@@ -1,11 +1,13 @@
-// Agent
-// =====
-
-function getEnvironmentHost() {
-	if (typeof window !== 'undefined') return window.location.host;
-	if (app) return app.config.environmentHost; // must be passed to in the ready config
-	return '';
-}
+var constants = require('../constants.js');
+var util = require('../util');
+var promise = require('../promises.js').promise;
+var helpers = require('./helpers.js');
+var UriTemplate = require('./uri-template.js');
+var httpl = require('./httpl.js');
+var Request = require('./request.js');
+var Response = require('./response.js');
+var dispatch = require('./dispatch.js').dispatch;
+var subscribe = require('./subscribe.js').subscribe;
 
 // AgentContext
 // ============
@@ -20,12 +22,12 @@ function AgentContext(query) {
 	this.query = query;
 	this.resolveState = AgentContext.UNRESOLVED;
 	this.error = null;
-	this.queryIsAbsolute = (typeof query == 'string' && local.isAbsUri(query));
+	this.queryIsAbsolute = (typeof query == 'string' && helpers.isAbsUri(query));
 	if (this.queryIsAbsolute) {
 		this.url  = query;
-		this.urld = local.parseUri(this.url);
+		this.urld = helpers.parseUri(this.url);
 	} else {
-		this.url = null;
+		this.url  = null;
 		this.urld = null;
 	}
 }
@@ -43,15 +45,15 @@ AgentContext.prototype.resetResolvedState = function() {
 	this.error = null;
 };
 AgentContext.prototype.setResolved = function(url) {
-	this.error        = null;
+	this.error = null;
 	this.resolveState = AgentContext.RESOLVED;
 	if (url) {
-		this.url          = url;
-		this.urld         = local.parseUri(this.url);
+		this.url  = url;
+		this.urld = helpers.parseUri(this.url);
 	}
 };
 AgentContext.prototype.setFailed = function(error) {
-	this.error        = error;
+	this.error = error;
 	this.resolveState = AgentContext.FAILED;
 };
 
@@ -133,7 +135,6 @@ function Agent(context, parentAgent) {
 	this.proxyTmpl       = null;
 	this.requestDefaults = null;
 }
-local.Agent = Agent;
 
 // Sets defaults to be used in all requests
 // - eg nav.setRequestDefaults({ method: 'GET', headers: { authorization: 'bob:pass', accept: 'text/html' }})
@@ -149,7 +150,7 @@ function copyDefaults(target, defaults) {
 			continue;
 		// ^ headers should be copied per-attribute
 		if (typeof defaults[k] == 'object')
-			target[k] = local.util.deepClone(defaults[k]);
+			target[k] = util.deepClone(defaults[k]);
 		else
 			target[k] = defaults[k];
 	}
@@ -172,16 +173,16 @@ Agent.prototype.dispatch = function(req) {
 		copyDefaults(req, this.requestDefaults);
 
 	// If given a request, streaming may occur. Suspend events on the request until resolved, as the dispatcher wont wire up until after resolution.
-	if (req instanceof local.Request) {
+	if (req instanceof Request) {
 		req.suspendEvents();
 	}
 
 	// Resolve our target URL
-	return ((req.url) ? local.promise(req.url) : this.resolve({ noretry: req.noretry, nohead: true }))
+	return ((req.url) ? promise(req.url) : this.resolve({ noretry: req.noretry, nohead: true }))
 		.succeed(function(url) {
 			req.url = url;
-			var res_ = local.dispatch(req);
-			if (req instanceof local.Request) {
+			var res_ = dispatch(req);
+			if (req instanceof Request) {
 				req.resumeEvents();
 			}
 			return res_;
@@ -196,7 +197,7 @@ Agent.prototype.dispatch = function(req) {
 		})
 		.fail(function(res) {
 			// Let a 1 or 404 indicate a bad context (as opposed to some non-navigational error like a bad request body)
-			if (res.status === local.LINK_NOT_FOUND || res.status === 404)
+			if (res.status === constants.LINK_NOT_FOUND || res.status === 404)
 				self.context.setFailed(res);
 			throw res;
 		});
@@ -213,7 +214,7 @@ Agent.prototype.subscribe = function(req) {
 		if (self.requestDefaults)
 			copyDefaults(req, self.requestDefaults);
 
-		eventStream = local.subscribe(req);
+		eventStream = subscribe(req);
 		return eventStream.response_;
 	}).then(function() {
 		return eventStream;
@@ -234,8 +235,8 @@ Agent.prototype.subscribe = function(req) {
 //   - all other attributes are used to fill URI Template tokens and are not required to match
 Agent.prototype.follow = function(query) {
 	// convert nav: uri to a query array
-	if (typeof query == 'string' && local.isNavSchemeUri(query))
-		query = local.parseNavUri(query);
+	if (typeof query == 'string' && helpers.isNavSchemeUri(query))
+		query = helpers.parseNavUri(query);
 
 	// make sure we always have an array
 	if (!Array.isArray(query))
@@ -268,7 +269,7 @@ Agent.prototype.rebase = function(url) {
 	this.context.query = url;
 	this.context.queryIsAbsolute = true;
 	this.context.url  = url;
-	this.context.urld = local.parseUri(url);
+	this.context.urld = helpers.parseUri(url);
 	return this;
 };
 
@@ -287,7 +288,7 @@ Agent.prototype.resolve = function(options) {
 	delete options.nohead;
 	// ^ pull `nohead` out so that parent resolves are `nohead: false` - we do want them to dispatch HEAD requests to resolve us
 
-	var resolvePromise = local.promise();
+	var resolvePromise = promise();
 	if (this.links !== null && (this.context.isResolved() || (this.context.isAbsolute() && this.context.isBad() === false))) {
 		// We have links and we were previously resolved (or we're absolute so there's no need)
 		resolvePromise.fulfill(this.context.getUrl());
@@ -297,7 +298,7 @@ Agent.prototype.resolve = function(options) {
 
 		if (this.context.isRelative() && !this.parentAgent) {
 			// Scheme-less URIs can map to local URIs, so make sure the local server hasnt been added since we were created
-			if (typeof this.context.query == 'string' && !!local.getServer(this.context.query)) {
+			if (typeof this.context.query == 'string' && !!httpl.getServer(this.context.query)) {
 				self.context = new AgentContext(self.context.query);
 			} else {
 				self.context.setFailed({ status: 404, reason: 'not found' });
@@ -324,8 +325,8 @@ Agent.prototype.resolve = function(options) {
 					}
 
 					// Error - Link not found
-					var response = new local.Response();
-					response.writeHead(local.LINK_NOT_FOUND, 'Link Query Failed to Match').end();
+					var response = new Response();
+					response.writeHead(constants.LINK_NOT_FOUND, 'Link Query Failed to Match').end();
 					throw response;
 				})
 				.fail(function(error) {
@@ -353,18 +354,18 @@ Agent.prototype.lookupLink = function(context) {
 	if (context.query) {
 		if (typeof context.query == 'object') {
 			// Try to find a link that matches
-			var link = local.queryLinks(this.links, context.query)[0];
+			var link = helpers.queryLinks(this.links, context.query)[0];
 			if (link) {
-				var uri = local.UriTemplate.parse(link.href).expand(context.query);
+				var uri = UriTemplate.parse(link.href).expand(context.query);
 				if (this.proxyTmpl && !link.noproxy)
-					uri = local.makeProxyUri(uri, this.proxyTmpl);
+					uri = helpers.makeProxyUri(uri, this.proxyTmpl);
 				return uri;
 			}
 		}
 		else if (typeof context.query == 'string') {
 			// A URL
-			if (!local.isAbsUri(context.query))
-				return local.joinRelPath(this.context.urld, context.query);
+			if (!helpers.isAbsUri(context.query))
+				return helpers.joinRelPath(this.context.urld, context.query);
 			return context.query;
 		}
 	}
@@ -400,13 +401,13 @@ Agent.prototype.NOTIFY = Agent.prototype.notify = makeDispWBodySugar('NOTIFY');
 
 // Builder
 // =======
-local.agent = function(query) {
+var agent = function(query) {
 	if (query instanceof Agent)
 		return query;
 
 	// convert nav: uri to a query array
-	if (typeof query == 'string' && local.isNavSchemeUri(query))
-		query = local.parseNavUri(query);
+	if (typeof query == 'string' && helpers.isNavSchemeUri(query))
+		query = helpers.parseNavUri(query);
 
 	// make sure we always have an array
 	if (!Array.isArray(query))
@@ -419,4 +420,9 @@ local.agent = function(query) {
 	}
 
 	return nav;
+};
+
+module.exports = {
+	Agent: Agent,
+	agent: agent
 };
