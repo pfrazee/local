@@ -232,7 +232,8 @@ function promise(v) {
 
 module.exports = {
 	Promise: Promise,
-	promise: promise
+	promise: promise,
+	isPromiselike: isPromiselike
 };
 promise.bundle = bundle;
 promise.all = all;

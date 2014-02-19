@@ -19,9 +19,8 @@ schemes.register('httpl', function(request, response) {
 	var server = getServer(request.urld.authority);
 	if (!server) {
 		server = hostLookupFn(request, response);
-		if (!server) {
+		if (!server)
 			server = localNotFoundServer;
-		}
 	}
 
 	// Deserialize the headers
@@ -66,23 +65,29 @@ function setHostLookup(fn) {
 setHostLookup(function(req, res) {
 	if (req.urld.srcPath) {
 		var src_url = helpers.joinUri(req.urld.host, req.urld.srcPath);
-		// :TODO: below is the ideal solution
-		// however, due to a bug in firefox, Workers created by Blobs don't work with a CSP script directive set
-		// https://bugzilla.mozilla.org/show_bug.cgi?id=964276
-		// this means we have to load via a url, so we don't get to examine the response and choose what to do with it
-		// for now, assuming only workers
-		return require('../spawners.js').spawnWorkerServer('http://'+src_url);
-		/*return local.GET({ url: 'https://'+src_url, Accept: 'application/javascript, text/javascript, text/plain' })
-			.fail(function(res2) {
-				if (res2.status == 404) {
-					// Not found? Try again without ssl
-					return local.GET({ url: 'http://'+src_url, Accept: 'application/javascript, text/javascript, text/plain' })
-				}
-				throw res2;
-			})
-			.then(function(res2) {
-				// ...
-			});*/
+		var full_src_url = 'https://'+src_url;
+
+		// Return a server function which attempts to load the service first
+		return function() {
+
+			// :TODO: due to a bug in firefox, Workers created by Blobs don't work with a CSP script directive set
+			// https://bugzilla.mozilla.org/show_bug.cgi?id=964276
+			// this means we have to load via a url, so we have to do a HEAD then GET instead of one GET
+			local.HEAD(full_src_url)
+				.fail(function(res2) {
+					if (res2.status === 0 || res2.status == 404) {
+						// Not found? Try again without ssl
+						full_src_url = 'http://'+src_url;
+						return local.HEAD(full_src_url);
+					}
+					throw res2;
+				})
+				.then(function(res2) {
+					// :TODO: check self link and act on reltype - assuming worker script for now
+					var server = require('../spawners.js').spawnWorkerServer(full_src_url);
+					server.handleLocalRequest(req, res);
+				});
+		};
 	}
 
 	// Check if this is a peerweb URI
