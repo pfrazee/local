@@ -418,13 +418,14 @@ module.exports = {
 // Helpers to create servers
 // -
 
+var helpers = require('./web/helpers.js');
 var httpl = require('./web/httpl.js');
 var WorkerBridgeServer = require('./web/worker-bridge-server.js');
 var Relay = require('./web/relay.js');
 
 // EXPORTED
 // Creates a Web Worker and a bridge server to the worker
-// eg `local.spawnWorkerServer('http://foo.com/myworker.js', localServerFn, )
+// eg `local.spawnWorkerServer('http://foo.com/myworker.js', localServerFn)
 // - `src`: required string, the URI to load into the worker
 // - `config`: optional object, additional config options to pass to the worker
 // - `config.domain`: optional string, overrides the automatic domain generation
@@ -438,18 +439,21 @@ function spawnWorkerServer(src, config, serverFn) {
 	config.src = src;
 	config.serverFn = serverFn;
 
-	// Create the server
-	var server = new WorkerBridgeServer(config);
-
-	// Find an open domain and register
+	// Create the domain
 	var domain = config.domain;
 	if (!domain) {
-		if (src.indexOf('data:') === 0) {
-			domain = getAvailableLocalDomain('worker{n}');
+		if (local.isAbsUri(src)) {
+			var urld = helpers.parseUri(src);
+			domain = urld.authority + '[' + urld.path.slice(1) + ']';
 		} else {
-			domain = getAvailableLocalDomain(src.split('/').pop().toLowerCase() + '{n}');
+			var src_parts = src.split(/[\?#]/);
+			domain = window.location.host + '[' + src_parts[0].slice(1) + ']';
 		}
 	}
+
+	// Create the server
+	if (httpl.getServer(domain)) throw "Worker already exists";
+	var server = new WorkerBridgeServer(config);
 	httpl.addServer(domain, server);
 
 	return server;
@@ -467,22 +471,11 @@ function joinRelay(providerUrl, config, serverFn) {
 	config.serverFn = serverFn;
 	return new Relay(config);
 }
-
-// helper for name assignment
-function getAvailableLocalDomain(base) {
-	var i = '', str;
-	do {
-		str = base.replace('{n}', i);
-		i = (!i) ? 2 : i + 1;
-	} while (httpl.getServer(str));
-	return str;
-}
-
 module.exports = {
 	spawnWorkerServer: spawnWorkerServer,
 	joinRelay: joinRelay
 };
-},{"./web/httpl.js":16,"./web/relay.js":17,"./web/worker-bridge-server.js":25}],7:[function(require,module,exports){
+},{"./web/helpers.js":14,"./web/httpl.js":16,"./web/relay.js":17,"./web/worker-bridge-server.js":25}],7:[function(require,module,exports){
 // Helpers
 // =======
 
@@ -2166,7 +2159,6 @@ module.exports = {
 var httpHeaders = require('./http-headers.js');
 var promise = require('../promises.js').promise;
 var UriTemplate = require('./uri-template.js');
-var Request = require('./request.js');
 
 // EXPORTED
 // takes parsed a link header and a query object, produces an array of matching links
@@ -2442,28 +2434,34 @@ function parseUri(str) {
 	var	o   = parseUri.options,
 		m   = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
 		uri = {},
-		i   = 14;
+		i   = 15;
 
 	while (i--) uri[o.key[i]] = m[i] || "";
 
 	uri[o.q.name] = {};
-	uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
+	uri[o.key[13]].replace(o.q.parser, function ($0, $1, $2) {
 		if ($1) uri[o.q.name][$1] = $2;
 	});
 
 	return uri;
-};
+}
 
 parseUri.options = {
 	strictMode: false,
-	key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
+	key: ["source","protocol","authority","userInfo","user","password","host","port","srcPath","relative","path","directory","file","query","anchor"],
 	q:   {
 		name:   "queryKey",
 		parser: /(?:^|&)([^&=]*)=?([^&]*)/g
 	},
 	parser: {
 		strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-		loose:  /^(?:(?![^:@\/]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+		loose:  /^(?:(?![^:@\/]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/\[?#]*)(?::(\d*))?(?:\[([^\]]+)\])?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+	//             -------------------------------------   ------   ----------------------------------------------------------------------------  ===================================relative=============================================
+	//                --------------------  ==scheme==               --------------------------------   ====host===  --------   --------------     ======================path===================================  -----------   -------
+	//                                                                  ========userInfo========                         ===         ======         ===================directory====================   ==file==        =====        ==
+	//                                                                   ==user==   -----------                      port^    srcPath^                 ----------------------------------------                   query^      anchor^
+	//                                                                                 ==pass=                                                                 -------------------------------
+	//                                                                                                                                                                                -------
 	}
 };
 
@@ -2614,6 +2612,7 @@ function patchXHR() {
 		}
 
 		// Construct request
+		var Request = require('./request.js');;
 		Object.defineProperty(this, '__local_request', { value: new Request({ method: method, url: url, stream: true }) });
 		if (user) {
 			this.__local_request.setHeader('Authorization', 'Basic '+btoa(user+':'+password));
@@ -2975,25 +2974,46 @@ function setHostLookup(fn) {
 	hostLookupFn = fn;
 }
 
-setHostLookup(function(request, response) {
+setHostLookup(function(req, res) {
+	if (req.urld.srcPath) {
+		var src_url = helpers.joinUri(req.urld.host, req.urld.srcPath);
+		// :TODO: below is the ideal solution
+		// however, due to a bug in firefox, Workers created by Blobs don't work with a CSP script directive set
+		// https://bugzilla.mozilla.org/show_bug.cgi?id=964276
+		// this means we have to load via a url, so we don't get to examine the response and choose what to do with it
+		// for now, assuming only workers
+		return require('../spawners.js').spawnWorkerServer('http://'+src_url);
+		/*return local.GET({ url: 'https://'+src_url, Accept: 'application/javascript, text/javascript, text/plain' })
+			.fail(function(res2) {
+				if (res2.status == 404) {
+					// Not found? Try again without ssl
+					return local.GET({ url: 'http://'+src_url, Accept: 'application/javascript, text/javascript, text/plain' })
+				}
+				throw res2;
+			})
+			.then(function(res2) {
+				// ...
+			});*/
+	}
+
 	// Check if this is a peerweb URI
-	var peerd = helpers.parsePeerDomain(request.urld.authority);
+	var peerd = helpers.parsePeerDomain(req.urld.authority);
 	if (peerd) {
 		// See if this is a default stream miss
 		if (peerd.sid == 0) {
-			if (request.urld.authority.slice(-2) == '!0') {
-				server = getServer(request.urld.authority.slice(0,-2));
+			if (req.urld.authority.slice(-2) == '!0') {
+				server = getServer(req.urld.authority.slice(0,-2));
 			} else {
-				request.urld.authority += '!0';
-				server = getServer(request.urld.authority);
+				req.urld.authority += '!0';
+				server = getServer(req.urld.authority);
 			}
 		}
 		if (!server) {
 			// Not a default stream miss
 			if (peerd.relay in __peer_relay_registry) {
 				// Try connecting to the peer
-				__peer_relay_registry[peerd.relay].connect(request.urld.authority);
-				return getServer(request.urld.authority);
+				__peer_relay_registry[peerd.relay].connect(req.urld.authority);
+				return getServer(req.urld.authority);
 			} else {
 				// We're not connected to the relay
 				return localRelayNotOnlineServer;
@@ -3019,6 +3039,7 @@ function addServer(domain, server, serverContext) {
 	}
 
 	__httpl_registry[domain] = { fn: server, context: serverContext };
+	return __httpl_registry[domain];
 }
 
 // EXPORTED
@@ -3076,7 +3097,7 @@ module.exports = {
 	getRelay: getRelay,
 	getRelays: getRelays
 };
-},{"./content-types.js":12,"./helpers.js":14,"./schemes.js":21,"./server.js":22}],17:[function(require,module,exports){
+},{"../spawners.js":6,"./content-types.js":12,"./helpers.js":14,"./schemes.js":21,"./server.js":22}],17:[function(require,module,exports){
 var util = require('../util');
 var helpers = require('./helpers.js');
 var httpl = require('./httpl.js');

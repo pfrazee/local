@@ -4,7 +4,6 @@
 var httpHeaders = require('./http-headers.js');
 var promise = require('../promises.js').promise;
 var UriTemplate = require('./uri-template.js');
-var Request = require('./request.js');
 
 // EXPORTED
 // takes parsed a link header and a query object, produces an array of matching links
@@ -280,28 +279,34 @@ function parseUri(str) {
 	var	o   = parseUri.options,
 		m   = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
 		uri = {},
-		i   = 14;
+		i   = 15;
 
 	while (i--) uri[o.key[i]] = m[i] || "";
 
 	uri[o.q.name] = {};
-	uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
+	uri[o.key[13]].replace(o.q.parser, function ($0, $1, $2) {
 		if ($1) uri[o.q.name][$1] = $2;
 	});
 
 	return uri;
-};
+}
 
 parseUri.options = {
 	strictMode: false,
-	key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
+	key: ["source","protocol","authority","userInfo","user","password","host","port","srcPath","relative","path","directory","file","query","anchor"],
 	q:   {
 		name:   "queryKey",
 		parser: /(?:^|&)([^&=]*)=?([^&]*)/g
 	},
 	parser: {
 		strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-		loose:  /^(?:(?![^:@\/]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+		loose:  /^(?:(?![^:@\/]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/\[?#]*)(?::(\d*))?(?:\[([^\]]+)\])?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+	//             -------------------------------------   ------   ----------------------------------------------------------------------------  ===================================relative=============================================
+	//                --------------------  ==scheme==               --------------------------------   ====host===  --------   --------------     ======================path===================================  -----------   -------
+	//                                                                  ========userInfo========                         ===         ======         ===================directory====================   ==file==        =====        ==
+	//                                                                   ==user==   -----------                      port^    srcPath^                 ----------------------------------------                   query^      anchor^
+	//                                                                                 ==pass=                                                                 -------------------------------
+	//                                                                                                                                                                                -------
 	}
 };
 
@@ -452,6 +457,7 @@ function patchXHR() {
 		}
 
 		// Construct request
+		var Request = require('./request.js');;
 		Object.defineProperty(this, '__local_request', { value: new Request({ method: method, url: url, stream: true }) });
 		if (user) {
 			this.__local_request.setHeader('Authorization', 'Basic '+btoa(user+':'+password));

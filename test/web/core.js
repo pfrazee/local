@@ -285,7 +285,7 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'httpl://_worker.js' });
+var res = local.dispatch({ method:'get', url:'httpl://dev.grimwire.com[test/web/_worker.js]' });
 res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
@@ -306,7 +306,7 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'httpl://_worker.js/bad/url' });
+var res = local.dispatch({ method:'get', url:'httpl://dev.grimwire.com[test/web/_worker.js]/bad/url' });
 res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
@@ -319,7 +319,7 @@ error
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'httpl://_worker.js/unserializable-response' });
+var res = local.dispatch({ method:'get', url:'httpl://dev.grimwire.com[test/web/_worker.js]/unserializable-response' });
 res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
@@ -337,7 +337,7 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'httpl://_worker.js', query: { foo: 'bar' } });
+var res = local.dispatch({ method:'get', url:'httpl://dev.grimwire.com[test/web/_worker.js]', query: { foo: 'bar' } });
 res.then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 

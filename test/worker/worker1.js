@@ -3,7 +3,7 @@ var counter = 0;
 local.worker.setServer(function(req, res, page) {
 	if (req.path == '/' && req.method == 'GET') {
 		res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
-		res.end(counter++);
+		res.end(''+counter++);
 		return;
 	}
 	if (req.path == '/' && req.method == 'POST') {

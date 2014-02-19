@@ -63,25 +63,46 @@ function setHostLookup(fn) {
 	hostLookupFn = fn;
 }
 
-setHostLookup(function(request, response) {
+setHostLookup(function(req, res) {
+	if (req.urld.srcPath) {
+		var src_url = helpers.joinUri(req.urld.host, req.urld.srcPath);
+		// :TODO: below is the ideal solution
+		// however, due to a bug in firefox, Workers created by Blobs don't work with a CSP script directive set
+		// https://bugzilla.mozilla.org/show_bug.cgi?id=964276
+		// this means we have to load via a url, so we don't get to examine the response and choose what to do with it
+		// for now, assuming only workers
+		return require('../spawners.js').spawnWorkerServer('http://'+src_url);
+		/*return local.GET({ url: 'https://'+src_url, Accept: 'application/javascript, text/javascript, text/plain' })
+			.fail(function(res2) {
+				if (res2.status == 404) {
+					// Not found? Try again without ssl
+					return local.GET({ url: 'http://'+src_url, Accept: 'application/javascript, text/javascript, text/plain' })
+				}
+				throw res2;
+			})
+			.then(function(res2) {
+				// ...
+			});*/
+	}
+
 	// Check if this is a peerweb URI
-	var peerd = helpers.parsePeerDomain(request.urld.authority);
+	var peerd = helpers.parsePeerDomain(req.urld.authority);
 	if (peerd) {
 		// See if this is a default stream miss
 		if (peerd.sid == 0) {
-			if (request.urld.authority.slice(-2) == '!0') {
-				server = getServer(request.urld.authority.slice(0,-2));
+			if (req.urld.authority.slice(-2) == '!0') {
+				server = getServer(req.urld.authority.slice(0,-2));
 			} else {
-				request.urld.authority += '!0';
-				server = getServer(request.urld.authority);
+				req.urld.authority += '!0';
+				server = getServer(req.urld.authority);
 			}
 		}
 		if (!server) {
 			// Not a default stream miss
 			if (peerd.relay in __peer_relay_registry) {
 				// Try connecting to the peer
-				__peer_relay_registry[peerd.relay].connect(request.urld.authority);
-				return getServer(request.urld.authority);
+				__peer_relay_registry[peerd.relay].connect(req.urld.authority);
+				return getServer(req.urld.authority);
 			} else {
 				// We're not connected to the relay
 				return localRelayNotOnlineServer;
