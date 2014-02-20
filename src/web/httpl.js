@@ -189,5 +189,7 @@ module.exports = {
 	addRelay: addRelay,
 	removeRelay: removeRelay,
 	getRelay: getRelay,
-	getRelays: getRelays
+	getRelays: getRelays,
+
+	setHostLookup: setHostLookup
 };

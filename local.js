@@ -3101,7 +3101,9 @@ module.exports = {
 	addRelay: addRelay,
 	removeRelay: removeRelay,
 	getRelay: getRelay,
-	getRelays: getRelays
+	getRelays: getRelays,
+
+	setHostLookup: setHostLookup
 };
 },{"../spawners.js":6,"./content-types.js":12,"./helpers.js":14,"./schemes.js":21,"./server.js":22}],17:[function(require,module,exports){
 var util = require('../util');
