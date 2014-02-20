@@ -4,6 +4,11 @@ var httpl = require('./httpl.js');
 var agent = require('./agent.js').agent;
 var RTCBridgeServer = require('./rtc-bridge-server.js');
 
+
+function randomStreamId() {
+	return Math.round(Math.random()*10000);
+}
+
 // Relay
 // =====
 // EXPORTED

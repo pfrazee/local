@@ -3110,6 +3110,11 @@ var httpl = require('./httpl.js');
 var agent = require('./agent.js').agent;
 var RTCBridgeServer = require('./rtc-bridge-server.js');
 
+
+function randomStreamId() {
+	return Math.round(Math.random()*10000);
+}
+
 // Relay
 // =====
 // EXPORTED
@@ -4005,10 +4010,6 @@ var peerConstraints = {
 	optional: [/*{RtpDataChannels: true}, */{DtlsSrtpKeyAgreement: true}]
 };
 var defaultIceServers = { iceServers: [{ url: 'stun:stun.l.google.com:19302' }] };
-
-function randomStreamId() {
-	return Math.round(Math.random()*10000);
-}
 
 // Browser compat
 var __env = (typeof window != 'undefined') ? window : ((typeof self != 'undefined') ? self : global);

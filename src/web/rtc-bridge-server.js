@@ -8,10 +8,6 @@ var peerConstraints = {
 };
 var defaultIceServers = { iceServers: [{ url: 'stun:stun.l.google.com:19302' }] };
 
-function randomStreamId() {
-	return Math.round(Math.random()*10000);
-}
-
 // Browser compat
 var __env = (typeof window != 'undefined') ? window : ((typeof self != 'undefined') ? self : global);
 var RTCSessionDescription = __env.mozRTCSessionDescription || __env.RTCSessionDescription;
