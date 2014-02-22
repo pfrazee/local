@@ -42,7 +42,7 @@ If an object is given, its prototype must descend from `local.Server`, and it sh
  - `serverFn`: optional function, a handler for requests from the worker
  - returns `local.WorkerBridgeServer`
 
-Creates a Web Worker and a bridge server to the worker. Generates a local hostname using the filename (http://foo.com/js/myworker.js &rarr; httpl://foo.com[js/myworker.js]).
+Creates a Web Worker and a bridge server to the worker. Generates a local hostname using the filename (http://foo.com/js/myworker.js &rarr; httpl://foo.com(js/myworker.js)/).
 
 The `serverFn` is used to respond to requests from the Worker. If no `serverFn` is given, Local will fall back to the document server at httpl://worker-bridge. If not present, Local will respond to the Worker with a 501.
 

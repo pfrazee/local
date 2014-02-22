@@ -327,7 +327,7 @@ success
 {
   body: "",
   headers: {
-    link: "</>; rel=\"self service via\"; id=\"hosts\"; title=\"Page Hosts\", <httpl://dev.grimwire.com[test/web/_worker.js]/>; rel=\" current\", <httpl://test.com/>; rel=\" current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", <httpl://proxy/>; rel=\" service\"; noproxy"
+    link: "</>; rel=\"self service via\"; id=\"hosts\"; title=\"Page Hosts\", <httpl://dev.grimwire.com(test/web/_worker.js)/>; rel=\" current\", <httpl://test.com/>; rel=\" current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", <httpl://proxy/>; rel=\" service\"; noproxy"
   },
   reason: "ok, no content",
   status: 204

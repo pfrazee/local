@@ -110,10 +110,10 @@ success
 
 done = false;
 startTime = Date.now();
-local.agent('httpl://dev.grimwire.com[test/web/_worker.js]').follow({ rel: 'collection', id: 'foo' }).get()
+local.agent('httpl://dev.grimwire.com(test/web/_worker.js)').follow({ rel: 'collection', id: 'foo' }).get()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
-    local.agent('httpl://dev.grimwire.com[test/web/_worker.js]').follow({ rel: 'collection', id: 'foo'})
+    local.agent('httpl://dev.grimwire.com(test/web/_worker.js)').follow({ rel: 'collection', id: 'foo'})
       .follow({ rel: 'item', id: 'baz' })
       .get().then(printSuccessAndFinish, printErrorAndFinish);
   });
@@ -155,7 +155,7 @@ testRebaseCollection.get()
   .then(function() { return testRebaseItem.get(); })
   .then(printSuccess, printErrorAndFinish)
   .then(function() {
-    testRebase.rebase('httpl://dev.grimwire.com[test/web/_worker.js]');
+    testRebase.rebase('httpl://dev.grimwire.com(test/web/_worker.js)');
     testRebaseCollection.unresolve();
     testRebaseItem.unresolve();
     return testRebaseCollection.get();

@@ -27,10 +27,10 @@ function spawnWorkerServer(src, config, serverFn) {
 	if (!domain) {
 		if (local.isAbsUri(src)) {
 			var urld = helpers.parseUri(src);
-			domain = urld.authority + '[' + urld.path.slice(1) + ']';
+			domain = urld.authority + '(' + urld.path.slice(1) + ')';
 		} else {
 			var src_parts = src.split(/[\?#]/);
-			domain = window.location.host + '[' + src_parts[0].slice(1) + ']';
+			domain = window.location.host + '(' + src_parts[0].slice(1) + ')';
 		}
 	}
 

@@ -34,7 +34,7 @@ close
 
 done = false;
 startTime = Date.now();
-var stream = local.subscribe({ url:'httpl://dev.grimwire.com[test/web/_worker.js]/events' });
+var stream = local.subscribe({ url:'httpl://dev.grimwire.com(test/web/_worker.js)/events' });
 stream.on('message', function(m) { print(m); });
 stream.on('foo', function(m) { print('foo', m.data); });
 stream.on('bar', function(m) { print('bar', m.data); });

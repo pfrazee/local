@@ -5,7 +5,7 @@ Local 0.6.1
 
 ## Overview
 
-Local.js is an Ajax library that implements <a href="https://github.com/grimwire/grimwire/wiki/HTTPL%3A-JSON-encoded-message-streams-with-HTTP-semantics" title="HTTP Local">HTTPLocal, a client-side variation of HTTP</a>. It can be used to communicate with Web Workers, WebRTC peers, and other messaging channels.
+Local.js is an Ajax library that implements <a href="https://github.com/grimwire/grimwire/wiki/HTTPL%3A-JSON-encoded-message-streams-with-HTTP-semantics" title="HTTP Local">HTTPLocal, a client-side variation of HTTP</a>. It communicates with Web Workers, WebRTC peers, and other messaging channels.
 
 Local.js also includes a directory protocol to exchange links, discover services, and navigate with user-agents.
 

@@ -445,10 +445,10 @@ function spawnWorkerServer(src, config, serverFn) {
 	if (!domain) {
 		if (local.isAbsUri(src)) {
 			var urld = helpers.parseUri(src);
-			domain = urld.authority + '[' + urld.path.slice(1) + ']';
+			domain = urld.authority + '(' + urld.path.slice(1) + ')';
 		} else {
 			var src_parts = src.split(/[\?#]/);
-			domain = window.location.host + '[' + src_parts[0].slice(1) + ']';
+			domain = window.location.host + '(' + src_parts[0].slice(1) + ')';
 		}
 	}
 
@@ -2456,7 +2456,7 @@ parseUri.options = {
 	},
 	parser: {
 		strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-		loose:  /^(?:(?![^:@\/]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/\[?#]*)(?::(\d*))?(?:\[([^\]]+)\])?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+		loose:  /^(?:(?![^:@\/]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@\/]*)(?::([^:@\/]*))?)?@)?([^:\/\(?#]*)(?::(\d*))?(?:\(([^\)]+)\))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
 	//             -------------------------------------   ------   ----------------------------------------------------------------------------  ===================================relative=============================================
 	//                --------------------  ==scheme==               --------------------------------   ====host===  --------   --------------     ======================path===================================  -----------   -------
 	//                                                                  ========userInfo========                         ===         ======         ===================directory====================   ==file==        =====        ==
@@ -2613,7 +2613,7 @@ function patchXHR() {
 		}
 
 		// Construct request
-		var Request = require('./request.js');;
+		var Request = require('./request.js');
 		Object.defineProperty(this, '__local_request', { value: new Request({ method: method, url: url, stream: true }) });
 		if (user) {
 			this.__local_request.setHeader('Authorization', 'Basic '+btoa(user+':'+password));
