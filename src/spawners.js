@@ -9,9 +9,10 @@ var Relay = require('./web/relay.js');
 // EXPORTED
 // Creates a Web Worker and a bridge server to the worker
 // eg `local.spawnWorkerServer('http://foo.com/myworker.js', localServerFn)
-// - `src`: required string, the URI to load into the worker
+// - `src`: optional string, the URI to load into the worker. If null, must give `config.domain` with a source-path
 // - `config`: optional object, additional config options to pass to the worker
 // - `config.domain`: optional string, overrides the automatic domain generation
+// - `config.temp`: boolean, should the workerserver be destroyed after it handles it's requests?
 // - `config.shared`: boolean, should the workerserver be shared?
 // - `config.namespace`: optional string, what should the shared worker be named?
 //   - defaults to `config.src` if undefined

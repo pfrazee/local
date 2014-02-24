@@ -33,16 +33,18 @@ If an object is given, its prototype must descend from `local.Server`, and it sh
 
 ### local.spawnWorkerServer(src, <span class="muted">config</span>, <span class="muted">serverFn</span>)
 
- - `src`: required string, the URL to the worker source. Can be a data-URI of type application/javascript.
+ - `src`: optional string, the URL to the worker source
  - `config`: optional object, sent to the worker after load and assigned to `local.worker.config`.
  - `config.domain`: optional string, overrides the automatic domain generation
+   - If given in place of `config.src`, must include a source-path in order to fetch the worker
+ - `config.temp`: boolean, should the workerserver be destroyed after it handles its requests?
  - `config.shared`: boolean, should the workerserver be shared?
  - `config.namespace`: optional string, what should the shared worker be named?
    - defaults to `config.src` if undefined
  - `serverFn`: optional function, a handler for requests from the worker
  - returns `local.WorkerBridgeServer`
 
-Creates a Web Worker and a bridge server to the worker. Generates a local hostname using the filename (http://foo.com/js/myworker.js &rarr; httpl://foo.com(js/myworker.js)/).
+Creates a Web Worker and a bridge server to the worker. Generates a local hostname using the filename (http://foo.com/js/myworker.js &rarr; httpl://foo.com(js/myworker.js)/). The segment in parenthesis is called the "source path." If `config.domain` is given in place of `src`, it should include a source-path in order to find the worker.
 
 The `serverFn` is used to respond to requests from the Worker. If no `serverFn` is given, Local will fall back to the document server at httpl://worker-bridge. If not present, Local will respond to the Worker with a 501.
 

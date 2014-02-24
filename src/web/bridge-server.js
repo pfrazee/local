@@ -117,12 +117,19 @@ BridgeServer.prototype.handleLocalRequest = function(request, response) {
 BridgeServer.prototype.terminate = function() {
 	Server.prototype.terminate.call(this);
 	for (var sid in this.incomingStreams) {
+		if ((this.incomingStreams[sid] instanceof Response) && !this.incomingStreams[sid].status) {
+			this.incomingStreams[sid].writeHead(503, 'Service Unavailable');
+		}
 		this.incomingStreams[sid].end();
 	}
 	for (sid in this.outgoingStreams) {
+		if ((this.outgoingStreams[sid] instanceof Response) && !this.outgoingStreams[sid].status) {
+			this.outgoingStreams[sid].writeHead(503, 'Service Unavailable');
+		}
 		this.outgoingStreams[sid].end();
 	}
-	this.incomingStreams = this.outgoingStreams = {};
+	this.incomingStreams = {};
+	this.outgoingStreams = {};
 };
 
 // HTTPL implementation for incoming messages

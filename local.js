@@ -1,6 +1,76 @@
 ;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+// Worker API whitelisting code
+// ============================
+var whitelist = [ // a list of global objects which are allowed in the worker
+	'null', 'self', 'console', 'atob', 'btoa',
+	'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
+	'Proxy',
+	'importScripts', 'navigator',
+	'postMessage', 'addEventListener', 'removeEventListener',
+	'onmessage', 'onerror', 'onclose',
+	'dispatchEvent'
+];
+var blacklist = [ // a list of global objects which are not allowed in the worker, and which dont enumerate on `self` for some reason
+	'XMLHttpRequest', 'WebSocket', 'EventSource',
+	'Worker'
+];
+var whitelistAPIs_src = [ // nullifies all toplevel variables except those listed above in `whitelist`
+	'(function() {',
+		'var nulleds=[];',
+		'var whitelist = ["'+whitelist.join('", "')+'"];',
+		'for (var k in self) {',
+			'if (whitelist.indexOf(k) === -1) {',
+				'Object.defineProperty(self, k, { value: null, configurable: false, writable: false });',
+				'nulleds.push(k);',
+			'}',
+		'}',
+		'var blacklist = ["'+blacklist.join('", "')+'"];',
+		'blacklist.forEach(function(k) {',
+			'Object.defineProperty(self, k, { value: null, configurable: false, writable: false });',
+			'nulleds.push(k);',
+		'});',
+		'if (typeof console != "undefined") { console.log("Nullified: "+nulleds.join(", ")); }',
+	'})();\n'
+].join('');
+var importScriptsPatch_src;
+if (typeof window != 'undefined') {
+	var host = window.location.protocol + '//' + window.location.host;
+	var hostDir = window.location.pathname.split('/').slice(0,-1).join('/');
+	var hostWithDir = host + hostDir;
+	importScriptsPatch_src = [ // patches importScripts() to allow relative paths despite the use of blob uris
+		'(function() {',
+			'var orgImportScripts = importScripts;',
+			'function joinRelPath(base, relpath) {',
+				'if (relpath.charAt(0) == \'/\') {',
+					'return "'+host+'" + relpath;',
+				'}',
+				'// totally relative, oh god',
+				'// (thanks to geoff parker for this)',
+				'var hostpath = "'+hostDir+'";',
+				'var hostpathParts = hostpath.split(\'/\');',
+				'var relpathParts = relpath.split(\'/\');',
+				'for (var i=0, ii=relpathParts.length; i < ii; i++) {',
+					'if (relpathParts[i] == \'.\')',
+						'continue; // noop',
+					'if (relpathParts[i] == \'..\')',
+						'hostpathParts.pop();',
+					'else',
+						'hostpathParts.push(relpathParts[i]);',
+				'}',
+				'return "'+host+'/" + hostpathParts.join(\'/\');',
+			'}',
+			'importScripts = function() {',
+				'return orgImportScripts.apply(null, Array.prototype.map.call(arguments, function(v, i) {',
+					'return (v.indexOf(\'/\') < v.indexOf(/[.:]/) || v.charAt(0) == \'/\' || v.charAt(0) == \'.\') ? joinRelPath(\''+hostWithDir+'\',v) : v;',
+				'}));',
+			'};',
+		'})();\n'
+	].join('\n');
+} else { importScriptsPatch_src = ''; }
+
 module.exports = {
-	logAllExceptions: false
+	logAllExceptions: false,
+	workerBootstrapScript: whitelistAPIs_src+importScriptsPatch_src
 };
 },{}],2:[function(require,module,exports){
 module.exports = {
@@ -1594,12 +1664,19 @@ BridgeServer.prototype.handleLocalRequest = function(request, response) {
 BridgeServer.prototype.terminate = function() {
 	Server.prototype.terminate.call(this);
 	for (var sid in this.incomingStreams) {
+		if ((this.incomingStreams[sid] instanceof Response) && !this.incomingStreams[sid].status) {
+			this.incomingStreams[sid].writeHead(503, 'Service Unavailable');
+		}
 		this.incomingStreams[sid].end();
 	}
 	for (sid in this.outgoingStreams) {
+		if ((this.outgoingStreams[sid] instanceof Response) && !this.outgoingStreams[sid].status) {
+			this.outgoingStreams[sid].writeHead(503, 'Service Unavailable');
+		}
 		this.outgoingStreams[sid].end();
 	}
-	this.incomingStreams = this.outgoingStreams = {};
+	this.incomingStreams = {};
+	this.outgoingStreams = {};
 };
 
 // HTTPL implementation for incoming messages
@@ -2976,30 +3053,8 @@ function setHostLookup(fn) {
 
 setHostLookup(function(req, res) {
 	if (req.urld.srcPath) {
-		var src_url = helpers.joinUri(req.urld.host, req.urld.srcPath);
-		var full_src_url = 'https://'+src_url;
-
-		// Return a server function which attempts to load the service first
-		return function() {
-
-			// :TODO: due to a bug in firefox, Workers created by Blobs don't work with a CSP script directive set
-			// https://bugzilla.mozilla.org/show_bug.cgi?id=964276
-			// this means we have to load via a url, so we have to do a HEAD then GET instead of one GET
-			local.HEAD(full_src_url)
-				.fail(function(res2) {
-					if (res2.status === 0 || res2.status == 404) {
-						// Not found? Try again without ssl
-						full_src_url = 'http://'+src_url;
-						return local.HEAD(full_src_url);
-					}
-					throw res2;
-				})
-				.then(function(res2) {
-					// :TODO: check self link and act on reltype - assuming worker script for now
-					var server = require('../spawners.js').spawnWorkerServer(full_src_url);
-					server.handleLocalRequest(req, res);
-				});
-		};
+		// Try to load worker to handle response
+		return require('../spawners.js').spawnWorkerServer(null, { domain: req.urld.authority, temp: true, log: true });
 	}
 
 	// Check if this is a peerweb URI
@@ -5792,6 +5847,8 @@ var UriTemplate = (function () {
     module.exports = UriTemplate;
 }));
 },{}],25:[function(require,module,exports){
+var promise = require('../promises.js').promise;
+var helpers = require('./helpers.js');
 var BridgeServer = require('./bridge-server.js');
 
 // WorkerBridgeServer
@@ -5803,10 +5860,11 @@ var BridgeServer = require('./bridge-server.js');
 // - `config.shared`: boolean, should the workerserver be shared?
 // - `config.namespace`: optional string, what should the shared worker be named?
 //   - defaults to `config.src` if undefined
+// - `config.temp`: optional bool, instructs the worker to self-destruct after its finished responding to its requests
 // - `config.log`: optional bool, enables logging of all message traffic
 function WorkerBridgeServer(config) {
-	if (!config || !config.src)
-		throw new Error("WorkerBridgeServer requires config with `src` attribute.");
+	if (!config || (!config.src && !config.domain))
+		throw new Error("WorkerBridgeServer requires config with `src` or `domain` attribute.");
 	BridgeServer.call(this, config);
 	this.isActive = false; // when true, ready for activity
 	this.hasHostPrivileges = true; // do we have full control over the worker?
@@ -5816,45 +5874,88 @@ function WorkerBridgeServer(config) {
 		delete this.config.serverFn; // clear out the function from config, so we dont get an error when we send config to the worker
 	}
 
-	// Prep config
-	if (!this.config.domain) { // assign a temporary label for logging if no domain is given yet
-		this.config.domain = '<'+this.config.src.slice(0,40)+'>';
+	var src_ = promise();
+	if (config.src) {
+		src_.fulfill(config.src);
 	}
-	this.config.environmentHost = window.location.host; // :TODO: needed? I think workers can access this directly
-
-	// Initialize the worker
-	if (this.config.shared) {
-		this.worker = new SharedWorker(config.src, config.namespace);
-		this.worker.port.start();
-	} else {
-		this.worker = new Worker(config.src);
-	}
-
-	// Setup the incoming message handler
-	this.getPort().addEventListener('message', (function(event) {
-		var message = event.data;
-		if (!message)
-			return console.error('Invalid message from worker: Payload missing', this, event);
-		if (this.config.log) { this.debugLog('received from worker', message); }
-
-		// Handle messages with an `op` field as worker-control packets rather than HTTPL messages
-		switch (message.op) {
-			case 'ready':
-				// Worker can now accept commands
-				this.onWorkerReady(message.body);
-				break;
-			case 'log':
-				this.onWorkerLog(message.body);
-				break;
-			case 'terminate':
-				this.terminate();
-				break;
-			default:
-				// If no 'op' field is given, treat it as an HTTPL request and pass onto our BridgeServer parent method
-				this.onChannelMessage(message);
-				break;
+	else if (config.domain) {
+		// No src? Try fetching from sourcepath
+		var domaind = helpers.parseUri(config.domain);
+		if (domaind.srcPath) {
+			// :WARN: in FF, Workers created by Blobs have been known to fail with a CSP script directive set
+			// https://bugzilla.mozilla.org/show_bug.cgi?id=964276
+			var src_url = helpers.joinUri(domaind.host, domaind.srcPath);
+			var full_src_url = 'https://'+src_url;
+			local.GET(full_src_url)
+				.fail(function(res) {
+					if (res.status === 0 || res.status == 404) {
+						// Not found? Try again without ssl
+						full_src_url = 'http://'+src_url;
+						return local.GET(full_src_url);
+					}
+					throw res;
+				})
+				.then(function(res) {
+					// Create worker
+					var bootstrap_src = require('../config.js').workerBootstrapScript;
+					var script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'})();'], { type: "text/javascript" });
+					config.src = window.URL.createObjectURL(script_blob);
+					src_.fulfill(config.src);
+					/*var server = require('../spawners.js').spawnWorkerServer(null, { script: res.body, domain: req.urld.authority, log: true });
+					if (server) {
+						server.handleLocalRequest(req, res);
+						// Terminate when finished
+						res.on('close', function() {
+							server.terminate();
+							local.removeServer(req.urld.authority);
+						});
+					}*/
+				});
 		}
-	}).bind(this));
+	}
+
+	var self = this;
+	src_.always(function() {
+		// Prep config
+		if (!self.config.domain) { // assign a temporary label for logging if no domain is given yet
+			self.config.domain = '<'+self.config.src.slice(0,40)+'>';
+		}
+		self.config.environmentHost = window.location.host; // :TODO: needed? I think workers can access this directly
+
+		// Initialize the worker
+		if (self.config.shared) {
+			self.worker = new SharedWorker(config.src, config.namespace);
+			self.worker.port.start();
+		} else {
+			self.worker = new Worker(config.src);
+		}
+
+		// Setup the incoming message handler
+		self.getPort().addEventListener('message', function(event) {
+			var message = event.data;
+			if (!message)
+				return console.error('Invalid message from worker: Payload missing', self, event);
+			if (self.config.log) { self.debugLog('received from worker', message); }
+
+			// Handle messages with an `op` field as worker-control packets rather than HTTPL messages
+			switch (message.op) {
+				case 'ready':
+					// Worker can now accept commands
+					self.onWorkerReady(message.body);
+					break;
+				case 'log':
+					self.onWorkerLog(message.body);
+					break;
+				case 'terminate':
+					self.terminate();
+					break;
+				default:
+					// If no 'op' field is given, treat it as an HTTPL request and pass onto our BridgeServer parent method
+					self.onChannelMessage(message);
+					break;
+			}
+		});
+	});
 }
 WorkerBridgeServer.prototype = Object.create(BridgeServer.prototype);
 module.exports = WorkerBridgeServer;
@@ -5887,7 +5988,7 @@ WorkerBridgeServer.prototype.channelSendMsg = function(msg) {
 
 // Remote request handler
 // - should be overridden
-BridgeServer.prototype.handleRemoteRequest = function(request, response) {
+WorkerBridgeServer.prototype.handleRemoteRequest = function(request, response) {
 	var httpl = require('./httpl.js');
 	if (this.configServerFn) {
 		this.configServerFn.call(this, request, response, this);
@@ -5899,6 +6000,34 @@ BridgeServer.prototype.handleRemoteRequest = function(request, response) {
 		response.end();
 	}
 };
+
+// Local request handler
+WorkerBridgeServer.prototype.handleLocalRequest = function(request, response) {
+	BridgeServer.prototype.handleLocalRequest.call(this, request, response);
+	if (this.config.temp) {
+		response.on('close', closeTempIfDone.bind(this));
+	}
+};
+
+function closeTempIfDone() {
+	if (!this.isActive) return;
+
+	// Are we waiting on any streams from the worker?
+	if (Object.keys(this.incomingStreams).length !== 0) {
+		var Response = require('./response.js');
+		// See if any of those streams are responses
+		for (var sid in this.incomingStreams) {
+			if (this.incomingStreams[sid] instanceof Response && this.incomingStreams[sid].isConnOpen) {
+				// not done, worker still responding
+				return;
+			}
+		}
+	}
+
+	// Done, terminate and remove worker
+	this.terminate();
+	require('./httpl').removeServer(this.config.domain);
+}
 
 // Starts normal functioning
 // - called when the local.js signals that it has finished loading
@@ -5933,7 +6062,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			break;
 	}
 };
-},{"./bridge-server.js":11,"./httpl.js":16}],26:[function(require,module,exports){
+},{"../config.js":1,"../promises.js":4,"./bridge-server.js":11,"./helpers.js":14,"./httpl":16,"./httpl.js":16,"./response.js":19}],26:[function(require,module,exports){
 module.exports = {
 	serverFn: null
 };

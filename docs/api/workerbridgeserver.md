@@ -11,8 +11,10 @@ local.spawnWorkerServer('/js/myworker.js'); // => WorkerBridgeServer instance
 
 ### local.WorkerBridgeServer(config)
 
- - `config.src`: required string, the URL to the worker source. Can be a data-URI of type application/javascript.
+ - `config.src`: optional string, the URL to the worker source. Required unless `config.domain` is given
  - `config.domain`: optional string, overrides the automatic domain generation
+   - If given in place of `config.src`, must include a source-path in order to fetch the worker
+ - `config.temp`: boolean, should the workerserver be destroyed after it handles its requests?
  - `config.shared`: boolean, should the workerserver be shared?
  - `config.namespace`: optional string, what should the shared worker be named?
    - defaults to `config.src` if undefined
