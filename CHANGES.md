@@ -2,6 +2,10 @@ Changes
 =======
 0.6.2
 
+2014/02/24 pfraze
+
+ - Added "Temporary" workers with the config.temp flag
+
 2014/02/22 pfraze
 
  - Changed the 'source path' to delimit with parenthesis '(' ')' instead of brackets '[' ']' to reduce confusion in the webshell CLI
