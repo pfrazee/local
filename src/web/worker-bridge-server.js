@@ -169,6 +169,7 @@ function closeTempIfDone() {
 	}
 
 	// Done, terminate and remove worker
+	console.log('Closing temporary worker', this.config.domain);
 	this.terminate();
 	require('./httpl').removeServer(this.config.domain);
 }

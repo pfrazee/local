@@ -65,7 +65,8 @@ function setHostLookup(fn) {
 setHostLookup(function(req, res) {
 	if (req.urld.srcPath) {
 		// Try to load worker to handle response
-		return require('../spawners.js').spawnWorkerServer(null, { domain: req.urld.authority, temp: true, log: true });
+		console.log('Spawning temporary worker', req.urld.authority);
+		return require('../spawners.js').spawnWorkerServer(null, { domain: req.urld.authority, temp: true });
 	}
 
 	// Check if this is a peerweb URI

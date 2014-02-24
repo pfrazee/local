@@ -497,9 +497,10 @@ var Relay = require('./web/relay.js');
 // EXPORTED
 // Creates a Web Worker and a bridge server to the worker
 // eg `local.spawnWorkerServer('http://foo.com/myworker.js', localServerFn)
-// - `src`: required string, the URI to load into the worker
+// - `src`: optional string, the URI to load into the worker. If null, must give `config.domain` with a source-path
 // - `config`: optional object, additional config options to pass to the worker
 // - `config.domain`: optional string, overrides the automatic domain generation
+// - `config.temp`: boolean, should the workerserver be destroyed after it handles it's requests?
 // - `config.shared`: boolean, should the workerserver be shared?
 // - `config.namespace`: optional string, what should the shared worker be named?
 //   - defaults to `config.src` if undefined
@@ -3054,7 +3055,8 @@ function setHostLookup(fn) {
 setHostLookup(function(req, res) {
 	if (req.urld.srcPath) {
 		// Try to load worker to handle response
-		return require('../spawners.js').spawnWorkerServer(null, { domain: req.urld.authority, temp: true, log: true });
+		console.log('Spawning temporary worker', req.urld.authority);
+		return require('../spawners.js').spawnWorkerServer(null, { domain: req.urld.authority, temp: true });
 	}
 
 	// Check if this is a peerweb URI
@@ -5852,10 +5854,12 @@ var helpers = require('./helpers.js');
 var BridgeServer = require('./bridge-server.js');
 
 // WorkerBridgeServer
-// ============
+// ==================
 // EXPORTED
 // wrapper for servers run within workers
-// - `config.src`: required URL
+// - `config.src`: optional URL, required unless `config.domain` is given
+// - `config.domain`: optional hostname, required with a source-path unless `config.src` is given
+//   - overwritten by addServer
 // - `config.serverFn`: optional function to replace handleRemoteRequest
 // - `config.shared`: boolean, should the workerserver be shared?
 // - `config.namespace`: optional string, what should the shared worker be named?
@@ -5901,15 +5905,6 @@ function WorkerBridgeServer(config) {
 					var script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'})();'], { type: "text/javascript" });
 					config.src = window.URL.createObjectURL(script_blob);
 					src_.fulfill(config.src);
-					/*var server = require('../spawners.js').spawnWorkerServer(null, { script: res.body, domain: req.urld.authority, log: true });
-					if (server) {
-						server.handleLocalRequest(req, res);
-						// Terminate when finished
-						res.on('close', function() {
-							server.terminate();
-							local.removeServer(req.urld.authority);
-						});
-					}*/
 				});
 		}
 	}
@@ -6025,6 +6020,7 @@ function closeTempIfDone() {
 	}
 
 	// Done, terminate and remove worker
+	console.log('Closing temporary worker', this.config.domain);
 	this.terminate();
 	require('./httpl').removeServer(this.config.domain);
 }
