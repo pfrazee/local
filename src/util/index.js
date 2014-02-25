@@ -34,8 +34,10 @@ if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage)
 	};
 	window.addEventListener('message', function(evt){
 		var fn = nextTickFns[evt.data];
-		delete nextTickFns[evt.data];
-		fn();
+		if (fn) {
+			delete nextTickFns[evt.data];
+			fn();
+		}
 	}, true);
 
 	// The following is the original version by // https://github.com/timoxley/next-tick
