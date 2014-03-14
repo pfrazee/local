@@ -114,17 +114,19 @@ BridgeServer.prototype.handleLocalRequest = function(request, response) {
 // Called before server destruction
 // - may be overridden
 // - executes syncronously; does not wait for cleanup to finish
-BridgeServer.prototype.terminate = function() {
+BridgeServer.prototype.terminate = function(status, reason) {
+	status = status || 503;
+	reason = reason || 'Service Unavailable';
 	Server.prototype.terminate.call(this);
 	for (var sid in this.incomingStreams) {
 		if ((this.incomingStreams[sid] instanceof Response) && !this.incomingStreams[sid].status) {
-			this.incomingStreams[sid].writeHead(503, 'Service Unavailable');
+			this.incomingStreams[sid].writeHead(status, reason);
 		}
 		this.incomingStreams[sid].end();
 	}
 	for (sid in this.outgoingStreams) {
 		if ((this.outgoingStreams[sid] instanceof Response) && !this.outgoingStreams[sid].status) {
-			this.outgoingStreams[sid].writeHead(503, 'Service Unavailable');
+			this.outgoingStreams[sid].writeHead(status, reason);
 		}
 		this.outgoingStreams[sid].end();
 	}

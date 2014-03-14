@@ -1664,17 +1664,19 @@ BridgeServer.prototype.handleLocalRequest = function(request, response) {
 // Called before server destruction
 // - may be overridden
 // - executes syncronously; does not wait for cleanup to finish
-BridgeServer.prototype.terminate = function() {
+BridgeServer.prototype.terminate = function(status, reason) {
+	status = status || 503;
+	reason = reason || 'Service Unavailable';
 	Server.prototype.terminate.call(this);
 	for (var sid in this.incomingStreams) {
 		if ((this.incomingStreams[sid] instanceof Response) && !this.incomingStreams[sid].status) {
-			this.incomingStreams[sid].writeHead(503, 'Service Unavailable');
+			this.incomingStreams[sid].writeHead(status, reason);
 		}
 		this.incomingStreams[sid].end();
 	}
 	for (sid in this.outgoingStreams) {
 		if ((this.outgoingStreams[sid] instanceof Response) && !this.outgoingStreams[sid].status) {
-			this.outgoingStreams[sid].writeHead(503, 'Service Unavailable');
+			this.outgoingStreams[sid].writeHead(status, reason);
 		}
 		this.outgoingStreams[sid].end();
 	}
@@ -5869,6 +5871,7 @@ var BridgeServer = require('./bridge-server.js');
 // - `config.temp`: optional bool, instructs the worker to self-destruct after its finished responding to its requests
 // - `config.log`: optional bool, enables logging of all message traffic
 function WorkerBridgeServer(config) {
+	var self = this;
 	if (!config || (!config.src && !config.domain))
 		throw new Error("WorkerBridgeServer requires config with `src` or `domain` attribute.");
 	BridgeServer.call(this, config);
@@ -5907,12 +5910,15 @@ function WorkerBridgeServer(config) {
 					var script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'})();'], { type: "text/javascript" });
 					config.src = window.URL.createObjectURL(script_blob);
 					src_.fulfill(config.src);
+				})
+				.fail(function(res) {
+					src_.reject(null);
+					self.terminate(404, 'Worker Not Found');
 				});
 		}
 	}
 
-	var self = this;
-	src_.always(function() {
+	src_.then(function() {
 		// Prep config
 		if (!self.config.domain) { // assign a temporary label for logging if no domain is given yet
 			self.config.domain = '<'+self.config.src.slice(0,40)+'>';
@@ -5963,9 +5969,9 @@ WorkerBridgeServer.prototype.getPort = function() {
 	return this.worker.port ? this.worker.port : this.worker;
 };
 
-WorkerBridgeServer.prototype.terminate = function() {
-	BridgeServer.prototype.terminate.call(this);
-	this.worker.terminate();
+WorkerBridgeServer.prototype.terminate = function(status, reason) {
+	BridgeServer.prototype.terminate.call(this, status, reason);
+	if (this.worker) this.worker.terminate();
 	this.worker = null;
 	this.isActive = false;
 };
