@@ -32,44 +32,38 @@ var whitelistAPIs_src = [ // nullifies all toplevel variables except those liste
 		'if (typeof console != "undefined") { console.log("Nullified: "+nulleds.join(", ")); }',
 	'})();\n'
 ].join('');
-var importScriptsPatch_src;
-if (typeof window != 'undefined') {
-	var host = window.location.protocol + '//' + window.location.host;
-	var hostDir = window.location.pathname.split('/').slice(0,-1).join('/');
-	var hostWithDir = host + hostDir;
-	importScriptsPatch_src = [ // patches importScripts() to allow relative paths despite the use of blob uris
-		'(function() {',
-			'var orgImportScripts = importScripts;',
-			'function joinRelPath(base, relpath) {',
-				'if (relpath.charAt(0) == \'/\') {',
-					'return "'+host+'" + relpath;',
-				'}',
-				'// totally relative, oh god',
-				'// (thanks to geoff parker for this)',
-				'var hostpath = "'+hostDir+'";',
-				'var hostpathParts = hostpath.split(\'/\');',
-				'var relpathParts = relpath.split(\'/\');',
-				'for (var i=0, ii=relpathParts.length; i < ii; i++) {',
-					'if (relpathParts[i] == \'.\')',
-						'continue; // noop',
-					'if (relpathParts[i] == \'..\')',
-						'hostpathParts.pop();',
-					'else',
-						'hostpathParts.push(relpathParts[i]);',
-				'}',
-				'return "'+host+'/" + hostpathParts.join(\'/\');',
+var importScriptsPatch_src = [ // patches importScripts() to allow relative paths despite the use of blob uris
+	'(function() {',
+		'var orgImportScripts = importScripts;',
+		'function joinRelPath(base, relpath) {',
+			'if (relpath.charAt(0) == \'/\') {',
+				'return "{{HOST}}" + relpath;',
 			'}',
-			'var isImportingAllowed = true;',
-			'setTimeout(function() { isImportingAllowed = false; },0);', // disable after initial import
-			'importScripts = function() {',
-				'if (!isImportingAllowed) { throw "Local.js - Imports disabled after initial load to prevent data-leaking"; }',
-				'return orgImportScripts.apply(null, Array.prototype.map.call(arguments, function(v, i) {',
-					'return (v.indexOf(\'/\') < v.indexOf(/[.:]/) || v.charAt(0) == \'/\' || v.charAt(0) == \'.\') ? joinRelPath(\''+hostWithDir+'\',v) : v;',
-				'}));',
-			'};',
-		'})();\n'
-	].join('\n');
-} else { importScriptsPatch_src = ''; }
+			'// totally relative, oh god',
+			'// (thanks to geoff parker for this)',
+			'var hostpath = "{{HOST_DIR_PATH}}";',
+			'var hostpathParts = hostpath.split(\'/\');',
+			'var relpathParts = relpath.split(\'/\');',
+			'for (var i=0, ii=relpathParts.length; i < ii; i++) {',
+				'if (relpathParts[i] == \'.\')',
+					'continue; // noop',
+				'if (relpathParts[i] == \'..\')',
+					'hostpathParts.pop();',
+				'else',
+					'hostpathParts.push(relpathParts[i]);',
+			'}',
+			'return "{{HOST}}/" + hostpathParts.join(\'/\');',
+		'}',
+		'var isImportingAllowed = true;',
+		'setTimeout(function() { isImportingAllowed = false; },0);', // disable after initial run
+		'importScripts = function() {',
+			'if (!isImportingAllowed) { throw "Local.js - Imports disabled after initial load to prevent data-leaking"; }',
+			'return orgImportScripts.apply(null, Array.prototype.map.call(arguments, function(v, i) {',
+				'return (v.indexOf(\'/\') < v.indexOf(/[.:]/) || v.charAt(0) == \'/\' || v.charAt(0) == \'.\') ? joinRelPath(\'{{HOST_DIR_URL}}\',v) : v;',
+			'}));',
+		'};',
+	'})();\n'
+].join('\n');
 
 module.exports = {
 	logAllExceptions: false,
@@ -5913,6 +5907,7 @@ function WorkerBridgeServer(config) {
 			var dir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
 			var dirurl = window.location.protocol + '//' + window.location.hostname + dir;
 			url = helpers.joinRelPath(dirurl, url);
+			urld = local.parseUri(url);
 		}
 		var full_url = (!urld.protocol) ? 'https://'+url : url;
 		local.GET(url)
@@ -5925,8 +5920,15 @@ function WorkerBridgeServer(config) {
 				throw res;
 			})
 			.then(function(res) {
-				// Create worker
+				// Setup the bootstrap source to import scripts relative to the origin
 				var bootstrap_src = require('../config.js').workerBootstrapScript;
+				var hosturld = local.parseUri(full_url);
+				var hostroot = hosturld.protocol + '://' + hosturld.authority;
+				bootstrap_src = bootstrap_src.replace(/\{\{HOST\}\}/g, hostroot);
+				bootstrap_src = bootstrap_src.replace(/\{\{HOST_DIR_PATH\}\}/g, hosturld.directory.slice(0,-1));
+				bootstrap_src = bootstrap_src.replace(/\{\{HOST_DIR_URL\}\}/g, hostroot + hosturld.directory.slice(0,-1));
+
+				// Create worker
 				var script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'; if (main) { self.main = main; }})();'], { type: "text/javascript" });
 				src_.fulfill(window.URL.createObjectURL(script_blob));
 			})

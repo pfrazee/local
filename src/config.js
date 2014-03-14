@@ -31,44 +31,38 @@ var whitelistAPIs_src = [ // nullifies all toplevel variables except those liste
 		'if (typeof console != "undefined") { console.log("Nullified: "+nulleds.join(", ")); }',
 	'})();\n'
 ].join('');
-var importScriptsPatch_src;
-if (typeof window != 'undefined') {
-	var host = window.location.protocol + '//' + window.location.host;
-	var hostDir = window.location.pathname.split('/').slice(0,-1).join('/');
-	var hostWithDir = host + hostDir;
-	importScriptsPatch_src = [ // patches importScripts() to allow relative paths despite the use of blob uris
-		'(function() {',
-			'var orgImportScripts = importScripts;',
-			'function joinRelPath(base, relpath) {',
-				'if (relpath.charAt(0) == \'/\') {',
-					'return "'+host+'" + relpath;',
-				'}',
-				'// totally relative, oh god',
-				'// (thanks to geoff parker for this)',
-				'var hostpath = "'+hostDir+'";',
-				'var hostpathParts = hostpath.split(\'/\');',
-				'var relpathParts = relpath.split(\'/\');',
-				'for (var i=0, ii=relpathParts.length; i < ii; i++) {',
-					'if (relpathParts[i] == \'.\')',
-						'continue; // noop',
-					'if (relpathParts[i] == \'..\')',
-						'hostpathParts.pop();',
-					'else',
-						'hostpathParts.push(relpathParts[i]);',
-				'}',
-				'return "'+host+'/" + hostpathParts.join(\'/\');',
+var importScriptsPatch_src = [ // patches importScripts() to allow relative paths despite the use of blob uris
+	'(function() {',
+		'var orgImportScripts = importScripts;',
+		'function joinRelPath(base, relpath) {',
+			'if (relpath.charAt(0) == \'/\') {',
+				'return "{{HOST}}" + relpath;',
 			'}',
-			'var isImportingAllowed = true;',
-			'setTimeout(function() { isImportingAllowed = false; },0);', // disable after initial import
-			'importScripts = function() {',
-				'if (!isImportingAllowed) { throw "Local.js - Imports disabled after initial load to prevent data-leaking"; }',
-				'return orgImportScripts.apply(null, Array.prototype.map.call(arguments, function(v, i) {',
-					'return (v.indexOf(\'/\') < v.indexOf(/[.:]/) || v.charAt(0) == \'/\' || v.charAt(0) == \'.\') ? joinRelPath(\''+hostWithDir+'\',v) : v;',
-				'}));',
-			'};',
-		'})();\n'
-	].join('\n');
-} else { importScriptsPatch_src = ''; }
+			'// totally relative, oh god',
+			'// (thanks to geoff parker for this)',
+			'var hostpath = "{{HOST_DIR_PATH}}";',
+			'var hostpathParts = hostpath.split(\'/\');',
+			'var relpathParts = relpath.split(\'/\');',
+			'for (var i=0, ii=relpathParts.length; i < ii; i++) {',
+				'if (relpathParts[i] == \'.\')',
+					'continue; // noop',
+				'if (relpathParts[i] == \'..\')',
+					'hostpathParts.pop();',
+				'else',
+					'hostpathParts.push(relpathParts[i]);',
+			'}',
+			'return "{{HOST}}/" + hostpathParts.join(\'/\');',
+		'}',
+		'var isImportingAllowed = true;',
+		'setTimeout(function() { isImportingAllowed = false; },0);', // disable after initial run
+		'importScripts = function() {',
+			'if (!isImportingAllowed) { throw "Local.js - Imports disabled after initial load to prevent data-leaking"; }',
+			'return orgImportScripts.apply(null, Array.prototype.map.call(arguments, function(v, i) {',
+				'return (v.indexOf(\'/\') < v.indexOf(/[.:]/) || v.charAt(0) == \'/\' || v.charAt(0) == \'.\') ? joinRelPath(\'{{HOST_DIR_URL}}\',v) : v;',
+			'}));',
+		'};',
+	'})();\n'
+].join('\n');
 
 module.exports = {
 	logAllExceptions: false,

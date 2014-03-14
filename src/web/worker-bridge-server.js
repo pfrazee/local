@@ -55,6 +55,7 @@ function WorkerBridgeServer(config) {
 			var dir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
 			var dirurl = window.location.protocol + '//' + window.location.hostname + dir;
 			url = helpers.joinRelPath(dirurl, url);
+			urld = local.parseUri(url);
 		}
 		var full_url = (!urld.protocol) ? 'https://'+url : url;
 		local.GET(url)
@@ -67,8 +68,15 @@ function WorkerBridgeServer(config) {
 				throw res;
 			})
 			.then(function(res) {
-				// Create worker
+				// Setup the bootstrap source to import scripts relative to the origin
 				var bootstrap_src = require('../config.js').workerBootstrapScript;
+				var hosturld = local.parseUri(full_url);
+				var hostroot = hosturld.protocol + '://' + hosturld.authority;
+				bootstrap_src = bootstrap_src.replace(/\{\{HOST\}\}/g, hostroot);
+				bootstrap_src = bootstrap_src.replace(/\{\{HOST_DIR_PATH\}\}/g, hosturld.directory.slice(0,-1));
+				bootstrap_src = bootstrap_src.replace(/\{\{HOST_DIR_URL\}\}/g, hostroot + hosturld.directory.slice(0,-1));
+
+				// Create worker
 				var script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'; if (main) { self.main = main; }})();'], { type: "text/javascript" });
 				src_.fulfill(window.URL.createObjectURL(script_blob));
 			})
