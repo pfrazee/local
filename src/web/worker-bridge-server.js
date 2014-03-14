@@ -8,7 +8,6 @@ var BridgeServer = require('./bridge-server.js');
 // wrapper for servers run within workers
 // - `config.src`: optional URL, required unless `config.domain` is given
 // - `config.domain`: optional hostname, required with a source-path unless `config.src` is given
-//   - overwritten by addServer
 // - `config.serverFn`: optional function to replace handleRemoteRequest
 // - `config.shared`: boolean, should the workerserver be shared?
 // - `config.namespace`: optional string, what should the shared worker be named?
@@ -30,7 +29,11 @@ function WorkerBridgeServer(config) {
 
 	var src_ = promise();
 	if (config.src) {
-		src_.fulfill(config.src);
+		if (config.src.indexOf('blob:') === 0) {
+			src_.fulfill(config.src);
+		} else {
+			loadScript(config.src);
+		}
 	}
 	else if (config.domain) {
 		// No src? Try fetching from sourcepath
@@ -38,32 +41,42 @@ function WorkerBridgeServer(config) {
 		if (domaind.srcPath) {
 			// :WARN: in FF, Workers created by Blobs have been known to fail with a CSP script directive set
 			// https://bugzilla.mozilla.org/show_bug.cgi?id=964276
-			var src_url = helpers.joinUri(domaind.host, domaind.srcPath);
-			var full_src_url = 'https://'+src_url;
-			local.GET(full_src_url)
-				.fail(function(res) {
-					if (res.status === 0 || res.status == 404) {
-						// Not found? Try again without ssl
-						full_src_url = 'http://'+src_url;
-						return local.GET(full_src_url);
-					}
-					throw res;
-				})
-				.then(function(res) {
-					// Create worker
-					var bootstrap_src = require('../config.js').workerBootstrapScript;
-					var script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'; if (main) { self.main = main; }})();'], { type: "text/javascript" });
-					config.src = window.URL.createObjectURL(script_blob);
-					src_.fulfill(config.src);
-				})
-				.fail(function(res) {
-					src_.reject(null);
-					self.terminate(404, 'Worker Not Found');
-				});
+			loadScript(helpers.joinUri(domaind.host, domaind.srcPath));
+		} else {
+			src_.reject(null);
+			this.terminate(404, 'Worker Not Properly Constructed');
+			throw "Worker incorrectly constructed without src or a domain with a source-path";
 		}
 	}
 
-	src_.then(function() {
+	function loadScript(url) {
+		var urld = local.parseUri(url);
+		if (!urld.authority) { url = helpers.joinRelPath(window.location.toString(), url); }
+		var full_url = (!urld.protocol) ? 'https://'+url : url;
+		local.GET(url)
+			.fail(function(res) {
+				if (!urld.protocol && (res.status === 0 || res.status == 404)) {
+					// Not found? Try again without ssl
+					full_url = 'http://'+url;
+					return local.GET(full_url);
+				}
+				throw res;
+			})
+			.then(function(res) {
+				// Create worker
+				var bootstrap_src = require('../config.js').workerBootstrapScript;
+				var script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'; if (main) { self.main = main; }})();'], { type: "text/javascript" });
+				src_.fulfill(window.URL.createObjectURL(script_blob));
+			})
+			.fail(function(res) {
+				src_.reject(null);
+				self.terminate(404, 'Worker Not Found');
+			});
+	}
+
+	src_.then(function(src) {
+		self.config.src = src;
+
 		// Prep config
 		if (!self.config.domain) { // assign a temporary label for logging if no domain is given yet
 			self.config.domain = '<'+self.config.src.slice(0,40)+'>';
@@ -72,10 +85,10 @@ function WorkerBridgeServer(config) {
 
 		// Initialize the worker
 		if (self.config.shared) {
-			self.worker = new SharedWorker(config.src, config.namespace);
+			self.worker = new SharedWorker(src, config.namespace);
 			self.worker.port.start();
 		} else {
-			self.worker = new Worker(config.src);
+			self.worker = new Worker(src);
 		}
 
 		// Setup the incoming message handler
@@ -117,6 +130,9 @@ WorkerBridgeServer.prototype.getPort = function() {
 WorkerBridgeServer.prototype.terminate = function(status, reason) {
 	BridgeServer.prototype.terminate.call(this, status, reason);
 	if (this.worker) this.worker.terminate();
+	if (this.config.src.indexOf('blob:') === 0) {
+		window.URL.revokeObjectURL(this.config.src);
+	}
 	this.worker = null;
 	this.isActive = false;
 };

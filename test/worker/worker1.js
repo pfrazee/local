@@ -21,5 +21,14 @@ local.worker.setServer(function(req, res, page) {
 			});
 		return;
 	}
+	if (req.path == '/' && req.method == 'IMPORT') {
+		try {
+			importScripts('../../local.js');
+			res.writeHead(500, 'Lib Error').end('Error: import was allowed');
+		} catch(e) {
+			res.writeHead(200, 'OK').end(e.toString());
+		}
+		return;
+	}
 	res.writeHead(404, 'not found').end();
 });

@@ -141,7 +141,7 @@ local.agent('http://myserver.com')
 importScripts('/local.min.js');
 function main(req, res) {
   // Set headers
-  res.header('Link', [{ href: '/', rel: 'self httplocal.com/transformer', id: 'toupper', title: 'To Uppercase' }]);
+  res.header('Link', [{ href: '/', rel: 'self httplocal.com/transformer', title: 'To Uppercase' }]);
   res.header('Content-Type', 'text/plain');
 
   if (req.method == 'HEAD') {

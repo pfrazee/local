@@ -58,7 +58,10 @@ if (typeof window != 'undefined') {
 				'}',
 				'return "'+host+'/" + hostpathParts.join(\'/\');',
 			'}',
+			'var isImportingAllowed = true;',
+			'setTimeout(function() { isImportingAllowed = false; },0);', // disable after initial import
 			'importScripts = function() {',
+				'if (!isImportingAllowed) { throw "Local.js - Imports disabled after initial load to prevent data-leaking"; }',
 				'return orgImportScripts.apply(null, Array.prototype.map.call(arguments, function(v, i) {',
 					'return (v.indexOf(\'/\') < v.indexOf(/[.:]/) || v.charAt(0) == \'/\' || v.charAt(0) == \'.\') ? joinRelPath(\''+hostWithDir+'\',v) : v;',
 				'}));',

@@ -3,7 +3,7 @@ local.spawnWorkerServer('/test/worker/worker1.js', { myname: 'alice' }, function
 	console.log(me.config.domain);
 	res.writeHead(200, 'ok', { 'content-type': 'text/plain' }).end('yes, hello '+req.query.foo+' '+req.query.bar);
 });
-local.spawnWorkerServer('/test/worker/worker2.js', { myname: 'bob' });
+// local.spawnWorkerServer('/test/worker/worker2.js', { myname: 'bob' });
 local.addServer('worker-bridge', function(req, res, worker) {
 	console.log(worker.config.domain);
 	res.writeHead(200, 'ok', { 'content-type': 'text/plain' }).end('no, bye '+req.query.foo+' '+req.query.bar);
@@ -118,4 +118,19 @@ wait(function () { return done; });
 /* =>
 200 yes, hello alice bazz
 200 no, bye bob buzz
+*/
+
+// importScripts() disabling test
+done = false;
+startTime = Date.now();
+var worker1API = local.agent('httpl://dev.grimwire.com(test/worker/worker1.js)');
+worker1API.dispatch({ method: 'IMPORT' })
+	.always(function(res) {
+		print(res.status + ' ' + res.body);
+		finishTest();
+	});
+wait(function () { return done; });
+
+/* =>
+200 Local.js - Imports disabled after initial load to prevent data-leaking
 */
