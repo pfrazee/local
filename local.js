@@ -5909,7 +5909,11 @@ function WorkerBridgeServer(config) {
 
 	function loadScript(url) {
 		var urld = local.parseUri(url);
-		if (!urld.authority) { url = helpers.joinRelPath(window.location.toString(), url); }
+		if (!urld.authority || urld.authority == '.' || urld.authority.indexOf('.') === -1) {
+			var dir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+			var dirurl = window.location.protocol + '//' + window.location.hostname + dir;
+			url = helpers.joinRelPath(dirurl, url);
+		}
 		var full_url = (!urld.protocol) ? 'https://'+url : url;
 		local.GET(url)
 			.fail(function(res) {
