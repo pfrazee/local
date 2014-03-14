@@ -16,30 +16,34 @@ var viewer = document.getElementById('viewer');
 var viewNav = document.getElementById('viewer-nav');
 
 // Load the markdown conversion worker
-var workerCfg = {
-	baseUrl: location.origin+location.pathname.slice(0,-1)
-};
-local.spawnWorkerServer('assets/mdworker.js', workerCfg);
+local.spawnWorkerServer('./assets/mdworker.js', { domain: 'mdworker.js' });
 
 function getContent() {
 	var path = window.location.hash.slice(1) || 'README.md';
+	var baseUrl = (location.origin||(location.protocol+'//'+location.host));
+	var url = local.joinRelPath(baseUrl, path);
 
 	// Update nav higlight
 	var active = viewNav.querySelector('.active');
 	if (active) active.classList.remove('active');
 	viewNav.querySelector('a[href="#'+path+'"]').parentNode.classList.add('active');
 
-	// Send request
-	local.GET('httpl://mdworker.js/'+path).then(
-		function (res) {
+	// Get markdown
+	local.GET(url)
+		.then(function(res) {
+			// Convert to HTML
+			return local.POST(res.body, 'httpl://mdworker.js');
+		})
+		.then(function (res) {
+			// Render
 			viewer.innerHTML = res.body;
+			window.scrollTo(0,0);
 			Prism.highlightAll();
-		},
-		function (res) {
+		})
+		.fail(function (res) {
 			console.error('Failed loading '+path, res);
 			viewer.innerHTML = '<h2>'+res.status+' '+res.reason+'</h2>';
-		}
-	);
+		});
 }
 window.onhashchange = getContent;
 getContent();
@@ -49,18 +53,13 @@ getContent();
 
 ```javascript
 importScripts('../local.js');
-importScripts('marked.js');
+importScripts('./marked.js');
 marked.setOptions({ gfm: true, tables: true });
 
-local.worker.setServer(function (request, response) {
-	var url = local.worker.config.baseUrl + request.path;
-	var mdresponse_ = local.GET({ url: url, headers: { accept:'text/plain' }});
-	local.pipe(response, mdresponse_,
-		function (headers) {
-			headers['content-type'] = 'text/html';
-			return headers;
-		},
-		function (md) { return (md) ? marked(md) : ''; }
-	);
-});
+function main(req, res) {
+	req.on('end', function() {
+		res.writeHead(200, 'OK', {'Content-Type': 'text/html'});
+		res.end(marked(''+req.body));
+	});
+}
 ```

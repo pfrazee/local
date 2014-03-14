@@ -24,7 +24,7 @@ h3 { font-size:20px }
 #nav ul li:hover { border-bottom: 3px solid white; }
 #nav ul li a { color: #FAFAFA; display: inline-block; padding: 20px 20px; }
 #nav ul li a:hover { color: #FAFAFA; text-decoration: none; }
-#nav #logo { display: none; color: white; font-weight: bold; position: fixed; top: 0; left: 0; font-size: 32px; padding: 20px;}
+#nav #logo { display: none; color: white; font-weight: bold; position: absolute; top: 0; left: 0; font-size: 32px; padding: 20px;}
 #nav #logo span { color: #2D9AE4; }
 .is-sticky #nav #logo { display: block; }
 

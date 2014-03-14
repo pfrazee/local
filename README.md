@@ -1,17 +1,15 @@
-Local 0.6.1
-===========
+Local.js 0.6.2
+==============
 
-[<a href="https://github.com/grimwire/local">Repository</a> | <a href="https://github.com/grimwire/local/issues">Issues</a> | <a href="http://grimwire.com/local">Documentation</a>]
+[<a href="https://github.com/pfraze/local">Repository</a> | <a href="https://github.com/pfraze/local/issues">Issues</a> | <a href="http://httplocal.com/docs.html">Documentation</a>]
 
 ## Overview
 
-Local.js is an Ajax library that implements <a href="https://github.com/grimwire/grimwire/wiki/HTTPL%3A-JSON-encoded-message-streams-with-HTTP-semantics" title="HTTP Local">HTTPLocal, a client-side variation of HTTP</a>. It communicates with Web Workers, WebRTC peers, and other messaging channels.
-
-Local.js also includes a directory protocol to exchange links, discover services, and navigate with user-agents.
+Local.js is an open-source security and IPC framework for socially-shareable Web plugins. It provides an Ajax interface for communicating interchangeably with javascript functions, parallel threads, and network peers. It also includes tools for managing and securing Web Workers, and for exchanging and querying against links.
 
 ### Examples
 
-Run servers in the document:
+**Run servers in the document**:
 
 ```javascript
 local.addServer('foobar', function(req, res) {
@@ -22,7 +20,7 @@ local.addServer('foobar', function(req, res) {
 local.dispatch({ method: 'GET', url: 'httpl://foobar' }).then(handle2or3xx, handle4or5xx);
 ```
 
-Run servers in Web Workers:
+**Run servers in Web Workers**:
 
 ```javascript
 local.spawnWorkerServer('http://myhost.com/myworker.js', function(req, res) {
@@ -30,33 +28,147 @@ local.spawnWorkerServer('http://myhost.com/myworker.js', function(req, res) {
     res.writeHead(200, 'ok', { 'Content-Type': 'text/plain' });
     res.end('Hello, worker!');
 });
-local.dispatch({ method: 'GET', url: 'httpl://myworker.js' });
+local.dispatch({ method: 'GET', url: 'httpl://myworker.js' }).then(...);
 ```
 
-Run servers over WebRTC:
+**Auto-spawn a temporary Worker** to handle a request. After responding, the temp-worker is destroyed:
 
 ```javascript
-var network = local.joinRelay('https://grimwire.net', function (req, res, peer) {
-    // Handles incoming requests from `peer`
-    res.writeHead(200, 'ok', { 'Content-Type': 'text/plain' });
-    res.end('Hello, '+peer.getPeerInfo().user);
-});
-local.dispatch({ method: 'GET', url: 'httpl://bob@grimwire.net!bobs-app.com' });
+local.dispatch({ method: 'GET', url: 'httpl://myhost.com(/myworker.js)/' }).then(...);
 ```
 
-<br/>
+Using **bodyless request sugars**:
 
-## How it works
+```javascript
+local.HEAD('httpl://myhost.com(/myworker.js)/');
+local.GET('httpl://myhost.com(/myworker.js)/');
+local.GET({ url: 'httpl://myhost.com(/myworker.js)/', Accept: 'application/json' });
+local.DELETE('httpl://myhost.com(/myworker.js)/');
 
-The core of Local.js is a message router which adds a new scheme, `httpl://`, for targeting requests at functions within the application. These in-app server functions work similarly to node.js servers, and support streaming for requests and responses. Special types of server functions, the "bridge" servers, serialize the streams into JSON and transport them over channels to other namespaces.
+// For reference, the non-sugar equivalent:
+local.dispatch({ method: 'GET', url: 'httpl://myhost.com(/myworker.js)/', Accept: 'application/json' });
+```
 
-<img src="assets/docs-messaging-diagram.png" />
+Using **bodyfull request sugars**:
 
-## User Agents
+```javascript
+local.POST({ foo: 'bar' }, 'httpl://myhost.com(/myworker.js)/');
+local.PUT({ foo: 'bar' }, 'httpl://myhost.com(/myworker.js)/');
+local.PATCH({ foo: 'bar' }, 'httpl://myhost.com(/myworker.js)/');
+local.POST({ foo: 'bar' }, {
+    url: 'httpl://myhost.com(/myworker.js)/',
+    Accept: 'application/json',
+    Content_Type: 'application/www-x-form-urlencoded'
+});
 
-The `local.Agent` is a headless browser that travels Web APIs. It issues HEAD requests to hosts, then runs queries against the returned Link headers to navigate. The navigation queries allow applications to reason about remote hosts and make strong assumptions based on reltypes. This protocol is outlined in the [Web Linking spec](http://tools.ietf.org/html/rfc5988).
+// For reference, the non-sugar equivalent:
+local.dispatch({
+    method: 'POST',
+    url: 'httpl://myhost.com(/myworker.js)/',
+    Accept: 'application/json',
+    Content_Type: 'application/www-x-form-urlencoded',
+    body: { foo: 'bar' }
+});
+```
 
-> Read more in the <a href="#docs/api/agent.md">agent()</a> documentation.
+Note that headers may have their dashes changed to underscores. However, if in the request object, headers must be capitalized. To avoid this requirement, put them in the **`headers` sub-object**:
+
+```javascript
+local.dispatch({
+    method: 'POST',
+    url: 'httpl://myhost.com(/myworker.js)/',
+    headers: {
+        accept: 'application/json',
+        'content-type': 'application/www-x-form-urlencoded'
+    },
+    body: { foo: 'bar' }
+});
+```
+
+If you need to **stream the request**, create a `local.Request` object, then send it to `local.dispatch()`:
+
+```javascript
+var req = new local.Request({ method: 'POST', url: 'http://foo.com', Content_Type: 'text/plain' });
+local.dispatch(req).then(...);
+for (var i = 0; i < 10; i++) {
+    req.send(''+i+'\n');
+}
+req.end();
+```
+
+A dispatch call returns a promise which resolves to the response when the response-stream finishes. If the status is in the 200-300 range, it is fulfilled; otherwise, the promise is rejected with the response as the error-value.
+
+If you need to **stream the response**, use the `stream: true` attribute in the request. The promise will be fulfilled when the headers are sent, and you can then attach to the 'data' and 'end' events:
+
+```javascript
+local.GET({ url: 'http://foo.com', stream: true })
+    .then(function(res) {
+        console.log(res.status); // => 200
+        res.on('data', function(chunk) {
+            // ...
+        });
+        res.on('end', function() {
+            // ...
+        });
+    });
+}
+```
+
+Local.js includes a registry of content-type serializers and parsers which are auto-invoked on the 'end' events of requests and responses. By default, it ships with json and application/x-www-form-urlencoded, but you can register more with `local.contentTypes`.
+
+If successful, the **`body` attribute will include the parsed object**. If parsing fails, or the content-type is not available, the `body` attribute will be a string. Note that server functions are fired when headers are received, and so must always wait for the 'end' event:
+
+```javascript
+local.addServer('foobar', function(req, res) {
+    console.log(req.header('Content-Type')); // => 'application/json'
+    req.on('end', function() {
+        res.writeHead(200, 'ok', { 'Content-Type': 'application/x-www-form-urlencoded' });
+        res.end('foo='+req.body.foo);
+    });
+});
+local.POST({ foo: 'bar' }, 'httpl://foobar') // will default content-type to json
+    .then(function(res) {
+        console.log(res.header('Content-Type')); // => 'application/x-www-form-urlencoded'
+        console.log(res.body); // => { foo: 'bar' }
+    });
+```
+
+Local.js also includes a registry of header serializers and parsers which are auto-invoked on the dispatch events. By default, it ships with Link, Accept, and Via. In responses, the **parsed headers are placed in the `response.parsedHeaders` object** to avoid confusion:
+
+```javascript
+local.HEAD('http://foo.com').then(function(res) {
+    console.log(res.headers.link); // => '<http://foo.com>; rel="self service"; title="Foo!"'
+    console.log(res.header('Link')); // => '<http://foo.com>; rel="self service"; title="Foo!"'
+    console.log(res.parsedHeaders.link); // => [{ href: 'http://foo.com', rel: 'self service', title: 'Foo!' }]
+});
+```
+
+**To query the links**, use `local.queryLinks`:
+
+```javascript
+local.HEAD('http://foo.com').then(function(res) {
+    var links = local.queryLinks(res.headers.link, { rel: 'self' });
+    console.log(links); // => [{ href: 'http://foo.com', rel: 'service', title: 'Foo!' }]
+    var links = local.queryLinks(res, { rel: 'self' })
+    console.log(links); // => [{ href: 'http://foo.com', rel: 'service', title: 'Foo!' }]
+});
+```
+
+**To decide which content-type to respond with**, use `local.preferredType`:
+
+```javascript
+local.addServer('foobar', function(req, res) {
+    var type = local.preferredType(req, ['text/html', 'text/plain', 'application/json']);
+    if (!type) { return res.writeHead(406, 'Not Acceptable').end(); }
+    if (type == 'text/html') { /* ... */ }
+    // ...
+});
+local.GET({ url: 'httpl://foobar', Accept: 'text/plain' }); // will get text/plain
+local.GET({ url: 'httpl://foobar', Accept: 'application/json, text/*' }); // will get application/json
+local.GET({ url: 'httpl://foobar', Accept: '*/*' }); // will get text/html
+```
+
+**Programmatically navigate with a headless user-agent**:
 
 ```javascript
 // Fetch the profile of bob@foo.com
@@ -66,21 +178,37 @@ local.agent('http://foo.com')
     .GET({ Accept: 'application/json' })
 ```
 
+Further topics:
+
+ - [Subscribing to server-sent events](http://httplocal.com/docs.html#docs/en/0.6.2/api/subscribe.md)
+ - [Parsing and creating URLs](http://httplocal.com/docs.html#docs/en/0.6.2/api/uri_helpers.md)
+ - [Piping a response](http://httplocal.com/docs.html#docs/en/0.6.2/api/pipe.md)
+ - [Patching XMLHttpRequest to support httpl](http://httplocal.com/docs.html#docs/en/0.6.2/api/patchxhr.md)
+ - [Registering a catchall DOM-event listener to generate request events on link-clicks and form-submits](http://httplocal.com/docs.html#docs/en/0.6.2/api/bindreqeuestevents.md)
+ - [Auditing every request before it is dispatched from the page](http://httplocal.com/docs.html#docs/en/0.6.2/api/setdispatchwrapper.md)
+ - [Syncing and manipulating promises](http://httplocal.com/docs.html#docs/en/0.6.2/api/promises.md)
+
+<br/>
+
+## How it works
+
+The core of Local.js is a message router which adds a new scheme, `httpl://`, for targeting requests at functions within the application. These in-app server functions work similarly to node.js servers, and support streaming for requests and responses. Special types of server functions, the "bridge" servers, serialize the streams into JSON and transport them over channels to other namespaces.
+
+<img src="assets/docs-messaging-diagram.png" />
+
 <br/>
 
 ## Getting Started
 
-Download <a href="//github.com/grimwire/local">local.js or local.min.js from the repository</a>. If you're developing for Grimwire, download <a href="//github.com/grimwire/grimwire">grimwidget.js from the Grimwire repo</a> and read the documentation on <a href="#docs/grimwire.md">Using Grimwire</a>.
-
-For an introduction to writing Local.js apps, read <a href="#docs/todosoa.md">Intro: TodoSOA</a>.
+Download <a href="//github.com/pfraze/local">local.js or local.min.js from the repository</a>. Then read the documentation at <a href="http://httplocal.com">HTTPLocal.com</a>. For an introduction to writing Local.js apps, read <a href="http://httplocal.com/docs.html#docs/en/0.6.2/todosoa.md">Intro: TodoSOA</a>.
 
 ### Getting Help
 
-Contact <a href="//twitter.com/pfrazee">@pfrazee</a> or join #grimwire on freenode.
+Contact <a href="//twitter.com/pfrazee">@pfrazee</a> or join #httplocal on freenode.
 
 ### Feedback &amp; Bug Reporting
 
-Send specific issues and suggestions to the [GitHub issue tracker](https://github.com/grimwire/local/issues). Suggestions to improve the documentation can be added to the ongoing [Documentation Improvements](https://github.com/grimwire/local/issues/77) issue.
+Send specific issues and suggestions to the [GitHub issue tracker](https://github.com/pfraze/local/issues). Suggestions to improve the documentation can be added to the ongoing [Documentation Improvements](https://github.com/pfraze/local/issues/77) issue.
 
 <br/>
 
