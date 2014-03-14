@@ -5907,7 +5907,7 @@ function WorkerBridgeServer(config) {
 				.then(function(res) {
 					// Create worker
 					var bootstrap_src = require('../config.js').workerBootstrapScript;
-					var script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'})();'], { type: "text/javascript" });
+					var script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'; if (main) { self.main = main; }})();'], { type: "text/javascript" });
 					config.src = window.URL.createObjectURL(script_blob);
 					src_.fulfill(config.src);
 				})
@@ -6067,20 +6067,18 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 	}
 };
 },{"../config.js":1,"../promises.js":4,"./bridge-server.js":11,"./helpers.js":14,"./httpl":16,"./httpl.js":16,"./response.js":19}],26:[function(require,module,exports){
-module.exports = {
-	serverFn: null
-};
+module.exports = {};
 },{}],27:[function(require,module,exports){
 if (typeof self != 'undefined' && typeof self.window == 'undefined') {
 
 	var util = require('../util');
 	var httpl = require('../web/httpl.js');
-	var workerConfig = require('./config.js');
+	var WorkerConfig = require('./config.js');
 	var PageBridgeServer = require('./page-bridge-server.js');
 
 	// Setup
 	// =====
-	module.exports = { config: workerConfig };
+	module.exports = { config: WorkerConfig };
 	util.mixinEventEmitter(module.exports);
 
 	// EXPORTED
@@ -6175,7 +6173,7 @@ if (typeof self != 'undefined' && typeof self.window == 'undefined') {
 	}
 
 	module.exports.setServer = function(fn) {
-		workerConfig.serverFn = fn;
+		self.main = fn;
 		httpl.addServer('self', fn);
 	};
 
@@ -6268,7 +6266,7 @@ PageServer.prototype.channelSendMsg = function(msg) {
 
 // Remote request handler
 PageServer.prototype.handleRemoteRequest = function(request, response) {
-	var server = workerConfig.serverFn;
+	var server = self.main;
 	if (server && typeof server == 'function') {
 		server.call(this, request, response, this);
 	} else if (server && server.handleRemoteRequest) {

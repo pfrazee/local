@@ -2,12 +2,12 @@ if (typeof self != 'undefined' && typeof self.window == 'undefined') {
 
 	var util = require('../util');
 	var httpl = require('../web/httpl.js');
-	var workerConfig = require('./config.js');
+	var WorkerConfig = require('./config.js');
 	var PageBridgeServer = require('./page-bridge-server.js');
 
 	// Setup
 	// =====
-	module.exports = { config: workerConfig };
+	module.exports = { config: WorkerConfig };
 	util.mixinEventEmitter(module.exports);
 
 	// EXPORTED
@@ -102,7 +102,7 @@ if (typeof self != 'undefined' && typeof self.window == 'undefined') {
 	}
 
 	module.exports.setServer = function(fn) {
-		workerConfig.serverFn = fn;
+		self.main = fn;
 		httpl.addServer('self', fn);
 	};
 

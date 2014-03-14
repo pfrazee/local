@@ -52,7 +52,7 @@ function WorkerBridgeServer(config) {
 				.then(function(res) {
 					// Create worker
 					var bootstrap_src = require('../config.js').workerBootstrapScript;
-					var script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'})();'], { type: "text/javascript" });
+					var script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'; if (main) { self.main = main; }})();'], { type: "text/javascript" });
 					config.src = window.URL.createObjectURL(script_blob);
 					src_.fulfill(config.src);
 				})

@@ -1,3 +1,1 @@
-module.exports = {
-	serverFn: null
-};
+module.exports = {};

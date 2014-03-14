@@ -53,7 +53,7 @@ PageServer.prototype.channelSendMsg = function(msg) {
 
 // Remote request handler
 PageServer.prototype.handleRemoteRequest = function(request, response) {
-	var server = workerConfig.serverFn;
+	var server = self.main;
 	if (server && typeof server == 'function') {
 		server.call(this, request, response, this);
 	} else if (server && server.handleRemoteRequest) {
