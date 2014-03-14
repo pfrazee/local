@@ -1,6 +1,7 @@
 if (typeof self != 'undefined' && typeof self.window == 'undefined') {
 
 	var util = require('../util');
+	var schemes = require('../web/schemes.js');
 	var httpl = require('../web/httpl.js');
 	var WorkerConfig = require('./config.js');
 	var PageBridgeServer = require('./page-bridge-server.js');
@@ -52,6 +53,12 @@ if (typeof self != 'undefined' && typeof self.window == 'undefined') {
 			return JSON.stringify(data);
 		return data;
 	}
+
+	// INTERNAL
+	// set the http/s schemes to report disabled
+	schemes.register(['http', 'https'], function(req, res) {
+		res.writeHead(0, 'XHR Not Allowed in Workers for Security Reasons').end();
+	});
 
 	// EXPORTED
 	// btoa shim

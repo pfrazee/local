@@ -2639,7 +2639,7 @@ function pipe(target, source, headersCB, bodyCb) {
 	headersCB = headersCB || function(v) { return v; };
 	bodyCb = bodyCb || function(v) { return v; };
 	return promise(source)
-		.succeed(function(source) {
+		.always(function(source) {
 			if (!target.status) {
 				// copy the header if we don't have one yet
 				target.writeHead(source.status, source.reason, headersCB(source.headers));
@@ -2659,13 +2659,6 @@ function pipe(target, source, headersCB, bodyCb) {
 				target.end();
 			}
 			return target;
-		})
-		.fail(function(source) {
-			var ctype = source.headers['content-type'] || 'text/plain';
-			var body = (ctype && source.body) ? source.body : '';
-			target.writeHead(502, 'bad gateway', {'content-type':ctype});
-			target.end(body);
-			throw source;
 		});
 }
 
@@ -6097,6 +6090,7 @@ module.exports = {};
 if (typeof self != 'undefined' && typeof self.window == 'undefined') {
 
 	var util = require('../util');
+	var schemes = require('../web/schemes.js');
 	var httpl = require('../web/httpl.js');
 	var WorkerConfig = require('./config.js');
 	var PageBridgeServer = require('./page-bridge-server.js');
@@ -6148,6 +6142,12 @@ if (typeof self != 'undefined' && typeof self.window == 'undefined') {
 			return JSON.stringify(data);
 		return data;
 	}
+
+	// INTERNAL
+	// set the http/s schemes to report disabled
+	schemes.register(['http', 'https'], function(req, res) {
+		res.writeHead(0, 'XHR Not Allowed in Workers for Security Reasons').end();
+	});
 
 	// EXPORTED
 	// btoa shim
@@ -6235,7 +6235,7 @@ if (typeof self != 'undefined' && typeof self.window == 'undefined') {
 		addConnection(self);
 	}
 }
-},{"../util":9,"../web/httpl.js":16,"./config.js":26,"./page-bridge-server.js":28}],28:[function(require,module,exports){
+},{"../util":9,"../web/httpl.js":16,"../web/schemes.js":21,"./config.js":26,"./page-bridge-server.js":28}],28:[function(require,module,exports){
 var util = require('../util');
 var workerConfig = require('./config.js');
 var BridgeServer = require('../web/bridge-server.js');

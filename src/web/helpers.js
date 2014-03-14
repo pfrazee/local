@@ -404,7 +404,7 @@ function pipe(target, source, headersCB, bodyCb) {
 	headersCB = headersCB || function(v) { return v; };
 	bodyCb = bodyCb || function(v) { return v; };
 	return promise(source)
-		.succeed(function(source) {
+		.always(function(source) {
 			if (!target.status) {
 				// copy the header if we don't have one yet
 				target.writeHead(source.status, source.reason, headersCB(source.headers));
@@ -424,13 +424,6 @@ function pipe(target, source, headersCB, bodyCb) {
 				target.end();
 			}
 			return target;
-		})
-		.fail(function(source) {
-			var ctype = source.headers['content-type'] || 'text/plain';
-			var body = (ctype && source.body) ? source.body : '';
-			target.writeHead(502, 'bad gateway', {'content-type':ctype});
-			target.end(body);
-			throw source;
 		});
 }
 
