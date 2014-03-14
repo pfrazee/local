@@ -1,0 +1,47 @@
+body { color: #555; font-family: 'Roboto', sans-serif; font-weight: 300; }
+pre, code { font-family: Consolas, "Courier New", monospace; color: #5E5E5E; }
+a { color: #3184D6; }
+p { margin: 13px 0 17px; }
+blockquote { border-left: 5px solid #ddd; }
+blockquote p { font-size:14px }
+h2 { font-size:30px; border-bottom:1px solid gray; font-weight:normal; margin-top:16px }
+h3 { font-size:20px }
+
+.centered { text-align: center; }
+#hero { width: 100%; height: 450px; background: linear-gradient(rgba(31, 108, 177, 1), rgba(0, 0, 0, 0.5)), url(/assets/hero-bg.jpg) left -640px no-repeat; }
+@media (min-width: 1500px) {
+	/* hero background is now too small, so lets autosize it to cover */
+	#hero { background-position: top left; background-size: cover; }
+}
+#hero h1 { text-align: center; color: white; font-size: 70px; padding-top: 155px; margin: 0 50px 0 0; }
+#hero h1 span { color: #2D9AE4; }
+#hero h4 { font-weight: normal; text-align: center; color: white; padding-top: 75px; margin: 0 50px 0 0; }
+
+#nav { background: #1F6CB1; box-shadow: 5px 0px 25px rgba(0,0,0,0.5); width: 100%; text-align: center; }
+#nav ul { font-size: 26px; margin: 0 auto; display: inline-block; padding-right: 50px; }
+#nav ul li { margin: 0; }
+#nav ul li.active { border-bottom: 3px solid white; }
+#nav ul li:hover { border-bottom: 3px solid white; }
+#nav ul li a { color: #FAFAFA; display: inline-block; padding: 20px 20px; }
+#nav ul li a:hover { color: #FAFAFA; text-decoration: none; }
+#nav #logo { display: none; color: white; font-weight: bold; position: fixed; top: 0; left: 0; font-size: 32px; padding: 20px;}
+#nav #logo span { color: #2D9AE4; }
+.is-sticky #nav #logo { display: block; }
+
+.container h3 { font-size: 24px; }
+.container p, .container ul li { font-size: 16px; }
+.container ul li { color: gray; margin-bottom: 12px; padding: 0 2px; }
+.container .intro { margin: 200px 20px; }
+.container .intro td:first-child { width: 125px; }
+.container .intro td:first-child img { width: 100px; }
+.container .overview { margin-bottom: 200px; width: 100%; }
+.container .overview td { vertical-align: top; }
+@media (min-width: 1080px) {
+	.container.container-wide { width: 1080px; }
+	.container .overview td div { width: 300px; margin: 0 auto; }
+}
+.container .overview td img { display: block; margin: 0 auto; padding-right: 20px; }
+.container .overview td:nth-child(1) { padding-right: 10px; }
+.container .overview td:nth-child(2) { padding: 0 10px;  }
+.container .overview td:nth-child(3) { padding-left: 10px; }
+.container > .row { margin-bottom: 150px }
