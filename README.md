@@ -5,7 +5,7 @@ Local.js 0.6.2
 
 ## Overview
 
-Local.js is an open-source security and IPC framework for socially-shareable Web plugins. It provides an Ajax interface for communicating interchangeably with javascript functions, parallel threads, and network peers. It also includes tools for managing and securing Web Workers, and for exchanging and querying against links.
+Local.js is an open-source security and IPC framework for socially-shareable Web plugins. It provides an Ajax interface for communicating interchangeably with javascript functions, parallel threads, and network peers. It also includes tools for managing and securing Web Workers, for emitting and subscribing to Server-Sent Events, and for exchanging and querying against links.
 
 ### Examples
 
@@ -85,7 +85,7 @@ local.dispatch({
 });
 ```
 
-If you need to **stream the request**, create a `local.Request` object, then send it to `local.dispatch()`:
+If you need to **stream the request**, create a [`local.Request`](http://httplocal.com/docs.html#docs/en/0.6.2/api/request.md) object, then send it to [`local.dispatch()`](http://httplocal.com/docs.html#docs/en/0.6.2/api/dispatch.md):
 
 ```javascript
 var req = new local.Request({ method: 'POST', url: 'http://foo.com', Content_Type: 'text/plain' });
@@ -114,7 +114,7 @@ local.GET({ url: 'http://foo.com', stream: true })
 }
 ```
 
-Local.js includes a registry of content-type serializers and parsers which are auto-invoked on the 'end' events of requests and responses. By default, it ships with json and application/x-www-form-urlencoded, but you can register more with `local.contentTypes`.
+Local.js includes a registry of content-type serializers and parsers which are auto-invoked on the 'end' events of requests and responses. By default, it ships with json and application/x-www-form-urlencoded, but you can register more with [`local.contentTypes`](http://httplocal.com/docs.html#docs/en/0.6.2/api/contenttypes.md).
 
 If successful, the **`body` attribute will include the parsed object**. If parsing fails, or the content-type is not available, the `body` attribute will be a string. Note that server functions are fired when headers are received, and so must always wait for the 'end' event:
 
@@ -133,7 +133,7 @@ local.POST({ foo: 'bar' }, 'httpl://foobar') // will default content-type to jso
     });
 ```
 
-Local.js also includes a registry of header serializers and parsers which are auto-invoked on the dispatch events. By default, it ships with Link, Accept, and Via. In responses, the **parsed headers are placed in the `response.parsedHeaders` object** to avoid confusion:
+Local.js also includes a registry of header serializers and parsers which are auto-invoked on dispatch - [`local.httpHeaders`](http://httplocal.com/docs.html#docs/en/0.6.2/api/httpheaders.md). By default, it ships with Link, Accept, and Via. In responses, the **parsed headers are placed in the `response.parsedHeaders` object** to avoid confusion:
 
 ```javascript
 local.HEAD('http://foo.com').then(function(res) {
@@ -143,7 +143,7 @@ local.HEAD('http://foo.com').then(function(res) {
 });
 ```
 
-**To query the links**, use `local.queryLinks`:
+**To query the links**, use [`local.queryLinks`](http://httplocal.com/docs.html#docs/en/0.6.2/api/querylinks.md):
 
 ```javascript
 local.HEAD('http://foo.com').then(function(res) {
@@ -154,7 +154,7 @@ local.HEAD('http://foo.com').then(function(res) {
 });
 ```
 
-**To decide which content-type to respond with**, use `local.preferredType`:
+**To decide which content-type to respond with**, use [`local.preferredType`](http://httplocal.com/docs.html#docs/en/0.6.2/api/preferredtypes.md):
 
 ```javascript
 local.addServer('foobar', function(req, res) {
@@ -196,6 +196,14 @@ The core of Local.js is a message router which adds a new scheme, `httpl://`, fo
 
 <img src="assets/docs-messaging-diagram.png" />
 
+Further reading:
+
+ - [HTTPL: JSON encoded message streams with HTTP semantics](http://httplocal.com/docs.html#docs/en/0.6.2/httpl.md)
+ - [Hypermedia Indexing Protocol (Link Header Usage)](http://httplocal.com/docs.html#docs/en/0.6.2/linkheader.md)
+ - [In-Application Sandboxing with Web Workers](http://pfraze.github.io/2014/03/08/in-application-sandboxing-with-web-workers.html)
+ - [Communicating with Web-Workers using HTTP](http://pfraze.github.io/2014/03/08/communicating-with-web-workers-using-http.html)
+ - [Applying User-Agent Behaviors in Web Applications to Enable Runtime Extension](http://pfraze.github.io/2014/03/08/applying-user-agent-behaviors.html)
+
 <br/>
 
 ## Getting Started
@@ -204,7 +212,7 @@ Download <a href="//github.com/pfraze/local">local.js or local.min.js from the r
 
 ### Getting Help
 
-Contact <a href="//twitter.com/pfrazee">@pfrazee</a> or join #httplocal on freenode.
+Contact <a href="//twitter.com/pfrazee">@pfrazee</a> or join #httpl on freenode.
 
 ### Feedback &amp; Bug Reporting
 
@@ -220,6 +228,7 @@ Thank you to the following third-party library authors:
 
  - [**parseUri**](http://stevenlevithan.com/demo/parseuri/js/), Stephen Levithan
  - [**UriTemplate**](https://github.com/fxa/uritemplate-js), Franz Antesberger
+ - [**Negotiator**](https://github.com/federomero/negotiator), Federico Romero, Isaac Z. Schlueter
  - [**Prism**](https://github.com/LeaVerou/prism), Lea Verou
  - [**Marked**](https://github.com/chjj/marked), Christopher Jeffrey
 

@@ -35,7 +35,7 @@ Approximates standard `console.log`. Also supports:
 
  - `server`: required function|local.Server
 
-Sets the server function for handling requests from the pages.
+Sets the server function for handling requests from the pages. The server is stored as `self.main`, which worker scripts may set directly.
 
 ---
 

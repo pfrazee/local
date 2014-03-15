@@ -19,7 +19,7 @@ MyServer.prototype.handleLocalRequest(req, res) {
 
 ## local.Server
 
-### .handleHttpRequest( <small>request, response</small> ) <small>=> undefined</small>
+### .handleLocalRequest( <small>request, response</small> ) <small>=> undefined</small>
 
 Request handler, should be overridden by subtypes.
 

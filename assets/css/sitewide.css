@@ -1,5 +1,5 @@
 body { color: #555; font-family: 'Roboto', sans-serif; font-weight: 300; }
-pre, code { font-family: Consolas, "Courier New", monospace; color: #5E5E5E; }
+pre, code { font-family: Consolas, "Courier New", monospace; color: #5E5E5E; background: #f5f2f0; }
 a { color: #3184D6; }
 p { margin: 13px 0 17px; }
 blockquote { border-left: 5px solid #ddd; }

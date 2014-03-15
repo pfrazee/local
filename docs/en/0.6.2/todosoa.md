@@ -1,7 +1,7 @@
 Tutorial: TodoSOA
 =================
 
-[<a href="http://grimwire.com/todosoa">Live Demo</a> | <a href="https://github.com/grimwire/todosoa">Source Code</a>]
+[<a href="http://httplocal.com/todosoa">Live Demo</a> | <a href="https://github.com/pfraze/todosoa">Source Code</a>]
 
 ---
 
@@ -30,26 +30,26 @@ local.setDispatchWrapper(function(req, res, dispatch) {
 	// Dispatch the request, wait for a response, then log both
 	dispatch(req, res).always(console.log.bind(console, req));
 });
-local.spawnWorkerServer('js/view.js');
+local.spawnWorkerServer('js/view.js', { domain: 'view.js' });
 local.addServer('storage', new app.Store(name));
-local.addServer('todo', new app.Host('httpl://storage', 'httpl://view.js'));
+local.addServer('todo', new app.Todo('httpl://storage', 'httpl://view.js'));
 var todoApi = local.agent('httpl://todo');
 ```
 
 The dispatch wrapper is an optional middleware that is injected between `dispatch()` and delivery of the request. It's used here for logging.
 
-<a href="#docs/api/setdispatchwrapper.md">&raquo; setDispatchWrapper()</a>
+<a href="#docs/en/0.6.2/api/setdispatchwrapper.md">&raquo; setDispatchWrapper()</a>
 
 The `view.js` worker will take a moment to initialize, but you can send requests to it immediately after `spawnWorkerServer` is called. Local.js will buffer the messages until the worker signals "ready."
 
-<a href="#docs/api/managing_servers.md">&raquo; Managing Servers</a><br>
+<a href="#docs/en/0.6.2/managing_servers.md">&raquo; Managing Servers</a><br>
 
 Agents are like database cursors for Web APIs. They request links from their current location, query against the link keyvalues, and construct a new location URI from the top match.
 
-<a href="#docs/api/agent.md">&raquo; agent()</a>
+<a href="#docs/en/0.6.2/api/agent.md">&raquo; agent()</a>
 
 
-### Todo Server
+### app.Todo Server
 
 ```javascript
 function Todo(storageUrl, viewUrl) {
@@ -131,7 +131,7 @@ However, the API is not an exact match and includes some key differences:
  - Response headers with serializers will automatically serialize on `.writeHead()`.
  - Content types with parsers will automatically deserialize `.body` on 'end'.
 
-<a href="#docs/api/server.md">&raquo; Server</a>, <a href="#docs/api/httpHeaders.md">&raquo; httpHeaders</a>, <a href="#docs/api/contenttypes.md">&raquo; contentTypes</a>
+<a href="#docs/en/0.6.2/api/server.md">&raquo; Server</a>, <a href="#docs/en/0.6.2/api/httpheaders.md">&raquo; httpHeaders</a>, <a href="#docs/en/0.6.2/api/contenttypes.md">&raquo; contentTypes</a>
 
 
 ### Sending Requests with Agents
@@ -186,7 +186,7 @@ The `lookupResource()` query will find the first link with a `rel` that *include
 
 If you refer back to the Todo server's definition, you'll notice that the last entry is `{ href: '/{id}', rel: 'item' }`. This is an example of a templated link. To avoid bloating responses with full indexes, URI Templates can be used to act as "catchalls."
 
-<a href="#docs/api/agent.md">&raquo; Agents</a>
+<a href="#docs/en/0.6.2/api/agent.md">&raquo; Agents</a>
 
 
 ### Rendering HTML
@@ -227,7 +227,7 @@ this.storageApi.dispatch({ method: 'GET', query: query })
 
 This code is made inefficient to illustrate the 'bundling' feature of promises: rather than send all the items in one request to be rendered, they are sent individually and combined into one promise. This is a common pattern for syncing multiple requests.
 
-<a href="#docs/api/promises.md">&raquo; Promises</a>
+<a href="#docs/en/0.6.2/api/promises.md">&raquo; Promises</a>
 
 The view server runs in a Worker (also for illustrative purposes):
 
@@ -425,4 +425,4 @@ To review, TodoSOA uses 3 servers - one for app logic, one for data storage, and
 
 Compared to some of the MVC approaches in Javascript, TodoSOA is not as simple or convenient. Local.js has very different goals than Backbone or Knockout. It is designed to decouple the application into components which can be changed at runtime by users. However, closed-development applications can still benefit of reusability and reconfigurability gained by message passing.
 
-> A recommended addition since the writing of this tutorial is <a href="#docs/api/bindrequestevents.md">Request Events</a>, which offer a convenient alternative to event listening.
+> A recommended addition since the writing of this tutorial is <a href="#docs/en/0.6.2/api/bindrequestevents.md">Request Events</a>, which offer a convenient alternative to event listening.
