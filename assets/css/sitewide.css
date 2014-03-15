@@ -8,22 +8,6 @@ h2 { font-size:30px; border-bottom:1px solid gray; font-weight:normal; margin-to
 h3 { font-size:20px }
 
 .centered { text-align: center; }
-#hero {
-	width: 100%;
-	height: 450px;
-	background: url(/assets/hero-bg.jpg) left -640px no-repeat;
-}
-@media (min-width: 1500px) {
-	/* hero background is now too small, so lets autosize it to cover */
-	#hero { background-position: top left; background-size: cover; }
-}
-#hero h1 { text-align: center; color: white; font-size: 54px; padding-top: 155px; margin-top: 0; }
-#hero h1 span { color: #2D9AE4; }
-#hero h4 { font-weight: normal; text-align: center; color: white; padding: 75px 10px 0; }
-@media (min-width: 800px) {
-	#hero h1 { font-size: 70px; }
-	#hero h1, #hero h4 { margin-right: 50px; }
-}
 
 #nav { background: #1F6CB1; box-shadow: 5px 0px 25px rgba(0,0,0,0.5); width: 100%; text-align: center; }
 #nav ul { font-size: 26px; margin: 0 auto; display: inline-block;  }

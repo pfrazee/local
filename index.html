@@ -4,20 +4,36 @@
 		<title>Local.js 0.6.2</title>
 
 		<!-- styling -->
-		<link rel="stylesheet" href="assets/bootstrap/css/bootstrap.css" />
-		<link rel="stylesheet" href="assets/css/sitewide.css" />
-		<link rel="stylesheet" href="assets/prism/prism.css" />
-		<link rel="icon" type="image/png" href="/assets/favicon.png" />
-		<link href='http://fonts.googleapis.com/css?family=Roboto:300,400,700' rel='stylesheet' type='text/css'>
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-
 		<style>
+			#hero {
+				width: 100%;
+				height: 450px;
+				background: url(/assets/hero-bg.jpg) left -640px no-repeat;
+			}
+			@media (min-width: 1500px) {
+				/* hero background is now too small, so lets autosize it to cover */
+				#hero { background-position: top left; background-size: cover; }
+			}
+			#hero h1 { text-align: center; color: white; font-size: 54px; padding-top: 155px; margin-top: 0; }
+			#hero h1 span { color: #2D9AE4; }
+			#hero h4 { font-weight: normal; text-align: center; color: white; padding: 75px 10px 0; }
+			@media (min-width: 800px) {
+				#hero h1 { font-size: 70px; }
+				#hero h1, #hero h4 { margin-right: 50px; }
+			}
+
 			pre[class*="language-"] { background: #fff; border: 0; }
 			code[class*="language-"] { color: rgb(60, 64, 68); font-size: 14px }
 			.token.comment, .token.prolog, .token.doctype, .token.cdata { color: #71787C; }
 			.token.selector, .token.attr-name, .token.string, .token.builtin { color: #0DA500; }
 			.token.property, .token.tag, .token.boolean, .token.number, .token.constant, .token.symbol { color: #48B63F; }
 		</style>
+		<link rel="stylesheet" href="assets/bootstrap/css/bootstrap.css" />
+		<link rel="stylesheet" href="assets/css/sitewide.css" />
+		<link rel="stylesheet" href="assets/prism/prism.css" />
+		<link rel="icon" type="image/png" href="/assets/favicon.png" />
+		<link href='http://fonts.googleapis.com/css?family=Roboto:300,400,700' rel='stylesheet' type='text/css'>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
 	</head>
 
 	<body>
