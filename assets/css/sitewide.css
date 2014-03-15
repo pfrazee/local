@@ -56,9 +56,14 @@ h3 { font-size:20px }
 	.container .overview { min-height: 210px; margin-bottom: 200px; }
 	.container .overview > div { width: 33%; float: left; padding: 0; }
 	.container .overview img { width: 128px; }
-	.container .overview > div:nth-child(1) > div { padding: 0 40px 0 0; }
+	.container .overview > div:nth-child(1) > div { padding: 0 20px 0 20px; }
+	.container .overview > div:nth-child(2) > div { padding: 0 20px;  }
+	.container .overview > div:nth-child(3) > div { padding: 0 20px 0 20px; }
+}
+@media (min-width: 940px) {
+	.container .overview > div:nth-child(1) > div { padding: 0 40px 0 10px; }
 	.container .overview > div:nth-child(2) > div { padding: 0 40px;  }
-	.container .overview > div:nth-child(3) > div { padding: 0 0 0 10px; }
+	.container .overview > div:nth-child(3) > div { padding: 0 10px 0 40px; }
 }
 @media (max-width: 1080px) { .container.container-wide { width: 100%; } }
 @media (max-width: 940px) {
