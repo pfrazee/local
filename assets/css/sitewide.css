@@ -13,12 +13,16 @@ h3 { font-size:20px }
 	/* hero background is now too small, so lets autosize it to cover */
 	#hero { background-position: top left; background-size: cover; }
 }
-#hero h1 { text-align: center; color: white; font-size: 70px; padding-top: 155px; margin: 0 50px 0 0; }
+#hero h1 { text-align: center; color: white; font-size: 54px; padding-top: 155px; margin-top: 0; }
 #hero h1 span { color: #2D9AE4; }
-#hero h4 { font-weight: normal; text-align: center; color: white; padding-top: 75px; margin: 0 50px 0 0; }
+#hero h4 { font-weight: normal; text-align: center; color: white; padding: 75px 10px 0; }
+@media (min-width: 800px) {
+	#hero h1 { font-size: 70px; }
+	#hero h1, #hero h4 { margin-right: 50px; }
+}
 
 #nav { background: #1F6CB1; box-shadow: 5px 0px 25px rgba(0,0,0,0.5); width: 100%; text-align: center; }
-#nav ul { font-size: 26px; margin: 0 auto; display: inline-block; padding-right: 50px; }
+#nav ul { font-size: 26px; margin: 0 auto; display: inline-block;  }
 #nav ul li { margin: 0; }
 #nav ul li.active { border-bottom: 3px solid white; }
 #nav ul li:hover { border-bottom: 3px solid white; }
@@ -27,21 +31,40 @@ h3 { font-size:20px }
 #nav #logo { display: none; color: white; font-weight: bold; position: absolute; top: 0; left: 0; font-size: 32px; padding: 20px;}
 #nav #logo span { color: #2D9AE4; }
 .is-sticky #nav #logo { display: block; }
+@media (min-width: 640px) {
+	#nav ul { padding-right: 50px; }
+}
+@media (max-width: 500px) {
+	#nav ul li { display: block; }
+}
 
-.container h3 { font-size: 24px; }
+.container.container-wide { width: 1080px; }
+.container > .row { margin-bottom: 40px; }
+.container h3 { font-size: 24px; line-height: 28px; }
 .container p, .container ul li { font-size: 16px; }
 .container ul li { color: gray; margin-bottom: 12px; padding: 0 2px; }
-.container .intro { margin: 200px 20px; }
-.container .intro td:first-child { width: 125px; }
-.container .intro td:first-child img { width: 100px; }
-.container .overview { margin-bottom: 200px; width: 100%; }
-.container .overview td { vertical-align: top; }
-@media (min-width: 1080px) {
-	.container.container-wide { width: 1080px; }
-	.container .overview td div { width: 300px; margin: 0 auto; }
+.container .intro { margin: 60px 20px 40px; }
+.container .intro img { width: 96px; margin: 0 auto; display: block; }
+.container .overview { width: 100%; margin-bottom: 40px; }
+.container .overview img { display: block; margin: 0 auto; padding-right: 20px; width: 96px; }
+.container .overview > div { padding: 0 20px 20px; }
+@media (min-width: 640px) {
+	.container > .row { margin-bottom: 150px; }
+	.container .intro { margin: 200px 20px; }
+	.container .intro p { padding-top: 40px; }
+	.container .intro img { float: left; margin-right: 20px; width: 128px; }
+	.container .overview { min-height: 210px; margin-bottom: 200px; }
+	.container .overview > div { width: 33%; float: left; padding: 0; }
+	.container .overview img { width: 128px; }
+	.container .overview > div:nth-child(1) > div { padding: 0 40px 0 0; }
+	.container .overview > div:nth-child(2) > div { padding: 0 40px;  }
+	.container .overview > div:nth-child(3) > div { padding: 0 0 0 10px; }
 }
-.container .overview td img { display: block; margin: 0 auto; padding-right: 20px; }
-.container .overview td:nth-child(1) { padding-right: 10px; }
-.container .overview td:nth-child(2) { padding: 0 10px;  }
-.container .overview td:nth-child(3) { padding-left: 10px; }
-.container > .row { margin-bottom: 150px }
+@media (max-width: 1080px) { .container.container-wide { width: 100%; } }
+@media (max-width: 940px) {
+	.container { width: 100%; }
+	.row { margin-left: 0; }
+	.container > .row > div[class*="span"] { margin-left: 0; }
+	.span12, .span6, .span5 { width: 100%; margin: 0; padding: 0; }
+	.span12 > *, .span6 > *, .span5 > * { padding: 0 10px; }
+}
