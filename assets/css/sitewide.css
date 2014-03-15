@@ -8,7 +8,11 @@ h2 { font-size:30px; border-bottom:1px solid gray; font-weight:normal; margin-to
 h3 { font-size:20px }
 
 .centered { text-align: center; }
-#hero { width: 100%; height: 450px; background: linear-gradient(rgba(31, 108, 177, 1), rgba(0, 0, 0, 0.5)), url(/assets/hero-bg.jpg) left -640px no-repeat; }
+#hero {
+	width: 100%;
+	height: 450px;
+	background: url(/assets/hero-bg.jpg) left -640px no-repeat;
+}
 @media (min-width: 1500px) {
 	/* hero background is now too small, so lets autosize it to cover */
 	#hero { background-position: top left; background-size: cover; }
