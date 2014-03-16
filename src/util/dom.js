@@ -269,7 +269,8 @@ function extractRequestPayload(targetElem, form, opts) {
 		if (elem.tagName === 'BUTTON') {
 			if (isSubmittingElem) {
 				// don't pull from buttons unless recently clicked
-				data[elem.name] = elem.value;
+				// data[elem.name] = elem.value;
+				Object.defineProperty(data, elem.name, { configurable: true, enumerable: true, writable: false, value: elem.value });
 			}
 		} else if (elem.tagName === 'INPUT') {
 			switch (elem.type.toLowerCase()) {
