@@ -48,7 +48,7 @@ local.addServer('pipes', function(req, res) {
 // Verify the given URL is a transformer
 function verifyTransformer(url) {
 	return local.HEAD(url).then(function(res) {
-		var selfLink = local.queryLinks(res, { rel: 'self httplocal.com/transformer' })[0];
+		var selfLink = local.queryLinks(res, { rel: 'self stdrel.com/transformer' })[0];
 		if (!selfLink) {
 			throw 'Not a valid transformer';
 		}
