@@ -5,7 +5,7 @@ Local.js 0.6.2
 
 ## Overview
 
-Local.js is an open-source security and IPC framework for socially-shareable Web plugins. It provides an Ajax interface for communicating interchangeably with javascript functions, parallel threads, and network peers. It also includes tools for managing and securing Web Workers, for emitting and subscribing to Server-Sent Events, and for exchanging and querying against links.
+Local.js is a security and IPC framework for open-architecture Web applications. It provides an Ajax interface for communicating interchangeably with javascript functions, parallel threads, and network peers. It also includes tools for managing and securing Web Workers, for emitting and subscribing to Server-Sent Events, and for exchanging and querying against links.
 
 ### Examples
 
