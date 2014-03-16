@@ -186,28 +186,28 @@ function verifyTransformer(url) {
     return selfLink;
   });
 }</code></pre>
-					<p><strong>Let's give it a shot!</strong> Try these URLs: <code>httpl://httplocal.com(/examples/toupper.js)/</code>, <code>httpl://httplocal.com(/examples/slugify.js)/</code>, and <code>httpl://httplocal.com(/examples/charcount.js)/</code>.</p>
-					<div class="row">
-						<div class="span4">
-							<form action="httpl://pipes" method="ADD">
+					<form action="httpl://pipes" method="ADD">
+						<p><strong>Let's give it a shot!</strong> Try these URLs: <code>httpl://httplocal.com(/examples/toupper.js)/</code> <button class="btn btn-mini" name="url" value="httpl://httplocal.com(/examples/toupper.js)/"><strong>+</strong></button> <code>httpl://httplocal.com(/examples/slugify.js)/</code> <button class="btn btn-mini" name="url" value="httpl://httplocal.com(/examples/slugify.js)/"><strong>+</strong></button> and <code>httpl://httplocal.com(/examples/charcount.js)/</code> <button class="btn btn-mini" name="url" value="httpl://httplocal.com(/examples/charcount.js)/"><strong>+</strong></button>.</p>
+						<div class="row">
+							<div class="span4">
 								<p><strong>URL Entry</strong></p>
 								<input class="input-block-level" type="url" name="url" id="url-input">
 								<br>
 								<input class="btn btn-primary" type="submit" value="Add"><br>
 								<p id="pipes-errout" class="help-text text-danger"></p>
-							</form>
-						</div>
-						<div class="span4">
-							<p><strong>Pipeline</strong></p>
-							<div class="well" id="pipes-sequence">
-								<em>No URLs Added</em>
+							</div>
+							<div class="span4">
+								<p><strong>Pipeline</strong></p>
+								<div class="well" id="pipes-sequence">
+									<em>No URLs Added</em>
+								</div>
+							</div>
+							<div class="span4">
+								<p><strong>Input</strong>: "Welcome, my son. Welcome... to the machine."</p>
+								<p><span id="pipes-output"></span></p>
 							</div>
 						</div>
-						<div class="span4">
-							<p><strong>Input</strong>: "Welcome, my son. Welcome... to the machine."</p>
-							<p><span id="pipes-output"></span></p>
-						</div>
-					</div>
+					</form>
 				</div>
 			</div>
 		</div>
