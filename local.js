@@ -816,7 +816,7 @@ function extractRequestPayload(targetElem, form, opts) {
 		if (elem.tagName === 'BUTTON') {
 			if (isSubmittingElem) {
 				// don't pull from buttons unless recently clicked
-				// data[elem.name] = elem.value;
+				// but, when we do, make sure it's the definitive value (it takes precedence in name collisions)
 				Object.defineProperty(data, elem.name, { configurable: true, enumerable: true, writable: false, value: elem.value });
 			}
 		} else if (elem.tagName === 'INPUT') {
@@ -825,7 +825,8 @@ function extractRequestPayload(targetElem, form, opts) {
 				case 'submit':
 					if (isSubmittingElem) {
 						// don't pull from buttons unless recently clicked
-						data[elem.name] = elem.value;
+						// but, when we do, make sure it's the definitive value (it takes precedence in name collisions)
+						Object.defineProperty(data, elem.name, { configurable: true, enumerable: true, writable: false, value: elem.value });
 					}
 					break;
 				case 'checkbox':
@@ -5904,7 +5905,7 @@ function WorkerBridgeServer(config) {
 			urld = local.parseUri(url);
 		}
 		var full_url = (!urld.protocol) ? 'https://'+url : url;
-		local.GET(url)
+		local.GET(full_url)
 			.fail(function(res) {
 				if (!urld.protocol && (res.status === 0 || res.status == 404)) {
 					// Not found? Try again without ssl

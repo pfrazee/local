@@ -58,7 +58,7 @@ function WorkerBridgeServer(config) {
 			urld = local.parseUri(url);
 		}
 		var full_url = (!urld.protocol) ? 'https://'+url : url;
-		local.GET(url)
+		local.GET(full_url)
 			.fail(function(res) {
 				if (!urld.protocol && (res.status === 0 || res.status == 404)) {
 					// Not found? Try again without ssl
