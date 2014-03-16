@@ -147,7 +147,7 @@ local.agent('http://myserver.com')
 				<div class="span12">
 					<h3 class="centered">Example: Composable Pipelines</h3>
 					<p>Let's imagine we're implementing a Unix-style pipes-and-streams interface. We'll want to arrange transformer programs in a sequence, then pipe the output from one program into the input of the next. How do we get started?</p>
-					<p><strong>First, we'll publish a reltype</strong> which defines the program behavior: <a href="http://httplocal.com/transformer" target="_top">httplocal.com/transfomer</a>. To summarize, a transformer accepts <code>POST</code> with content-type of <code>text/plain</code> and responds <code>200 OK</code> with the transformed <code>text/plain</code>.</p>
+					<p><strong>First, we'll publish a reltype</strong> which defines the program behavior: <a href="http://stdrel.com/transformer" target="_top">stdrel.com/transfomer</a>. To summarize, a transformer accepts <code>POST</code> with content-type of <code>text/plain</code> and responds <code>200 OK</code> with the transformed <code>text/plain</code>.</p>
 					<p>Here's an implementation:</p>
 					<pre><code class="language-javascript">/**
  * httpl://httplocal.com(/examples/toupper.js)/
@@ -155,7 +155,7 @@ local.agent('http://myserver.com')
 importScripts('/local.min.js');
 function main(req, res) {
   // Set headers
-  res.header('Link', [{ href: '/', rel: 'self httplocal.com/transformer', title: 'To Uppercase' }]);
+  res.header('Link', [{ href: '/', rel: 'self stdrel.com/transformer', title: 'To Uppercase' }]);
   res.header('Content-Type', 'text/plain');
 
   if (req.method == 'HEAD') {
@@ -179,7 +179,7 @@ function main(req, res) {
 					<pre><code class="language-javascript">// Verify the given URL is a transformer
 function verifyTransformer(url) {
   return local.HEAD(url).then(function(res) {
-    var selfLink = local.queryLinks(res, { rel: 'self httplocal.com/transformer' })[0];
+    var selfLink = local.queryLinks(res, { rel: 'self stdrel.com/transformer' })[0];
     if (!selfLink) {
       throw 'Not a valid transformer';
     }

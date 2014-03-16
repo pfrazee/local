@@ -4,7 +4,7 @@
 importScripts('/local.js');
 function main(req, res) {
 	// Set headers
-	res.header('Link', [{ href: '/', rel: 'self httplocal.com/transformer', id: 'toupper', title: 'To Uppercase' }]);
+	res.header('Link', [{ href: '/', rel: 'self stdrel.com/transformer', id: 'toupper', title: 'To Uppercase' }]);
 	res.header('Content-Type', 'text/plain');
 
 	if (req.method == 'HEAD') {
