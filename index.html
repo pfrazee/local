@@ -113,6 +113,8 @@ local.GET('httpl://myserver.com(/worker.js)/')
     console.log(res.body);
     // => "Hello, other world!"
   });</code></pre>
+					<p><code>httpl://<span class="text-warning">myserver.com</span><span class="text-error">(/worker.js)</span>/</code> <small>Worker URLs add a
+						<span class="text-error">source path</span> to the <span class="text-warning">hostname</span> so their scripts can be automatically found and loaded. This worker script lives at <code>myserver.com/worker.js</code>.</small></p>
 				</div>
 			</div>
 			<div class="row">
