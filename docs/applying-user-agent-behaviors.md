@@ -53,7 +53,7 @@ Another exploitable benefit is in describing GUI interactions. By registering ca
 </form>
 ```
 
-[TodoSOA](https://grimwire.com/todosoa/) uses the TodoMVC application-mold to illustrate some of these techniques.
+[TodoSOA](http://httplocal.com/todosoa/) uses the TodoMVC application-mold to illustrate some of these techniques.
 
 ### Coordinating an IPC architecture
 
@@ -143,7 +143,7 @@ If any navigations fail, the response promise is "rejected" with a status 1, Lin
 
 ### Integrating Web-Workers
 
-With these tools, we've tackled the question of interfacing, but still need to prepare Web Workers to use them. The first matter is message de/serialization, and, while HTTP's native wire format is available, I've opted to use a [json-encoded variant](https://github.com/pfraze/grimwire/wiki/HTTPL%3A-JSON-encoded-message-streams-with-HTTP-semantics) in Local.js for performance reasons, and to introduce multiplexing into the WebWorker `postMessage` channel. The second matter is lifecycle, as workers must be active to handle the request, and the third matter is of naming (assigning URIs). These last two items feed into each other.
+With these tools, we've tackled the question of interfacing, but still need to prepare Web Workers to use them. The first matter is message de/serialization, and, while HTTP's native wire format is available, I've opted to use a [json-encoded variant](#docs/en/0.6.2/httpl.md) in Local.js for performance reasons, and to introduce multiplexing into the WebWorker `postMessage` channel. The second matter is lifecycle, as workers must be active to handle the request, and the third matter is of naming (assigning URIs). These last two items feed into each other.
 
 Local.js' URI scheme, `httpl://`, uses the format HTTP/S, but creates its own hostmap unrelated to DNS. However, `httpl` includes an extension to the authority segment called the "source path," and it is used to construct universal hostnames for workers. It appears as in this example:
 

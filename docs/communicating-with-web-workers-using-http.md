@@ -26,7 +26,7 @@ By instead focusing on the message channel as a novel interface, we gain opportu
 
 Though this concept initially surprises developers, there's no reason for it to cause confusion. The `postMessage` API is used exactly as a TCP socket might be, and, like TCP, it's reliable and guarantees order.
 
-In practice, I've used a JSON-encoded variant of HTTP/1.1 called [Local](https://grimwire.com/local) (or HTTPLocal, HTTPL) in order to take advantage of the browser's native JSON de/serialization performance. It's a very simple format - literally an object with .path, .headers, .method, and so on. The requests are routed by hostname to handler functions.
+In practice, I've used a [JSON-encoded variant of HTTP/1.1](#docs/en/0.6.2/httpl.md) in order to take advantage of the browser's native JSON de/serialization performance. It's a very simple format - literally an object with .path, .headers, .method, and so on. The requests are routed by hostname to handler functions.
 
 Notably, HTTPL differs from HTTP by being full-duplex.
 
