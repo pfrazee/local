@@ -24,8 +24,6 @@ Traditionally, HTTP is viewed as an over-the-network protocol, but its message f
 
 The challenges of Web interoperation are similar to that of process/plugin interop (identify capabilities, discover the interface, reason about remote state) and so the same techniques apply within a single machine. An HTTP-messaging environment implements a local hostmap and routes its requests to functions, peer processes, and across the IP network.
 
-A brief example from a JS implementation of internal HTTP, called [Local.js](https://grimwire.com/local):
-
 ```javascript
 // Add a function to the httpl hostmap
 local.addServer('myhost', function(req, res) {
