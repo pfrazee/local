@@ -1,5 +1,6 @@
 var viewer = document.getElementById('viewer');
 var viewNav = document.getElementById('viewer-nav');
+var documentTitle = document.title;
 
 // Load the markdown conversion worker
 local.spawnWorkerServer('./assets/mdworker.js', { domain: 'mdworker.js' });
@@ -12,7 +13,9 @@ function getContent() {
 	// Update nav higlight
 	var active = viewNav.querySelector('.active');
 	if (active) active.classList.remove('active');
-	viewNav.querySelector('a[href="#'+path+'"]').parentNode.classList.add('active');
+	var anchor = viewNav.querySelector('a[href="#'+path+'"]');
+	anchor.parentNode.classList.add('active');
+	var anchorText = anchor.innerText;
 
 	// Get markdown
 	local.GET(url)
@@ -24,6 +27,7 @@ function getContent() {
 			// Render
 			viewer.innerHTML = res.body;
 			window.scrollTo(0,0);
+			document.title = anchorText + ' - ' + documentTitle;
 			Prism.highlightAll();
 		})
 		.fail(function (res) {
