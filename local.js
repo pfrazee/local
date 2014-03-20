@@ -366,6 +366,24 @@ function any(ps) {
 	});
 }
 
+// takes a function and executes it in a Promise context
+function lift(fn) {
+	var newValue;
+	try { newValue = fn(); }
+	catch (e) {
+		if (localConfig.logAllExceptions || e instanceof Error) {
+			if (console.error)
+				console.error(e, e.stack);
+			else console.log("Promise exception thrown", e, e.stack);
+		}
+		return promise().reject(e);
+	}
+
+	if (isPromiselike(newValue))
+		return newValue;
+	return promise(newValue);
+}
+
 // promise creator
 // - behaves like a guard, ensuring `v` is a promise
 // - if multiple arguments are given, will provide a promise that encompasses all of them
@@ -391,6 +409,7 @@ module.exports = {
 promise.bundle = bundle;
 promise.all = all;
 promise.any = any;
+promise.lift = lift;
 },{"./config.js":1,"./util":9}],5:[function(require,module,exports){
 // Standard DOM Events
 // ===================
