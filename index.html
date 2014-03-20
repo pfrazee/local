@@ -66,10 +66,8 @@
 			<div class="row">
 				<div class="span5">
 					<h3>Ajax-Everywhere</h3>
-					<!-- <p><strong>Write server functions and send Ajax requests to code within the client.</strong></p> -->
 					<p>Local.js registers the "httpl://" scheme, enabling functions to respond to requests.</p>
 					<ul>
-						<li>Structure page components into loosely-coupled services.</li>
 						<li>Target links and forms at server functions.</li>
 						<li>Run local proxies to your backend that degrade gracefully into offline-mode on a connection-drop.</li>
 						<li>Host scaffold servers to mock behaviors during development.</li>
@@ -93,7 +91,6 @@ local.GET('httpl://hello-world')
 			<div class="row">
 				<div class="span5">
 					<h3>Safe Execution with Worker&nbsp;VMs</h3>
-					<!-- <p><strong>Load new server functions into contained Worker threads by simply issuing requests to their URLs.</strong></p> -->
 					<p>Local.js uses a special hostname-format to find server scripts and load them automatically on a request. The Worker is destroyed as soon as it responds.</p>
 					<ul>
 						<li>Execute code from any domain with the protection of multi-threaded Virtual Machines.</li>
@@ -120,9 +117,8 @@ local.GET('httpl://myserver.com(/worker.js)/')
 			</div>
 			<div class="row">
 				<div class="span5">
-					<h3>Semantic API Queries</h3>
-					<!-- <p><strong>Run queries against typed links to discover and reason about new services.</strong></p> -->
-					<p>Navigate the Web graph with a headless user-agent, discovering supported APIs through typed links.</p>
+					<h3>API Queries</h3>
+					<p>Find endpoints by fetching Link headers and querying against the received indexes.</p>
 					<ul>
 						<li>Built with accepted standards (<a href="http://tools.ietf.org/html/rfc5988">the Link header</a> and <a href="http://tools.ietf.org/html/rfc6570">URI templates</a>).</li>
 						<li>Reason about endpoints without <a href="http://en.wikipedia.org/wiki/Web_Services_Description_Language">complex IDLs</a>.</li>
