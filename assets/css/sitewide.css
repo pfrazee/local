@@ -33,25 +33,11 @@ h3 { font-size:20px }
 .container ul li { color: gray; margin-bottom: 12px; padding: 0 2px; }
 .container .intro { margin: 60px 20px 40px; }
 .container .intro img { width: 96px; margin: 0 auto; display: block; }
-.container .overview { width: 100%; margin-bottom: 40px; }
-.container .overview img { display: block; margin: 0 auto; padding-right: 20px; width: 96px; }
-.container .overview > div { padding: 0 20px 20px; }
 @media (min-width: 640px) {
-	.container > .row { margin-bottom: 150px; }
-	.container .intro { margin: 200px 20px; }
+	.container > .row { margin-bottom: 100px; }
+	.container .intro { margin: 100px 20px; }
 	.container .intro p { padding-top: 40px; }
 	.container .intro img { float: left; margin-right: 20px; width: 128px; }
-	.container .overview { min-height: 210px; margin-bottom: 200px; }
-	.container .overview > div { width: 33%; float: left; padding: 0; }
-	.container .overview img { width: 128px; }
-	.container .overview > div:nth-child(1) > div { padding: 0 20px 0 20px; }
-	.container .overview > div:nth-child(2) > div { padding: 0 20px;  }
-	.container .overview > div:nth-child(3) > div { padding: 0 20px 0 20px; }
-}
-@media (min-width: 940px) {
-	.container .overview > div:nth-child(1) > div { padding: 0 40px 0 10px; }
-	.container .overview > div:nth-child(2) > div { padding: 0 40px;  }
-	.container .overview > div:nth-child(3) > div { padding: 0 10px 0 40px; }
 }
 @media (max-width: 1080px) { .container.container-wide { width: 100%; } }
 @media (max-width: 940px) {

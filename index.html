@@ -48,18 +48,19 @@
 
 		<div class="container">
 			<div class="intro">
-				<img src="assets/icon-idea.png">
-				<p>Imagine if a <strong>Web&nbsp;application</strong> were more like your <strong>operating&nbsp;system.</strong> You could run programs that add features, choose where your data goes, and share your changes with other users.</p>
+				<img src="assets/icon-download.png">
+				<p><strong>On-Demand Worker-services.</strong> Send Ajax requests to Javascript files on the Web: Local.js loads them into Web Workers to generate a response, then destroys the Workers to preserve resources.</p>
+			</div>
+			<div class="intro">
+				<img src="assets/icon-network.png">
+				<p><strong>Application as a Services Architecture.</strong> Decouple the application into Page, Worker, and Web services, and enable users to add new services at runtime.</p>
+			</div>
+			<div class="intro">
+				<img src="assets/icon-link.png">
+				<p><strong>Web Types System.</strong> Using the Web's existing standards, exchange and search through typed links to automate configuration.</p>
 			</div>
 		</div>
-
-		<div class="container container-wide">
-			<div class="overview">
-				<div><div><img src="assets/icon-network.png"><p>Inspired by Unix's files, <a href="https://github.com/pfraze/local">Local.js</a> uses HTTP as a universal <a href="http://en.wikipedia.org/wiki/Inter-process_communication">IPC</a> interface for remote and local code.</p></div></div>
-				<div><div><img src="assets/icon-download.png"><p>Server scripts are assigned URLs and loaded into Web Workers on-demand &ndash; just like pages are loaded into the browser as you navigate.</p></div></div>
-				<div><div><img src="assets/icon-link.png"><p>Using two-way messaging and typed links, the plug-in servers add new behaviors to the application.</p></div></div>
-			</div>
-		</div>
+		<br><br>
 
 		<div class="container">
 			<div class="row">
@@ -97,7 +98,7 @@ local.GET('httpl://hello-world')
 					<ul>
 						<li>Execute code from any domain with the protection of multi-threaded Virtual Machines.</li>
 						<li>Contain data safely on the client - Workers can only talk to the page.</li>
-						<li>Enact or discard requests from Workers by applying a permissions model.</li>
+						<li>Send requests from the Worker to the Page, then enact or discard by applying permissions.</li>
 					</ul>
 				</div>
 				<div class="span6 offset1">
