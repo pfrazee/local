@@ -35,6 +35,7 @@ h3 { font-size:20px }
 .container .intro img { width: 96px; margin: 0 auto; display: block; }
 #footer-wrapper-helper { min-height: 100%; height: auto !important; height: 100%; margin: 0 auto -60px; }
 #footer-wrapper-push, #footer { height: 60px; }
+#footer { clear: both; }
 #footer hr { margin-top: 0; }
 #footer ul { text-align: center; }
 @media (min-width: 640px) {

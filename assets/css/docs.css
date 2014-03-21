@@ -1,5 +1,5 @@
 pre { min-width: 640px; }
-#viewer-nav { width: 190px; float: left; margin-left: 25px; }
+#viewer-nav { width: 190px; float: left; margin-left: 25px; padding-bottom: 20px; }
 #viewer { margin: 30px 20px 0 280px; max-width: 960px; }
 #viewer:empty { background: center 200px no-repeat url(../ajax_spinner.gif); min-height: 300px; }
 @media (max-width: 940px) { #nav #logo { position: relative; } }
