@@ -145,7 +145,7 @@
 				<hr>
 				<div class="row">
 					<div class="span12">
-						<h3 class="centered">Example: Composable Pipelines</h3>
+						<h3 class="centered" style="padding-right: 40px">Example: Composable Pipelines</h3>
 						<p>Let's imagine we're implementing a Unix-style pipes-and-streams interface. We'll want to arrange transformer programs in a sequence, then pipe the output from one program into the input of the next. How do we get started?</p>
 						<p><strong>First, we'll publish a reltype</strong> which defines the program behavior: <a href="http://stdrel.com/transformer" target="_top">stdrel.com/transfomer</a>. To summarize, a transformer accepts <code>POST</code> with content-type of <code>text/plain</code> and responds <code>200 OK</code> with the transformed <code>text/plain</code>.</p>
 						<p>Here's an implementation:</p>
@@ -208,6 +208,21 @@
 								</div>
 							</div>
 						</form>
+						<hr>
+					</div>
+				</div>
+				<div class="row" style="margin-top: -30px">
+					<div class="span12">
+						<h2 class="">Get Started</h2>
+						<div class="well well-small">
+							<a target="_top" class="btn btn-large btn-primary" href="http://dev.grimwire.com/docs.html">Documentation</a>
+							&nbsp;
+							<a target="_top" class="btn btn-large" href="http://httplocal.com/todosoa">TodoSOA</a>
+							&nbsp;
+							<a target="_top" class="btn btn-large" href="https://github.com/pfraze/servware">Servware Framework</a>
+							&nbsp;
+							<a target="_top" class="btn btn-large" href="http://stdrel.com">STDRel.com</a>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -232,7 +247,7 @@
 		<script src="assets/index.js"></script>
 		<script>
 			$(document).ready(function(){
-				if ($(window).width > 640) {
+				if ($(window).width() > 640) {
 					$("#nav").sticky({topSpacing:0});
 				}
 			});
