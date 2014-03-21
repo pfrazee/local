@@ -13,6 +13,7 @@ var BridgeServer = require('./bridge-server.js');
 // - `config.namespace`: optional string, what should the shared worker be named?
 //   - defaults to `config.src` if undefined
 // - `config.temp`: optional bool, instructs the worker to self-destruct after its finished responding to its requests
+// - `config.onerror`: optional function, set to the worker's onerror callback
 // - `config.log`: optional bool, enables logging of all message traffic
 function WorkerBridgeServer(config) {
 	var self = this;
@@ -101,6 +102,9 @@ function WorkerBridgeServer(config) {
 			self.worker.port.start();
 		} else {
 			self.worker = new Worker(src);
+		}
+		if (typeof config.onerror == 'function') {
+			self.worker.onerror = config.onerror;
 		}
 
 		// Setup the incoming message handler
@@ -212,7 +216,8 @@ WorkerBridgeServer.prototype.onWorkerReady = function(message) {
 	this.hasHostPrivileges = message.hostPrivileges;
 	if (this.hasHostPrivileges) {
 		// Send config
-		this.channelSendMsg({ op: 'configure', body: this.config });
+		var cfg = JSON.parse(JSON.stringify(this.config)); // clone to ditch non-transferable objects (functions)
+		this.channelSendMsg({ op: 'configure', body: cfg });
 	}
 	this.isActive = true;
 	this.flushBufferedMessages();
