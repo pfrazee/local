@@ -150,42 +150,42 @@
 						<p><strong>First, we'll publish a reltype</strong> which defines the program behavior: <a href="http://stdrel.com/transformer" target="_top">stdrel.com/transfomer</a>. To summarize, a transformer accepts <code>POST</code> with content-type of <code>text/plain</code> and responds <code>200 OK</code> with the transformed <code>text/plain</code>.</p>
 						<p>Here's an implementation:</p>
 						<pre><code class="language-javascript">/**
-	 * httpl://httplocal.com(/examples/toupper.js)/
-	 */
-	importScripts('/local.min.js');
-	function main(req, res) {
-	  // Set headers
-	  res.header('Link', [{ href: '/', rel: 'self stdrel.com/transformer', title: 'To Uppercase' }]);
-	  res.header('Content-Type', 'text/plain');
+ * httpl://httplocal.com(/examples/toupper.js)/
+ */
+importScripts('/local.min.js');
+function main(req, res) {
+  // Set headers
+  res.header('Link', [{ href: '/', rel: 'self stdrel.com/transformer', title: 'To Uppercase' }]);
+  res.header('Content-Type', 'text/plain');
 
-	  if (req.method == 'HEAD') {
-	    // Respond with headers only
-	    res.writeHead(204, 'OK, no content').end();
-	    return;
-	  }
+  if (req.method == 'HEAD') {
+    // Respond with headers only
+    res.writeHead(204, 'OK, no content').end();
+    return;
+  }
 
-	  if (req.method == 'POST') {
-	    // Apply transformation
-	    res.writeHead(200, 'OK'); // because HTTPL is full-duplex, we can respond while the request is streaming
-	    req.on('data', function(chunk) { res.write(chunk.toUpperCase()); });
-	    req.on('end',  function()      { res.end(); });
-	    return;
-	  }
+  if (req.method == 'POST') {
+    // Apply transformation
+    res.writeHead(200, 'OK'); // because HTTPL is full-duplex, we can respond while the request is streaming
+    req.on('data', function(chunk) { res.write(chunk.toUpperCase()); });
+    req.on('end',  function()      { res.end(); });
+    return;
+  }
 
-	  // Invalid method
-	  res.writeHead(405, 'Bad Method').end();
-	}</code></pre>
-						<p><strong>Next, we'll create the client.</strong> Our pipeline-creator will take URLs and send HEAD requests in order to check the <code>self</code> link. If the self-link asserts that the URL is a transformer, we add the URL to our sequence. To execute the sequence, we'll open <code>POST</code> requests to each entry, passing along the responses.</p>
-						<pre><code class="language-javascript">// Verify the given URL is a transformer
-	function verifyTransformer(url) {
-	  return local.HEAD(url).then(function(res) {
-	    var selfLink = local.queryLinks(res, { rel: 'self stdrel.com/transformer' })[0];
-	    if (!selfLink) {
-	      throw 'Not a valid transformer';
-	    }
-	    return selfLink;
-	  });
-	}</code></pre>
+  // Invalid method
+  res.writeHead(405, 'Bad Method').end();
+}</code></pre>
+					<p><strong>Next, we'll create the client.</strong> Our pipeline-creator will take URLs and send HEAD requests in order to check the <code>self</code> link. If the self-link asserts that the URL is a transformer, we add the URL to our sequence. To execute the sequence, we'll open <code>POST</code> requests to each entry, passing along the responses.</p>
+					<pre><code class="language-javascript">// Verify the given URL is a transformer
+function verifyTransformer(url) {
+  return local.HEAD(url).then(function(res) {
+    var selfLink = local.queryLinks(res, { rel: 'self stdrel.com/transformer' })[0];
+    if (!selfLink) {
+      throw 'Not a valid transformer';
+    }
+    return selfLink;
+  });
+}</code></pre>
 						<form action="httpl://pipes" method="ADD">
 							<p><strong>Let's give it a shot!</strong> Try these URLs: <code>httpl://httplocal.com(/examples/toupper.js)/</code> <button class="btn btn-mini" name="url" value="httpl://httplocal.com(/examples/toupper.js)/"><strong>+</strong></button> <code>httpl://httplocal.com(/examples/slugify.js)/</code> <button class="btn btn-mini" name="url" value="httpl://httplocal.com(/examples/slugify.js)/"><strong>+</strong></button> and <code>httpl://httplocal.com(/examples/charcount.js)/</code> <button class="btn btn-mini" name="url" value="httpl://httplocal.com(/examples/charcount.js)/"><strong>+</strong></button>.</p>
 							<div class="row">
