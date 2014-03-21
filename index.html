@@ -76,42 +76,43 @@
 					</div>
 					<div class="span6 offset1">
 						<pre><code class="language-javascript">// Register a new server in the local hostmap
-	local.addServer('hello-world', function(req, res) {
-	  res.writeHead(200, 'OK');
-	  res.end('Hello, world!');
-	}
+local.addServer('hello-world', function(req, res) {
+  res.writeHead(200, 'OK');
+  res.end('Hello, world!');
+}
 
-	// Dispatch an ajax request to that function
-	local.GET('httpl://hello-world')
-	  .then(function(res) {
-	    console.log(res.body);
-	    // => 'Hello, world!'
-	  });</code></pre>
+// Dispatch an ajax request to that function
+local.GET('httpl://hello-world')
+  .then(function(res) {
+    console.log(res.body);
+    // => 'Hello, world!'
+  });</code></pre>
 					</div>
 				</div>
 				<div class="row">
 					<div class="span5">
 						<h3>Safe Execution with Worker&nbsp;VMs</h3>
-						<p>Local.js uses a special hostname-format to find server scripts and load them automatically on a request. The Worker is destroyed as soon as it responds.</p>
+						<p>Local.js uses a bootstrap script to disable XHR, WebSockets, Sub-workers, and any other external-interfacing API except postMessage*.</p>
 						<ul>
 							<li>Execute code from any domain with the protection of multi-threaded Virtual Machines.</li>
 							<li>Contain data safely on the client - Workers can only talk to the page.</li>
 							<li>Send requests from the Worker to the Page, then enact or discard by applying permissions.</li>
 						</ul>
+						<p><small>*The exception is <code>importScripts</code>, which is disabled after init, before messages are exchanged.</small></p>
 					</div>
 					<div class="span6 offset1">
 						<pre><code class="language-javascript">// http://myserver.com/worker.js
-	function main(req, res) {
-	  res.writeHead(200, 'OK');
-	  res.end('Hello, other world!');
-	}
+function main(req, res) {
+  res.writeHead(200, 'OK');
+  res.end('Hello, other world!');
+}
 
-	// The page:
-	local.GET('httpl://myserver.com(/worker.js)/')
-	  .then(function(res) {
-	    console.log(res.body);
-	    // => "Hello, other world!"
-	  });</code></pre>
+// The page:
+local.GET('httpl://myserver.com(/worker.js)/')
+  .then(function(res) {
+    console.log(res.body);
+    // => "Hello, other world!"
+  });</code></pre>
 						<p><code>httpl://<span class="text-warning">myserver.com</span><span class="text-error">(/worker.js)</span>/</code> <small>Worker URLs add a
 							<span class="text-error">source path</span> to the <span class="text-warning">hostname</span> so their scripts can be automatically found and loaded. This worker script lives at <code>myserver.com/worker.js</code>.</small></p>
 					</div>
@@ -128,25 +129,93 @@
 					</div>
 					<div class="span6 offset1">
 						<pre><code class="language-javascript">// Get the Bob user
-	local.agent('http://myserver.com')
-	  .follow({ rel: 'collection', id: 'users' })
-	  .follow({ rel: 'schema.org/Person', id: 'bob' })
-	  .GET()
-	  .then(function(res) {
-	    console.log(res.body);
-	    /* => {
-	      name: "Bob Robertson",
-	      description: "Project lead",
-	      ...
-	    } */
-	  });</code></pre>
+local.agent('http://myserver.com')
+  .follow({ rel: 'collection', id: 'users' })
+  .follow({ rel: 'schema.org/Person', id: 'bob' })
+  .GET()
+  .then(function(res) {
+    console.log(res.body);
+    /* => {
+      name: "Bob Robertson",
+      description: "Project lead",
+      ...
+    } */
+  });</code></pre>
 					</div>
 				</div>
 				<hr>
 				<div class="row">
 					<div class="span12">
-						<h3 class="centered" style="padding-right: 40px">Example: Composable Pipelines</h3>
-						<p>Let's imagine we're implementing a Unix-style pipes-and-streams interface. We'll want to arrange transformer programs in a sequence, then pipe the output from one program into the input of the next. How do we get started?</p>
+						<h3 class="centered" style="padding-right: 40px">Example 1: User Templates</h3>
+						<p>Imagine we're building a user-extensible social network. We'll want to let users render their own profiles, so why not use a Worker?</p>
+						<div class="row">
+							<div class="span6">
+								<form method="POST" action="httpl://album-manager">
+									<textarea style="width: 100%"; rows="20" name="src">importScripts('/local.min.js');
+function main(req, res) {
+  // Set headers
+  res.header('Link', [{ href: '/', rel: 'self', title: 'My Renderer' }]);
+  res.header('Content-Type', 'text/html');
+
+  if (req.method == 'HEAD') {
+    // Respond with headers only
+    res.writeHead(204, 'OK, no content').end();
+    return;
+  }
+
+  if (req.method == 'POST') {
+    // Validate
+    if (req.header('Content-Type') != 'application/json') {
+      return res.writeHead(415, 'Bad Type').end();
+    }
+    // Render
+    req.on('end', function() {
+      res.writeHead(200, 'OK');
+      res.end([
+        '<img class="thumbnail pull-left" src="'+req.body.image+'" style="margin: 5px">',
+        '<h4>'+req.body.name+'</h4>',
+        '<p>'+req.body.description+'</p>'
+      ].join(''));
+    });
+    return;
+  }
+
+  // Invalid method
+  res.writeHead(405, 'Bad Method').end();
+}</textarea>
+									<input class="btn btn-primary" type="submit" value="Render">
+								</form>
+							</div>
+							<div class="span6" id="album-out"></div>
+						</div>
+						<p>Scripts like this can be uploaded to your service's database or hosted by users on the Web. Because the script's only job is to convert JSON to HTML, well restrict it from sending any requests: all it can do is accept a render request and respond with HTML. (You should also use <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe">iframe sandboxes</a> and <a href="https://developer.mozilla.org/en-US/docs/Security/CSP">Content-Security Policies</a> to make sure the HTML is safe to render.)</p>
+                        <p>For reference, here's how that renderer is executed:</p>
+						<pre><code class="language-javascript">var src = 'data:application/javascript;base64,'+btoa(req.body.src);
+var renderer = local.spawnWorkerServer(src, {
+  domain: 'album-renderer',
+  temp: true, // close after all requests are handled
+  onerror: function() {
+    renderer.terminate();
+    $('#album-out').html('There was an error running the script.');
+  }
+});
+local.POST(albumDesc, 'httpl://album-renderer')
+  .then(function(res2) {
+    $('#album-out').html(res2.body);
+    res.writeHead(204).end();
+  })
+  .fail(function(res) {
+    console.error(res);
+    res.writeHead(400).end();
+  });
+  </code></pre>
+					</div>
+				</div>
+				<hr>
+				<div class="row">
+					<div class="span12">
+						<h3 class="centered" style="padding-right: 40px">Example 2: Composable Pipelines</h3>
+						<p>Imagine we're implementing a Unix-style pipes-and-streams interface. We'll want to arrange transformer programs in a sequence, then pipe the output from one program into the input of the next. How do we get started?</p>
 						<p><strong>First, we'll publish a reltype</strong> which defines the program behavior: <a href="http://stdrel.com/transformer" target="_top">stdrel.com/transfomer</a>. To summarize, a transformer accepts <code>POST</code> with content-type of <code>text/plain</code> and responds <code>200 OK</code> with the transformed <code>text/plain</code>.</p>
 						<p>Here's an implementation:</p>
 						<pre><code class="language-javascript">/**

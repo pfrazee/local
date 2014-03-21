@@ -15,6 +15,31 @@ document.body.addEventListener('request', function(e) {
 	local.dispatch(e.detail);
 });
 
+// User album rendering
+var albumDesc = { name: 'Wish You Were Here', image: '/assets/album.png', description: 'Breathe, breathe in the air. Don\'t be afraid to care. Leave but don\'t leave me. Look around and chose your own ground.' };
+local.addServer('album-manager', function(req, res) {
+	req.on('end', function() {
+		var src = 'data:application/javascript;base64,'+btoa(req.body.src);
+		var renderer = local.spawnWorkerServer(src, {
+			domain: 'album-renderer',
+			temp: true, // close after all requests are handled
+			onerror: function() {
+				renderer.terminate();
+				$('#album-out').html('<strong class="text-error">There was an error running the script. Check the console for syntax errors and try again.</strong>');
+			}
+		});
+		local.POST(albumDesc, 'httpl://album-renderer')
+			.then(function(res2) {
+				$('#album-out').html(res2.body);
+				res.writeHead(204).end();
+			})
+			.fail(function(res) {
+				console.error(res);
+				res.writeHead(400).end();
+			});
+	});
+});
+
 // Pipes server
 var pipesLinks = [];
 local.addServer('pipes', function(req, res) {
