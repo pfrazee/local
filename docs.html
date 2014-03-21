@@ -14,75 +14,86 @@
 	</head>
 
 	<body>
-		<div id="nav">
-			<div id="logo" style="display: block">Local.js</div>
-			<ul class="inline"><li><a target="_top" href="/">Home</a></li><li class="active"><a target="_top" href="/docs.html">Documentation</a></li><li><a target="_top" href="https://github.com/pfraze/local">Repo</a></li></ul>
-		</div>
+		<div id="footer-wrapper-helper">
+			<div id="nav">
+				<div id="logo" style="display: block">Local.js</div>
+				<ul class="inline"><li><a target="_top" href="/">Home</a></li><li class="active"><a target="_top" href="/docs.html">Documentation</a></li><li><a target="_top" href="https://github.com/pfraze/local">Repo</a></li></ul>
+			</div>
 
-		<ul id="viewer-nav" class="nav nav-list">
-			<li>&nbsp;</li>
-			<li><strong style="color: gray">Documentation</strong></li>
-			<li class="divider"></li>
-			<li><a href="#README.md">README</a></li>
-			<li><a href="#docs/en/0.6.2/todosoa.md">TodoSOA</a></li>
-			<li><a href="#docs/en/0.6.2/example_mdviewer.md">A Short Example</a></li>
-			<li><a href="#docs/en/0.6.2/httpl.md">HTTPL</a></li>
-			<li><a href="#docs/en/0.6.2/linkheader.md">Link Header</a></li>
-			<li class="divider"></li>
-			<li>&nbsp;</li>
-			<li><strong style="color: gray">Articles</strong></li>
-			<li class="divider"></li>
-			<li><a href="#docs/in-application-sandboxing-with-web-workers.md">In-Application Sandboxing with Web Workers</a></li>
-			<li><a href="#docs/communicating-with-web-workers-using-http.md">Communicating with Web Workers using HTTP</a></li>
-			<li><a href="#docs/applying-user-agent-behaviors.md">Applying User-Agent Behaviors in Applications</a></li>
-			<li class="divider"></li>
-			<li>&nbsp;</li>
-			<li><strong style="color: gray">See Also</strong></li>
-			<li class="divider"></li>
-			<li><a href="https://github.com/pfraze/servware" target="_blank">Servware Framework</a></li>
-			<li><a href="http://stdrel.com" target="_blank">stdrel.com - Web Protocol Reltypes Library</a></li>
-			<li><a href="http://schema.org/docs/full.html" target="_blank">schema.org - Web Schema Reltypes Library</a></li>
-			<li class="divider"></li>
-			<li>&nbsp;</li>
-			<li><strong style="color: gray">API Reference</strong></li>
-			<li class="divider"></li>
-			<li class="nav-header">Utils</li>
-			<li><a href="#docs/en/0.6.2/api/promises.md">Promises</a></li>
-			<li><a href="#docs/en/0.6.2/api/eventemitter.md">EventEmitter</a></li>
-			<li><a href="#docs/en/0.6.2/api/setdispatchwrapper.md">setDispatchWrapper()</a></li>
-			<li><a href="#docs/en/0.6.2/api/bindrequestevents.md">bindRequestEvents()</a></li>
-			<li class="divider"></li>
-			<li class="nav-header">Web API</li>
-			<li><a href="#docs/en/0.6.2/api/dispatch.md">dispatch()</a></li>
-			<li><a href="#docs/en/0.6.2/api/subscribe.md">subscribe()</a></li>
-			<li><a href="#docs/en/0.6.2/api/agent.md">agent()</a></li>
-			<li><a href="#docs/en/0.6.2/managing_servers.md">Managing Servers</a></li>
-			<li><a href="#docs/en/0.6.2/navscheme.md">nav:|| URIs</a></li>
-			<li><a href="#docs/en/0.6.2/hosts.md">httpl://hosts</a></li>
-			<li class="divider"></li>
-			<li class="nav-header">Objects</li>
-			<li><a href="#docs/en/0.6.2/api/request.md">Request</a></li>
-			<li><a href="#docs/en/0.6.2/api/response.md">Response</a></li>
-			<li><a href="#docs/en/0.6.2/api/server.md">Server</a></li>
-			<li><a href="#docs/en/0.6.2/api/bridgeserver.md">BridgeServer</a></li>
-			<li><a href="#docs/en/0.6.2/api/workerbridgeserver.md">WorkerBridgeServer</a></li>
-			<li><a href="#docs/en/0.6.2/api/eventstream.md">EventStream</a></li>
-			<li><a href="#docs/en/0.6.2/api/eventhost.md">EventHost</a></li>
-			<li class="divider"></li>
-			<li class="nav-header">Web Helpers</li>
-			<li><a href="#docs/en/0.6.2/api/pipe.md">pipe()</a></li>
-			<li><a href="#docs/en/0.6.2/api/querylinks.md">queryLinks()</a></li>
-			<li><a href="#docs/en/0.6.2/api/preferredtypes.md">preferredTypes()</a></li>
-			<li><a href="#docs/en/0.6.2/api/contenttypes.md">contentTypes</a></li>
-			<li><a href="#docs/en/0.6.2/api/httpheaders.md">httpHeaders</a></li>
-			<li><a href="#docs/en/0.6.2/api/uri_helpers.md">URI Helpers</a></li>
-			<li><a href="#docs/en/0.6.2/api/patchxhr.md">patchXHR()</a></li>
-			<li class="divider"></li>
-			<li class="nav-header">Workers</li>
-			<li><a href="#docs/en/0.6.2/api/worker.md">local.worker</a></li>
-			<li><a href="#docs/en/0.6.2/api/pageserver.md">PageServer</a></li>
-		</ul>
-		<div id="viewer"></div>
+			<ul id="viewer-nav" class="nav nav-list">
+				<li>&nbsp;</li>
+				<li><strong style="color: gray">Documentation</strong></li>
+				<li class="divider"></li>
+				<li><a href="#README.md">README</a></li>
+				<li><a href="#docs/en/0.6.2/todosoa.md">TodoSOA</a></li>
+				<li><a href="#docs/en/0.6.2/example_mdviewer.md">A Short Example</a></li>
+				<li><a href="#docs/en/0.6.2/httpl.md">HTTPL</a></li>
+				<li><a href="#docs/en/0.6.2/linkheader.md">Link Header</a></li>
+				<li class="divider"></li>
+				<li>&nbsp;</li>
+				<li><strong style="color: gray">Articles</strong></li>
+				<li class="divider"></li>
+				<li><a href="#docs/in-application-sandboxing-with-web-workers.md">In-Application Sandboxing with Web Workers</a></li>
+				<li><a href="#docs/communicating-with-web-workers-using-http.md">Communicating with Web Workers using HTTP</a></li>
+				<li><a href="#docs/applying-user-agent-behaviors.md">Applying User-Agent Behaviors in Applications</a></li>
+				<li class="divider"></li>
+				<li>&nbsp;</li>
+				<li><strong style="color: gray">See Also</strong></li>
+				<li class="divider"></li>
+				<li><a href="https://github.com/pfraze/servware" target="_blank">Servware Framework</a></li>
+				<li><a href="http://stdrel.com" target="_blank">stdrel.com - Web Protocol Reltypes Library</a></li>
+				<li><a href="http://schema.org/docs/full.html" target="_blank">schema.org - Web Schema Reltypes Library</a></li>
+				<li class="divider"></li>
+				<li>&nbsp;</li>
+				<li><strong style="color: gray">API Reference</strong></li>
+				<li class="divider"></li>
+				<li class="nav-header">Utils</li>
+				<li><a href="#docs/en/0.6.2/api/promises.md">Promises</a></li>
+				<li><a href="#docs/en/0.6.2/api/eventemitter.md">EventEmitter</a></li>
+				<li><a href="#docs/en/0.6.2/api/setdispatchwrapper.md">setDispatchWrapper()</a></li>
+				<li><a href="#docs/en/0.6.2/api/bindrequestevents.md">bindRequestEvents()</a></li>
+				<li class="divider"></li>
+				<li class="nav-header">Web API</li>
+				<li><a href="#docs/en/0.6.2/api/dispatch.md">dispatch()</a></li>
+				<li><a href="#docs/en/0.6.2/api/subscribe.md">subscribe()</a></li>
+				<li><a href="#docs/en/0.6.2/api/agent.md">agent()</a></li>
+				<li><a href="#docs/en/0.6.2/managing_servers.md">Managing Servers</a></li>
+				<li><a href="#docs/en/0.6.2/navscheme.md">nav:|| URIs</a></li>
+				<li><a href="#docs/en/0.6.2/hosts.md">httpl://hosts</a></li>
+				<li class="divider"></li>
+				<li class="nav-header">Objects</li>
+				<li><a href="#docs/en/0.6.2/api/request.md">Request</a></li>
+				<li><a href="#docs/en/0.6.2/api/response.md">Response</a></li>
+				<li><a href="#docs/en/0.6.2/api/server.md">Server</a></li>
+				<li><a href="#docs/en/0.6.2/api/bridgeserver.md">BridgeServer</a></li>
+				<li><a href="#docs/en/0.6.2/api/workerbridgeserver.md">WorkerBridgeServer</a></li>
+				<li><a href="#docs/en/0.6.2/api/eventstream.md">EventStream</a></li>
+				<li><a href="#docs/en/0.6.2/api/eventhost.md">EventHost</a></li>
+				<li class="divider"></li>
+				<li class="nav-header">Web Helpers</li>
+				<li><a href="#docs/en/0.6.2/api/pipe.md">pipe()</a></li>
+				<li><a href="#docs/en/0.6.2/api/querylinks.md">queryLinks()</a></li>
+				<li><a href="#docs/en/0.6.2/api/preferredtypes.md">preferredTypes()</a></li>
+				<li><a href="#docs/en/0.6.2/api/contenttypes.md">contentTypes</a></li>
+				<li><a href="#docs/en/0.6.2/api/httpheaders.md">httpHeaders</a></li>
+				<li><a href="#docs/en/0.6.2/api/uri_helpers.md">URI Helpers</a></li>
+				<li><a href="#docs/en/0.6.2/api/patchxhr.md">patchXHR()</a></li>
+				<li class="divider"></li>
+				<li class="nav-header">Workers</li>
+				<li><a href="#docs/en/0.6.2/api/worker.md">local.worker</a></li>
+				<li><a href="#docs/en/0.6.2/api/pageserver.md">PageServer</a></li>
+			</ul>
+			<div id="viewer"></div>
+			<div id="footer-wrapper-push"></div>
+		</div>
+		<div id="footer">
+			<hr>
+			<ul class="inline">
+				<li>Maintained by <a href="https://twitter.com/pfrazee">@pfrazee</a></li>
+				<li>&middot;</li>
+				<li>Submit pull requests at <a href="https://github.com/pfraze/local">GitHub</a></li>
+			</ul>
+		</div>
 
 		<!-- third-party -->
 		<script src="assets/prism/prism.js"></script>

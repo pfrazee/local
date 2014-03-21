@@ -37,178 +37,189 @@
 	</head>
 
 	<body>
-		<div id="hero">
-			<h1>Local.js</h1>
-			<h4>An IPC framework for open-architecture Web applications.</h4>
-		</div>
-		<div id="nav">
-			<div id="logo">Local.js</div>
-			<ul class="inline"><li class="active"><a target="_top" href="/">Home</a></li><li><a target="_top" href="/docs.html">Documentation</a></li><li><a target="_top" href="https://github.com/pfraze/local">Repo</a></li></ul>
-		</div>
+		<div id="footer-wrapper-helper">
+			<div id="hero">
+				<h1>Local.js</h1>
+				<h4>An IPC framework for open-architecture Web applications.</h4>
+			</div>
+			<div id="nav">
+				<div id="logo">Local.js</div>
+				<ul class="inline"><li class="active"><a target="_top" href="/">Home</a></li><li><a target="_top" href="/docs.html">Documentation</a></li><li><a target="_top" href="https://github.com/pfraze/local">Repo</a></li></ul>
+			</div>
 
-		<div class="container">
-			<div class="intro">
-				<img src="assets/icon-download.png">
-				<p><strong>On-Demand Worker-services.</strong> Send Ajax requests to Javascript files on the Web: Local.js loads them into Web Workers to generate a response, then destroys the Workers to preserve resources.</p>
-			</div>
-			<div class="intro">
-				<img src="assets/icon-network.png">
-				<p><strong>Application as a Services Architecture.</strong> Decouple the application into Page, Worker, and Web services, and enable users to add new services at runtime.</p>
-			</div>
-			<div class="intro">
-				<img src="assets/icon-link.png">
-				<p><strong>Web Types System.</strong> Using the Web's existing standards, exchange and search through typed links to automate configuration.</p>
-			</div>
-		</div>
-		<br><br>
-
-		<div class="container">
-			<div class="row">
-				<div class="span5">
-					<h3>Ajax-Everywhere</h3>
-					<p>Local.js registers the "httpl://" scheme, enabling functions to respond to requests.</p>
-					<ul>
-						<li>Target links and forms at server functions.</li>
-						<li>Run local proxies to your backend that degrade gracefully into offline-mode on a connection-drop.</li>
-						<li>Host scaffold servers to mock behaviors during development.</li>
-					</ul>
+			<div class="container">
+				<div class="intro">
+					<img src="assets/icon-download.png">
+					<p><strong>On-Demand Worker-services.</strong> Send Ajax requests to Javascript files on the Web: Local.js loads them into Web Workers to generate a response, then destroys the Workers to preserve resources.</p>
 				</div>
-				<div class="span6 offset1">
-					<pre><code class="language-javascript">// Register a new server in the local hostmap
-local.addServer('hello-world', function(req, res) {
-  res.writeHead(200, 'OK');
-  res.end('Hello, world!');
-}
-
-// Dispatch an ajax request to that function
-local.GET('httpl://hello-world')
-  .then(function(res) {
-    console.log(res.body);
-    // => 'Hello, world!'
-  });</code></pre>
+				<div class="intro">
+					<img src="assets/icon-network.png">
+					<p><strong>Application as a Services Architecture.</strong> Decouple the application into Page, Worker, and Web services, and enable users to add new services at runtime.</p>
+				</div>
+				<div class="intro">
+					<img src="assets/icon-link.png">
+					<p><strong>Web Types System.</strong> Using the Web's existing standards, exchange and search through typed links to automate configuration.</p>
 				</div>
 			</div>
-			<div class="row">
-				<div class="span5">
-					<h3>Safe Execution with Worker&nbsp;VMs</h3>
-					<p>Local.js uses a special hostname-format to find server scripts and load them automatically on a request. The Worker is destroyed as soon as it responds.</p>
-					<ul>
-						<li>Execute code from any domain with the protection of multi-threaded Virtual Machines.</li>
-						<li>Contain data safely on the client - Workers can only talk to the page.</li>
-						<li>Send requests from the Worker to the Page, then enact or discard by applying permissions.</li>
-					</ul>
-				</div>
-				<div class="span6 offset1">
-					<pre><code class="language-javascript">// http://myserver.com/worker.js
-function main(req, res) {
-  res.writeHead(200, 'OK');
-  res.end('Hello, other world!');
-}
+			<br><br>
 
-// The page:
-local.GET('httpl://myserver.com(/worker.js)/')
-  .then(function(res) {
-    console.log(res.body);
-    // => "Hello, other world!"
-  });</code></pre>
-					<p><code>httpl://<span class="text-warning">myserver.com</span><span class="text-error">(/worker.js)</span>/</code> <small>Worker URLs add a
-						<span class="text-error">source path</span> to the <span class="text-warning">hostname</span> so their scripts can be automatically found and loaded. This worker script lives at <code>myserver.com/worker.js</code>.</small></p>
-				</div>
-			</div>
-			<div class="row">
-				<div class="span5">
-					<h3>API Queries</h3>
-					<p>Find endpoints by fetching Link headers and querying against the received indexes.</p>
-					<ul>
-						<li>Built with standards (<a href="http://tools.ietf.org/html/rfc5988">the Link header</a> and <a href="http://tools.ietf.org/html/rfc6570">URI templates</a>).</li>
-						<li>Reason about endpoints without <a href="http://en.wikipedia.org/wiki/Web_Services_Description_Language">complex IDLs</a>.</li>
-						<li>Navigate remote servers, local functions, and Worker plugins in a unified graph.</li>
-					</ul>
-				</div>
-				<div class="span6 offset1">
-					<pre><code class="language-javascript">// Get the Bob user
-local.agent('http://myserver.com')
-  .follow({ rel: 'collection', id: 'users' })
-  .follow({ rel: 'schema.org/Person', id: 'bob' })
-  .GET()
-  .then(function(res) {
-    console.log(res.body);
-    /* => {
-      name: "Bob Robertson",
-      description: "Project lead",
-      ...
-    } */
-  });</code></pre>
-				</div>
-			</div>
-			<hr>
-			<div class="row">
-				<div class="span12">
-					<h3 class="centered">Example: Composable Pipelines</h3>
-					<p>Let's imagine we're implementing a Unix-style pipes-and-streams interface. We'll want to arrange transformer programs in a sequence, then pipe the output from one program into the input of the next. How do we get started?</p>
-					<p><strong>First, we'll publish a reltype</strong> which defines the program behavior: <a href="http://stdrel.com/transformer" target="_top">stdrel.com/transfomer</a>. To summarize, a transformer accepts <code>POST</code> with content-type of <code>text/plain</code> and responds <code>200 OK</code> with the transformed <code>text/plain</code>.</p>
-					<p>Here's an implementation:</p>
-					<pre><code class="language-javascript">/**
- * httpl://httplocal.com(/examples/toupper.js)/
- */
-importScripts('/local.min.js');
-function main(req, res) {
-  // Set headers
-  res.header('Link', [{ href: '/', rel: 'self stdrel.com/transformer', title: 'To Uppercase' }]);
-  res.header('Content-Type', 'text/plain');
+			<div class="container">
+				<div class="row">
+					<div class="span5">
+						<h3>Ajax-Everywhere</h3>
+						<p>Local.js registers the "httpl://" scheme, enabling functions to respond to requests.</p>
+						<ul>
+							<li>Target links and forms at server functions.</li>
+							<li>Run local proxies to your backend that degrade gracefully into offline-mode on a connection-drop.</li>
+							<li>Host scaffold servers to mock behaviors during development.</li>
+						</ul>
+					</div>
+					<div class="span6 offset1">
+						<pre><code class="language-javascript">// Register a new server in the local hostmap
+	local.addServer('hello-world', function(req, res) {
+	  res.writeHead(200, 'OK');
+	  res.end('Hello, world!');
+	}
 
-  if (req.method == 'HEAD') {
-    // Respond with headers only
-    res.writeHead(204, 'OK, no content').end();
-    return;
-  }
+	// Dispatch an ajax request to that function
+	local.GET('httpl://hello-world')
+	  .then(function(res) {
+	    console.log(res.body);
+	    // => 'Hello, world!'
+	  });</code></pre>
+					</div>
+				</div>
+				<div class="row">
+					<div class="span5">
+						<h3>Safe Execution with Worker&nbsp;VMs</h3>
+						<p>Local.js uses a special hostname-format to find server scripts and load them automatically on a request. The Worker is destroyed as soon as it responds.</p>
+						<ul>
+							<li>Execute code from any domain with the protection of multi-threaded Virtual Machines.</li>
+							<li>Contain data safely on the client - Workers can only talk to the page.</li>
+							<li>Send requests from the Worker to the Page, then enact or discard by applying permissions.</li>
+						</ul>
+					</div>
+					<div class="span6 offset1">
+						<pre><code class="language-javascript">// http://myserver.com/worker.js
+	function main(req, res) {
+	  res.writeHead(200, 'OK');
+	  res.end('Hello, other world!');
+	}
 
-  if (req.method == 'POST') {
-    // Apply transformation
-    res.writeHead(200, 'OK'); // because HTTPL is full-duplex, we can respond while the request is streaming
-    req.on('data', function(chunk) { res.write(chunk.toUpperCase()); });
-    req.on('end',  function()      { res.end(); });
-    return;
-  }
+	// The page:
+	local.GET('httpl://myserver.com(/worker.js)/')
+	  .then(function(res) {
+	    console.log(res.body);
+	    // => "Hello, other world!"
+	  });</code></pre>
+						<p><code>httpl://<span class="text-warning">myserver.com</span><span class="text-error">(/worker.js)</span>/</code> <small>Worker URLs add a
+							<span class="text-error">source path</span> to the <span class="text-warning">hostname</span> so their scripts can be automatically found and loaded. This worker script lives at <code>myserver.com/worker.js</code>.</small></p>
+					</div>
+				</div>
+				<div class="row">
+					<div class="span5">
+						<h3>API Queries</h3>
+						<p>Find endpoints by fetching Link headers and querying against the received indexes.</p>
+						<ul>
+							<li>Built with standards (<a href="http://tools.ietf.org/html/rfc5988">the Link header</a> and <a href="http://tools.ietf.org/html/rfc6570">URI templates</a>).</li>
+							<li>Reason about endpoints without <a href="http://en.wikipedia.org/wiki/Web_Services_Description_Language">complex IDLs</a>.</li>
+							<li>Navigate remote servers, local functions, and Worker plugins in a unified graph.</li>
+						</ul>
+					</div>
+					<div class="span6 offset1">
+						<pre><code class="language-javascript">// Get the Bob user
+	local.agent('http://myserver.com')
+	  .follow({ rel: 'collection', id: 'users' })
+	  .follow({ rel: 'schema.org/Person', id: 'bob' })
+	  .GET()
+	  .then(function(res) {
+	    console.log(res.body);
+	    /* => {
+	      name: "Bob Robertson",
+	      description: "Project lead",
+	      ...
+	    } */
+	  });</code></pre>
+					</div>
+				</div>
+				<hr>
+				<div class="row">
+					<div class="span12">
+						<h3 class="centered">Example: Composable Pipelines</h3>
+						<p>Let's imagine we're implementing a Unix-style pipes-and-streams interface. We'll want to arrange transformer programs in a sequence, then pipe the output from one program into the input of the next. How do we get started?</p>
+						<p><strong>First, we'll publish a reltype</strong> which defines the program behavior: <a href="http://stdrel.com/transformer" target="_top">stdrel.com/transfomer</a>. To summarize, a transformer accepts <code>POST</code> with content-type of <code>text/plain</code> and responds <code>200 OK</code> with the transformed <code>text/plain</code>.</p>
+						<p>Here's an implementation:</p>
+						<pre><code class="language-javascript">/**
+	 * httpl://httplocal.com(/examples/toupper.js)/
+	 */
+	importScripts('/local.min.js');
+	function main(req, res) {
+	  // Set headers
+	  res.header('Link', [{ href: '/', rel: 'self stdrel.com/transformer', title: 'To Uppercase' }]);
+	  res.header('Content-Type', 'text/plain');
 
-  // Invalid method
-  res.writeHead(405, 'Bad Method').end();
-}</code></pre>
-					<p><strong>Next, we'll create the client.</strong> Our pipeline-creator will take URLs and send HEAD requests in order to check the <code>self</code> link. If the self-link asserts that the URL is a transformer, we add the URL to our sequence. To execute the sequence, we'll open <code>POST</code> requests to each entry, passing along the responses.</p>
-					<pre><code class="language-javascript">// Verify the given URL is a transformer
-function verifyTransformer(url) {
-  return local.HEAD(url).then(function(res) {
-    var selfLink = local.queryLinks(res, { rel: 'self stdrel.com/transformer' })[0];
-    if (!selfLink) {
-      throw 'Not a valid transformer';
-    }
-    return selfLink;
-  });
-}</code></pre>
-					<form action="httpl://pipes" method="ADD">
-						<p><strong>Let's give it a shot!</strong> Try these URLs: <code>httpl://httplocal.com(/examples/toupper.js)/</code> <button class="btn btn-mini" name="url" value="httpl://httplocal.com(/examples/toupper.js)/"><strong>+</strong></button> <code>httpl://httplocal.com(/examples/slugify.js)/</code> <button class="btn btn-mini" name="url" value="httpl://httplocal.com(/examples/slugify.js)/"><strong>+</strong></button> and <code>httpl://httplocal.com(/examples/charcount.js)/</code> <button class="btn btn-mini" name="url" value="httpl://httplocal.com(/examples/charcount.js)/"><strong>+</strong></button>.</p>
-						<div class="row">
-							<div class="span4">
-								<p><strong>URL Entry</strong></p>
-								<input class="input-block-level" type="url" name="url" id="url-input">
-								<br>
-								<input class="btn btn-primary" type="submit" value="Add"><br>
-								<p id="pipes-errout" class="help-text text-danger"></p>
-							</div>
-							<div class="span4">
-								<p><strong>Pipeline</strong></p>
-								<div class="well" id="pipes-sequence">
-									<em>No URLs Added</em>
+	  if (req.method == 'HEAD') {
+	    // Respond with headers only
+	    res.writeHead(204, 'OK, no content').end();
+	    return;
+	  }
+
+	  if (req.method == 'POST') {
+	    // Apply transformation
+	    res.writeHead(200, 'OK'); // because HTTPL is full-duplex, we can respond while the request is streaming
+	    req.on('data', function(chunk) { res.write(chunk.toUpperCase()); });
+	    req.on('end',  function()      { res.end(); });
+	    return;
+	  }
+
+	  // Invalid method
+	  res.writeHead(405, 'Bad Method').end();
+	}</code></pre>
+						<p><strong>Next, we'll create the client.</strong> Our pipeline-creator will take URLs and send HEAD requests in order to check the <code>self</code> link. If the self-link asserts that the URL is a transformer, we add the URL to our sequence. To execute the sequence, we'll open <code>POST</code> requests to each entry, passing along the responses.</p>
+						<pre><code class="language-javascript">// Verify the given URL is a transformer
+	function verifyTransformer(url) {
+	  return local.HEAD(url).then(function(res) {
+	    var selfLink = local.queryLinks(res, { rel: 'self stdrel.com/transformer' })[0];
+	    if (!selfLink) {
+	      throw 'Not a valid transformer';
+	    }
+	    return selfLink;
+	  });
+	}</code></pre>
+						<form action="httpl://pipes" method="ADD">
+							<p><strong>Let's give it a shot!</strong> Try these URLs: <code>httpl://httplocal.com(/examples/toupper.js)/</code> <button class="btn btn-mini" name="url" value="httpl://httplocal.com(/examples/toupper.js)/"><strong>+</strong></button> <code>httpl://httplocal.com(/examples/slugify.js)/</code> <button class="btn btn-mini" name="url" value="httpl://httplocal.com(/examples/slugify.js)/"><strong>+</strong></button> and <code>httpl://httplocal.com(/examples/charcount.js)/</code> <button class="btn btn-mini" name="url" value="httpl://httplocal.com(/examples/charcount.js)/"><strong>+</strong></button>.</p>
+							<div class="row">
+								<div class="span4">
+									<p><strong>URL Entry</strong></p>
+									<input class="input-block-level" type="url" name="url" id="url-input">
+									<br>
+									<input class="btn btn-primary" type="submit" value="Add"><br>
+									<p id="pipes-errout" class="help-text text-danger"></p>
+								</div>
+								<div class="span4">
+									<p><strong>Pipeline</strong></p>
+									<div class="well" id="pipes-sequence">
+										<em>No URLs Added</em>
+									</div>
+								</div>
+								<div class="span4">
+									<p><strong>Input</strong>: "Welcome, my son. Welcome... to the machine."</p>
+									<p><span id="pipes-output"></span></p>
 								</div>
 							</div>
-							<div class="span4">
-								<p><strong>Input</strong>: "Welcome, my son. Welcome... to the machine."</p>
-								<p><span id="pipes-output"></span></p>
-							</div>
-						</div>
-					</form>
+						</form>
+					</div>
 				</div>
 			</div>
+			<div id="footer-wrapper-push"></div>
+		</div>
+		<div id="footer">
+			<hr>
+			<ul class="inline">
+				<li>Maintained by <a href="https://twitter.com/pfrazee">@pfrazee</a></li>
+				<li>&middot;</li>
+				<li>Submit pull requests at <a href="https://github.com/pfraze/local">GitHub</a></li>
+			</ul>
 		</div>
 
 		<!-- third-party -->
