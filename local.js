@@ -12,6 +12,7 @@ var whitelist = [ // a list of global objects which are allowed in the worker
 ];
 var blacklist = [ // a list of global objects which are not allowed in the worker, and which dont enumerate on `self` for some reason
 	'XMLHttpRequest', 'WebSocket', 'EventSource',
+    'FileReaderSync',
 	'Worker'
 ];
 var whitelistAPIs_src = [ // nullifies all toplevel variables except those listed above in `whitelist`
