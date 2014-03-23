@@ -200,14 +200,8 @@ var renderer = local.spawnWorkerServer(src, {
   }
 });
 local.POST(albumDesc, 'httpl://album-renderer')
-  .then(function(res2) {
-    $('#album-out').html(res2.body);
-    res.writeHead(204).end();
-  })
-  .fail(function(res) {
-    console.error(res);
-    res.writeHead(400).end();
-  });
+  .then(function(res) { $('#album-out').html(res.body); })
+  .fail(function(res) { console.error(res); });
   </code></pre>
 					</div>
 				</div>
