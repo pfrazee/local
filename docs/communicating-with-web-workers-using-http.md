@@ -1,10 +1,12 @@
+<style>strong { color: gray; }</style>
+
 # Communicating with Web-Workers using HTTP
 
 ---
 
 Web Workers interact with their Host Pages using a messaging channel (the `postMessage` API). Crucially for their programming model, the messages are asyncronous. This introduces a significant challenge for implementing Page APIs within a Worker &ndash; for instance, how do you port a GUI widget from the Page (where it can access the DOM) to a Worker, where it can only send async messages?
 
-In my experience, two categories of solutions are suggested: use code-transformations to recreate Page-native APIs in the Worker, or introduce a new interface around messaging. In this gist, I'll explain why code transformations don't address the problem fully, and present a complete messaging solution based on HTTP.
+In my experience, two categories of solutions are suggested: use code-transformations to recreate Page-native APIs in the Worker, or introduce a new interface around messaging. **In this article, I'll explain why code transformations don't address the problem fully, and present a complete messaging solution based on HTTP.**
 
 ### What are the requirements?
 
@@ -18,19 +20,17 @@ The premise behind code transformations is to hide the async messaging behind fu
 
 Workers are especially well-suited for these transformations because they are loaded by application code which can apply the transformation step. Developers no longer have to use 'watch' tools to autocompile; refreshing the page is guaranteed to use the latest script.
 
-However, the transformed calls are going to become messages regardless of how they're presented to the Worker. The most direct solution then is to use some form of serialized RPC which translates directly to functions in the Host Page, not unlike in [Oasis.js](http://oasisjs.com/). However, because memory references can not transfer, the Host Page would be required to hold the non-transferrable objects in memory in order to expose their APIs and state. This introduces complex questions about object lifetime and shared state which are further complicated by inter-Worker calls.
+**However, transformed calls are going to become messages regardless of how they're presented to the Worker.** The most direct solution then is to use some form of serialized RPC which translates directly to functions in the Host Page, not unlike in [Oasis.js](http://oasisjs.com/). However, because memory references can not transfer, the Host Page would be required to hold the non-transferrable objects in memory in order to expose their APIs and state. This introduces complex questions about object lifetime and shared state which are further complicated by inter-Worker calls.
 
-By instead focusing on the message channel as a novel interface, we gain opportunities to introduce [new characteristics](https://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm) into the system. Among these are cacheability, composable Worker pipelines, network abstraction, and hypermedia-based configuration.
+**By instead focusing on the message channel as a novel interface, we gain opportunities to introduce [new characteristics](https://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm) into the system.** Among these are cacheability, composable Worker pipelines, network abstraction, and hypermedia-based configuration.
 
 ### Abstracting Workers as Web servers
 
 Though this concept initially surprises developers, there's no reason for it to cause confusion. The `postMessage` API is used exactly as a TCP socket might be, and, like TCP, it's reliable and guarantees order.
 
-In practice, I've used a [JSON-encoded variant of HTTP/1.1](#docs/en/0.6.2/httpl.md) in order to take advantage of the browser's native JSON de/serialization performance. It's a very simple format - literally an object with .path, .headers, .method, and so on. The requests are routed by hostname to handler functions.
+In practice, I've used a [JSON-encoded variant of HTTP/1.1 called HTTPL](#docs/en/0.6.2/httpl.md) in order to take advantage of the browser's native JSON de/serialization performance. It's a very simple format - literally an object with .path, .headers, .method, and so on. The requests are routed by hostname to handler functions. (Notably, HTTPL differs from HTTP by being full-duplex.)
 
-Notably, HTTPL differs from HTTP by being full-duplex.
-
-Using the Web server model creates an Ajax interface to the Worker which mimics XHR. The Workers are addressed through a new URL scheme (httpl://) and handle the requests using stream APIs similar to those in Node.js.
+**Using the Web server model creates an Ajax interface to the Worker which mimics XHR.** The Workers are addressed through a new URL scheme (httpl://) and handle the requests using stream APIs similar to those in Node.js.
 
 ### Why use HTTP?
 
@@ -60,11 +60,11 @@ Stream composition is a key tool for data processing and system configuration. H
  - Proxy Pipelines: proxies are sent requests for downstream services (for instance, http://myproxy.com/the-downstream.com). Can be expressed with a single URL, but relies on non-universal proxy behaviors, and so can't apply in all cases.
  - Round-trip Pipelines: standard hosts are sent requests with bodies from previous responses in the pipeline. Each step is a full round trip which returns to the client, then streams out to the next host.
 
-In appropriate scenarios, both of these techniques can be used to compose Worker behaviors. Proxies, however, are most commonly used to bridge between environments. For instance, the Page is represented to workers as a proxy to the other services in its local hostmap, including the other Workers and public Web services.
+In appropriate scenarios, both of these techniques can be used to compose Worker behaviors. Proxies, however, are most commonly used to bridge between environments. For instance, the Page acts as a proxy between Workers, and from a Worker to a Public Web Host.
 
 ### Automating Configuration with Hypermedia
 
-Workers must be able to discover and use each others APIs. Past attempts in this area, SOAP and WSDL, became overly complex by attempting to describe interface behaviors. Instead, typed links can be used to succinctly label API endpoints.
+Workers must be able to discover and use each others APIs. Past attempts in this area, eg SOAP/WSDL, became overly complex by attempting to describe interface behaviors. Instead, typed links can be used to succinctly label API endpoints.
 
 The [Link Header Field](http://tools.ietf.org/html/rfc5988#section-5) serializes a list of links which are identical to the HTML `<link>` element (commonly used `<link rel="stylesheet" href="...">`). They are also similar to the links in JSON-HAL. They represent relationships from the current "context" (meaning the URL they were fetched from). The relation type (reltype) encodes expected behaviors, enabling clients to make assumptions about the endpoint. Other metadata KVs (title, id) communicate related details.
 
