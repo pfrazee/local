@@ -6,9 +6,9 @@
 
 For the past fews years, the Web has been shifting control to the client. Given the limitations of remote services, developers are now looking for ways to ["unhost"](https://unhosted.org/) static applications &ndash; that is, break the dependency on remote servers while still using the Web platform.
 
-One new technology for client-side control is the Web Worker VM. This API lets the Page load, execute, and destroy separate "Worker" threads which use their own Virtual Machines. **By hosting behaviors in Worker Sandboxes, applications can relax constraints on script-origins, shifting development from a centralized SaaS model into a distributed and free (as in freedom) script-sharing model.**
+One opportunity, the Web Worker API, lets the Page load, execute, and destroy separate "Worker" threads which use their own Virtual Machines. **In this article, I'm going to propose a new Web plugins architecture which is managed in the application-layer.** By hosting behaviors in Worker Sandboxes, applications can relax constraints on script-origins, shifting development from a centralized SaaS model into a distributed and free (as in freedom) script-sharing model.
 
-This is article is a recommendation from my personal research. It proposes a novel architecture which is still under evaluation, and so should be carefully considered before production use. Updates will be made as issues are identified and resolved.
+This proposal is implemented by Local.js, and is a novel architecture which is still under evaluation, and so should be carefully considered before production use. Updates will be made as issues are identified and resolved.
 
 Note that 0day attacks against the VM are not part of this architecture's threat-model. As these threats are inherent to the Browser, they are considered out of scope. However, in highly security-sensitive applications, more restrictive policies (such as prior auditing of all scripts) can be applied.
 
