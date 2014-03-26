@@ -41,13 +41,9 @@ schemes.register(['http', 'https'], function(request, response) {
 	if (request.query) {
 		var q = contentTypes.serialize('application/x-www-form-urlencoded', request.query);
 		if (q) {
-			if (urld.query) {
-				urld.query    += '&' + q;
-				urld.relative += '&' + q;
-			} else {
-				urld.query     =  q;
-				urld.relative += '?' + q;
-			}
+			if (urld.query) { urld.query += '&' + q; }
+			else            { urld.query = q; }
+			urld.relative = urld.path + '?' + urld.query + ((urld.anchor) ? '#'+urld.anchor : '');
 		}
 	}
 
