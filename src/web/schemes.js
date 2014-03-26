@@ -68,7 +68,13 @@ schemes.register(['http', 'https'], function(request, response) {
 
 	// buffer the body, send on end
 	var body = '';
-	request.on('data', function(data) { body += data; });
+	request.on('data', function(data) {
+		if (typeof data == 'string') {
+			body += data;
+		} else {
+			body = data; // Assume it is an array buffer or some such
+		}
+	});
 	request.on('end', function() { xhrRequest.send(body); });
 
 	// abort on request close

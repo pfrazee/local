@@ -147,7 +147,7 @@ Response.prototype.writeHead = function(status, reason, headers) {
 Response.prototype.write = function(data) {
 	if (!this.isConnOpen)
 		return this;
-	if (typeof data != 'string') {
+	if (typeof data != 'string' && !(data instanceof ArrayBuffer)) {
 		data = contentTypes.serialize(this.headers['content-type'], data);
 	}
 	this.emit('data', data);

@@ -3771,7 +3771,13 @@ function Request(options) {
 		writable: false
 	});
 	(function buffer(self) {
-		self.on('data', function(data) { self.body += data; });
+		self.on('data', function(data) {
+			if (typeof data == 'string') {
+				self.body += data;
+			} else {
+				self.body = data; // Assume it is an array buffer or some such
+			}
+		});
 		self.on('end', function() {
 			if (self.headers['content-type'])
 				self.body = contentTypes.deserialize(self.headers['content-type'], self.body);
@@ -3832,7 +3838,7 @@ Request.prototype.deserializeHeaders = function() {
 Request.prototype.write = function(data) {
 	if (!this.isConnOpen)
 		return this;
-	if (typeof data != 'string')
+	if (typeof data != 'string' && !(data instanceof ArrayBuffer))
 		data = contentTypes.serialize(this.headers['content-type'], data);
 	this.emit('data', data);
 	return this;
@@ -4040,7 +4046,7 @@ Response.prototype.writeHead = function(status, reason, headers) {
 Response.prototype.write = function(data) {
 	if (!this.isConnOpen)
 		return this;
-	if (typeof data != 'string') {
+	if (typeof data != 'string' && !(data instanceof ArrayBuffer)) {
 		data = contentTypes.serialize(this.headers['content-type'], data);
 	}
 	this.emit('data', data);
@@ -4631,7 +4637,13 @@ schemes.register(['http', 'https'], function(request, response) {
 
 	// buffer the body, send on end
 	var body = '';
-	request.on('data', function(data) { body += data; });
+	request.on('data', function(data) {
+		if (typeof data == 'string') {
+			body += data;
+		} else {
+			body = data; // Assume it is an array buffer or some such
+		}
+	});
 	request.on('end', function() { xhrRequest.send(body); });
 
 	// abort on request close
