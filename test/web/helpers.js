@@ -22,6 +22,20 @@ success
 */
 
 
+// extractDocumentLinks
+
+startTime = Date.now();
+print(local.extractDocumentLinks(document, { links: true, anchors: true }));
+finishTest();
+/* =>
+[
+  {href: "doctest/.resources/doc.css", rel: "stylesheet", type: "text/css"},
+  {href: "doctest/doctest.css", rel: "stylesheet", type: "text/css"},
+  {href: "http://doctestjs.org", title: "doctest.js"}
+]
+*/
+
+
 // httpHeaders
 
 startTime = Date.now();
@@ -240,6 +254,8 @@ print(local.queryLinks(links, { rel: 'other.com/-item', q1: true }).length);
 // => 1
 print(local.queryLinks(links, { rel: function(v, k) { return v == 'foo service via' && k == 'rel'; } }).length);
 // => 1
+print(local.queryLinks(document, { rel: 'stylesheet' }).length);
+// => 2
 finishTest();
 
 

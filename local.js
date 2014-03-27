@@ -2264,11 +2264,33 @@ var promise = require('../promises.js').promise;
 var UriTemplate = require('./uri-template.js');
 
 // EXPORTED
+// takes a document and produces link objects for all requested element types
+// - `doc`: Document, usually there's only one anyway
+// - `opts.links`: bool, get <link> elements (default true)
+// - `opts.anchors`: bool, get <a> elements (default false)
+function extractDocumentLinks(doc, opts) {
+	if (!opts) { opts = {}; }
+	if (typeof opts.links == 'undefined') { opts.links = true; }
+
+	var els = [];
+	if (opts.links)   { els = els.concat(Array.prototype.slice.call(doc.querySelectorAll('link'))); }
+	if (opts.anchors) { els = els.concat(Array.prototype.slice.call(doc.querySelectorAll('a'))); }
+	return els.map(function(el) {
+		var link = {};
+		for (var i=0; i < el.attributes.length; i++) {
+			link[el.attributes[i].name] = el.attributes[i].value;
+		}
+		return link;
+	});
+}
+
+// EXPORTED
 // takes parsed a link header and a query object, produces an array of matching links
-// - `links`: [object]/object, either the parsed array of links or the request/response object
+// - `links`: [object]/object/Document, either the parsed array of links, the request/response object, or a Document
 // - `query`: object
 function queryLinks(links, query) {
 	if (!links) return [];
+	if (links instanceof Document) links = extractDocumentLinks(links); // actually the document
 	if (links.parsedHeaders) links = links.parsedHeaders.link; // actually a request or response object
 	if (!Array.isArray(links)) return [];
 	return links.filter(function(link) { return queryLink(link, query); });
@@ -2819,6 +2841,7 @@ function patchXHR() {
 }
 
 module.exports = {
+	extractDocumentLinks: extractDocumentLinks,
 	queryLinks: queryLinks,
 	queryLink: queryLink,
 
