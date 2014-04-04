@@ -1,6 +1,6 @@
 {
   "name": "local",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "author": "Paul Frazee <pfrazee@gmail.com>",
   "description": "Ajax library that implements a client-side variation of HTTP",
   "main": "./local.js",
