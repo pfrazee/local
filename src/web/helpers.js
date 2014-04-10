@@ -6,11 +6,33 @@ var promise = require('../promises.js').promise;
 var UriTemplate = require('./uri-template.js');
 
 // EXPORTED
+// takes a document and produces link objects for all requested element types
+// - `doc`: Document, usually there's only one anyway
+// - `opts.links`: bool, get <link> elements (default true)
+// - `opts.anchors`: bool, get <a> elements (default false)
+function extractDocumentLinks(doc, opts) {
+	if (!opts) { opts = {}; }
+	if (typeof opts.links == 'undefined') { opts.links = true; }
+
+	var els = [];
+	if (opts.links)   { els = els.concat(Array.prototype.slice.call(doc.querySelectorAll('link'))); }
+	if (opts.anchors) { els = els.concat(Array.prototype.slice.call(doc.querySelectorAll('a'))); }
+	return els.map(function(el) {
+		var link = {};
+		for (var i=0; i < el.attributes.length; i++) {
+			link[el.attributes[i].name] = el.attributes[i].value;
+		}
+		return link;
+	});
+}
+
+// EXPORTED
 // takes parsed a link header and a query object, produces an array of matching links
-// - `links`: [object]/object, either the parsed array of links or the request/response object
+// - `links`: [object]/object/Document, either the parsed array of links, the request/response object, or a Document
 // - `query`: object
 function queryLinks(links, query) {
 	if (!links) return [];
+	if (links instanceof Document) links = extractDocumentLinks(links); // actually the document
 	if (links.parsedHeaders) links = links.parsedHeaders.link; // actually a request or response object
 	if (!Array.isArray(links)) return [];
 	return links.filter(function(link) { return queryLink(link, query); });
@@ -188,8 +210,8 @@ function joinUri() {
 // EXPORTED
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
-// - eg http://foo.com, //foo.com, httpl://bar.app
-var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)|(data:)/;
+// - eg http://foo.com, //foo.com, local://bar.app
+var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|(local:)|((nav:)?\|\|)|(data:)/;
 function isAbsUri(url) {
 	// Has a scheme?
 	if (hasSchemeRegex.test(url))
@@ -221,7 +243,7 @@ function joinRelPath(urld, relpath) {
 		} else if (urld.source.indexOf('||') === 0) {
 			protocol = '||';
 		} else {
-			protocol = 'httpl://';
+			protocol = 'local://';
 		}
 	}
 	if (relpath.charAt(0) == '/') {
@@ -268,7 +290,7 @@ function parseUri(str) {
 			if (firstSlashI !== -1 && str.slice(firstSlashI)) {
 				urld = parseUri(str.slice(firstSlashI));
 			}
-			urld.protocol = 'httpl';
+			urld.protocol = 'local';
 			urld.host = urld.authority = peerdomain;
 			urld.port = urld.password = urld.user = urld.userInfo = '';
 			urld.source = str;
@@ -381,8 +403,8 @@ function makePeerDomain(user, relay, app, sid) {
 
 // EXPORTED
 // builds a proxy URI out of an array of templates
-// eg ('httpl://my_worker.js/', ['httpl://0.page/{uri}', 'httpl://foo/{?uri}'])
-// -> "httpl://0.page/httpl%3A%2F%2Ffoo%2F%3Furi%3Dhttpl%253A%252F%252Fmy_worker.js%252F"
+// eg ('local://my_worker.js/', ['local://0.page/{uri}', 'local://foo/{?uri}'])
+// -> "local://0.page/local%3A%2F%2Ffoo%2F%3Furi%3Dhttpl%253A%252F%252Fmy_worker.js%252F"
 function makeProxyUri(uri, templates) {
 	if (!Array.isArray(templates)) templates = [templates];
 	for (var i=templates.length-1; i >= 0; i--) {
@@ -444,7 +466,7 @@ function patchXHR() {
 	localXMLHttpRequest.prototype.open = function(method, url, async, user, password) {
 		// Is HTTPL?
 		var urld = parseUri(url);
-		if (urld.protocol != 'httpl') {
+		if (urld.protocol != 'httpl' && urld.protocol != 'local') {
 			Object.defineProperty(this, '__xhr_request', { value: new orgXHR() });
 			return this.__xhr_request.open(method, url, async, user, password);
 		}
@@ -561,6 +583,7 @@ function patchXHR() {
 }
 
 module.exports = {
+	extractDocumentLinks: extractDocumentLinks,
 	queryLinks: queryLinks,
 	queryLink: queryLink,
 

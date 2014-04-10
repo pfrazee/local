@@ -14,7 +14,7 @@ var localRelayNotOnlineServer = function(request, response) {
 	response.writeHead(407, 'peer relay not authenticated');
 	response.end();
 };
-schemes.register('httpl', function(request, response) {
+schemes.register(['local', 'httpl'], function(request, response) {
 	// Find the local server
 	var server = getServer(request.urld.authority);
 	if (!server) {

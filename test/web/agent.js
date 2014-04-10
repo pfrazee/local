@@ -68,7 +68,7 @@ success
 */
 
 
-var testLocal = new local.agent('httpl://test.com');
+var testLocal = new local.agent('local://test.com');
 
 // document local server navigation
 
@@ -110,10 +110,10 @@ success
 
 done = false;
 startTime = Date.now();
-local.agent('httpl://dev.grimwire.com(test/web/_worker.js)').follow({ rel: 'collection', id: 'foo' }).get()
+local.agent('local://dev.grimwire.com(test/web/_worker.js)').follow({ rel: 'collection', id: 'foo' }).get()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
-    local.agent('httpl://dev.grimwire.com(test/web/_worker.js)').follow({ rel: 'collection', id: 'foo'})
+    local.agent('local://dev.grimwire.com(test/web/_worker.js)').follow({ rel: 'collection', id: 'foo'})
       .follow({ rel: 'item', id: 'baz' })
       .get().then(printSuccessAndFinish, printErrorAndFinish);
   });
@@ -144,7 +144,7 @@ success
 
 // rebase() and unresolve()
 
-var testRebase = new local.agent('httpl://test.com');
+var testRebase = new local.agent('local://test.com');
 var testRebaseCollection = testRebase.follow({ rel: 'collection', id: 'foo' });
 var testRebaseItem = testRebaseCollection.follow({ rel: 'item', id: 'baz' });
 
@@ -155,7 +155,7 @@ testRebaseCollection.get()
   .then(function() { return testRebaseItem.get(); })
   .then(printSuccess, printErrorAndFinish)
   .then(function() {
-    testRebase.rebase('httpl://dev.grimwire.com(test/web/_worker.js)');
+    testRebase.rebase('local://dev.grimwire.com(test/web/_worker.js)');
     testRebaseCollection.unresolve();
     testRebaseItem.unresolve();
     return testRebaseCollection.get();
@@ -214,7 +214,7 @@ success
 done = false;
 startTime = Date.now();
 local.agent([
-  'httpl://test.com',
+  'local://test.com',
   { rel: 'collection', id: 'foo' },
   { rel: 'item', id: 'baz' }
 ]).get()
@@ -254,7 +254,7 @@ success
 
 done = false;
 startTime = Date.now();
-local.agent('nav:||httpl://test.com|collection=foo|item=baz').get()
+local.agent('nav:||local://test.com|collection=foo|item=baz').get()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
     testLocal.follow('|collection=foo|item=baz').get().then(printSuccessAndFinish, printErrorAndFinish);
