@@ -5858,6 +5858,7 @@ var BridgeServer = require('./bridge-server.js');
 // - `config.namespace`: optional string, what should the shared worker be named?
 //   - defaults to `config.src` if undefined
 // - `config.temp`: optional bool, instructs the worker to self-destruct after its finished responding to its requests
+// - `config.onerror`: optional function, set to the worker's onerror callback
 // - `config.log`: optional bool, enables logging of all message traffic
 function WorkerBridgeServer(config) {
 	var self = this;
@@ -5896,14 +5897,14 @@ function WorkerBridgeServer(config) {
 
 	function loadScript(url) {
 		var urld = local.parseUri(url);
-		if (!urld.authority || urld.authority == '.' || urld.authority.indexOf('.') === -1) {
+		if (urld.protocol != 'data' && (!urld.authority || urld.authority == '.' || urld.authority.indexOf('.') === -1)) {
 			var dir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
 			var dirurl = window.location.protocol + '//' + window.location.hostname + dir;
 			url = helpers.joinRelPath(dirurl, url);
 			urld = local.parseUri(url);
 		}
 		var full_url = (!urld.protocol) ? 'https://'+url : url;
-		local.GET(url)
+		local.GET(full_url)
 			.fail(function(res) {
 				if (!urld.protocol && (res.status === 0 || res.status == 404)) {
 					// Not found? Try again without ssl
@@ -5915,11 +5916,11 @@ function WorkerBridgeServer(config) {
 			.then(function(res) {
 				// Setup the bootstrap source to import scripts relative to the origin
 				var bootstrap_src = require('../config.js').workerBootstrapScript;
-				var hosturld = local.parseUri(full_url);
+				var hosturld = local.parseUri((urld.protocol != 'data') ? full_url : (window.location.protocol+'//'+window.location.hostname));
 				var hostroot = hosturld.protocol + '://' + hosturld.authority;
 				bootstrap_src = bootstrap_src.replace(/\{\{HOST\}\}/g, hostroot);
-				bootstrap_src = bootstrap_src.replace(/\{\{HOST_DIR_PATH\}\}/g, hosturld.directory.slice(0,-1));
-				bootstrap_src = bootstrap_src.replace(/\{\{HOST_DIR_URL\}\}/g, hostroot + hosturld.directory.slice(0,-1));
+				bootstrap_src = bootstrap_src.replace(/\{\{HOST_DIR_PATH\}\}/g, (hosturld.directory||'').slice(0,-1));
+				bootstrap_src = bootstrap_src.replace(/\{\{HOST_DIR_URL\}\}/g, hostroot + (hosturld.directory||'').slice(0,-1));
 
 				// Create worker
 				var script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'; if (main) { self.main = main; }})();'], { type: "text/javascript" });
@@ -5946,6 +5947,9 @@ function WorkerBridgeServer(config) {
 			self.worker.port.start();
 		} else {
 			self.worker = new Worker(src);
+		}
+		if (typeof config.onerror == 'function') {
+			self.worker.onerror = config.onerror;
 		}
 
 		// Setup the incoming message handler
@@ -5987,7 +5991,7 @@ WorkerBridgeServer.prototype.getPort = function() {
 WorkerBridgeServer.prototype.terminate = function(status, reason) {
 	BridgeServer.prototype.terminate.call(this, status, reason);
 	if (this.worker) this.worker.terminate();
-	if (this.config.src.indexOf('blob:') === 0) {
+	if (typeof this.config.src == 'string' && this.config.src.indexOf('blob:') === 0) {
 		window.URL.revokeObjectURL(this.config.src);
 	}
 	this.worker = null;
@@ -6057,7 +6061,8 @@ WorkerBridgeServer.prototype.onWorkerReady = function(message) {
 	this.hasHostPrivileges = message.hostPrivileges;
 	if (this.hasHostPrivileges) {
 		// Send config
-		this.channelSendMsg({ op: 'configure', body: this.config });
+		var cfg = JSON.parse(JSON.stringify(this.config)); // clone to ditch non-transferable objects (functions)
+		this.channelSendMsg({ op: 'configure', body: cfg });
 	}
 	this.isActive = true;
 	this.flushBufferedMessages();
