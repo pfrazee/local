@@ -12,8 +12,8 @@ local.addServer('worker-bridge', function(req, res, worker) {
 // GET tests
 done = false;
 startTime = Date.now();
-var worker1API = local.agent('httpl://dev.grimwire.com(test/worker/worker1.js)');
-var worker2API = local.agent('httpl://dev.grimwire.com(test/worker/worker2.js)');
+var worker1API = local.agent('local://dev.grimwire.com(test/worker/worker1.js)');
+var worker2API = local.agent('local://dev.grimwire.com(test/worker/worker2.js)');
 var responses_ = [];
 for (var i = 0; i < 10; i++) {
 	responses_.push(worker1API.dispatch());
@@ -55,8 +55,8 @@ wait(function () { return done; });
 
 done = false;
 startTime = Date.now();
-var worker1API = local.agent('httpl://dev.grimwire.com(test/worker/worker1.js)');
-var worker2API = local.agent('httpl://dev.grimwire.com(test/worker/worker2.js)');
+var worker1API = local.agent('local://dev.grimwire.com(test/worker/worker1.js)');
+var worker2API = local.agent('local://dev.grimwire.com(test/worker/worker2.js)');
 var responses_ = [];
 for (var i = 0; i < 10; i++) {
 	responses_.push(worker1API.post('FooBar'));
@@ -98,8 +98,8 @@ wait(function () { return done; });
 
 done = false;
 startTime = Date.now();
-var worker1API = local.agent('httpl://dev.grimwire.com(test/worker/worker1.js)');
-var worker2API = local.agent('httpl://dev.grimwire.com(test/worker/worker2.js)');
+var worker1API = local.agent('local://dev.grimwire.com(test/worker/worker1.js)');
+var worker2API = local.agent('local://dev.grimwire.com(test/worker/worker2.js)');
 var responses_ = [
 	worker1API.dispatch({ method: 'bounce' }),
 	worker2API.dispatch({ method: 'bounce' })
@@ -123,7 +123,7 @@ wait(function () { return done; });
 // importScripts() disabling test
 done = false;
 startTime = Date.now();
-var worker1API = local.agent('httpl://dev.grimwire.com(test/worker/worker1.js)');
+var worker1API = local.agent('local://dev.grimwire.com(test/worker/worker1.js)');
 worker1API.dispatch({ method: 'IMPORT' })
 	.always(function(res) {
 		print(res.status + ' ' + res.body);

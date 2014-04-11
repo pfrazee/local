@@ -138,7 +138,7 @@ function Agent(context, parentAgent) {
 
 // Sets defaults to be used in all requests
 // - eg nav.setRequestDefaults({ method: 'GET', headers: { authorization: 'bob:pass', accept: 'text/html' }})
-// - eg nav.setRequestDefaults({ proxy: 'httpl://myproxy.app' })
+// - eg nav.setRequestDefaults({ proxy: 'local://myproxy.app' })
 Agent.prototype.setRequestDefaults = function(v) {
 	this.requestDefaults = v;
 };

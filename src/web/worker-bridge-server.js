@@ -146,7 +146,7 @@ WorkerBridgeServer.prototype.getPort = function() {
 WorkerBridgeServer.prototype.terminate = function(status, reason) {
 	BridgeServer.prototype.terminate.call(this, status, reason);
 	if (this.worker) this.worker.terminate();
-	if (this.config.src.indexOf('blob:') === 0) {
+	if (typeof this.config.src == 'string' && this.config.src.indexOf('blob:') === 0) {
 		window.URL.revokeObjectURL(this.config.src);
 	}
 	this.worker = null;

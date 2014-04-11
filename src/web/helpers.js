@@ -210,8 +210,8 @@ function joinUri() {
 // EXPORTED
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
-// - eg http://foo.com, //foo.com, httpl://bar.app
-var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)|(data:)/;
+// - eg http://foo.com, //foo.com, local://bar.app
+var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|(local:)|((nav:)?\|\|)|(data:)/;
 function isAbsUri(url) {
 	// Has a scheme?
 	if (hasSchemeRegex.test(url))
@@ -243,7 +243,7 @@ function joinRelPath(urld, relpath) {
 		} else if (urld.source.indexOf('||') === 0) {
 			protocol = '||';
 		} else {
-			protocol = 'httpl://';
+			protocol = 'local://';
 		}
 	}
 	if (relpath.charAt(0) == '/') {
@@ -290,7 +290,7 @@ function parseUri(str) {
 			if (firstSlashI !== -1 && str.slice(firstSlashI)) {
 				urld = parseUri(str.slice(firstSlashI));
 			}
-			urld.protocol = 'httpl';
+			urld.protocol = 'local';
 			urld.host = urld.authority = peerdomain;
 			urld.port = urld.password = urld.user = urld.userInfo = '';
 			urld.source = str;
@@ -403,8 +403,8 @@ function makePeerDomain(user, relay, app, sid) {
 
 // EXPORTED
 // builds a proxy URI out of an array of templates
-// eg ('httpl://my_worker.js/', ['httpl://0.page/{uri}', 'httpl://foo/{?uri}'])
-// -> "httpl://0.page/httpl%3A%2F%2Ffoo%2F%3Furi%3Dhttpl%253A%252F%252Fmy_worker.js%252F"
+// eg ('local://my_worker.js/', ['local://0.page/{uri}', 'local://foo/{?uri}'])
+// -> "local://0.page/local%3A%2F%2Ffoo%2F%3Furi%3Dhttpl%253A%252F%252Fmy_worker.js%252F"
 function makeProxyUri(uri, templates) {
 	if (!Array.isArray(templates)) templates = [templates];
 	for (var i=templates.length-1; i >= 0; i--) {
@@ -466,7 +466,7 @@ function patchXHR() {
 	localXMLHttpRequest.prototype.open = function(method, url, async, user, password) {
 		// Is HTTPL?
 		var urld = parseUri(url);
-		if (urld.protocol != 'httpl') {
+		if (urld.protocol != 'httpl' && urld.protocol != 'local') {
 			Object.defineProperty(this, '__xhr_request', { value: new orgXHR() });
 			return this.__xhr_request.open(method, url, async, user, password);
 		}

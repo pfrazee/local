@@ -103,7 +103,7 @@ local.addServer('test.com', function(request, response) {
 		var bodyUpdate = function(body) {
 			return body.toUpperCase();
 		};
-		local.pipe(response, local.dispatch({ method:'get', url:'httpl://test.com/' }), headerUpdate, bodyUpdate);
+		local.pipe(response, local.dispatch({ method:'get', url:'local://test.com/' }), headerUpdate, bodyUpdate);
 	}
 	else {
 		response.writeHead(404, 'not found');
@@ -114,8 +114,8 @@ local.addServer('test.com', function(request, response) {
 // proxy server
 local.addServer('proxy', function(req, res) {
 	if (req.path == '/') {
-		res.header('Link', [{ href: '/', rel: 'self service', noproxy: true }, {href: 'httpl://test.com', rel:'service'}, { href: '/{uri}', rel: 'service', noproxy: true }]);
-		res.header('Proxy-Tmpl', 'httpl://proxy/{uri}');
+		res.header('Link', [{ href: '/', rel: 'self service', noproxy: true }, {href: 'local://test.com', rel:'service'}, { href: '/{uri}', rel: 'service', noproxy: true }]);
+		res.header('Proxy-Tmpl', 'local://proxy/{uri}');
 		res.writeHead(204, 'ok, no content').end();
 		return;
 	}
@@ -139,7 +139,7 @@ local.addServer('proxy', function(req, res) {
 
 		// Set res via
 		res2.headers['Via'] = (res2.parsedHeaders.via||[]).concat([{proto: {version:'1.0', name:'httpl'}, hostname: 'proxy'}]);
-		res2.headers['Proxy-Tmpl'] = ((res2.header('Proxy-Tmpl')||'') + ' httpl://proxy/{uri}').trim();
+		res2.headers['Proxy-Tmpl'] = ((res2.header('Proxy-Tmpl')||'') + ' local://proxy/{uri}').trim();
 
 		// Pipe back
 		res.writeHead(res2.status, res2.reason, res2.headers);

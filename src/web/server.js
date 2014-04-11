@@ -13,7 +13,7 @@ function Server(config) {
 module.exports = Server;
 
 Server.prototype.getDomain = function() { return this.config.domain; };
-Server.prototype.getUrl = function() { return 'httpl://' + this.config.domain; };
+Server.prototype.getUrl = function() { return 'local://' + this.config.domain; };
 
 Server.prototype.debugLog = function() {
 	if (!this.config.log) return;

@@ -131,14 +131,14 @@ local.addServer('hosts', function(req, res) {
 		if (domain == 'hosts')
 			continue;
 		domains.push(domain);
-		responses_.push(local.dispatch({ method: 'HEAD', url: 'httpl://'+domain, timeout: 500 }));
+		responses_.push(local.dispatch({ method: 'HEAD', url: 'local://'+domain, timeout: 500 }));
 	}
 
 	local.promise.bundle(responses_).then(function(ress) {
 		ress.forEach(function(res, i) {
 			var selfLink = local.queryLinks(res, { rel: 'self' })[0];
 			if (!selfLink) {
-				selfLink = { rel: 'service', id: domains[i], href: 'httpl://'+domains[i] };
+				selfLink = { rel: 'service', id: domains[i], href: 'local://'+domains[i] };
 			}
 			selfLink.rel = (selfLink.rel) ? selfLink.rel.replace(/(^|\b)(self|up|via)(\b|$)/gi, '') : 'service';
 			links.push(selfLink);
@@ -1279,7 +1279,7 @@ function Agent(context, parentAgent) {
 
 // Sets defaults to be used in all requests
 // - eg nav.setRequestDefaults({ method: 'GET', headers: { authorization: 'bob:pass', accept: 'text/html' }})
-// - eg nav.setRequestDefaults({ proxy: 'httpl://myproxy.app' })
+// - eg nav.setRequestDefaults({ proxy: 'local://myproxy.app' })
 Agent.prototype.setRequestDefaults = function(v) {
 	this.requestDefaults = v;
 };
@@ -2468,8 +2468,8 @@ function joinUri() {
 // EXPORTED
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
-// - eg http://foo.com, //foo.com, httpl://bar.app
-var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)|(data:)/;
+// - eg http://foo.com, //foo.com, local://bar.app
+var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|(local:)|((nav:)?\|\|)|(data:)/;
 function isAbsUri(url) {
 	// Has a scheme?
 	if (hasSchemeRegex.test(url))
@@ -2501,7 +2501,7 @@ function joinRelPath(urld, relpath) {
 		} else if (urld.source.indexOf('||') === 0) {
 			protocol = '||';
 		} else {
-			protocol = 'httpl://';
+			protocol = 'local://';
 		}
 	}
 	if (relpath.charAt(0) == '/') {
@@ -2548,7 +2548,7 @@ function parseUri(str) {
 			if (firstSlashI !== -1 && str.slice(firstSlashI)) {
 				urld = parseUri(str.slice(firstSlashI));
 			}
-			urld.protocol = 'httpl';
+			urld.protocol = 'local';
 			urld.host = urld.authority = peerdomain;
 			urld.port = urld.password = urld.user = urld.userInfo = '';
 			urld.source = str;
@@ -2661,8 +2661,8 @@ function makePeerDomain(user, relay, app, sid) {
 
 // EXPORTED
 // builds a proxy URI out of an array of templates
-// eg ('httpl://my_worker.js/', ['httpl://0.page/{uri}', 'httpl://foo/{?uri}'])
-// -> "httpl://0.page/httpl%3A%2F%2Ffoo%2F%3Furi%3Dhttpl%253A%252F%252Fmy_worker.js%252F"
+// eg ('local://my_worker.js/', ['local://0.page/{uri}', 'local://foo/{?uri}'])
+// -> "local://0.page/local%3A%2F%2Ffoo%2F%3Furi%3Dhttpl%253A%252F%252Fmy_worker.js%252F"
 function makeProxyUri(uri, templates) {
 	if (!Array.isArray(templates)) templates = [templates];
 	for (var i=templates.length-1; i >= 0; i--) {
@@ -2724,7 +2724,7 @@ function patchXHR() {
 	localXMLHttpRequest.prototype.open = function(method, url, async, user, password) {
 		// Is HTTPL?
 		var urld = parseUri(url);
-		if (urld.protocol != 'httpl') {
+		if (urld.protocol != 'httpl' && urld.protocol != 'local') {
 			Object.defineProperty(this, '__xhr_request', { value: new orgXHR() });
 			return this.__xhr_request.open(method, url, async, user, password);
 		}
@@ -3044,7 +3044,7 @@ var localRelayNotOnlineServer = function(request, response) {
 	response.writeHead(407, 'peer relay not authenticated');
 	response.end();
 };
-schemes.register('httpl', function(request, response) {
+schemes.register(['local', 'httpl'], function(request, response) {
 	// Find the local server
 	var server = getServer(request.urld.authority);
 	if (!server) {
@@ -3325,7 +3325,7 @@ Relay.prototype.setAccessToken = function(token) {
 };
 Relay.prototype.isListening       = function() { return this.connectedToRelay; };
 Relay.prototype.getAssignedDomain = function() { return this.assignedDomain; };
-Relay.prototype.getAssignedUrl    = function() { return 'httpl://'+this.assignedDomain; };
+Relay.prototype.getAssignedUrl    = function() { return 'local://'+this.assignedDomain; };
 Relay.prototype.getUserId         = function() { return this.userId; };
 Relay.prototype.getApp            = function() { return this.config.app; };
 Relay.prototype.setApp            = function(v) { this.config.app = v; };
@@ -4810,7 +4810,7 @@ function Server(config) {
 module.exports = Server;
 
 Server.prototype.getDomain = function() { return this.config.domain; };
-Server.prototype.getUrl = function() { return 'httpl://' + this.config.domain; };
+Server.prototype.getUrl = function() { return 'local://' + this.config.domain; };
 
 Server.prototype.debugLog = function() {
 	if (!this.config.log) return;
@@ -6045,7 +6045,7 @@ WorkerBridgeServer.prototype.getPort = function() {
 WorkerBridgeServer.prototype.terminate = function(status, reason) {
 	BridgeServer.prototype.terminate.call(this, status, reason);
 	if (this.worker) this.worker.terminate();
-	if (this.config.src.indexOf('blob:') === 0) {
+	if (typeof this.config.src == 'string' && this.config.src.indexOf('blob:') === 0) {
 		window.URL.revokeObjectURL(this.config.src);
 	}
 	this.worker = null;

@@ -5,7 +5,7 @@
 done = false;
 startTime = Date.now();
 var xhr = new XMLHttpRequest();
-xhr.open('GET', 'httpl://localserver');
+xhr.open('GET', 'local://localserver');
 xhr.onreadystatechange = function() {
 	print(xhr.readyState);
 	print(xhr.responseText);
@@ -43,7 +43,7 @@ service resource
 done = false;
 startTime = Date.now();
 var xhr = new XMLHttpRequest();
-xhr.open('GET', 'httpl://localserver/foo');
+xhr.open('GET', 'local://localserver/foo');
 xhr.onreadystatechange = function() {
 	print(xhr.readyState);
 	print(xhr.responseText);
@@ -89,7 +89,7 @@ string
 done = false;
 startTime = Date.now();
 var xhr = new XMLHttpRequest();
-xhr.open('GET', 'httpl://localserver/foo');
+xhr.open('GET', 'local://localserver/foo');
 xhr.onreadystatechange = function() {
 	print(xhr.readyState);
 	print(xhr.responseText);
@@ -136,7 +136,7 @@ object
 done = false;
 startTime = Date.now();
 var xhr = new XMLHttpRequest();
-xhr.open('POST', 'httpl://localserver/foo');
+xhr.open('POST', 'local://localserver/foo');
 xhr.onreadystatechange = function() {
 	print(xhr.readyState);
 	print(xhr.responseText);

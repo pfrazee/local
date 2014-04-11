@@ -49,14 +49,14 @@ local.addServer('hosts', function(req, res) {
 		if (domain == 'hosts')
 			continue;
 		domains.push(domain);
-		responses_.push(local.dispatch({ method: 'HEAD', url: 'httpl://'+domain, timeout: 500 }));
+		responses_.push(local.dispatch({ method: 'HEAD', url: 'local://'+domain, timeout: 500 }));
 	}
 
 	local.promise.bundle(responses_).then(function(ress) {
 		ress.forEach(function(res, i) {
 			var selfLink = local.queryLinks(res, { rel: 'self' })[0];
 			if (!selfLink) {
-				selfLink = { rel: 'service', id: domains[i], href: 'httpl://'+domains[i] };
+				selfLink = { rel: 'service', id: domains[i], href: 'local://'+domains[i] };
 			}
 			selfLink.rel = (selfLink.rel) ? selfLink.rel.replace(/(^|\b)(self|up|via)(\b|$)/gi, '') : 'service';
 			links.push(selfLink);

@@ -4,7 +4,7 @@
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'httpl://test.com/pipe' });
+var res = local.dispatch({ method:'get', url:'local://test.com/pipe' });
 res.then(printSuccess, printError).then(finishTest);
 wait(function () { return done; });
 
@@ -334,7 +334,7 @@ finishTest();
 
 done = false;
 startTime = Date.now();
-local.dispatch({ method: 'HEAD', url: 'httpl://hosts' })
+local.dispatch({ method: 'HEAD', url: 'local://hosts' })
   .then(printSuccessAndFinish, printErrorAndFinish);
 wait(function () { return done; });
 
@@ -343,7 +343,7 @@ success
 {
   body: "",
   headers: {
-    link: "</>; rel=\"self service via\"; id=\"hosts\"; title=\"Page Hosts\", <httpl://dev.grimwire.com(test/web/_worker.js)/>; rel=\" current\", <httpl://test.com/>; rel=\" current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", <httpl://proxy/>; rel=\" service\"; noproxy"
+    link: "</>; rel=\"self service via\"; id=\"hosts\"; title=\"Page Hosts\", <local://dev.grimwire.com(test/web/_worker.js)/>; rel=\" current\", <local://test.com/>; rel=\" current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", <local://proxy/>; rel=\" service\"; noproxy"
   },
   reason: "ok, no content",
   status: 204
