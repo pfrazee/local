@@ -58,7 +58,7 @@
 				</div>
 				<div class="intro">
 					<img src="assets/icon-link.png">
-					<p><strong>Web Types System.</strong> Using the Web's existing standards, exchange and search through typed links to automate configuration.</p>
+					<p><strong>Labelled Links.</strong> Exchange and search through typed links to automate configuration.</p>
 				</div>
 			</div>
 			<br><br>
@@ -67,7 +67,7 @@
 				<div class="row">
 					<div class="span5">
 						<h3>Ajax-Everywhere</h3>
-						<p>Local.js registers the "httpl://" scheme, enabling functions to respond to requests.</p>
+						<p>Local.js registers the "local://" scheme, enabling functions to respond to requests.</p>
 						<ul>
 							<li>Target links and forms at server functions.</li>
 							<li>Run local proxies to your backend that degrade gracefully into offline-mode on a connection-drop.</li>
@@ -82,7 +82,7 @@ local.addServer('hello-world', function(req, res) {
 }
 
 // Dispatch an ajax request to that function
-local.GET('httpl://hello-world')
+local.GET('local://hello-world')
   .then(function(res) {
     console.log(res.body);
     // => 'Hello, world!'
@@ -108,12 +108,12 @@ function main(req, res) {
 }
 
 // The page:
-local.GET('httpl://myserver.com(/worker.js)/')
+local.GET('local://myserver.com(/worker.js)/')
   .then(function(res) {
     console.log(res.body);
     // => "Hello, other world!"
   });</code></pre>
-						<p><code>httpl://<span class="text-warning">myserver.com</span><span class="text-error">(/worker.js)</span>/</code> <small>Worker URLs add a
+						<p><code>local://<span class="text-warning">myserver.com</span><span class="text-error">(/worker.js)</span>/</code> <small>Worker URLs add a
 							<span class="text-error">source path</span> to the <span class="text-warning">hostname</span> so their scripts can be automatically found and loaded. This worker script lives at <code>myserver.com/worker.js</code>.</small></p>
 					</div>
 				</div>
@@ -150,7 +150,7 @@ local.agent('http://myserver.com')
 						<p>Imagine we're building a user-extensible social network. We'll want to let users render their own profiles, so why not use a Worker?</p>
 						<div class="row">
 							<div class="span6">
-								<form method="POST" action="httpl://album-manager">
+								<form method="POST" action="local://album-manager">
 									<textarea style="width: 100%"; rows="20" name="src">importScripts('/local.min.js');
 function main(req, res) {
   // Set headers
@@ -199,7 +199,7 @@ var renderer = local.spawnWorkerServer(src, {
     $('#album-out').html('There was an error running the script.');
   }
 });
-local.POST(albumDesc, 'httpl://album-renderer')
+local.POST(albumDesc, 'local://album-renderer')
   .then(function(res) { $('#album-out').html(res.body); })
   .fail(function(res) { console.error(res); });
   </code></pre>
@@ -213,7 +213,7 @@ local.POST(albumDesc, 'httpl://album-renderer')
 						<p><strong>First, we'll publish a reltype</strong> which defines the program behavior: <a href="http://stdrel.com/transformer" target="_top">stdrel.com/transfomer</a>. To summarize, a transformer accepts <code>POST</code> with content-type of <code>text/plain</code> and responds <code>200 OK</code> with the transformed <code>text/plain</code>.</p>
 						<p>Here's an implementation:</p>
 						<pre><code class="language-javascript">/**
- * httpl://httplocal.com(/examples/toupper.js)/
+ * local://httplocal.com(/examples/toupper.js)/
  */
 importScripts('/local.min.js');
 function main(req, res) {
@@ -249,8 +249,8 @@ function verifyTransformer(url) {
     return selfLink;
   });
 }</code></pre>
-						<form action="httpl://pipes" method="ADD">
-							<p><strong>Let's give it a shot!</strong> Try these URLs: <code>httpl://httplocal.com(/examples/toupper.js)/</code> <button class="btn btn-mini" name="url" value="httpl://httplocal.com(/examples/toupper.js)/"><strong>+</strong></button> <code>httpl://httplocal.com(/examples/slugify.js)/</code> <button class="btn btn-mini" name="url" value="httpl://httplocal.com(/examples/slugify.js)/"><strong>+</strong></button> and <code>httpl://httplocal.com(/examples/charcount.js)/</code> <button class="btn btn-mini" name="url" value="httpl://httplocal.com(/examples/charcount.js)/"><strong>+</strong></button>.</p>
+						<form action="local://pipes" method="ADD">
+							<p><strong>Let's give it a shot!</strong> Try these URLs: <code>local://httplocal.com(/examples/toupper.js)/</code> <button class="btn btn-mini" name="url" value="local://httplocal.com(/examples/toupper.js)/"><strong>+</strong></button> <code>local://httplocal.com(/examples/slugify.js)/</code> <button class="btn btn-mini" name="url" value="local://httplocal.com(/examples/slugify.js)/"><strong>+</strong></button> and <code>local://httplocal.com(/examples/charcount.js)/</code> <button class="btn btn-mini" name="url" value="local://httplocal.com(/examples/charcount.js)/"><strong>+</strong></button>.</p>
 							<div class="row">
 								<div class="span4">
 									<p><strong>URL Entry</strong></p>

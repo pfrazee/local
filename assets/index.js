@@ -28,7 +28,7 @@ local.addServer('album-manager', function(req, res) {
 				$('#album-out').html('<strong class="text-error">There was an error running the script. Check the console for syntax errors and try again.</strong>');
 			}
 		});
-		local.POST(albumDesc, 'httpl://album-renderer')
+		local.POST(albumDesc, 'local://album-renderer')
 			.then(function(res2) {
 				$('#album-out').html(res2.body);
 				res.writeHead(204).end();
