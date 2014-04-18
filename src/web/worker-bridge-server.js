@@ -42,7 +42,11 @@ function WorkerBridgeServer(config) {
 		if (domaind.srcPath) {
 			// :WARN: in FF, Workers created by Blobs have been known to fail with a CSP script directive set
 			// https://bugzilla.mozilla.org/show_bug.cgi?id=964276
-			loadScript(helpers.joinUri(domaind.host, domaind.srcPath));
+			var host = domaind.host;
+			if (domaind.port) {
+				host += ':'+domaind.port;
+			}
+			loadScript(helpers.joinUri(host, domaind.srcPath));
 		} else {
 			src_.reject(null);
 			this.terminate(404, 'Worker Not Properly Constructed');
