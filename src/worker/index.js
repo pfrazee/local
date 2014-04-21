@@ -122,10 +122,10 @@ if (typeof self != 'undefined' && typeof self.window == 'undefined') {
 		// Track new connection
 		if (isHost) {
 			module.exports.hostPage = page;
-			httpl.addServer('host.page', page);
+			httpl.addServer('host.env', page);
 		}
 		module.exports.pages.push(page);
-		httpl.addServer(page.id+'.page', page);
+		httpl.addServer(page.id+'.env', page);
 
 		// Let the document know we're active
 		if (port.start) {
