@@ -30,9 +30,10 @@ function extractDocumentLinks(doc, opts) {
 // takes parsed a link header and a query object, produces an array of matching links
 // - `links`: [object]/object/Document, either the parsed array of links, the request/response object, or a Document
 // - `query`: object/string
+var __docexists = (typeof Document != 'undefined');
 function queryLinks(links, query) {
 	if (!links) return [];
-	if (links instanceof Document) links = extractDocumentLinks(links); // actually the document
+	if (__docexists && links instanceof Document) links = extractDocumentLinks(links); // actually the document
 	if (links.parsedHeaders) links = links.parsedHeaders.link; // actually a request or response object
 	if (typeof query == 'string') { query = { rel: query }; } // if just a string, test against reltype
 	if (!Array.isArray(links)) return [];
