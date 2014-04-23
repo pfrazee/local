@@ -29,11 +29,12 @@ function extractDocumentLinks(doc, opts) {
 // EXPORTED
 // takes parsed a link header and a query object, produces an array of matching links
 // - `links`: [object]/object/Document, either the parsed array of links, the request/response object, or a Document
-// - `query`: object
+// - `query`: object/string
 function queryLinks(links, query) {
 	if (!links) return [];
 	if (links instanceof Document) links = extractDocumentLinks(links); // actually the document
 	if (links.parsedHeaders) links = links.parsedHeaders.link; // actually a request or response object
+	if (typeof query == 'string') { query = { rel: query }; } // if just a string, test against reltype
 	if (!Array.isArray(links)) return [];
 	return links.filter(function(link) { return queryLink(link, query); });
 }
@@ -42,6 +43,7 @@ function queryLinks(links, query) {
 // takes parsed link and a query object, produces boolean `isMatch`
 // - `query`: object, keys are attributes to test, values are values to test against (strings)
 //            eg { rel: 'foo bar', id: 'x' }
+//            string, the reltype to test against
 // - Query rules
 //   - if a query attribute is present on the link, but does not match, returns false
 //   - if a query attribute is not present on the link, and is not present in the href as a URI Template token, returns false
@@ -54,6 +56,7 @@ function queryLinks(links, query) {
 var uriTokenStart = '\\{([^\\}]*)[\\+\\#\\.\\/\\;\\?\\&]?';
 var uriTokenEnd = '(\\,|\\})';
 function queryLink(link, query) {
+	if (typeof query == 'string') { query = { rel: query }; } // if just a string, test against reltype
 	for (var attr in query) {
 		if (typeof query[attr] == 'function') {
 			if (!query[attr].call(null, link[attr], attr)) {

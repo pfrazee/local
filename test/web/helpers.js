@@ -216,7 +216,11 @@ var links = [
 ];
 print(local.queryLink(links[0], { rel: 'foo' }));
 // => true
+print(local.queryLink(links[0], 'foo'));
+// => true
 print(local.queryLink(links[0], { rel: 'foobar' }));
+// => false
+print(local.queryLink(links[0], 'foobar'));
 // => false
 print(local.queryLink(links[0], { rel: 'foo', id: 'bar' }));
 // => false

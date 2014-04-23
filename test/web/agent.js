@@ -47,7 +47,7 @@ testRemote
   .follow({ rel: 'collection', id: 'foo' })
   .follow({ rel: 'item', id: 'bar' })
   .follow({ rel: 'up' })
-  .follow({ rel: 'via' })
+  .follow('via')
   .follow({ rel: 'self' })
   .follow({ rel: 'collection', id: 'foo' })
   .get().then(printSuccessAndFinish, printErrorAndFinish);

@@ -234,9 +234,14 @@ Agent.prototype.subscribe = function(req) {
 //   - the exception to this is: `rel` matches and the HREF has an {id} token
 //   - all other attributes are used to fill URI Template tokens and are not required to match
 Agent.prototype.follow = function(query) {
-	// convert nav: uri to a query array
-	if (typeof query == 'string' && helpers.isNavSchemeUri(query))
-		query = helpers.parseNavUri(query);
+	// convert nav: uri to a query array, string to rel query
+	if (typeof query == 'string') {
+		if (helpers.isNavSchemeUri(query)) {
+			query = helpers.parseNavUri(query);
+		} else {
+			query = { rel: query };
+		}
+	}
 
 	// make sure we always have an array
 	if (!Array.isArray(query))
