@@ -185,16 +185,9 @@ WorkerBridgeServer.prototype.handleRemoteRequest = function(request, response) {
 	}
 };
 
-// Local request handler
-WorkerBridgeServer.prototype.handleLocalRequest = function(request, response) {
-	BridgeServer.prototype.handleLocalRequest.call(this, request, response);
-	if (this.config.temp) {
-		response.on('close', closeTempIfDone.bind(this));
-	}
-};
-
-function closeTempIfDone() {
-	if (!this.isActive) return;
+// helper used to decide if a temp worker can be ejected
+WorkerBridgeServer.prototype.isInTransaction = function() {
+	if (!this.isActive) return false;
 
 	// Are we waiting on any streams from the worker?
 	if (Object.keys(this.incomingStreams).length !== 0) {
@@ -203,16 +196,12 @@ function closeTempIfDone() {
 		for (var sid in this.incomingStreams) {
 			if (this.incomingStreams[sid] instanceof Response && this.incomingStreams[sid].isConnOpen) {
 				// not done, worker still responding
-				return;
+				return true;
 			}
 		}
 	}
-
-	// Done, terminate and remove worker
-	console.log('Closing temporary worker', this.config.domain);
-	this.terminate();
-	require('./httpl').removeServer(this.config.domain);
-}
+    return false;
+};
 
 // Starts normal functioning
 // - called when the local.js signals that it has finished loading

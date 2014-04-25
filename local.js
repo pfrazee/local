@@ -68,6 +68,7 @@ var importScriptsPatch_src = [ // patches importScripts() to allow relative path
 
 module.exports = {
 	logAllExceptions: false,
+    maxActiveWorkers: 1,
 	workerBootstrapScript: whitelistAPIs_src+importScriptsPatch_src
 };
 },{}],2:[function(require,module,exports){
@@ -506,6 +507,7 @@ module.exports = {
 // Helpers to create servers
 // -
 
+var localConfig = require('./config.js');
 var helpers = require('./web/helpers.js');
 var httpl = require('./web/httpl.js');
 var WorkerBridgeServer = require('./web/worker-bridge-server.js');
@@ -540,9 +542,25 @@ function spawnWorkerServer(src, config, serverFn) {
 			domain = window.location.host + '(' + src_parts[0].slice(1) + ')';
 		}
 	}
+	if (httpl.getServer(domain)) throw "Worker already exists";
+
+	// Eject a temp server if needed
+    var nWorkerServers = 0, ejectCandidate = null;
+    for (var d in httpl.getServers()) {
+        var s = httpl.getServer(d).context;
+        if (!(s instanceof WorkerBridgeServer))
+            continue;
+        if (!ejectCandidate && s.config.temp && !s.isInTransaction())
+            ejectCandidate = s;
+        nWorkerServers++;
+    }
+    if (nWorkerServers >= localConfig.maxActiveWorkers && ejectCandidate) {
+	    console.log('Closing temporary worker', ejectCandidate.config.domain);
+	    ejectCandidate.terminate();
+	    httpl.removeServer(ejectCandidate.config.domain);
+    }
 
 	// Create the server
-	if (httpl.getServer(domain)) throw "Worker already exists";
 	var server = new WorkerBridgeServer(config);
 	httpl.addServer(domain, server);
 
@@ -565,7 +583,7 @@ module.exports = {
 	spawnWorkerServer: spawnWorkerServer,
 	joinRelay: joinRelay
 };
-},{"./web/helpers.js":14,"./web/httpl.js":16,"./web/relay.js":17,"./web/worker-bridge-server.js":25}],7:[function(require,module,exports){
+},{"./config.js":1,"./web/helpers.js":14,"./web/httpl.js":16,"./web/relay.js":17,"./web/worker-bridge-server.js":25}],7:[function(require,module,exports){
 // Helpers
 // =======
 
@@ -6093,16 +6111,9 @@ WorkerBridgeServer.prototype.handleRemoteRequest = function(request, response) {
 	}
 };
 
-// Local request handler
-WorkerBridgeServer.prototype.handleLocalRequest = function(request, response) {
-	BridgeServer.prototype.handleLocalRequest.call(this, request, response);
-	if (this.config.temp) {
-		response.on('close', closeTempIfDone.bind(this));
-	}
-};
-
-function closeTempIfDone() {
-	if (!this.isActive) return;
+// helper used to decide if a temp worker can be ejected
+WorkerBridgeServer.prototype.isInTransaction = function() {
+	if (!this.isActive) return false;
 
 	// Are we waiting on any streams from the worker?
 	if (Object.keys(this.incomingStreams).length !== 0) {
@@ -6111,16 +6122,12 @@ function closeTempIfDone() {
 		for (var sid in this.incomingStreams) {
 			if (this.incomingStreams[sid] instanceof Response && this.incomingStreams[sid].isConnOpen) {
 				// not done, worker still responding
-				return;
+				return true;
 			}
 		}
 	}
-
-	// Done, terminate and remove worker
-	console.log('Closing temporary worker', this.config.domain);
-	this.terminate();
-	require('./httpl').removeServer(this.config.domain);
-}
+    return false;
+};
 
 // Starts normal functioning
 // - called when the local.js signals that it has finished loading
@@ -6156,7 +6163,7 @@ WorkerBridgeServer.prototype.onWorkerLog = function(message) {
 			break;
 	}
 };
-},{"../config.js":1,"../promises.js":4,"./bridge-server.js":11,"./helpers.js":14,"./httpl":16,"./httpl.js":16,"./response.js":19}],26:[function(require,module,exports){
+},{"../config.js":1,"../promises.js":4,"./bridge-server.js":11,"./helpers.js":14,"./httpl.js":16,"./response.js":19}],26:[function(require,module,exports){
 module.exports = {};
 },{}],27:[function(require,module,exports){
 if (typeof self != 'undefined' && typeof self.window == 'undefined') {

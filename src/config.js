@@ -67,5 +67,6 @@ var importScriptsPatch_src = [ // patches importScripts() to allow relative path
 
 module.exports = {
 	logAllExceptions: false,
+    maxActiveWorkers: 10,
 	workerBootstrapScript: whitelistAPIs_src+importScriptsPatch_src
 };
