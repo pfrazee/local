@@ -2,6 +2,10 @@ var promise = require('../promises.js').promise;
 var helpers = require('./helpers.js');
 var BridgeServer = require('./bridge-server.js');
 
+// a map of known protocols for http/s domains
+// (reduces the frequency of failed HTTPS lookups when loading scripts without a scheme)
+var _domainSchemes = {};
+
 // WorkerBridgeServer
 // ==================
 // EXPORTED
@@ -62,12 +66,20 @@ function WorkerBridgeServer(config) {
 			url = helpers.joinRelPath(dirurl, url);
 			urld = local.parseUri(url);
 		}
-		var full_url = (!urld.protocol) ? 'https://'+url : url;
+		var full_url = url;
+        if (!urld.protocol) {
+            var scheme = _domainSchemes[urld.authority];
+            if (!scheme) {
+                scheme = _domainSchemes[urld.authority] = 'https://';
+            }
+            full_url = scheme + url;
+        }
 		local.GET(full_url)
 			.fail(function(res) {
-				if (!urld.protocol && (res.status === 0 || res.status == 404)) {
-					// Not found? Try again without ssl
-					full_url = 'http://'+url;
+				if (!urld.protocol && res.status === 0) {
+					// Domain error? Try again without ssl
+                    full_url = 'http://'+url;
+                    _domainSchemes[urld.authority] = 'http://'; // we know it isn't https at least
 					return local.GET(full_url);
 				}
 				throw res;
