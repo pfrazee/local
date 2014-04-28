@@ -6,7 +6,7 @@ var contentTypes = require('./content-types.js');
 // BridgeServer
 // ============
 // EXPORTED
-// Core type for all servers which pipe requests between separated namespaces (eg WorkerBridgeServer, RTCBridgeServer)
+// Core type for all servers which pipe requests between separated namespaces (eg WorkerBridgeServer)
 // - Should be used as a prototype
 // - Provides HTTPL implementation using the channel methods (which should be overridden by the subclasses)
 // - Underlying channel must be:
@@ -14,27 +14,17 @@ var contentTypes = require('./content-types.js');
 //   - order-guaranteed
 // - Underlying channel is assumed not to be:
 //   - multiplexed
-// - :NOTE: WebRTC's SCTP should eventually support multiplexing, in which case RTCBridgeServer should
-//   abstract multiple streams into the one "channel" to prevent head-of-line blocking
 function BridgeServer(config) {
 	Server.call(this, config);
 
 	this.sidCounter = 1;
 	this.incomingStreams = {}; // maps sid -> request/response stream
 	// ^ only contains active streams (closed streams are deleted)
-	this.incomingStreamsBuffer = {}; // maps sid -> {nextMid:, cache:{}}
 	this.outgoingStreams = {}; // like `incomingStreams`, but for requests & responses that are sending out data
 	this.msgBuffer = []; // buffer of messages kept until channel is active
-	this.isReorderingMessages = false;
 }
 BridgeServer.prototype = Object.create(Server.prototype);
 module.exports = BridgeServer;
-
-// Turns on/off message numbering and the HOL-blocking reorder protocol
-BridgeServer.prototype.useMessageReordering = function(v) {
-	this.debugLog('turning '+(v?'on':'off')+' reordering');
-	this.isReorderingMessages = !!v;
-};
 
 // Returns true if the channel is ready for activity
 // - should be overridden
@@ -87,7 +77,6 @@ BridgeServer.prototype.handleLocalRequest = function(request, response) {
 	var query_part = contentTypes.serialize('application/x-www-form-urlencoded', request.query);
 	var msg = {
 		sid: sid,
-		mid: (this.isReorderingMessages) ? 1 : undefined,
 		method: request.method,
 		path: request.path + ((query_part) ? ('?'+query_part) : ''),
 		headers: request.headers
@@ -102,11 +91,10 @@ BridgeServer.prototype.handleLocalRequest = function(request, response) {
 
 	// Wire up request stream events
 	var this2 = this;
-	var midCounter = msg.mid;
-	request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, body: data })); });
-	request.on('end', function()       { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, end: true })); });
+	request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, body: data })); });
+	request.on('end', function()       { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, end: true })); });
 	request.on('close', function()     {
-		this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, close: true }));
+		this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, close: true }));
 		delete this2.outgoingStreams[msg.sid];
 	});
 };
@@ -150,22 +138,6 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 		return;
 	}
 
-	// Do input buffering if the message is numbered
-	if (msg.mid) {
-		// Create the buffer
-		if (!this.incomingStreamsBuffer[msg.sid]) {
-			this.incomingStreamsBuffer[msg.sid] = {
-				nextMid: 1,
-				cache: {}
-			};
-		}
-		// Cache (block at HOL) if not next in line
-		if (this.incomingStreamsBuffer[msg.sid].nextMid != msg.mid) {
-			this.incomingStreamsBuffer[msg.sid].cache[msg.mid] = msg;
-			return;
-		}
-	}
-
 	// Get/create stream
 	var stream = this.incomingStreams[msg.sid];
 	if (!stream) {
@@ -193,24 +165,22 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 			// Wire response into the stream
 			var this2 = this;
 			var resSid = -(msg.sid);
-			var midCounter = (this.isReorderingMessages) ? 1 : undefined;
 			response.on('headers', function() {
 				this2.channelSendMsg(JSON.stringify({
 					sid: resSid,
-					mid: (midCounter) ? midCounter++ : undefined,
 					status: response.status,
 					reason: response.reason,
 					headers: response.headers,
 				}));
 			});
 			response.on('data',  function(data) {
-				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, body: data }));
+				this2.channelSendMsg(JSON.stringify({ sid: resSid, body: data }));
 			});
 			response.on('end', function() {
-				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, end: true }));
+				this2.channelSendMsg(JSON.stringify({ sid: resSid, end: true }));
 			});
 			response.on('close', function() {
-				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, close: true }));
+				this2.channelSendMsg(JSON.stringify({ sid: resSid, close: true }));
 				delete this2.outgoingStreams[resSid];
 			});
 
@@ -249,20 +219,7 @@ BridgeServer.prototype.onChannelMessage = function(msg) {
 	if (msg.close) {
 		stream.close();
 		delete this.incomingStreams[msg.sid];
-		delete this.incomingStreamsBuffer[msg.sid];
 		return;
-	}
-
-	// Check the cache if the message is numbered for reordering
-	if (msg.mid) {
-		// Is the next message cached?
-		var nextmid = ++this.incomingStreamsBuffer[msg.sid].nextMid;
-		if (this.incomingStreamsBuffer[msg.sid].cache[nextmid]) {
-			// Process it now
-			var cachedmsg = this.incomingStreamsBuffer[msg.sid].cache[nextmid];
-			delete this.incomingStreamsBuffer[msg.sid].cache[nextmid];
-			this.onChannelMessage(cachedmsg);
-		}
 	}
 };
 

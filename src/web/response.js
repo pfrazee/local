@@ -107,18 +107,6 @@ Response.prototype.processHeaders = function(request) {
 			// Extract host data
 			var host_domain = helpers.parseUri(link.href).authority;
 			Object.defineProperty(link, 'host_domain', { enumerable: false, configurable: true, writable: true, value: host_domain });
-			var peerd = helpers.parsePeerDomain(link.host_domain);
-			if (peerd) {
-				Object.defineProperty(link, 'host_user', { enumerable: false, configurable: true, writable: true, value: peerd.user });
-				Object.defineProperty(link, 'host_relay', { enumerable: false, configurable: true, writable: true, value: peerd.relay });
-				Object.defineProperty(link, 'host_app', { enumerable: false, configurable: true, writable: true, value: peerd.app });
-				Object.defineProperty(link, 'host_sid', { enumerable: false, configurable: true, writable: true, value: peerd.sid });
-			} else {
-				delete link.host_user;
-				delete link.host_relay;
-				delete link.host_app;
-				delete link.host_sid;
-			}
 		});
 	}
 };

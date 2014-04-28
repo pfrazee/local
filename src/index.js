@@ -4,10 +4,8 @@ module.exports = {
 	Request: require('./web/request.js'),
 	Response: require('./web/response.js'),
 	Server: require('./web/server.js'),
-	Relay: require('./web/relay.js'),
 	BridgeServer: require('./web/bridge-server.js'),
 	WorkerBridgeServer: require('./web/worker-bridge-server.js'),
-	RTCBridgeServer: require('./web/rtc-bridge-server.js'),
 	UriTemplate: require('./web/uri-template.js'),
 
 	util: util,

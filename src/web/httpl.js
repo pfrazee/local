@@ -1,19 +1,9 @@
 var schemes = require('./schemes.js');
 var helpers = require('./helpers.js');
 var contentTypes = require('./content-types.js');
-var Server = require('./server.js');
 
 // HTTPL
 // =====
-var hostLookupFn;
-var localNotFoundServer = function(request, response) {
-	response.writeHead(404, 'server not found');
-	response.end();
-};
-var localRelayNotOnlineServer = function(request, response) {
-	response.writeHead(407, 'peer relay not authenticated');
-	response.end();
-};
 schemes.register(['local', 'httpl'], function(request, response) {
 	// Find the local server
 	var server = getServer(request.urld.authority);
@@ -69,30 +59,6 @@ setHostLookup(function(req, res) {
 		return require('../spawners.js').spawnWorkerServer(null, { domain: req.urld.authority, temp: true });
 	}
 
-	// Check if this is a peerweb URI
-	var peerd = helpers.parsePeerDomain(req.urld.authority);
-	if (peerd) {
-		// See if this is a default stream miss
-		if (peerd.sid == 0) {
-			if (req.urld.authority.slice(-2) == '!0') {
-				server = getServer(req.urld.authority.slice(0,-2));
-			} else {
-				req.urld.authority += '!0';
-				server = getServer(req.urld.authority);
-			}
-		}
-		if (!server) {
-			// Not a default stream miss
-			if (peerd.relay in __peer_relay_registry) {
-				// Try connecting to the peer
-				__peer_relay_registry[peerd.relay].connect(req.urld.authority);
-				return getServer(req.urld.authority);
-			} else {
-				// We're not connected to the relay
-				return localRelayNotOnlineServer;
-			}
-		}
-	}
 	return false;
 });
 
@@ -133,42 +99,11 @@ function getServers() {
 }
 
 
-// Local Relay Registry
-// ====================
-var __peer_relay_registry = {};
-
-// EXPORTED
-function addRelay(domain, relay) {
-	__peer_relay_registry[domain] = relay;
-}
-
-// EXPORTED
-function removeRelay(domain) {
-	if (__peer_relay_registry[domain]) {
-		delete __peer_relay_registry[domain];
-	}
-}
-
-// EXPORTED
-function getRelay(domain) {
-	return __peer_relay_registry[domain];
-}
-
-// EXPORTED
-function getRelays() {
-	return __peer_relay_registry;
-}
-
 module.exports = {
 	addServer: addServer,
 	removeServer: removeServer,
 	getServer: getServer,
 	getServers: getServers,
-
-	addRelay: addRelay,
-	removeRelay: removeRelay,
-	getRelay: getRelay,
-	getRelays: getRelays,
 
 	setHostLookup: setHostLookup
 };

@@ -222,7 +222,7 @@ function isAbsUri(url) {
 		return true;
 	// No scheme, is it a local server or a global URI?
 	var urld = parseUri(url);
-	return !!require('./httpl.js').getServer(urld.authority) || !!parsePeerDomain(urld.authority);
+	return !!require('./httpl.js').getServer(urld.authority);
 }
 
 // EXPORTED
@@ -282,26 +282,6 @@ function parseUri(str) {
 	if (str.slice(0,5) == 'data:') {
 		return { protocol: 'data', source: str };
 	}
-
-	// handle peer-uris specially
-	if (str.indexOf('!') !== -1) {
-		var schemeSepI = str.indexOf('//');
-		var firstSlashI = str.indexOf('/', schemeSepI+2);
-		var peerdomain = str.slice((schemeSepI !== -1) ? schemeSepI+2 : 0, (firstSlashI !== -1) ? firstSlashI : str.length);
-		var peerd = parsePeerDomain(peerdomain);
-		if (peerd) {
-			var urld = {};
-			if (firstSlashI !== -1 && str.slice(firstSlashI)) {
-				urld = parseUri(str.slice(firstSlashI));
-			}
-			urld.protocol = 'local';
-			urld.host = urld.authority = peerdomain;
-			urld.port = urld.password = urld.user = urld.userInfo = '';
-			urld.source = str;
-			return urld;
-		}
-	}
-
 	var	o   = parseUri.options,
 		m   = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
 		uri = {},
@@ -376,33 +356,6 @@ function parseNavUri(str) {
 		parts.shift();
 
 	return parts;
-}
-
-// EXPORTED
-// breaks a peer domain into its constituent parts
-// - returns { user:, relay:, app:, sid: }
-var peerDomainRE = /^(.+)@([^!]+)!([^!\/]+)(?:!([\d]+))?$/i;
-function parsePeerDomain(domain) {
-	var match = peerDomainRE.exec(domain);
-	if (match) {
-		return {
-			domain: domain,
-			user: match[1],
-			relay: match[2],
-			provider: match[2], // :TODO: remove
-			app: match[3],
-			stream: match[4] || 0, // :TODO: remove
-			sid: match[4] || 0
-		};
-	}
-	return null;
-}
-
-// EXPORTED
-// constructs a peer domain from its constituent parts
-// - returns string
-function makePeerDomain(user, relay, app, sid) {
-	return user+'@'+relay+'!'+app+((sid) ? '!'+sid : '');
 }
 
 // EXPORTED
@@ -604,8 +557,6 @@ module.exports = {
 
 	parseUri: parseUri,
 	parseNavUri: parseNavUri,
-	parsePeerDomain: parsePeerDomain,
-	makePeerDomain: makePeerDomain,
 	makeProxyUri: makeProxyUri,
 
 	pipe: pipe,
