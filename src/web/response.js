@@ -18,6 +18,7 @@ function Response() {
 	// Stream state
 	this.isConnOpen = true;
 	this.isStarted = false;
+	this.isEnded = false;
 }
 module.exports = Response;
 Response.prototype = Object.create(util.EventEmitter.prototype);
@@ -80,16 +81,22 @@ Response.prototype.pipe = function(source, headersCB, bodyCb) {
 		if (source instanceof require('./incoming-response')) {
 			if (!this2.headers.status) {
 				this2.status(source.status, source.reason);
-				for (var k in source) {
-					if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers)) {
-						this2.header(k, headersCB(k, source[k]));
-					}
+			}
+			for (var k in source) {
+				if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers) && k.charAt(0) != '_') {
+					this2.header(k, headersCB(k, source[k]));
 				}
 			}
 		}
-		// wire up the stream
-		source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
-		source.on('end', function() { this2.end(); });
+		console.log(source.isEnded, source);
+		if (source.isEnded) {
+			// send body (if it was buffered)
+			this2.end(bodyCb(source.body));
+		} else {
+			// wire up the stream
+			source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
+			source.on('end', function() { this2.end(); });
+		}
 	});
 };
 
@@ -114,6 +121,7 @@ Response.prototype.wireUp = function(other, async) {
 // - emits the 'headers' event
 Response.prototype.start = function() {
 	if (!this.isConnOpen) return this;
+	if (this.isEnded) return this;
 	if (this.isStarted) return this;
 	this.emit('headers', this.headers);
 	this.isStarted = true;
@@ -124,6 +132,7 @@ Response.prototype.start = function() {
 // - emits the 'data' event
 Response.prototype.write = function(data) {
 	if (!this.isConnOpen) return this;
+	if (this.isEnded) return this;
 	if (!this.isStarted) this.start();
 	this.emit('data', data);
 	return this;
@@ -134,10 +143,12 @@ Response.prototype.write = function(data) {
 // - emits 'end' and 'close' events
 Response.prototype.end = function(data) {
 	if (!this.isConnOpen) return this;
+	if (this.isEnded) return this;
 	if (!this.isStarted) this.start();
 	if (typeof data != 'undefined') {
 		this.write(data);
 	}
+	this.isEnded = true;
 	this.emit('end');
 	this.close();
 	return this;

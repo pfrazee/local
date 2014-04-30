@@ -9,12 +9,12 @@ var Response = require('./response.js');
 var _routes = [];
 
 // EXPORTED
-function at(pathOrRegex, handler) {
-	if (typeof pathOrRegex == 'string') {
-		pathOrRegex = new RegExp('^('+pathOrRegex+')$', 'i');
+function at(path, handler) {
+	if (path.charAt(0) != '#') {
+		path = '#' + path;
 	}
-
-	_routes.push({ path: pathOrRegex, handler: handler });
+	path = new RegExp('^('+path+')$', 'i');
+	_routes.push({ path: path, handler: handler });
 }
 
 // EXPORTED

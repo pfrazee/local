@@ -9,10 +9,19 @@ var contentTypes = require('./content-types.js');
 // Interface for receiving responses
 function IncomingResponse() {
 	util.EventEmitter.call(this);
+	var this2 = this;
+	var hidden = function(k, v) { Object.defineProperty(this2, k, { value: v, writable: true }); };
 
+	// Set attributes
 	this.status = 0;
-	this.reason = null;
-	Object.defineProperty(this, 'latency', { value: undefined }); // non enumerable
+	this.reason = undefined;
+	hidden('latency', undefined);
+
+	// Stream state
+	hidden('isConnOpen', true);
+	hidden('isStarted', true);
+	hidden('isEnded', false);
+	this.on('end', function() { this2.isEnded = true; });
 }
 IncomingResponse.prototype = Object.create(util.EventEmitter.prototype);
 module.exports = IncomingResponse;
@@ -24,7 +33,7 @@ IncomingResponse.prototype.buffer = function(cb) {
 	if (typeof this._buffer == 'undefined') {
 		var this2 = this;
 		this._buffer = '';
-		this.body = null;
+		this.body = '';
 		this.on('data', function(data) {
 			if (typeof data == 'string') {
 				this2._buffer += data;

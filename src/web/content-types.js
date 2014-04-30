@@ -33,6 +33,9 @@ function contentTypes__lookup(v) {
 		case 'javascript':
 		case 'js':
 			return 'application/javascript';
+		case 'form':
+		case 'urlencoded':
+			return 'application/x-www-form-urlencoded';
 	}
 	return v;
 }

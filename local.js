@@ -1077,6 +1077,9 @@ function contentTypes__lookup(v) {
 		case 'javascript':
 		case 'js':
 			return 'application/javascript';
+		case 'form':
+		case 'urlencoded':
+			return 'application/x-www-form-urlencoded';
 	}
 	return v;
 }
@@ -1257,6 +1260,7 @@ function splitEventstreamKV(kv) {
 // =======
 
 var promise = require('../promises.js').promise;
+var contentTypes = require('./content-types.js');
 var UriTemplate = require('./uri-template.js');
 
 // EXPORTED
@@ -1432,8 +1436,12 @@ function preferredTypes(accept, provided) {
 		if (!Array.isArray(provided)) {
 			provided = [provided];
 		}
+
 		return provided
-			.map(function(type) { return [type, getMediaTypePriority(type, accept)]; })
+			.map(function(type) {
+				type = contentTypes.lookup(type); // run mimetype aliases
+				return [type, getMediaTypePriority(type, accept)];
+			})
 			.filter(function(pair) { return pair[1] > 0; })
 			.sort(function(a, b) { return a[1] === b[1] ? 0 : a[1] > b[1] ? -1 : 1; }) // revsort
 			.map(function(pair) { return pair[0]; });
@@ -1777,7 +1785,7 @@ module.exports = {
 
 	// patchXHR: patchXHR :TODO:
 };
-},{"../promises.js":4,"./uri-template.js":18}],11:[function(require,module,exports){
+},{"../promises.js":4,"./content-types.js":9,"./uri-template.js":18}],11:[function(require,module,exports){
 var helpers = require('./helpers.js');
 
 // headers
@@ -1923,12 +1931,12 @@ var Response = require('./response.js');
 var _routes = [];
 
 // EXPORTED
-function at(pathOrRegex, handler) {
-	if (typeof pathOrRegex == 'string') {
-		pathOrRegex = new RegExp('^('+pathOrRegex+')$', 'i');
+function at(path, handler) {
+	if (path.charAt(0) != '#') {
+		path = '#' + path;
 	}
-
-	_routes.push({ path: pathOrRegex, handler: handler });
+	path = new RegExp('^('+path+')$', 'i');
+	_routes.push({ path: path, handler: handler });
 }
 
 // EXPORTED
@@ -1991,6 +1999,7 @@ module.exports = {
 },{"./content-types.js":9,"./helpers.js":10,"./incoming-request.js":13,"./response.js":16,"./schemes.js":17}],13:[function(require,module,exports){
 var util = require('../util');
 var helpers = require('./helpers.js');
+var httpHeaders = require('./http-headers.js');
 var contentTypes = require('./content-types.js');
 
 // IncomingRequest
@@ -1999,15 +2008,33 @@ var contentTypes = require('./content-types.js');
 // Interface for receiving requests (used in virtual servers)
 function IncomingRequest(headers) {
 	util.EventEmitter.call(this);
-	for (var k in headers) {
-		if (!this[k]) { this[k] = headers[k]; }
-	}
+	var this2 = this;
+	var hidden = function(k, v) { Object.defineProperty(this2, k, { value: v, writable: true }); };
 
 	// Set attributes
-	this.method = (this.method) ? this.method.toUpperCase() : 'GET';
+	this.method = (headers.method) ? headers.method.toUpperCase() : 'GET';
 	this[this.method] = true;
-	this.params = (this.params) || {};
+	this.params = (headers.params) || {};
 	this.isBinary = false; // stream is binary? :TODO:
+	for (var k in headers) {
+		var kc = k.charAt(0);
+		if (kc === kc.toUpperCase()) { // starts uppercase?
+			// Is a header, save
+			this[k] = headers[k];
+
+			// Try to parse
+			var parsedHeader = httpHeaders.deserialize(k, headers[k]);
+			if (parsedHeader && typeof parsedHeader != 'string') {
+				this[k.toLowerCase()] = parsedHeader;
+			}
+		}
+	}
+
+	// Stream state
+	hidden('isConnOpen', true);
+	hidden('isStarted', true);
+	hidden('isEnded', false);
+	this.on('end', function() { this2.isEnded = true; });
 }
 IncomingRequest.prototype = Object.create(util.EventEmitter.prototype);
 module.exports = IncomingRequest;
@@ -2036,7 +2063,7 @@ IncomingRequest.prototype.buffer = function(cb) {
 	}
 	this.on('end', cb);
 };
-},{"../util":8,"./content-types.js":9,"./helpers.js":10}],14:[function(require,module,exports){
+},{"../util":8,"./content-types.js":9,"./helpers.js":10,"./http-headers.js":11}],14:[function(require,module,exports){
 var util = require('../util');
 var helpers = require('./helpers.js');
 var httpHeaders = require('./http-headers.js');
@@ -2048,10 +2075,19 @@ var contentTypes = require('./content-types.js');
 // Interface for receiving responses
 function IncomingResponse() {
 	util.EventEmitter.call(this);
+	var this2 = this;
+	var hidden = function(k, v) { Object.defineProperty(this2, k, { value: v, writable: true }); };
 
+	// Set attributes
 	this.status = 0;
-	this.reason = null;
-	Object.defineProperty(this, 'latency', { value: undefined }); // non enumerable
+	this.reason = undefined;
+	hidden('latency', undefined);
+
+	// Stream state
+	hidden('isConnOpen', true);
+	hidden('isStarted', true);
+	hidden('isEnded', false);
+	this.on('end', function() { this2.isEnded = true; });
 }
 IncomingResponse.prototype = Object.create(util.EventEmitter.prototype);
 module.exports = IncomingResponse;
@@ -2063,7 +2099,7 @@ IncomingResponse.prototype.buffer = function(cb) {
 	if (typeof this._buffer == 'undefined') {
 		var this2 = this;
 		this._buffer = '';
-		this.body = null;
+		this.body = '';
 		this.on('data', function(data) {
 			if (typeof data == 'string') {
 				this2._buffer += data;
@@ -2148,6 +2184,7 @@ function Request(headers) {
 	// Stream state
 	this.isConnOpen = true;
 	this.isStarted = false;
+	this.isEnded = false;
 }
 Request.prototype = Object.create(util.EventEmitter.prototype);
 util.mixin.call(Request.prototype, promises.Promise.prototype);
@@ -2157,7 +2194,7 @@ module.exports = Request;
 Request.prototype.header = function(k, v) {
 	k = formatHeaderKey(k);
 	// Convert mime if needed
-	if (k == 'ContentType') {
+	if (k == 'Accept' || k == 'ContentType') {
 		v = contentTypes.lookup(v);
 	}
 	this.headers[k] = v;
@@ -2262,14 +2299,20 @@ Request.prototype.pipe = function(source, headersCB, bodyCb) {
 				this2.headers.url = source.url;
 			}
 			for (var k in source) {
-				if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers)) {
+				if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers) && k.charAt(0) != '_') {
 					this2.header(k, headersCB(k, source[k]));
 				}
 			}
 		}
-		// wire up the stream
-		source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
-		source.on('end', function() { this2.end(); });
+		console.log(source.isEnded, source);
+		if (source.isEnded) {
+			// send body (if it was buffered)
+			this2.end(bodyCb(source.body));
+		} else {
+			// wire up the stream
+			source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
+			source.on('end', function() { this2.end(); });
+		}
 	});
 };
 
@@ -2344,6 +2387,7 @@ Request.prototype.start = function() {
 Request.prototype.write = function(data) {
 	if (!this.isConnOpen) return this;
 	if (!this.isStarted) this.start();
+	if (this.isEnded) return this;
 	this.emit('data', data);
 	return this;
 };
@@ -2353,10 +2397,12 @@ Request.prototype.write = function(data) {
 // - emits 'end' and 'close' events
 Request.prototype.end = function(data) {
 	if (!this.isConnOpen) return this;
+	if (this.isEnded) return this;
 	if (!this.isStarted) this.start();
 	if (typeof data != 'undefined') {
 		this.write(data);
 	}
+	this.isEnded = true;
 	this.emit('end');
 	// this.close();
 	// ^ do not close - the response should close
@@ -2411,6 +2457,7 @@ function Response() {
 	// Stream state
 	this.isConnOpen = true;
 	this.isStarted = false;
+	this.isEnded = false;
 }
 module.exports = Response;
 Response.prototype = Object.create(util.EventEmitter.prototype);
@@ -2473,16 +2520,22 @@ Response.prototype.pipe = function(source, headersCB, bodyCb) {
 		if (source instanceof require('./incoming-response')) {
 			if (!this2.headers.status) {
 				this2.status(source.status, source.reason);
-				for (var k in source) {
-					if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers)) {
-						this2.header(k, headersCB(k, source[k]));
-					}
+			}
+			for (var k in source) {
+				if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers) && k.charAt(0) != '_') {
+					this2.header(k, headersCB(k, source[k]));
 				}
 			}
 		}
-		// wire up the stream
-		source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
-		source.on('end', function() { this2.end(); });
+		console.log(source.isEnded, source);
+		if (source.isEnded) {
+			// send body (if it was buffered)
+			this2.end(bodyCb(source.body));
+		} else {
+			// wire up the stream
+			source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
+			source.on('end', function() { this2.end(); });
+		}
 	});
 };
 
@@ -2507,6 +2560,7 @@ Response.prototype.wireUp = function(other, async) {
 // - emits the 'headers' event
 Response.prototype.start = function() {
 	if (!this.isConnOpen) return this;
+	if (this.isEnded) return this;
 	if (this.isStarted) return this;
 	this.emit('headers', this.headers);
 	this.isStarted = true;
@@ -2517,6 +2571,7 @@ Response.prototype.start = function() {
 // - emits the 'data' event
 Response.prototype.write = function(data) {
 	if (!this.isConnOpen) return this;
+	if (this.isEnded) return this;
 	if (!this.isStarted) this.start();
 	this.emit('data', data);
 	return this;
@@ -2527,10 +2582,12 @@ Response.prototype.write = function(data) {
 // - emits 'end' and 'close' events
 Response.prototype.end = function(data) {
 	if (!this.isConnOpen) return this;
+	if (this.isEnded) return this;
 	if (!this.isStarted) this.start();
 	if (typeof data != 'undefined') {
 		this.write(data);
 	}
+	this.isEnded = true;
 	this.emit('end');
 	this.close();
 	return this;

@@ -69,6 +69,47 @@ local.at('#foo/([A-z]*)', function(req, res) {
 	res.end('"'+payload+'"');
 });
 
+local.at('#headers-echo', function(req, res) {
+	res.s204()
+		.header('content-type', req.ContentType)
+		.header('fooBar', req.FooBar)
+		.header('Asdf-fdsa', req.AsdfFdsa)
+		.header('contentMD5', req.ContentMD5)
+		.end();
+});
+
+local.at('#mimetype-alises-echo', function(req, res) {
+	if (req.ContentType !== 'text/csv') {
+		return res.s415('only understands text/csv').end();
+	}
+	if (!local.preferredType(req.Accept, 'html')) {
+		return res.s406('can only provide html').end();
+	}
+	req.buffer(function() {
+		res.s200().end('<strong>'+req.body+'</strong>');
+	});
+});
+
+// pound-sign optional
+local.at('pound-sign-optional', function(req, res) {
+	res.s204().end();
+});
+
+// body parsing
+local.at('#parse-body', function(req, res) {
+	if (req.ContentType !== 'application/json' && req.ContentType != local.contentTypes.lookup('form')) {
+		return res.s415('only understands json and form-urlencoded').end();
+	}
+	req.buffer(function() {
+		res.s200().end(req.body);
+	});
+});
+
+// query params
+local.at('#query-params', function(req, res) {
+	res.s200().ContentType('json').end(req.params);
+});
+
 local.at('#events', function(req, res) {
 	res.s200().ContentType('event-stream');
 	res.write({ event:'foo', data:{ c:1 }});
@@ -95,5 +136,8 @@ local.at('#pipe', function(req, res) {
 	var bodyUpdate = function(body) {
 		return body.toUpperCase();
 	};
-	res.pipe(GET('#').bufferResponse(false), headerUpdate, bodyUpdate);
+	if (req.method == 'GET')
+		res.pipe(GET(req.params.src), headerUpdate, bodyUpdate);
+	else if (req.method == 'POST')
+		res.s200().pipe(req, headerUpdate, bodyUpdate);
 });

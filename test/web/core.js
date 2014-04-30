@@ -58,9 +58,9 @@ wait(function () { return done; });
 {_buffer: "", body: null, reason: null, status: 0}
 */
 
-// == SECTION core - document local requests
+// == SECTION core - document virtual requests
 
-// successful local requests
+// successful virtual requests
 
 done = false;
 startTime = Date.now();
@@ -96,7 +96,7 @@ success
 }
 */
 
-// streamed local responses
+// streamed virtual responses
 
 done = false;
 startTime = Date.now();
@@ -114,7 +114,7 @@ success
 service resource
 */
 
-// unsuccessful local requests
+// unsuccessful virtual requests
 
 done = false;
 startTime = Date.now();
@@ -126,7 +126,7 @@ error
 {_buffer: "", body: "", reason: undefined, status: 404}
 */
 
-// successful local posts
+// successful virtual posts
 
 done = false;
 startTime = Date.now();
@@ -148,7 +148,7 @@ success
 }
 */
 
-// streamed local post and streamed response
+// streamed virtual post and streamed response
 
 done = false;
 startTime = Date.now();
@@ -169,24 +169,207 @@ echo this,
  also
 */
 
-// local request timeout
+// header keyname consistency check
 
 done = false;
 startTime = Date.now();
-GET('#timeout')
-  .setTimeout(1000)
-  .then(printError, printSuccess)
+GET('#headers-echo')
+  .header('content-type', 'ContentType')
+  .header('fooBar', 'FooBar')
+  .header('Asdf-fdsa', 'AsdfFdsa')
+  .header('contentMD5', 'ContentMD5')
+  .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
 
 /* =>
 success
-{_buffer: "", body: null, reason: null, status: 0}
+{
+  AsdfFdsa: "AsdfFdsa",
+  ContentMD5: "ContentMD5",
+  ContentType: "ContentType",
+  FooBar: "FooBar",
+  _buffer: "",
+  body: "",
+  reason: undefined,
+  status: 204
+}
 */
 
-// == SECTION core - worker local requests
+// mimetype aliases
 
-// successful local requests
+done = false;
+startTime = Date.now();
+POST('#mimetype-alises-echo')
+  .Accept('html')
+  .ContentType('csv')
+  .end('foo,bar')
+  .then(printSuccess, printError)
+  .always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  _buffer: "<strong>foo,bar</strong>",
+  body: "<strong>foo,bar</strong>",
+  reason: undefined,
+  status: 200
+}
+*/
+
+// mimetype enforcement
+
+done = false;
+startTime = Date.now();
+POST('#mimetype-alises-echo')
+  .Accept('json')
+  .ContentType('csv')
+  .end('foo,bar')
+  .then(printSuccess, printError)
+  .always(function() {
+    return POST('#mimetype-alises-echo')
+      .Accept('html')
+      .ContentType('text/plain');
+  })
+  .then(printSuccess, printError)
+  .always(finishTest);
+wait(function () { return done; });
+
+/* =>
+error
+{_buffer: "", body: "", reason: "can only provide html", status: 406}
+error
+{_buffer: "", body: "", reason: "only understands text/csv", status: 415}
+*/
+
+// virtual poundsign optional
+
+done = false;
+startTime = Date.now();
+GET('#pound-sign-optional')
+  .then(printSuccess, printError)
+  .always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{_buffer: "", body: "", reason: undefined, status: 204}
+*/
+
+// virtual body parsing
+
+done = false;
+startTime = Date.now();
+POST('#parse-body')
+  .ContentType('json')
+  .end(JSON.stringify({foo:"bar"}))
+  .then(printSuccess, printError)
+  .always(function() {
+    return POST('#parse-body')
+      .ContentType('urlencoded')
+      .end('foo2=bar2');
+  })
+  .then(printSuccess, printError)
+  .always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{_buffer: {foo: "bar"}, body: {foo: "bar"}, reason: undefined, status: 200}
+success
+{_buffer: {foo2: "bar2"}, body: {foo2: "bar2"}, reason: undefined, status: 200}
+*/
+
+// virtual query parameters
+
+done = false;
+startTime = Date.now();
+GET('#query-params', { thunder: 'flash' })
+  .param('yeah', 'buddy')
+  .param({ itsa: 'me', number: 5 })
+  .then(printSuccess, printError)
+  .always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  ContentType: "application/json",
+  _buffer: {itsa: "me", number: 5, thunder: "flash", yeah: "buddy"},
+  body: {itsa: "me", number: 5, thunder: "flash", yeah: "buddy"},
+  reason: undefined,
+  status: 200
+}
+*/
+
+// virtual piping
+
+done = false;
+startTime = Date.now();
+GET('#pipe', { src: '#' })
+  .then(printSuccess, printError)
+  .always(function() {
+    return POST('#pipe')
+      .end('and also pipe this');
+  })
+  .then(printSuccess, printError)
+  .always(finishTest);
+wait(function () { return done; });
+/* =>
+success
+{
+  ContentType: "text/piped+plain",
+  Link: [
+    {
+      href: "#",
+      rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
+    },
+    {href: "#events", id: "events", rel: "collection"},
+    {href: "#foo", id: "foo", rel: "collection"},
+    {href: "#{id}", rel: "collection"}
+  ],
+  _buffer: "SERVICE RESOURCE",
+  body: "SERVICE RESOURCE",
+  links: [
+    {
+      href: "#",
+      rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
+    },
+    {href: "#events", id: "events", rel: "collection"},
+    {href: "#foo", id: "foo", rel: "collection"},
+    {href: "#{id}", rel: "collection"}
+  ],
+  reason: undefined,
+  status: 200
+}
+success
+{
+  _buffer: "AND ALSO PIPE THIS",
+  body: "AND ALSO PIPE THIS",
+  reason: undefined,
+  status: 200
+}
+*/
+
+// virtual request timeout
+
+done = false;
+startTime = Date.now();
+GET('#timeout')
+  .setTimeout(1000)
+  .then(printSuccess, printError)
+  .always(finishTest);
+wait(function () { return done; });
+
+/* =>
+error
+{_buffer: "", body: "", reason: undefined, status: 0}
+*/
+
+// == SECTION core - worker virtual requests
+
+// successful virtual requests
 
 done = false;
 startTime = Date.now();
@@ -231,7 +414,7 @@ success
 }
 */
 
-// unsuccessful local requests
+// unsuccessful virtual requests
 
 done = false;
 startTime = Date.now();

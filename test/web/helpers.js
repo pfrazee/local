@@ -1,41 +1,5 @@
 // == SECTION helpers
 
-// pipe()
-
-done = false;
-startTime = Date.now();
-GET('#pipe').then(printSuccess, printError).then(finishTest);
-wait(function () { return done; });
-/* =>
-success
-{
-  ContentType: "text/piped+plain",
-  Link: [
-    {
-      href: "#",
-      rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
-    },
-    {href: "#events", id: "events", rel: "collection"},
-    {href: "#foo", id: "foo", rel: "collection"},
-    {href: "#{id}", rel: "collection"}
-  ],
-  _buffer: "SERVICE RESOURCE",
-  body: "SERVICE RESOURCE",
-  links: [
-    {
-      href: "#",
-      rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
-    },
-    {href: "#events", id: "events", rel: "collection"},
-    {href: "#foo", id: "foo", rel: "collection"},
-    {href: "#{id}", rel: "collection"}
-  ],
-  reason: undefined,
-  status: 200
-}
-*/
-
-
 // extractDocumentLinks
 
 startTime = Date.now();

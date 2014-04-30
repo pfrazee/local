@@ -2,6 +2,7 @@
 // =======
 
 var promise = require('../promises.js').promise;
+var contentTypes = require('./content-types.js');
 var UriTemplate = require('./uri-template.js');
 
 // EXPORTED
@@ -177,8 +178,12 @@ function preferredTypes(accept, provided) {
 		if (!Array.isArray(provided)) {
 			provided = [provided];
 		}
+
 		return provided
-			.map(function(type) { return [type, getMediaTypePriority(type, accept)]; })
+			.map(function(type) {
+				type = contentTypes.lookup(type); // run mimetype aliases
+				return [type, getMediaTypePriority(type, accept)];
+			})
 			.filter(function(pair) { return pair[1] > 0; })
 			.sort(function(a, b) { return a[1] === b[1] ? 0 : a[1] > b[1] ? -1 : 1; }) // revsort
 			.map(function(pair) { return pair[0]; });

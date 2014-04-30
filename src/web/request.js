@@ -27,6 +27,7 @@ function Request(headers) {
 	// Stream state
 	this.isConnOpen = true;
 	this.isStarted = false;
+	this.isEnded = false;
 }
 Request.prototype = Object.create(util.EventEmitter.prototype);
 util.mixin.call(Request.prototype, promises.Promise.prototype);
@@ -36,7 +37,7 @@ module.exports = Request;
 Request.prototype.header = function(k, v) {
 	k = formatHeaderKey(k);
 	// Convert mime if needed
-	if (k == 'ContentType') {
+	if (k == 'Accept' || k == 'ContentType') {
 		v = contentTypes.lookup(v);
 	}
 	this.headers[k] = v;
@@ -141,14 +142,20 @@ Request.prototype.pipe = function(source, headersCB, bodyCb) {
 				this2.headers.url = source.url;
 			}
 			for (var k in source) {
-				if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers)) {
+				if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers) && k.charAt(0) != '_') {
 					this2.header(k, headersCB(k, source[k]));
 				}
 			}
 		}
-		// wire up the stream
-		source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
-		source.on('end', function() { this2.end(); });
+		console.log(source.isEnded, source);
+		if (source.isEnded) {
+			// send body (if it was buffered)
+			this2.end(bodyCb(source.body));
+		} else {
+			// wire up the stream
+			source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
+			source.on('end', function() { this2.end(); });
+		}
 	});
 };
 
@@ -223,6 +230,7 @@ Request.prototype.start = function() {
 Request.prototype.write = function(data) {
 	if (!this.isConnOpen) return this;
 	if (!this.isStarted) this.start();
+	if (this.isEnded) return this;
 	this.emit('data', data);
 	return this;
 };
@@ -232,10 +240,12 @@ Request.prototype.write = function(data) {
 // - emits 'end' and 'close' events
 Request.prototype.end = function(data) {
 	if (!this.isConnOpen) return this;
+	if (this.isEnded) return this;
 	if (!this.isStarted) this.start();
 	if (typeof data != 'undefined') {
 		this.write(data);
 	}
+	this.isEnded = true;
 	this.emit('end');
 	// this.close();
 	// ^ do not close - the response should close
