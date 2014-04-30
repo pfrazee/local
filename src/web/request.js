@@ -123,40 +123,9 @@ Request.prototype.bufferResponse = function(v) {
 };
 
 // Pipe helper
-// streams an incoming request or response into the outgoing request
-// - doesnt overwrite any previously-set headers
-// - params:
-//   - `source`: the incoming request or response to pull data from
-//   - `headersCb`: (optional) takes `(k, v)` from source and responds updated header for otarget
-//   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for otarget
-Request.prototype.pipe = function(source, headersCB, bodyCb) {
-	var this2 = this;
-	headersCB = headersCB || function(v) { return v; };
-	bodyCb = bodyCb || function(v) { return v; };
-	promise(source).always(function(source) {
-		if (source instanceof require('./incoming-request')) {
-			if (!this2.headers.method) {
-				this2.headers.method = source.method;
-			}
-			if (!this2.headers.url) {
-				this2.headers.url = source.url;
-			}
-			for (var k in source) {
-				if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers) && k.charAt(0) != '_') {
-					this2.header(k, headersCB(k, source[k]));
-				}
-			}
-		}
-		console.log(source.isEnded, source);
-		if (source.isEnded) {
-			// send body (if it was buffered)
-			this2.end(bodyCb(source.body));
-		} else {
-			// wire up the stream
-			source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
-			source.on('end', function() { this2.end(); });
-		}
-	});
+// passes through to its incoming response
+Request.prototype.pipe = function(target, headersCb, bodyCb) {
+	this.always(function(res) { res.pipe(target, headersCb, bodyCb); });
 };
 
 // Event connection helper

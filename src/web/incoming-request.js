@@ -64,3 +64,40 @@ IncomingRequest.prototype.buffer = function(cb) {
 	}
 	this.on('end', cb);
 };
+
+// Pipe helper
+// streams the incoming request  into an outgoing request or response
+// - doesnt overwrite any previously-set headers
+// - params:
+//   - `target`: the outgoing request or response to push data to
+//   - `headersCb`: (optional) takes `(k, v)` from source and responds updated header for otarget
+//   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for otarget
+IncomingRequest.prototype.pipe = function(target, headersCB, bodyCb) {
+	headersCB = headersCB || function(v) { return v; };
+	bodyCb = bodyCb || function(v) { return v; };
+	if (target instanceof require('./request')) {
+		if (!target.headers.method) {
+			target.headers.method = this.method;
+		}
+		if (!target.headers.url) {
+			target.headers.url = this.url;
+		}
+		for (var k in this) {
+			if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in target.headers) && k.charAt(0) != '_') {
+				target.header(k, headersCB(k, this[k]));
+			}
+		}
+	} else if (target instanceof require('./response')) {
+		if (!target.headers.ContentType && this.ContentType) {
+			target.ContentType(this.ContentType);
+		}
+	}
+	if (this.isEnded) {
+		// send body (if it was buffered)
+		target.end(bodyCb(this.body));
+	} else {
+		// wire up the stream
+		this.on('data', function(chunk) { target.write(bodyCb(chunk)); });
+		this.on('end', function() { target.end(); });
+	}
+};

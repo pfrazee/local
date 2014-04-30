@@ -2063,7 +2063,44 @@ IncomingRequest.prototype.buffer = function(cb) {
 	}
 	this.on('end', cb);
 };
-},{"../util":8,"./content-types.js":9,"./helpers.js":10,"./http-headers.js":11}],14:[function(require,module,exports){
+
+// Pipe helper
+// streams the incoming request  into an outgoing request or response
+// - doesnt overwrite any previously-set headers
+// - params:
+//   - `target`: the outgoing request or response to push data to
+//   - `headersCb`: (optional) takes `(k, v)` from source and responds updated header for otarget
+//   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for otarget
+IncomingRequest.prototype.pipe = function(target, headersCB, bodyCb) {
+	headersCB = headersCB || function(v) { return v; };
+	bodyCb = bodyCb || function(v) { return v; };
+	if (target instanceof require('./request')) {
+		if (!target.headers.method) {
+			target.headers.method = this.method;
+		}
+		if (!target.headers.url) {
+			target.headers.url = this.url;
+		}
+		for (var k in this) {
+			if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in target.headers) && k.charAt(0) != '_') {
+				target.header(k, headersCB(k, this[k]));
+			}
+		}
+	} else if (target instanceof require('./response')) {
+		if (!target.headers.ContentType && this.ContentType) {
+			target.ContentType(this.ContentType);
+		}
+	}
+	if (this.isEnded) {
+		// send body (if it was buffered)
+		target.end(bodyCb(this.body));
+	} else {
+		// wire up the stream
+		this.on('data', function(chunk) { target.write(bodyCb(chunk)); });
+		this.on('end', function() { target.end(); });
+	}
+};
+},{"../util":8,"./content-types.js":9,"./helpers.js":10,"./http-headers.js":11,"./request":15,"./response":16}],14:[function(require,module,exports){
 var util = require('../util');
 var helpers = require('./helpers.js');
 var httpHeaders = require('./http-headers.js');
@@ -2091,31 +2128,6 @@ function IncomingResponse() {
 }
 IncomingResponse.prototype = Object.create(util.EventEmitter.prototype);
 module.exports = IncomingResponse;
-
-// Stream buffering
-// stores the incoming stream and attempts to parse on end
-IncomingResponse.prototype.buffer = function(cb) {
-	// setup buffering
-	if (typeof this._buffer == 'undefined') {
-		var this2 = this;
-		this._buffer = '';
-		this.body = '';
-		this.on('data', function(data) {
-			if (typeof data == 'string') {
-				this2._buffer += data;
-			} else {
-				this2._buffer = data; // Assume it is an array buffer or some such
-			}
-		});
-		this.on('end', function() {
-			if (this2.ContentType)
-				this2.body = contentTypes.deserialize(this2.ContentType, this2._buffer);
-			else
-				this2.body = this2._buffer;
-		});
-	}
-	this.on('end', cb);
-};
 
 // Parses headers, makes sure response header links are absolute
 IncomingResponse.prototype.processHeaders = function(oreq, headers) {
@@ -2154,7 +2166,65 @@ IncomingResponse.prototype.processHeaders = function(oreq, headers) {
 	}
 };
 
-},{"../util":8,"./content-types.js":9,"./helpers.js":10,"./http-headers.js":11}],15:[function(require,module,exports){
+// Stream buffering
+// stores the incoming stream and attempts to parse on end
+IncomingResponse.prototype.buffer = function(cb) {
+	// setup buffering
+	if (typeof this._buffer == 'undefined') {
+		var this2 = this;
+		this._buffer = '';
+		this.body = null;
+		this.on('data', function(data) {
+			if (typeof data == 'string') {
+				this2._buffer += data;
+			} else {
+				this2._buffer = data; // Assume it is an array buffer or some such
+			}
+		});
+		this.on('end', function() {
+			if (this2.ContentType)
+				this2.body = contentTypes.deserialize(this2.ContentType, this2._buffer);
+			else
+				this2.body = this2._buffer;
+		});
+	}
+	this.on('end', cb);
+};
+
+// Pipe helper
+// streams the incoming resposne into an outgoing request or response
+// - doesnt overwrite any previously-set headers
+// - params:
+//   - `target`: the incoming request or response to pull data from
+//   - `headersCb`: (optional) takes `(k, v)` from source and responds updated header for target
+//   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for target
+IncomingResponse.prototype.pipe = function(target, headersCB, bodyCb) {
+	headersCB = headersCB || function(v) { return v; };
+	bodyCb = bodyCb || function(v) { return v; };
+	if (target instanceof require('./response')) {
+		if (!target.headers.status) {
+			target.status(this.status, this.reason);
+		}
+		for (var k in this) {
+			if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in target.headers) && k.charAt(0) != '_') {
+				target.header(k, headersCB(k, this[k]));
+			}
+		}
+	} else if (target instanceof require('./request')) {
+		if (!target.headers.ContentType && this.ContentType) {
+			target.ContentType(this.ContentType);
+		}
+	}
+	if (this.isEnded) {
+		// send body (if it was buffered)
+		target.end(bodyCb(this.body));
+	} else {
+		// wire up the stream
+		this.on('data', function(chunk) { target.write(bodyCb(chunk)); });
+		this.on('end', function() { target.end(); });
+	}
+};
+},{"../util":8,"./content-types.js":9,"./helpers.js":10,"./http-headers.js":11,"./request":15,"./response":16}],15:[function(require,module,exports){
 var util = require('../util');
 var promises = require('../promises.js');
 var helpers = require('./helpers.js');
@@ -2280,40 +2350,9 @@ Request.prototype.bufferResponse = function(v) {
 };
 
 // Pipe helper
-// streams an incoming request or response into the outgoing request
-// - doesnt overwrite any previously-set headers
-// - params:
-//   - `source`: the incoming request or response to pull data from
-//   - `headersCb`: (optional) takes `(k, v)` from source and responds updated header for otarget
-//   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for otarget
-Request.prototype.pipe = function(source, headersCB, bodyCb) {
-	var this2 = this;
-	headersCB = headersCB || function(v) { return v; };
-	bodyCb = bodyCb || function(v) { return v; };
-	promise(source).always(function(source) {
-		if (source instanceof require('./incoming-request')) {
-			if (!this2.headers.method) {
-				this2.headers.method = source.method;
-			}
-			if (!this2.headers.url) {
-				this2.headers.url = source.url;
-			}
-			for (var k in source) {
-				if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers) && k.charAt(0) != '_') {
-					this2.header(k, headersCB(k, source[k]));
-				}
-			}
-		}
-		console.log(source.isEnded, source);
-		if (source.isEnded) {
-			// send body (if it was buffered)
-			this2.end(bodyCb(source.body));
-		} else {
-			// wire up the stream
-			source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
-			source.on('end', function() { this2.end(); });
-		}
-	});
+// passes through to its incoming response
+Request.prototype.pipe = function(target, headersCb, bodyCb) {
+	this.always(function(res) { res.pipe(target, headersCb, bodyCb); });
 };
 
 // Event connection helper
@@ -2436,7 +2475,7 @@ function parseScheme(url) {
 	var schemeMatch = /^([^.^:]*):/.exec(url);
 	return (schemeMatch) ? schemeMatch[1] : 'http';
 }
-},{"../promises.js":4,"../util":8,"./content-types.js":9,"./helpers.js":10,"./incoming-request":13,"./incoming-response.js":14,"./schemes.js":17}],16:[function(require,module,exports){
+},{"../promises.js":4,"../util":8,"./content-types.js":9,"./helpers.js":10,"./incoming-response.js":14,"./schemes.js":17}],16:[function(require,module,exports){
 var util = require('../util');
 var promise = require('../promises.js').promise;
 var helpers = require('./helpers.js');
@@ -2505,40 +2544,6 @@ function formatHeaderKey(str) {
 	return str.replace(headerKeyRegex, function(_0,_1,_2) { return _2.toUpperCase(); });
 }
 
-// Pipe helper
-// streams an incoming request or response into the outgoing response
-// - doesnt overwrite any previously-set headers
-// - params:
-//   - `source`: the incoming request or response to pull data from
-//   - `headersCb`: (optional) takes `(k, v)` from source and responds updated header for otarget
-//   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for otarget
-Response.prototype.pipe = function(source, headersCB, bodyCb) {
-	var this2 = this;
-	headersCB = headersCB || function(v) { return v; };
-	bodyCb = bodyCb || function(v) { return v; };
-	promise(source).always(function(source) {
-		if (source instanceof require('./incoming-response')) {
-			if (!this2.headers.status) {
-				this2.status(source.status, source.reason);
-			}
-			for (var k in source) {
-				if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers) && k.charAt(0) != '_') {
-					this2.header(k, headersCB(k, source[k]));
-				}
-			}
-		}
-		console.log(source.isEnded, source);
-		if (source.isEnded) {
-			// send body (if it was buffered)
-			this2.end(bodyCb(source.body));
-		} else {
-			// wire up the stream
-			source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
-			source.on('end', function() { this2.end(); });
-		}
-	});
-};
-
 // Event connection helper
 // connects events from this stream to the target (event proxying)
 Response.prototype.wireUp = function(other, async) {
@@ -2602,7 +2607,7 @@ Response.prototype.close = function() {
 	this.clearEvents();
 	return this;
 };
-},{"../promises.js":4,"../util":8,"./content-types.js":9,"./helpers.js":10,"./incoming-response":14}],17:[function(require,module,exports){
+},{"../promises.js":4,"../util":8,"./content-types.js":9,"./helpers.js":10}],17:[function(require,module,exports){
 var util = require('../util');
 var helpers = require('./helpers.js');
 var contentTypes = require('./content-types.js');

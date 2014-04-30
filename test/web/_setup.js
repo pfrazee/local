@@ -25,7 +25,7 @@ local.at('#foo', function(req, res) {
 	}
 	if (req.method == 'POST') {
 		// pipe back
-		return res.s200().ContentType(req.ContentType).pipe(req);
+		return req.pipe(res.s200());
 	}
 	linkHeader = [
 		{ rel:'up via service', href:'#' },
@@ -137,7 +137,7 @@ local.at('#pipe', function(req, res) {
 		return body.toUpperCase();
 	};
 	if (req.method == 'GET')
-		res.pipe(GET(req.params.src), headerUpdate, bodyUpdate);
+		GET(req.params.src).pipe(res, headerUpdate, bodyUpdate);
 	else if (req.method == 'POST')
-		res.s200().pipe(req, headerUpdate, bodyUpdate);
+		req.pipe(res.s200(), headerUpdate, bodyUpdate);
 });

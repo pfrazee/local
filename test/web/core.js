@@ -54,8 +54,9 @@ var request = GET('http://grimwire.com:8080').Accept('json').start();
 request.then(printSuccess, printError).always(finishTest);
 request.close();
 wait(function () { return done; });
-/* => error
-{_buffer: "", body: null, reason: null, status: 0}
+/* =>
+error
+{_buffer: "", body: null, reason: undefined, status: 0}
 */
 
 // == SECTION core - document virtual requests
@@ -364,7 +365,7 @@ wait(function () { return done; });
 
 /* =>
 error
-{_buffer: "", body: "", reason: undefined, status: 0}
+{_buffer: "", body: null, reason: undefined, status: 0}
 */
 
 // == SECTION core - worker virtual requests

@@ -66,40 +66,6 @@ function formatHeaderKey(str) {
 	return str.replace(headerKeyRegex, function(_0,_1,_2) { return _2.toUpperCase(); });
 }
 
-// Pipe helper
-// streams an incoming request or response into the outgoing response
-// - doesnt overwrite any previously-set headers
-// - params:
-//   - `source`: the incoming request or response to pull data from
-//   - `headersCb`: (optional) takes `(k, v)` from source and responds updated header for otarget
-//   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for otarget
-Response.prototype.pipe = function(source, headersCB, bodyCb) {
-	var this2 = this;
-	headersCB = headersCB || function(v) { return v; };
-	bodyCb = bodyCb || function(v) { return v; };
-	promise(source).always(function(source) {
-		if (source instanceof require('./incoming-response')) {
-			if (!this2.headers.status) {
-				this2.status(source.status, source.reason);
-			}
-			for (var k in source) {
-				if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers) && k.charAt(0) != '_') {
-					this2.header(k, headersCB(k, source[k]));
-				}
-			}
-		}
-		console.log(source.isEnded, source);
-		if (source.isEnded) {
-			// send body (if it was buffered)
-			this2.end(bodyCb(source.body));
-		} else {
-			// wire up the stream
-			source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
-			source.on('end', function() { this2.end(); });
-		}
-	});
-};
-
 // Event connection helper
 // connects events from this stream to the target (event proxying)
 Response.prototype.wireUp = function(other, async) {
