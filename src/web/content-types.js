@@ -5,10 +5,37 @@
 var contentTypes = {
 	serialize   : contentTypes__serialize,
 	deserialize : contentTypes__deserialize,
-	register    : contentTypes__register
+	register    : contentTypes__register,
+	lookup      : contentTypes__lookup
 };
 var contentTypes__registry = {};
 module.exports = contentTypes;
+
+// EXPORTED
+// converts a simple mime alias to the full type
+function contentTypes__lookup(v) {
+	switch (v) {
+		case 'plain':
+		case 'plaintext':
+		case 'text':
+			return 'text/plain';
+		case 'html':
+			return 'text/html';
+		case 'csv':
+			return 'text/csv';
+		case 'events':
+		case 'event-stream':
+			return 'text/event-stream';
+		case 'json':
+			return 'application/json';
+		case 'xml':
+			return 'application/xml';
+		case 'javascript':
+		case 'js':
+			return 'application/javascript';
+	}
+	return v;
+}
 
 // EXPORTED
 // serializes an object into a string

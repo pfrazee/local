@@ -131,30 +131,3 @@ httpHeaders.register('accept',
 	},
 	helpers.parseAcceptHeader
 );
-
-/*
-Via =  "Via" ":" 1#( received-protocol received-by [ comment ] )
-received-protocol = [ protocol-name "/" ] protocol-version
-protocol-name     = token
-protocol-version  = token
-received-by       = ( host [ ":" port ] ) | pseudonym
-pseudonym         = token
-*/
-//                  proto-name  proto-v   received-by        comment
-//                  ------      -------   --------------     ------
-var viaregex = /(?:([A-z]+)\/)?([\d\.]+) ([-A-z:\d\.@!]*)(?: ([^,]+))?/g;
-httpHeaders.register('via',
-	function (obj) {
-		return obj.map(function(via) {
-			return ((via.proto.name) ? (via.proto.name+'/') : '') + via.proto.version+' '+via.hostname+((via.comment) ? (' '+via.comment) : '');
-		}).join(', ');
-	},
-	function (str) {
-		var vias = [], match;
-		while ((match = viaregex.exec(str))) {
-			var via = { proto: { name: (match[1]||'http'), version: match[2] }, hostname: match[3], comment: match[4] };
-			vias.push(via);
-		}
-		return vias;
-	}
-);

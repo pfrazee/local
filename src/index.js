@@ -3,9 +3,8 @@ var util = require('./util');
 module.exports = {
 	Request: require('./web/request.js'),
 	Response: require('./web/response.js'),
-	Server: require('./web/server.js'),
-	BridgeServer: require('./web/bridge-server.js'),
-	WorkerBridgeServer: require('./web/worker-bridge-server.js'),
+	// BridgeServer: require('./web/bridge-server.js'),
+	// WorkerBridgeServer: require('./web/worker-bridge-server.js'),
 	UriTemplate: require('./web/uri-template.js'),
 
 	util: util,
@@ -13,57 +12,54 @@ module.exports = {
 	httpHeaders: require('./web/http-headers.js'),
 	contentTypes: require('./web/content-types.js'),
 
-	worker: require('./worker'),
+	// worker: require('./worker'),
 };
 util.mixin.call(module.exports, require('./constants.js'));
 util.mixin.call(module.exports, require('./config.js'));
 util.mixin.call(module.exports, require('./promises.js'));
-util.mixin.call(module.exports, require('./spawners.js'));
+// util.mixin.call(module.exports, require('./spawners.js'));
 util.mixin.call(module.exports, require('./request-event.js'));
 util.mixin.call(module.exports, require('./web/helpers.js'));
 util.mixin.call(module.exports, require('./web/httpl.js'));
-util.mixin.call(module.exports, require('./web/dispatch.js'));
-util.mixin.call(module.exports, require('./web/subscribe.js'));
-util.mixin.call(module.exports, require('./web/agent.js'));
+// util.mixin.call(module.exports, require('./web/subscribe.js'));
+// util.mixin.call(module.exports, require('./web/agent.js'));
 
-if (typeof window != 'undefined') window.local = module.exports;
-else if (typeof self != 'undefined') self.local = module.exports;
-else local = module.exports;
-
-// Local Registry Host
-local.addServer('hosts', function(req, res) {
-	var localHosts = local.getServers();
-
-	if (!(req.method == 'HEAD' || req.method == 'GET'))
-		return res.writeHead(405, 'bad method').end();
-
-	if (req.method == 'GET' && !local.preferredType(req, 'application/json'))
-		return res.writeHead(406, 'bad accept - only provides application/json').end();
-
-	var responses_ = [];
-	var domains = [], links = [];
-	links.push({ href: '/', rel: 'self service via', id: 'hosts', title: 'Page Hosts' });
-	for (var domain in localHosts) {
-		if (domain == 'hosts')
-			continue;
-		domains.push(domain);
-		responses_.push(local.dispatch({ method: 'HEAD', url: 'local://'+domain, timeout: 500 }));
-	}
-
-	local.promise.bundle(responses_).then(function(ress) {
-		ress.forEach(function(res, i) {
-			var selfLink = local.queryLinks(res, { rel: 'self' })[0];
-			if (!selfLink) {
-				selfLink = { rel: 'service', id: domains[i], href: 'local://'+domains[i] };
-			}
-			selfLink.rel = (selfLink.rel) ? selfLink.rel.replace(/(^|\b)(self|up|via)(\b|$)/gi, '') : 'service';
-			links.push(selfLink);
-		});
-
-		res.setHeader('link', links);
-		if (req.method == 'HEAD')
-			return res.writeHead(204, 'ok, no content').end();
-		res.writeHead(200, 'ok', { 'content-type': 'application/json' });
-		res.end({ host_names: domains });
+// Request sugars
+function dispatch(headers) {
+	var req = new module.exports.Request(headers);
+	req.bufferResponse(true);
+	util.nextTick(function() {
+		req.end(); // send next tick
 	});
-});
+	return req;
+}
+function makeRequestSugar(method) {
+	return function(url, params) {
+		return dispatch({ method: method, url: url, params: params });
+	};
+}
+module.exports.dispatch =  dispatch;
+module.exports.HEAD =      makeRequestSugar('HEAD');
+module.exports.GET =       makeRequestSugar('GET');
+module.exports.POST =      makeRequestSugar('POST');
+module.exports.PUT =       makeRequestSugar('PUT');
+module.exports.PATCH =     makeRequestSugar('PATCH');
+module.exports.DELETE =    makeRequestSugar('DELETE');
+module.exports.SUBSCRIBE = makeRequestSugar('SUBSCRIBE');
+module.exports.NOTIFY =    makeRequestSugar('NOTIFY');
+
+// Create globals
+var global, local = module.exports;
+if (typeof window != 'undefined') global = window;
+else if (typeof self != 'undefined') global = self;
+if (global) {
+	global.local     = local;
+	global.HEAD      = local.HEAD;
+	global.GET       = local.GET;
+	global.POST      = local.POST;
+	global.PUT       = local.PUT;
+	global.PATCH     = local.PATCH;
+	global.DELETE    = local.DELETE;
+	global.SUBSCRIBE = local.SUBSCRIBE;
+	global.NOTIFY    = local.NOTIFY;
+}

@@ -2,142 +2,129 @@ var util = require('../util');
 var promise = require('../promises.js').promise;
 var helpers = require('./helpers.js');
 var contentTypes = require('./content-types.js');
-var httpHeaders = require('./http-headers.js');
 
 // Response
 // ========
 // EXPORTED
-// Interface for receiving responses
-// - usually created internally and returned by `dispatch`
+// Interface for sending responses (used in virtual servers)
 function Response() {
-	var self = this;
 	util.EventEmitter.call(this);
 
-	this.status = 0;
-	this.reason = null;
 	this.headers = {};
-	this.body = '';
+	this.headers.status = 0;
+	this.headers.reason = '';
+	this.isBinary = false; // stream is binary? :TODO:
 
-	// non-enumerables (dont include in response messages)
-	Object.defineProperty(this, 'parsedHeaders', {
-		value: {},
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-	Object.defineProperty(this, 'isConnOpen', {
-		value: true,
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-	Object.defineProperty(this, 'latency', {
-		value: undefined,
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-
-	// response buffering
-	Object.defineProperty(this, 'body_', {
-		value: promise(),
-		configurable: true,
-		enumerable: false,
-		writable: false
-	});
-	this.on('data', function(data) {
-		if (data instanceof ArrayBuffer)
-			self.body = data; // browsers buffer binary responses, so dont try to stream
-		else
-			self.body += data;
-	});
-	this.on('end', function() {
-		if (self.headers['content-type'])
-			self.body = contentTypes.deserialize(self.headers['content-type'], self.body);
-		self.body_.fulfill(self.body);
-	});
+	// Stream state
+	this.isConnOpen = true;
+	this.isStarted = false;
 }
 module.exports = Response;
 Response.prototype = Object.create(util.EventEmitter.prototype);
 
+// Status & reason setter
+Response.prototype.status = function(code, reason) {
+	this.headers.status = code;
+	this.headers.reason = reason;
+	// :TODO: lookup reason if not given
+	return this;
+};
+
+// Status sugars
+for (var i=200; i <= 599; i++) {
+	(function(i) {
+		Response.prototype['s'+i] = function(reason) {
+			return this.status(i, reason);
+		};
+	})(i);
+}
+
+// Header setter
 Response.prototype.header = function(k, v) {
-	if (typeof v != 'undefined')
-		return this.setHeader(k, v);
-	return this.getHeader(k);
-};
-Response.prototype.setHeader    = function(k, v) { this.headers[k.toLowerCase()] = v; };
-Response.prototype.getHeader    = function(k) { return this.headers[k.toLowerCase()]; };
-Response.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCase()]; };
-
-// EXPORTED
-// calls any registered header serialization functions
-// - enables apps to use objects during their operation, but remain conformant with specs during transfer
-Response.prototype.serializeHeaders = function() {
-	for (var k in this.headers) {
-		this.headers[k] = httpHeaders.serialize(k, this.headers[k]);
+	k = formatHeaderKey(k);
+	// Convert mime if needed
+	if (k == 'ContentType') {
+		v = contentTypes.lookup(v);
 	}
+	this.headers[k] = v;
+	return this;
 };
 
-// EXPORTED
-// calls any registered header deserialization functions
-// - enables apps to use objects during their operation, but remain conformant with specs during transfer
-Response.prototype.deserializeHeaders = function() {
-	for (var k in this.headers) {
-		var parsedHeader = httpHeaders.deserialize(k, this.headers[k]);
-		if (parsedHeader && typeof parsedHeader != 'string') {
-			this.parsedHeaders[k] = parsedHeader;
+// Header sugars
+[ 'Allow', 'ContentType', 'Link', 'Location', 'Pragma' ].forEach(function(k) {
+	Response.prototype[k] = function(v) {
+		return this.header(k, v);
+	};
+});
+
+// helper to convert a given header value to our standard format - camel case, no dashes
+var headerKeyRegex = /(^|-)(.)/g;
+function formatHeaderKey(str) {
+	// strip any dashes, convert to camelcase
+	// eg 'foo-bar' -> 'FooBar'
+	return str.replace(headerKeyRegex, function(_0,_1,_2) { return _2.toUpperCase(); });
+}
+
+// Pipe helper
+// streams an incoming request or response into the outgoing response
+// - doesnt overwrite any previously-set headers
+// - params:
+//   - `source`: the incoming request or response to pull data from
+//   - `headersCb`: (optional) takes `(k, v)` from source and responds updated header for otarget
+//   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for otarget
+Response.prototype.pipe = function(source, headersCB, bodyCb) {
+	var this2 = this;
+	headersCB = headersCB || function(v) { return v; };
+	bodyCb = bodyCb || function(v) { return v; };
+	promise(source).always(function(source) {
+		if (source instanceof require('./incoming-response')) {
+			if (!this2.headers.status) {
+				this2.status(source.status, source.reason);
+				for (var k in source) {
+					if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers)) {
+						this2.header(k, headersCB(k, source[k]));
+					}
+				}
+			}
 		}
-	}
+		// wire up the stream
+		source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
+		source.on('end', function() { this2.end(); });
+	});
 };
 
-// EXPORTED
-// Makes sure response header links are absolute and extracts additional attributes
-//var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
-Response.prototype.processHeaders = function(request) {
-	var self = this;
-
-
-	// Update the link headers
-	if (self.parsedHeaders.link) {
-		self.parsedHeaders.link.forEach(function(link) {
-			// Convert relative paths to absolute uris
-			if (!helpers.isAbsUri(link.href))
-				link.href = helpers.joinRelPath(request.urld, link.href);
-
-			// Extract host data
-			var host_domain = helpers.parseUri(link.href).authority;
-			Object.defineProperty(link, 'host_domain', { enumerable: false, configurable: true, writable: true, value: host_domain });
-		});
+// Event connection helper
+// connects events from this stream to the target (event proxying)
+Response.prototype.wireUp = function(other, async) {
+	if (async) {
+		var nextTick = function(fn) { return function(value) { util.nextTick(fn.bind(null, value)); }; };
+		this.on('headers', nextTick(other.emit.bind(other, 'headers')));
+		this.on('data', nextTick(other.emit.bind(other, 'data')));
+		this.on('end', nextTick(other.emit.bind(other, 'end')));
+		this.on('close', nextTick(other.emit.bind(other, 'close')));
+	} else {
+		this.on('headers', other.emit.bind(other, 'headers'));
+		this.on('data', other.emit.bind(other, 'data'));
+		this.on('end', other.emit.bind(other, 'end'));
+		this.on('close', other.emit.bind(other, 'close'));
 	}
 };
 
 // writes the header to the response
 // - emits the 'headers' event
-Response.prototype.writeHead = function(status, reason, headers) {
-	if (!this.isConnOpen)
-		return this;
-	this.status = status;
-	this.reason = reason;
-	if (headers) {
-		for (var k in headers) {
-			if (headers.hasOwnProperty(k))
-				this.setHeader(k, headers[k]);
-		}
-	}
-	this.serializeHeaders();
-
-	this.emit('headers', this);
+Response.prototype.start = function() {
+	if (!this.isConnOpen) return this;
+	if (this.isStarted) return this;
+	this.emit('headers', this.headers);
+	this.isStarted = true;
 	return this;
 };
 
 // sends data over the stream
 // - emits the 'data' event
 Response.prototype.write = function(data) {
-	if (!this.isConnOpen)
-		return this;
-	if (typeof data != 'string' && !(data instanceof ArrayBuffer)) {
-		data = contentTypes.serialize(this.headers['content-type'], data);
-	}
+	if (!this.isConnOpen) return this;
+	if (!this.isStarted) this.start();
 	this.emit('data', data);
 	return this;
 };
@@ -146,10 +133,11 @@ Response.prototype.write = function(data) {
 // - `data`: optional mixed, to write before ending
 // - emits 'end' and 'close' events
 Response.prototype.end = function(data) {
-	if (!this.isConnOpen)
-		return this;
-	if (typeof data != 'undefined')
+	if (!this.isConnOpen) return this;
+	if (!this.isStarted) this.start();
+	if (typeof data != 'undefined') {
 		this.write(data);
+	}
 	this.emit('end');
 	this.close();
 	return this;
@@ -158,16 +146,9 @@ Response.prototype.end = function(data) {
 // closes the stream, aborting if not yet finished
 // - emits 'close' event
 Response.prototype.close = function() {
-	if (!this.isConnOpen)
-		return this;
+	if (!this.isConnOpen) return this;
 	this.isConnOpen = false;
 	this.emit('close');
-
-	// :TODO: when events are suspended, this can cause problems
-	//        maybe put these "removes" in a 'close' listener?
-	// this.removeAllListeners('headers');
-	// this.removeAllListeners('data');
-	// this.removeAllListeners('end');
-	// this.removeAllListeners('close');
+	this.clearEvents();
 	return this;
 };

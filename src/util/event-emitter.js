@@ -10,47 +10,12 @@ function EventEmitter() {
 		enumerable: false,
 		writable: true
 	});
-	Object.defineProperty(this, '_suspensions', {
-		value: 0,
-		configurable: false,
-		enumerable: false,
-		writable: true
-	});
-	Object.defineProperty(this, '_history', {
-		value: [],
-		configurable: false,
-		enumerable: false,
-		writable: true
-	});
 }
 module.exports = EventEmitter;
 
-EventEmitter.prototype.suspendEvents = function() {
-	this._suspensions++;
-};
-
-EventEmitter.prototype.resumeEvents = function() {
-	this._suspensions--;
-	if (this._suspensions <= 0)
-		this.playbackHistory();
-};
-
-EventEmitter.prototype.isSuspended = function() { return this._suspensions > 0; };
-
-EventEmitter.prototype.playbackHistory = function() {
-	var e;
-	// always check if we're suspended - a handler might resuspend us
-	while (!this.isSuspended() && (e = this._history.shift()))
-		this.emit.apply(this, e);
-};
 
 EventEmitter.prototype.emit = function(type) {
 	var args = Array.prototype.slice.call(arguments);
-
-	if (this.isSuspended()) {
-		this._history.push(args);
-		return;
-	}
 
 	var handlers = this._events[type];
 	if (!handlers) return false;
@@ -117,7 +82,13 @@ EventEmitter.prototype.removeListener = function(type, listener) {
 EventEmitter.prototype.removeAllListeners = function(type) {
 	if (type) this._events[type] = null;
 	else this._events = {};
-	if (this._history[type]) this._history[type] = null;
+	return this;
+};
+
+EventEmitter.prototype.clearEvents = function() {
+	for (var type in this._events) {
+		this.removeAllListeners(type);
+	}
 	return this;
 };
 

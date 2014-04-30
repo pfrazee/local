@@ -1,7 +1,6 @@
 // Helpers
 // =======
 
-var httpHeaders = require('./http-headers.js');
 var promise = require('../promises.js').promise;
 var UriTemplate = require('./uri-template.js');
 
@@ -214,15 +213,11 @@ function joinUri() {
 // EXPORTED
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
-// - eg http://foo.com, //foo.com, local://bar.app
-var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|(local:)|((nav:)?\|\|)|(data:)/;
+// - eg http://foo.com, //foo.com, #bar.app
+var hasSchemeRegex = /^(#)|((http(s|l)?:)?\/\/)|((nav:)?\|\|)|(data:)/;
 function isAbsUri(url) {
 	// Has a scheme?
-	if (hasSchemeRegex.test(url))
-		return true;
-	// No scheme, is it a local server or a global URI?
-	var urld = parseUri(url);
-	return !!require('./httpl.js').getServer(urld.authority);
+	return hasSchemeRegex.test(url);
 }
 
 // EXPORTED
@@ -247,7 +242,7 @@ function joinRelPath(urld, relpath) {
 		} else if (urld.source.indexOf('||') === 0) {
 			protocol = '||';
 		} else {
-			protocol = 'local://';
+			protocol = 'http://';
 		}
 	}
 	if (relpath.charAt(0) == '/') {
@@ -371,44 +366,10 @@ function makeProxyUri(uri, templates) {
 	return uri;
 }
 
-// EXPORTED
-// sends the given response back verbatim
-// - if `writeHead` has been previously called, it will not change
-// - params:
-//   - `target`: the response to populate
-//   - `source`: the response to pull data from
-//   - `headersCb`: (optional) takes `(headers)` from source and responds updated headers for target
-//   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for target
-function pipe(target, source, headersCB, bodyCb) {
-	headersCB = headersCB || function(v) { return v; };
-	bodyCb = bodyCb || function(v) { return v; };
-	return promise(source)
-		.always(function(source) {
-			if (!target.status) {
-				// copy the header if we don't have one yet
-				target.writeHead(source.status, source.reason, headersCB(source.headers));
-			}
-			if (source.body !== null && typeof source.body != 'undefined') { // already have the body?
-				target.write(bodyCb(source.body));
-			}
-			if (source.on && source.isConnOpen) {
-				// wire up the stream
-				source.on('data', function(data) {
-					target.write(bodyCb(data));
-				});
-				source.on('end', function() {
-					target.end();
-				});
-			} else {
-				target.end();
-			}
-			return target;
-		});
-}
-
+// :TODO:
 // EXPORTED
 // modifies XMLHttpRequest to support HTTPL
-function patchXHR() {
+/*function patchXHR() {
 	// Store references to original methods
 	var orgXHR = XMLHttpRequest;
 	var orgPrototype = XMLHttpRequest.prototype;
@@ -537,7 +498,7 @@ function patchXHR() {
 			return this.__xhr_request.getResponseHeader(k);
 		}
 	};
-}
+}*/
 
 module.exports = {
 	extractDocumentLinks: extractDocumentLinks,
@@ -559,7 +520,5 @@ module.exports = {
 	parseNavUri: parseNavUri,
 	makeProxyUri: makeProxyUri,
 
-	pipe: pipe,
-
-	patchXHR: patchXHR
+	// patchXHR: patchXHR :TODO:
 };

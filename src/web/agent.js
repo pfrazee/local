@@ -1,3 +1,5 @@
+// :TODO: refactor
+
 var constants = require('../constants.js');
 var util = require('../util');
 var promise = require('../promises.js').promise;

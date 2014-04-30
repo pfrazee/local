@@ -1,96 +1,95 @@
 importScripts('../../local.js');
-local.worker.setServer(function(request, response) {
-	var foos = ['bar', 'baz', 'blah'];
+
+var foos = ['bar', 'baz', 'blah'];
+
+local.at('#', function(req, res) {
 	var payload = null, linkHeader;
-	if (request.path == '/') {
-		if (request.method === 'GET') {
-			payload = 'service resource';
-		}
-		if (Object.keys(request.query).length > 0) {
-			payload += ' '+JSON.stringify(request.query);
-		}
-		linkHeader = [
-			{ rel:'self current', href:'/' },
-			{ rel:'collection', href:'/events', id:'events' },
-			{ rel:'collection', href:'/foo', id:'foo' },
-			{ rel:'collection', href:'/{id}' }
-		];
-		response.writeHead(200, 'ok', { 'content-type':'text/plain', 'link':linkHeader });
-		response.end(payload);
+	if (req.method === 'GET') {
+		payload = 'service resource';
 	}
-	else if (request.path == '/foo') {
-		if (request.method === 'GET') {
-			payload = foos;
-		}
-		linkHeader = [
-			{ rel:'up via service', href:'/' },
-			{ rel:'self current', href:'/foo' },
-			{ rel:'item', href:'/foo/{id}' }
-		];
-		response.writeHead(200, 'ok', { 'content-type':'application/json', 'link':linkHeader });
-		// so we can experiment with streaming, write the json in bits:
-		if (payload) {
-			response.write('[');
-			payload.forEach(function(p, i) { response.write((i!==0?',':'')+'"'+p+'"'); });
-			response.write(']');
-		}
-		response.end();
+	if (Object.keys(req.query).length > 0) {
+		payload += ' '+JSON.stringify(req.query);
 	}
-	else if (/^\/foo\/([A-z]*)$/.test(request.path)) {
-		var match = /^\/foo\/([A-z]*)$/.exec(request.path);
-		var itemName = match[1];
-		var itemIndex = foos.indexOf(itemName);
-		if (itemIndex === -1) {
-			response.writeHead(404, 'not found');
-			response.end();
-			return;
-		}
-		if (request.method === 'GET') {
-			payload = itemName;
-		}
-		linkHeader = [
-			{ rel:'via service', href:'/' },
-			{ rel:'up collection index', href:'/foo' },
-			{ rel:'self current', href:'/foo/'+itemName },
-			{ rel:'first', href:'/foo/'+foos[0] },
-			{ rel:'last', href:'/foo/'+foos[foos.length - 1] }
-		];
-		if (itemIndex !== 0) {
-			linkHeader.push({ rel:'prev', href:'/foo/'+foos[itemIndex - 1] });
-		}
-		if (itemIndex !== foos.length - 1) {
-			linkHeader.push({ rel:'next', href:'/foo/'+foos[itemIndex + 1] });
-		}
-		response.writeHead(200, 'ok', { 'content-type':'application/json', 'link':linkHeader });
-		response.end('"'+payload+'"');
+	linkHeader = [
+		{ rel:'self current', href:'/' },
+		{ rel:'collection', href:'/events', id:'events' },
+		{ rel:'collection', href:'/foo', id:'foo' },
+		{ rel:'collection', href:'/{id}' }
+	];
+	res.s200().ContentType('plain').Link(linkHeader).end(payload);
+});
+
+local.at('#foo', function(req, res) {
+	var payload = null, linkHeader;
+	if (req.method === 'GET') {
+		payload = foos;
 	}
-	else if (request.path == '/events') {
-		response.writeHead(200, 'ok', { 'content-type':'text/event-stream' });
-		response.write({ event:'foo', data:{ c:1 }});
-		response.write({ event:'foo', data:{ c:2 }});
-		response.write({ event:'bar', data:{ c:3 }});
-		response.write('event: foo\r\n');
-		setTimeout(function() { // break up the event to make sure the client waits for the whole thing
-			response.write('data: { "c": 4 }\r\n\r\n');
-			response.end({ event:'foo', data:{ c:5 }});
-		}, 50);
+	linkHeader = [
+		{ rel:'up via service', href:'/' },
+		{ rel:'self current', href:'/foo' },
+		{ rel:'item', href:'/foo/{id}' }
+	];
+	res.writeHead(200, 'ok', { 'content-type':'application/json', 'link':linkHeader });
+	// so we can experiment with streaming, write the json in bits:
+	if (payload) {
+		res.write('[');
+		payload.forEach(function(p, i) { res.write((i!==0?',':'')+'"'+p+'"'); });
+		res.write(']');
 	}
-	else if (request.path == '/pipe') {
-		var headerUpdate = function(headers) {
-			headers['content-type'] = 'text/piped+plain';
-			return headers;
-		};
-		var bodyUpdate = function(body) {
-			return body.toUpperCase();
-		};
-		local.pipe(response, local.dispatch({ method:'get', url:'local://test.com/' }), headerUpdate, bodyUpdate);
+	res.end();
+});
+
+local.at('#foo/([A-z]*)$', function(req, res) {
+	var payload = null, linkHeader;
+	var itemName = req.pathd[1];
+	var itemIndex = foos.indexOf(itemName);
+	if (itemIndex === -1) {
+		return res.s404().end();
 	}
-	else if (request.path == '/unserializable-response') {
-		response.writeHead(200, 'ok', { 'content-type':'text/faketype' });
-		response.end({ unserializable: 'response' });
+	if (req.method === 'GET') {
+		payload = itemName;
 	}
-	else {
-		response.writeHead(404, 'not found');
-		response.end();
+	linkHeader = [
+		{ rel:'via service', href:'/' },
+		{ rel:'up collection index', href:'/foo' },
+		{ rel:'self current', href:'/foo/'+itemName },
+		{ rel:'first', href:'/foo/'+foos[0] },
+		{ rel:'last', href:'/foo/'+foos[foos.length - 1] }
+	];
+	if (itemIndex !== 0) {
+		linkHeader.push({ rel:'prev', href:'/foo/'+foos[itemIndex - 1] });
 	}
+	if (itemIndex !== foos.length - 1) {
+		linkHeader.push({ rel:'next', href:'/foo/'+foos[itemIndex + 1] });
+	}
+	res.s200().ContentType('json').Link(linkHeader);
+	res.end('"'+payload+'"');
+});
+
+local.at('#events', function(req, res) {
+	res.s200().ContentType('event-stream');
+	res.write({ event:'foo', data:{ c:1 }});
+	res.write({ event:'foo', data:{ c:2 }});
+	res.write({ event:'bar', data:{ c:3 }});
+	res.write('event: foo\r\n');
+	setTimeout(function() { // break up the event to make sure the client waits for the whole thing
+		res.write('data: { "c": 4 }\r\n\r\n');
+		res.end({ event:'foo', data:{ c:5 }});
+	}, 50);
+});
+
+local.at('#pipe', function(req, res) {
+	var headerUpdate = function(k, v) {
+		if (k == 'ContentType') { return 'text/piped+plain'; }
+		return v;
+	};
+	var bodyUpdate = function(body) {
+		return body.toUpperCase();
+	};
+	res.pipe(GET('#').end(), headerUpdate, bodyUpdate);
+});
+
+local.at('#unserializable-res', function(req, res) {
+	res.s200().ContentType('text/faketype');
+	res.end({ unserializable: 'res' });
 });

@@ -86,11 +86,8 @@ var util = require('./util');
 module.exports = {
 	Request: require('./web/request.js'),
 	Response: require('./web/response.js'),
-	Server: require('./web/server.js'),
-	Relay: require('./web/relay.js'),
-	BridgeServer: require('./web/bridge-server.js'),
-	WorkerBridgeServer: require('./web/worker-bridge-server.js'),
-	RTCBridgeServer: require('./web/rtc-bridge-server.js'),
+	// BridgeServer: require('./web/bridge-server.js'),
+	// WorkerBridgeServer: require('./web/worker-bridge-server.js'),
 	UriTemplate: require('./web/uri-template.js'),
 
 	util: util,
@@ -98,61 +95,58 @@ module.exports = {
 	httpHeaders: require('./web/http-headers.js'),
 	contentTypes: require('./web/content-types.js'),
 
-	worker: require('./worker'),
+	// worker: require('./worker'),
 };
 util.mixin.call(module.exports, require('./constants.js'));
 util.mixin.call(module.exports, require('./config.js'));
 util.mixin.call(module.exports, require('./promises.js'));
-util.mixin.call(module.exports, require('./spawners.js'));
+// util.mixin.call(module.exports, require('./spawners.js'));
 util.mixin.call(module.exports, require('./request-event.js'));
 util.mixin.call(module.exports, require('./web/helpers.js'));
 util.mixin.call(module.exports, require('./web/httpl.js'));
-util.mixin.call(module.exports, require('./web/dispatch.js'));
-util.mixin.call(module.exports, require('./web/subscribe.js'));
-util.mixin.call(module.exports, require('./web/agent.js'));
+// util.mixin.call(module.exports, require('./web/subscribe.js'));
+// util.mixin.call(module.exports, require('./web/agent.js'));
 
-if (typeof window != 'undefined') window.local = module.exports;
-else if (typeof self != 'undefined') self.local = module.exports;
-else local = module.exports;
-
-// Local Registry Host
-local.addServer('hosts', function(req, res) {
-	var localHosts = local.getServers();
-
-	if (!(req.method == 'HEAD' || req.method == 'GET'))
-		return res.writeHead(405, 'bad method').end();
-
-	if (req.method == 'GET' && !local.preferredType(req, 'application/json'))
-		return res.writeHead(406, 'bad accept - only provides application/json').end();
-
-	var responses_ = [];
-	var domains = [], links = [];
-	links.push({ href: '/', rel: 'self service via', id: 'hosts', title: 'Page Hosts' });
-	for (var domain in localHosts) {
-		if (domain == 'hosts')
-			continue;
-		domains.push(domain);
-		responses_.push(local.dispatch({ method: 'HEAD', url: 'local://'+domain, timeout: 500 }));
-	}
-
-	local.promise.bundle(responses_).then(function(ress) {
-		ress.forEach(function(res, i) {
-			var selfLink = local.queryLinks(res, { rel: 'self' })[0];
-			if (!selfLink) {
-				selfLink = { rel: 'service', id: domains[i], href: 'local://'+domains[i] };
-			}
-			selfLink.rel = (selfLink.rel) ? selfLink.rel.replace(/(^|\b)(self|up|via)(\b|$)/gi, '') : 'service';
-			links.push(selfLink);
-		});
-
-		res.setHeader('link', links);
-		if (req.method == 'HEAD')
-			return res.writeHead(204, 'ok, no content').end();
-		res.writeHead(200, 'ok', { 'content-type': 'application/json' });
-		res.end({ host_names: domains });
+// Request sugars
+function dispatch(headers) {
+	var req = new module.exports.Request(headers);
+	req.bufferResponse(true);
+	util.nextTick(function() {
+		req.end(); // send next tick
 	});
-});
-},{"./config.js":1,"./constants.js":2,"./promises.js":4,"./request-event.js":5,"./spawners.js":6,"./util":9,"./web/agent.js":10,"./web/bridge-server.js":11,"./web/content-types.js":12,"./web/dispatch.js":13,"./web/helpers.js":14,"./web/http-headers.js":15,"./web/httpl.js":16,"./web/relay.js":17,"./web/request.js":18,"./web/response.js":19,"./web/rtc-bridge-server.js":20,"./web/schemes.js":21,"./web/server.js":22,"./web/subscribe.js":23,"./web/uri-template.js":24,"./web/worker-bridge-server.js":25,"./worker":27}],4:[function(require,module,exports){
+	return req;
+}
+function makeRequestSugar(method) {
+	return function(url, params) {
+		return dispatch({ method: method, url: url, params: params });
+	};
+}
+module.exports.dispatch =  dispatch;
+module.exports.HEAD =      makeRequestSugar('HEAD');
+module.exports.GET =       makeRequestSugar('GET');
+module.exports.POST =      makeRequestSugar('POST');
+module.exports.PUT =       makeRequestSugar('PUT');
+module.exports.PATCH =     makeRequestSugar('PATCH');
+module.exports.DELETE =    makeRequestSugar('DELETE');
+module.exports.SUBSCRIBE = makeRequestSugar('SUBSCRIBE');
+module.exports.NOTIFY =    makeRequestSugar('NOTIFY');
+
+// Create globals
+var global, local = module.exports;
+if (typeof window != 'undefined') global = window;
+else if (typeof self != 'undefined') global = self;
+if (global) {
+	global.local     = local;
+	global.HEAD      = local.HEAD;
+	global.GET       = local.GET;
+	global.POST      = local.POST;
+	global.PUT       = local.PUT;
+	global.PATCH     = local.PATCH;
+	global.DELETE    = local.DELETE;
+	global.SUBSCRIBE = local.SUBSCRIBE;
+	global.NOTIFY    = local.NOTIFY;
+}
+},{"./config.js":1,"./constants.js":2,"./promises.js":4,"./request-event.js":5,"./util":8,"./web/content-types.js":9,"./web/helpers.js":10,"./web/http-headers.js":11,"./web/httpl.js":12,"./web/request.js":15,"./web/response.js":16,"./web/schemes.js":17,"./web/uri-template.js":18}],4:[function(require,module,exports){
 var localConfig = require('./config.js');
 var util = require('./util');
 
@@ -412,7 +406,7 @@ promise.bundle = bundle;
 promise.all = all;
 promise.any = any;
 promise.lift = lift;
-},{"./config.js":1,"./util":9}],5:[function(require,module,exports){
+},{"./config.js":1,"./util":8}],5:[function(require,module,exports){
 // Standard DOM Events
 // ===================
 
@@ -503,87 +497,7 @@ module.exports = {
 	bindRequestEvents: bindRequestEvents,
 	unbindRequestEvents: unbindRequestEvents
 };
-},{"./util":9}],6:[function(require,module,exports){
-// Helpers to create servers
-// -
-
-var localConfig = require('./config.js');
-var helpers = require('./web/helpers.js');
-var httpl = require('./web/httpl.js');
-var WorkerBridgeServer = require('./web/worker-bridge-server.js');
-var Relay = require('./web/relay.js');
-
-// EXPORTED
-// Creates a Web Worker and a bridge server to the worker
-// eg `local.spawnWorkerServer('http://foo.com/myworker.js', localServerFn)
-// - `src`: optional string, the URI to load into the worker. If null, must give `config.domain` with a source-path
-// - `config`: optional object, additional config options to pass to the worker
-// - `config.domain`: optional string, overrides the automatic domain generation
-// - `config.temp`: boolean, should the workerserver be destroyed after it handles it's requests?
-// - `config.shared`: boolean, should the workerserver be shared?
-// - `config.namespace`: optional string, what should the shared worker be named?
-//   - defaults to `config.src` if undefined
-// - `config.onerror`: optional function, set to the worker's onerror callback
-// - `serverFn`: optional function, a response generator for requests from the worker
-function spawnWorkerServer(src, config, serverFn) {
-	if (typeof config == 'function') { serverFn = config; config = null; }
-	if (!config) { config = {}; }
-	config.src = src;
-	config.serverFn = serverFn;
-
-	// Create the domain
-	var domain = config.domain;
-	if (!domain) {
-		if (local.isAbsUri(src)) {
-			var urld = helpers.parseUri(src);
-			domain = urld.authority + '(' + urld.path.slice(1) + ')';
-		} else {
-			var src_parts = src.split(/[\?#]/);
-			domain = window.location.host + '(' + src_parts[0].slice(1) + ')';
-		}
-	}
-	if (httpl.getServer(domain)) throw "Worker already exists";
-
-	// Eject a temp server if needed
-    var nWorkerServers = 0, ejectCandidate = null;
-    for (var d in httpl.getServers()) {
-        var s = httpl.getServer(d).context;
-        if (!(s instanceof WorkerBridgeServer))
-            continue;
-        if (!ejectCandidate && s.config.temp && !s.isInTransaction())
-            ejectCandidate = s;
-        nWorkerServers++;
-    }
-    if (nWorkerServers >= localConfig.maxActiveWorkers && ejectCandidate) {
-	    console.log('Closing temporary worker', ejectCandidate.config.domain);
-	    ejectCandidate.terminate();
-	    httpl.removeServer(ejectCandidate.config.domain);
-    }
-
-	// Create the server
-	var server = new WorkerBridgeServer(config);
-	httpl.addServer(domain, server);
-
-	return server;
-}
-
-// EXPORTED
-// Opens a stream to a peer relay
-// - `providerUrl`: optional string, the relay provider
-// - `config.app`: optional string, the app to join as (defaults to window.location.host)
-// - `serverFn`: optional function, a response generator for requests from connected peers
-function joinRelay(providerUrl, config, serverFn) {
-	if (typeof config == 'function') { serverFn = config; config = null; }
-	if (!config) config = {};
-	config.provider = providerUrl;
-	config.serverFn = serverFn;
-	return new Relay(config);
-}
-module.exports = {
-	spawnWorkerServer: spawnWorkerServer,
-	joinRelay: joinRelay
-};
-},{"./config.js":1,"./web/helpers.js":14,"./web/httpl.js":16,"./web/relay.js":17,"./web/worker-bridge-server.js":25}],7:[function(require,module,exports){
+},{"./util":8}],6:[function(require,module,exports){
 // Helpers
 // =======
 
@@ -953,7 +867,7 @@ module.exports = {
 	extractRequestPayload: extractRequestPayload,
 	finishPayloadFileReads: finishPayloadFileReads
 };
-},{"../promises.js":4}],8:[function(require,module,exports){
+},{"../promises.js":4}],7:[function(require,module,exports){
 // EventEmitter
 // ============
 // EXPORTED
@@ -966,47 +880,12 @@ function EventEmitter() {
 		enumerable: false,
 		writable: true
 	});
-	Object.defineProperty(this, '_suspensions', {
-		value: 0,
-		configurable: false,
-		enumerable: false,
-		writable: true
-	});
-	Object.defineProperty(this, '_history', {
-		value: [],
-		configurable: false,
-		enumerable: false,
-		writable: true
-	});
 }
 module.exports = EventEmitter;
 
-EventEmitter.prototype.suspendEvents = function() {
-	this._suspensions++;
-};
-
-EventEmitter.prototype.resumeEvents = function() {
-	this._suspensions--;
-	if (this._suspensions <= 0)
-		this.playbackHistory();
-};
-
-EventEmitter.prototype.isSuspended = function() { return this._suspensions > 0; };
-
-EventEmitter.prototype.playbackHistory = function() {
-	var e;
-	// always check if we're suspended - a handler might resuspend us
-	while (!this.isSuspended() && (e = this._history.shift()))
-		this.emit.apply(this, e);
-};
 
 EventEmitter.prototype.emit = function(type) {
 	var args = Array.prototype.slice.call(arguments);
-
-	if (this.isSuspended()) {
-		this._history.push(args);
-		return;
-	}
 
 	var handlers = this._events[type];
 	if (!handlers) return false;
@@ -1073,14 +952,20 @@ EventEmitter.prototype.removeListener = function(type, listener) {
 EventEmitter.prototype.removeAllListeners = function(type) {
 	if (type) this._events[type] = null;
 	else this._events = {};
-	if (this._history[type]) this._history[type] = null;
+	return this;
+};
+
+EventEmitter.prototype.clearEvents = function() {
+	for (var type in this._events) {
+		this.removeAllListeners(type);
+	}
 	return this;
 };
 
 EventEmitter.prototype.listeners = function(type) {
 	return this._events[type];
 };
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 var EventEmitter = require('./event-emitter.js');
 var DOM = require('./dom.js');
 
@@ -1156,727 +1041,7 @@ module.exports = {
 	nextTick: nextTick
 };
 mixin.call(module.exports, DOM);
-},{"./dom.js":7,"./event-emitter.js":8}],10:[function(require,module,exports){
-var constants = require('../constants.js');
-var util = require('../util');
-var promise = require('../promises.js').promise;
-var helpers = require('./helpers.js');
-var UriTemplate = require('./uri-template.js');
-var httpl = require('./httpl.js');
-var Request = require('./request.js');
-var Response = require('./response.js');
-var dispatch = require('./dispatch.js').dispatch;
-var subscribe = require('./subscribe.js').subscribe;
-
-// AgentContext
-// ============
-// INTERNAL
-// information about the resource that a agent targets
-//  - exists in an "unresolved" state until the URI is confirmed by a response from the server
-//  - enters a "bad" state if an attempt to resolve the link failed
-//  - may be "relative" if described by a relation from another context (eg a query or a relative URI)
-//  - may be "absolute" if described by an absolute URI
-// :NOTE: absolute contexts may have a URI without being resolved, so don't take the presence of a URI as a sign that the resource exists
-function AgentContext(query) {
-	this.query = query;
-	this.resolveState = AgentContext.UNRESOLVED;
-	this.error = null;
-	this.queryIsAbsolute = (typeof query == 'string' && helpers.isAbsUri(query));
-	if (this.queryIsAbsolute) {
-		this.url  = query;
-		this.urld = helpers.parseUri(this.url);
-	} else {
-		this.url  = null;
-		this.urld = null;
-	}
-}
-AgentContext.UNRESOLVED = 0;
-AgentContext.RESOLVED   = 1;
-AgentContext.FAILED     = 2;
-AgentContext.prototype.isResolved = function() { return this.resolveState === AgentContext.RESOLVED; };
-AgentContext.prototype.isBad      = function() { return this.resolveState === AgentContext.FAILED; };
-AgentContext.prototype.isRelative = function() { return (!this.queryIsAbsolute); };
-AgentContext.prototype.isAbsolute = function() { return this.queryIsAbsolute; };
-AgentContext.prototype.getUrl     = function() { return this.url; };
-AgentContext.prototype.getError   = function() { return this.error; };
-AgentContext.prototype.resetResolvedState = function() {
-	this.resolveState = AgentContext.UNRESOLVED;
-	this.error = null;
-};
-AgentContext.prototype.setResolved = function(url) {
-	this.error = null;
-	this.resolveState = AgentContext.RESOLVED;
-	if (url) {
-		this.url  = url;
-		this.urld = helpers.parseUri(this.url);
-	}
-};
-AgentContext.prototype.setFailed = function(error) {
-	this.error = error;
-	this.resolveState = AgentContext.FAILED;
-};
-
-// Agent
-// =========
-// EXPORTED
-// API to follow resource links (as specified by the response Link header)
-//  - uses the rel attribute as the primary link label
-//  - uses URI templates to generate URIs
-//  - queues link navigations until a request is made
-/*
-
-// EXAMPLE 1. Get Bob from Foobar.com
-// - basic navigation
-// - requests
-var foobarService = local.agent('https://foobar.com');
-var bob = foobarService.follow('|collection=users|item=bob');
-// ^ or local.agent('nav:||https://foobar.com|collection=users|item=bob')
-// ^ or foobarService.follow([{ rel: 'collection', id: 'users' }, { rel: 'item', id:'bob' }]);
-// ^ or foobarService.follow({ rel: 'collection', id: 'users' }).follow({ rel: 'item', id:'bob' });
-bob.get()
-	// -> HEAD https://foobar.com
-	// -> HEAD https://foobar.com/users
-	// -> GET  https://foobar.com/users/bob (Accept: application/json)
-	.then(function(response) {
-		var bobsProfile = response.body;
-
-		// Update Bob's email
-		bobsProfile.email = 'bob@gmail.com';
-		bob.put(bobsProfile);
-		// -> PUT https://foobar.com/users/bob { email:'bob@gmail.com', ...} (Content-Type: application/json)
-	});
-
-// EXAMPLE 2. Get all users who joined after 2013, in pages of 150
-// - additional navigation query parameters
-// - server-driven batching
-var pageCursor = foobarService.follow('|collection=users,since=2013-01-01,limit=150');
-pageCursor.get()
-	// -> GET https://foobar.com/users?since=2013-01-01&limit=150 (Accept: application/json)
-	.then(function readNextPage(response) {
-		// Send the emails
-		emailNewbieGreetings(response.body); // -- emailNewbieGreetings is a fake utility function
-
-		// Go to the 'next page' link, as supplied by the response
-		pageCursor = pageCursor.follow('|next');
-		return pageCursor.get().then(readNextPage);
-		// -> GET https://foobar.com/users?since=2013-01-01&limit=150&offset=150 (Accept: application/json)
-	})
-	.fail(function(response, request) {
-		// Not finding a 'rel=next' link means the server didn't give us one.
-		if (response.status == local.LINK_NOT_FOUND) { // 001 Local: Link not found - termination condition
-			// Tell Bob his greeting was sent
-			bob.follow('|grimwire.com/-mail/inbox').post({
-				title: '2013 Welcome Emails Sent',
-				body: 'Good work, Bob.'
-			});
-			// -> POST https://foobar.com/mail/users/bob/inbox (Content-Type: application/json)
-		} else {
-			// Tell Bob something went wrong
-			bob.follow('|grimwire.com/-mail/inbox').post({
-				title: 'ERROR! 2013 Welcome Emails Failed!',
-				body: 'Way to blow it, Bob.',
-				attachments: {
-					'dump.json': {
-						context: pageCursor.getContext(),
-						request: request,
-						response: response
-					}
-				}
-			});
-			// -> POST https://foobar.com/mail/users/bob/inbox (Content-Type: application/json)
-		}
-	});
-*/
-function Agent(context, parentAgent) {
-	this.context         = context         || null;
-	this.parentAgent = parentAgent || null;
-	this.links           = null;
-	this.proxyTmpl       = null;
-	this.requestDefaults = null;
-}
-
-// Sets defaults to be used in all requests
-// - eg nav.setRequestDefaults({ method: 'GET', headers: { authorization: 'bob:pass', accept: 'text/html' }})
-// - eg nav.setRequestDefaults({ proxy: 'local://myproxy.app' })
-Agent.prototype.setRequestDefaults = function(v) {
-	this.requestDefaults = v;
-};
-
-// Helper to copy over request defaults
-function copyDefaults(target, defaults) {
-	for (var k in defaults) {
-		if (k == 'headers' || !!target[k])
-			continue;
-		// ^ headers should be copied per-attribute
-		if (typeof defaults[k] == 'object')
-			target[k] = util.deepClone(defaults[k]);
-		else
-			target[k] = defaults[k];
-	}
-	if (defaults.headers) {
-		if (!target.headers)
-			target.headers = {};
-		copyDefaults(target.headers, defaults.headers);
-	}
-}
-
-// Executes an HTTP request to our context
-//  - uses additional parameters on the request options:
-//    - noretry: bool, should the url resolve fail automatically if it previously failed?
-Agent.prototype.dispatch = function(req) {
-	if (!req) req = {};
-	if (!req.headers) req.headers = {};
-	var self = this;
-
-	if (this.requestDefaults)
-		copyDefaults(req, this.requestDefaults);
-
-	// If given a request, streaming may occur. Suspend events on the request until resolved, as the dispatcher wont wire up until after resolution.
-	if (req instanceof Request) {
-		req.suspendEvents();
-	}
-
-	// Resolve our target URL
-	return ((req.url) ? promise(req.url) : this.resolve({ noretry: req.noretry, nohead: true }))
-		.succeed(function(url) {
-			req.url = url;
-			var res_ = dispatch(req);
-			if (req instanceof Request) {
-				req.resumeEvents();
-			}
-			return res_;
-		})
-		.succeed(function(res) {
-			// After every successful request, update our links and mark our context as good (in case it had been bad)
-			self.context.setResolved();
-			if (res.parsedHeaders.link) self.links = res.parsedHeaders.link;
-			else self.links = self.links || []; // cache an empty link list so we dont keep trying during resolution
-			self.proxyTmpl = (res.header('Proxy-Tmpl')) ? res.header('Proxy-Tmpl').split(' ') : null;
-			return res;
-		})
-		.fail(function(res) {
-			// Let a 1 or 404 indicate a bad context (as opposed to some non-navigational error like a bad request body)
-			if (res.status === constants.LINK_NOT_FOUND || res.status === 404)
-				self.context.setFailed(res);
-			throw res;
-		});
-};
-
-// Executes a GET text/event-stream request to our context
-Agent.prototype.subscribe = function(req) {
-	var self = this;
-	var eventStream;
-	if (!req) req = {};
-	return this.resolve({ nohead: true }).succeed(function(url) {
-		req.url = url;
-
-		if (self.requestDefaults)
-			copyDefaults(req, self.requestDefaults);
-
-		eventStream = subscribe(req);
-		return eventStream.response_;
-	}).then(function() {
-		return eventStream;
-	});
-};
-
-// Follows a link relation from our context, generating a new agent
-// - `query` may be:
-//   - an object in the same form of a `local.queryLink()` parameter
-//   - an array of link query objects (to be followed sequentially)
-//   - a URI string
-//     - if using the 'nav:' scheme, will convert the URI into a link query object
-//     - if a relative URI using the HTTP/S/L scheme, will follow the relation relative to the current context
-//     - if an absolute URI using the HTTP/S/L scheme, will go to that URI
-// - uses URI Templates to generate URLs
-// - when querying, only the `rel` and `id` (if specified) attributes must match
-//   - the exception to this is: `rel` matches and the HREF has an {id} token
-//   - all other attributes are used to fill URI Template tokens and are not required to match
-Agent.prototype.follow = function(query) {
-	// convert nav: uri to a query array, string to rel query
-	if (typeof query == 'string') {
-		if (helpers.isNavSchemeUri(query)) {
-			query = helpers.parseNavUri(query);
-		} else {
-			query = { rel: query };
-		}
-	}
-
-	// make sure we always have an array
-	if (!Array.isArray(query))
-		query = [query];
-
-	// build a full follow() chain
-	var nav = this;
-	do {
-		nav = new Agent(new AgentContext(query.shift()), nav);
-		if (this.requestDefaults)
-			nav.setRequestDefaults(this.requestDefaults);
-	} while (query[0]);
-
-	return nav;
-};
-
-// Resets the agent's resolution state, causing it to reissue HEAD requests (relative to any parent agents)
-Agent.prototype.unresolve = function() {
-	this.context.resetResolvedState();
-	this.links = null;
-	this.proxyTmpl = null;
-	return this;
-};
-
-// Reassigns the agent to a new absolute URL
-// - `url`: required string, the URL to rebase the agent to
-// - resets the resolved state
-Agent.prototype.rebase = function(url) {
-	this.unresolve();
-	this.context.query = url;
-	this.context.queryIsAbsolute = true;
-	this.context.url  = url;
-	this.context.urld = helpers.parseUri(url);
-	return this;
-};
-
-// Resolves the agent's URL, reporting failure if a link or resource is unfound
-//  - also ensures the links have been retrieved from the context
-//  - may trigger resolution of parent contexts
-//  - options is optional and may include:
-//    - noretry: bool, should the url resolve fail automatically if it previously failed?
-//    - nohead: bool, should we issue a HEAD request once we have a URL? (not favorable if planning to dispatch something else)
-//  - returns a promise which will fulfill with the resolved url
-Agent.prototype.resolve = function(options) {
-	var self = this;
-	options = options || {};
-
-	var nohead = options.nohead;
-	delete options.nohead;
-	// ^ pull `nohead` out so that parent resolves are `nohead: false` - we do want them to dispatch HEAD requests to resolve us
-
-	var resolvePromise = promise();
-	if (this.links !== null && (this.context.isResolved() || (this.context.isAbsolute() && this.context.isBad() === false))) {
-		// We have links and we were previously resolved (or we're absolute so there's no need)
-		resolvePromise.fulfill(this.context.getUrl());
-	} else if (this.context.isBad() === false || (this.context.isBad() && !options.noretry)) {
-		// We don't have links, and we haven't previously failed (or we want to try again)
-		this.context.resetResolvedState();
-
-		if (this.context.isRelative() && !this.parentAgent) {
-			// Scheme-less URIs can map to local URIs, so make sure the local server hasnt been added since we were created
-			if (typeof this.context.query == 'string' && !!httpl.getServer(this.context.query)) {
-				self.context = new AgentContext(self.context.query);
-			} else {
-				self.context.setFailed({ status: 404, reason: 'not found' });
-				resolvePromise.reject(this.context.getError());
-				return resolvePromise;
-			}
-		}
-
-		if (this.context.isRelative()) {
-			// Up the chain we go
-			resolvePromise = this.parentAgent.resolve(options)
-				.succeed(function() {
-					// Parent resolved, query its links
-					var childUrl = self.parentAgent.lookupLink(self.context);
-					if (childUrl) {
-						// We have a pope! I mean, link.
-						self.context.setResolved(childUrl);
-
-						// Send a HEAD request to get our links
-						if (nohead) // unless dont
-							return childUrl;
-						return self.dispatch({ method: 'HEAD', url: childUrl })
-							.succeed(function() { return childUrl; }); // fulfill resolvePromise afterward
-					}
-
-					// Error - Link not found
-					var response = new Response();
-					response.writeHead(constants.LINK_NOT_FOUND, 'Link Query Failed to Match').end();
-					throw response;
-				})
-				.fail(function(error) {
-					self.context.setFailed(error);
-					throw error;
-				});
-		} else {
-			// At the top of the chain already
-			if (nohead)
-				resolvePromise.fulfill(self.context.getUrl());
-			else {
-				resolvePromise = this.dispatch({ method: 'HEAD', url: self.context.getUrl() })
-					.succeed(function(res) { return self.context.getUrl(); });
-			}
-		}
-	} else {
-		// We failed in the past and we don't want to try again
-		resolvePromise.reject(this.context.getError());
-	}
-	return resolvePromise;
-};
-
-// Looks up a link in the cache and generates the URI (the follow logic)
-Agent.prototype.lookupLink = function(context) {
-	if (context.query) {
-		if (typeof context.query == 'object') {
-			// Try to find a link that matches
-			var link = helpers.queryLinks(this.links, context.query)[0];
-			if (link) {
-				var uri = UriTemplate.parse(link.href).expand(context.query);
-				if (this.proxyTmpl && !link.noproxy)
-					uri = helpers.makeProxyUri(uri, this.proxyTmpl);
-				return uri;
-			}
-		}
-		else if (typeof context.query == 'string') {
-			// A URL
-			if (!helpers.isAbsUri(context.query))
-				return helpers.joinRelPath(this.context.urld, context.query);
-			return context.query;
-		}
-	}
-	console.log('Failed to find a link to resolve context. Link query:', context.query, 'Agent:', this);
-	return null;
-};
-
-// Dispatch Sugars
-// ===============
-function makeDispSugar(method) {
-	return function(options) {
-		var req = options || {};
-		req.method = method;
-		return this.dispatch(req);
-	};
-}
-function makeDispWBodySugar(method) {
-	return function(body, options) {
-		var req = options || {};
-		req.method = method;
-		req.body = body;
-		return this.dispatch(req);
-	};
-}
-Agent.prototype.SUBSCRIBE = makeDispSugar('SUBSCRIBE');
-Agent.prototype.HEAD   = Agent.prototype.head   = makeDispSugar('HEAD');
-Agent.prototype.GET    = Agent.prototype.get    = makeDispSugar('GET');
-Agent.prototype.DELETE = Agent.prototype.delete = makeDispSugar('DELETE');
-Agent.prototype.POST   = Agent.prototype.post   = makeDispWBodySugar('POST');
-Agent.prototype.PUT    = Agent.prototype.put    = makeDispWBodySugar('PUT');
-Agent.prototype.PATCH  = Agent.prototype.patch  = makeDispWBodySugar('PATCH');
-Agent.prototype.NOTIFY = Agent.prototype.notify = makeDispWBodySugar('NOTIFY');
-
-// Builder
-// =======
-var agent = function(query) {
-	if (query instanceof Agent)
-		return query;
-
-	// convert nav: uri to a query array
-	if (typeof query == 'string' && helpers.isNavSchemeUri(query))
-		query = helpers.parseNavUri(query);
-
-	// make sure we always have an array
-	if (!Array.isArray(query))
-		query = [query];
-
-	// build a full follow() chain
-	var nav = new Agent(new AgentContext(query.shift()));
-	while (query[0]) {
-		nav = new Agent(new AgentContext(query.shift()), nav);
-	}
-
-	return nav;
-};
-
-module.exports = {
-	Agent: Agent,
-	agent: agent
-};
-},{"../constants.js":2,"../promises.js":4,"../util":9,"./dispatch.js":13,"./helpers.js":14,"./httpl.js":16,"./request.js":18,"./response.js":19,"./subscribe.js":23,"./uri-template.js":24}],11:[function(require,module,exports){
-var Request = require('./request.js');
-var Response = require('./response.js');
-var Server = require('./server.js');
-var contentTypes = require('./content-types.js');
-
-// BridgeServer
-// ============
-// EXPORTED
-// Core type for all servers which pipe requests between separated namespaces (eg WorkerBridgeServer, RTCBridgeServer)
-// - Should be used as a prototype
-// - Provides HTTPL implementation using the channel methods (which should be overridden by the subclasses)
-// - Underlying channel must be:
-//   - reliable
-//   - order-guaranteed
-// - Underlying channel is assumed not to be:
-//   - multiplexed
-// - :NOTE: WebRTC's SCTP should eventually support multiplexing, in which case RTCBridgeServer should
-//   abstract multiple streams into the one "channel" to prevent head-of-line blocking
-function BridgeServer(config) {
-	Server.call(this, config);
-
-	this.sidCounter = 1;
-	this.incomingStreams = {}; // maps sid -> request/response stream
-	// ^ only contains active streams (closed streams are deleted)
-	this.incomingStreamsBuffer = {}; // maps sid -> {nextMid:, cache:{}}
-	this.outgoingStreams = {}; // like `incomingStreams`, but for requests & responses that are sending out data
-	this.msgBuffer = []; // buffer of messages kept until channel is active
-	this.isReorderingMessages = false;
-}
-BridgeServer.prototype = Object.create(Server.prototype);
-module.exports = BridgeServer;
-
-// Turns on/off message numbering and the HOL-blocking reorder protocol
-BridgeServer.prototype.useMessageReordering = function(v) {
-	this.debugLog('turning '+(v?'on':'off')+' reordering');
-	this.isReorderingMessages = !!v;
-};
-
-// Returns true if the channel is ready for activity
-// - should be overridden
-// - returns boolean
-BridgeServer.prototype.isChannelActive = function() {
-	console.warn('isChannelActive not defined', this);
-	return false;
-};
-
-// Sends a single message across the channel
-// - should be overridden
-// - `msg`: required string
-BridgeServer.prototype.channelSendMsg = function(msg) {
-	console.warn('channelSendMsg not defined', this, msg);
-};
-
-// Remote request handler
-// - should be overridden
-BridgeServer.prototype.handleRemoteRequest = function(request, response) {
-	console.warn('handleRemoteRequest not defined', this);
-	response.writeHead(501, 'server not implemented');
-	response.end();
-};
-
-// Sends messages that were buffered while waiting for the channel to setup
-// - should be called by the subclass if there's any period between creation and channel activation
-BridgeServer.prototype.flushBufferedMessages = function() {
-	this.debugLog('FLUSHING MESSAGES', this, JSON.stringify(this.msgBuffer));
-	this.msgBuffer.forEach(function(msg) {
-		this.channelSendMsg(msg);
-	}, this);
-	this.msgBuffer.length = 0;
-};
-
-// Helper which buffers messages when the channel isnt active
-BridgeServer.prototype.channelSendMsgWhenReady = function(msg) {
-	if (!this.isChannelActive()) {
-		// Buffer messages if not ready
-		this.msgBuffer.push(msg);
-	} else {
-		this.channelSendMsg(msg);
-	}
-};
-
-// Local request handler
-// - pipes the request directly to the remote namespace
-BridgeServer.prototype.handleLocalRequest = function(request, response) {
-	// Build message
-	var sid = this.sidCounter++;
-	var query_part = contentTypes.serialize('application/x-www-form-urlencoded', request.query);
-	var msg = {
-		sid: sid,
-		mid: (this.isReorderingMessages) ? 1 : undefined,
-		method: request.method,
-		path: request.path + ((query_part) ? ('?'+query_part) : ''),
-		headers: request.headers
-	};
-
-	// Hold onto streams
-	this.outgoingStreams[msg.sid] = request;
-	this.incomingStreams[-msg.sid] = response; // store response stream in anticipation of the response messages
-
-	// Send over the channel
-	this.channelSendMsgWhenReady(JSON.stringify(msg));
-
-	// Wire up request stream events
-	var this2 = this;
-	var midCounter = msg.mid;
-	request.on('data',  function(data) { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, body: data })); });
-	request.on('end', function()       { this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, end: true })); });
-	request.on('close', function()     {
-		this2.channelSendMsgWhenReady(JSON.stringify({ sid: sid, mid: (midCounter) ? ++midCounter : undefined, close: true }));
-		delete this2.outgoingStreams[msg.sid];
-	});
-};
-
-// Called before server destruction
-// - may be overridden
-// - executes syncronously; does not wait for cleanup to finish
-BridgeServer.prototype.terminate = function(status, reason) {
-	status = status || 503;
-	reason = reason || 'Service Unavailable';
-	Server.prototype.terminate.call(this);
-	for (var sid in this.incomingStreams) {
-		if ((this.incomingStreams[sid] instanceof Response) && !this.incomingStreams[sid].status) {
-			this.incomingStreams[sid].writeHead(status, reason);
-		}
-		this.incomingStreams[sid].end();
-	}
-	for (sid in this.outgoingStreams) {
-		if ((this.outgoingStreams[sid] instanceof Response) && !this.outgoingStreams[sid].status) {
-			this.outgoingStreams[sid].writeHead(status, reason);
-		}
-		this.outgoingStreams[sid].end();
-	}
-	this.incomingStreams = {};
-	this.outgoingStreams = {};
-};
-
-// HTTPL implementation for incoming messages
-// - should be called by subclasses on incoming messages
-BridgeServer.prototype.onChannelMessage = function(msg) {
-	// Validate and parse JSON
-	if (typeof msg == 'string') {
-		if (!validateJson(msg)) {
-			console.warn('Dropping malformed HTTPL message', msg, this);
-			return;
-		}
-		msg = JSON.parse(msg);
-	}
-	if (!validateHttplMessage(msg)) {
-		console.warn('Dropping malformed HTTPL message', msg, this);
-		return;
-	}
-
-	// Do input buffering if the message is numbered
-	if (msg.mid) {
-		// Create the buffer
-		if (!this.incomingStreamsBuffer[msg.sid]) {
-			this.incomingStreamsBuffer[msg.sid] = {
-				nextMid: 1,
-				cache: {}
-			};
-		}
-		// Cache (block at HOL) if not next in line
-		if (this.incomingStreamsBuffer[msg.sid].nextMid != msg.mid) {
-			this.incomingStreamsBuffer[msg.sid].cache[msg.mid] = msg;
-			return;
-		}
-	}
-
-	// Get/create stream
-	var stream = this.incomingStreams[msg.sid];
-	if (!stream) {
-		// Incoming requests have a positive sid
-		if (msg.sid > 0) {
-			// Extracy query
-			var query = null;
-			var pathparts = (msg.path||'').split('?');
-			msg.path = pathparts[0];
-			if (pathparts[1]) {
-				query = contentTypes.deserialize('application/x-www-form-urlencoded', pathparts[1]);
-			}
-
-			// Create request & response
-			var request = new Request({
-				method: msg.method,
-				path: msg.path,
-				query: query,
-				headers: msg.headers
-			});
-			request.deserializeHeaders();
-			var response = new Response();
-			request.on('close', function() { response.close(); });
-
-			// Wire response into the stream
-			var this2 = this;
-			var resSid = -(msg.sid);
-			var midCounter = (this.isReorderingMessages) ? 1 : undefined;
-			response.on('headers', function() {
-				this2.channelSendMsg(JSON.stringify({
-					sid: resSid,
-					mid: (midCounter) ? midCounter++ : undefined,
-					status: response.status,
-					reason: response.reason,
-					headers: response.headers,
-				}));
-			});
-			response.on('data',  function(data) {
-				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, body: data }));
-			});
-			response.on('end', function() {
-				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, end: true }));
-			});
-			response.on('close', function() {
-				this2.channelSendMsg(JSON.stringify({ sid: resSid, mid: (midCounter) ? midCounter++ : undefined, close: true }));
-				delete this2.outgoingStreams[resSid];
-			});
-
-			// Hold onto the streams
-			stream = this.incomingStreams[msg.sid] = request;
-			this.outgoingStreams[resSid] = response;
-
-			// Pass on to the request handler
-			this.handleRemoteRequest(request, response);
-		}
-		// Incoming responses have a negative sid
-		else {
-			// There should have been an incoming stream
-			// (incoming response streams are created locally on remote request dispatches)
-			console.warn('Dropping unexpected HTTPL response message', msg, this);
-			return;
-		}
-	}
-
-	// {status: [int]} -> write head
-	if (msg.sid < 0 && typeof msg.status != 'undefined') {
-		stream.writeHead(msg.status, msg.reason, msg.headers);
-	}
-
-	// {body: [String]} -> write to stream body
-	if (msg.body) {
-		stream.write(msg.body);
-	}
-
-	// {end: true} -> end stream
-	if (msg.end) {
-		stream.end();
-	}
-
-	// {close: true} -> close stream
-	if (msg.close) {
-		stream.close();
-		delete this.incomingStreams[msg.sid];
-		delete this.incomingStreamsBuffer[msg.sid];
-		return;
-	}
-
-	// Check the cache if the message is numbered for reordering
-	if (msg.mid) {
-		// Is the next message cached?
-		var nextmid = ++this.incomingStreamsBuffer[msg.sid].nextMid;
-		if (this.incomingStreamsBuffer[msg.sid].cache[nextmid]) {
-			// Process it now
-			var cachedmsg = this.incomingStreamsBuffer[msg.sid].cache[nextmid];
-			delete this.incomingStreamsBuffer[msg.sid].cache[nextmid];
-			this.onChannelMessage(cachedmsg);
-		}
-	}
-};
-
-// This validator is faster than doing a try/catch block
-// http://jsperf.com/check-json-validity-try-catch-vs-regex
-function validateJson(str) {
-	if (str === '') {
-		return false;
-	}
-	str = str.replace(/\\./g, '@').replace(/"[^"\\\n\r]*"/g, '');
-	return (/^[,:{}\[\]0-9.\-+Eaeflnr-u \n\r\t]*$/).test(str);
-}
-
-function validateHttplMessage(parsedmsg) {
-	if (!parsedmsg)
-		return false;
-	if (isNaN(parsedmsg.sid))
-		return false;
-	return true;
-}
-},{"./content-types.js":12,"./request.js":18,"./response.js":19,"./server.js":22}],12:[function(require,module,exports){
+},{"./dom.js":6,"./event-emitter.js":7}],9:[function(require,module,exports){
 // contentTypes
 // ============
 // EXPORTED
@@ -1884,10 +1049,37 @@ function validateHttplMessage(parsedmsg) {
 var contentTypes = {
 	serialize   : contentTypes__serialize,
 	deserialize : contentTypes__deserialize,
-	register    : contentTypes__register
+	register    : contentTypes__register,
+	lookup      : contentTypes__lookup
 };
 var contentTypes__registry = {};
 module.exports = contentTypes;
+
+// EXPORTED
+// converts a simple mime alias to the full type
+function contentTypes__lookup(v) {
+	switch (v) {
+		case 'plain':
+		case 'plaintext':
+		case 'text':
+			return 'text/plain';
+		case 'html':
+			return 'text/html';
+		case 'csv':
+			return 'text/csv';
+		case 'events':
+		case 'event-stream':
+			return 'text/event-stream';
+		case 'json':
+			return 'application/json';
+		case 'xml':
+			return 'application/xml';
+		case 'javascript':
+		case 'js':
+			return 'application/javascript';
+	}
+	return v;
+}
 
 // EXPORTED
 // serializes an object into a string
@@ -2060,229 +1252,10 @@ function splitEventstreamKV(kv) {
 	var i = kv.indexOf(':');
 	return [kv.slice(0, i).trim(), kv.slice(i+1).trim()];
 }
-},{}],13:[function(require,module,exports){
-var util = require('../util');
-var helpers = require('./helpers.js');
-var schemes = require('./schemes.js');
-var Request = require('./request.js');
-var Response = require('./response.js');
-var contentTypes = require('./content-types.js');
-
-var webDispatchWrapper;
-
-// dispatch()
-// ==========
-// EXPORTED
-// HTTP request dispatcher
-// - `request` param:
-//   - if string, creates GET request for json
-//   - if object, requires `url`, sends immediately (so you cant stream request body)
-//   - if Response, leaves you to run write() and end() (so you can stream request body)
-// - `request.query`: optional object, additional query params
-// - `request.headers`: optional object
-// - `request.body`: optional request body
-// - `request.stream`: optional boolean, stream the response? If falsey, will buffer and deserialize the response
-// - `request.binary`: optional boolean, receive a binary arraybuffer response? Only applies to HTTP/S
-// - returns a `Promise` object
-//   - on success (status code 2xx), the promise is fulfilled with a `ClientResponse` object
-//   - on failure (status code 4xx,5xx), the promise is rejected with a `ClientResponse` object
-//   - all protocol (status code 1xx,3xx) is handled internally
-function dispatch(request) {
-	if (!request) { throw new Error("No request provided to dispatch()"); }
-	if (typeof request == 'string')
-		request = { url: request };
-
-	// Create the request if needed
-	var body = null, shouldAutoSendRequestBody = false;
-	if (!(request instanceof Request)) {
-		shouldAutoSendRequestBody = true; // we're going to end() with req.body
-
-		var timeout = request.timeout;
-		request = new Request(request);
-		if (timeout) { request.setTimeout(timeout); } // :TODO: should this be in the request constructor?
-
-		// pull out body for us to send
-		body = request.body;
-		request.body = '';
-	}
-	if (!request.url) { throw new Error("No url on request"); }
-
-	// If given a nav: scheme, spawn a agent to handle it
-	var scheme = parseScheme(request.url);
-	if (scheme == 'nav') {
-		var request2 = new Request(request); // clone before modifying
-		var url = request2.url;
-		delete request2.url;
-		var response_ = require('./agent.js').agent(url).dispatch(request2);
-		request.on('data', request2.write.bind(request2));
-		request.on('end', request2.end.bind(request2));
-		if (shouldAutoSendRequestBody) request.end(body);
-		return response_;
-	}
-
-	// Prep request
-	Object.defineProperty(request, 'urld', { value: helpers.parseUri(request.url), configurable: true, enumerable: false, writable: true }); // (urld = url description)
-	if (request.urld.query) {
-		// Extract URL query parameters into the request's query object
-		var q = contentTypes.deserialize('application/x-www-form-urlencoded', request.urld.query);
-		for (var k in q)
-			request.query[k] = q[k];
-		request.urld.relative = request.urld.path + ((request.urld.anchor) ? ('#'+request.urld.anchor) : '');
-		request.url = scheme+'://'+request.urld.authority+request.urld.relative;
-	}
-	request.serializeHeaders();
-
-	// Setup response object
-	var requestStartTime;
-	var response = new Response();
-	var response_ = require('../promises.js').promise();
-	request.on('close', function() { response.close(); });
-	response.on('headers', function() {
-		response.deserializeHeaders();
-		response.processHeaders(request);
-	});
-	response.on('close', function() {
-		// Track latency
-		response.latency = Date.now() - requestStartTime;
-		// Close the request
-		request.close();
-	});
-	if (request.stream) {
-		// streaming, fulfill on 'headers'
-		response.on('headers', function(response) {
-			fulfillResponsePromise(response_, response);
-		});
-	} else {
-		// buffering, fulfill on 'close'
-		response.on('close', function() {
-			fulfillResponsePromise(response_, response);
-		});
-	}
-
-	// Suspend events until the scheme handler gets a chance to wire up
-	// (allows async to occur in the webDispatchWrapper)
-	request.suspendEvents();
-	response.suspendEvents();
-
-	// Create function to be called by the dispatch wrapper
-	var dispatchFn = function(request, response, schemeHandler) {
-		// execute by scheme
-		requestStartTime = Date.now();
-		schemeHandler = schemeHandler || schemes.get(scheme);
-		if (!schemeHandler) {
-			response.writeHead(0, 'unsupported scheme "'+scheme+'"');
-			response.end();
-			request.resumeEvents();
-			response.resumeEvents();
-		} else {
-			// dispatch according to scheme
-			schemeHandler(request, response);
-			// now that the scheme handler has wired up, the spice must flow
-			request.resumeEvents();
-			response.resumeEvents();
-			// autosend request body if not given a Request `request`
-			if (shouldAutoSendRequestBody) { request.end(body); }
-		}
-		return response_;
-	};
-
-	// Setup the arguments list for the dispatch wrapper to include any additional params passed to dispatch()
-	// aka (request, response, dispatch, args...)
-	// this allows apps to do something like dispatch(request, extraParam1, extraParam2) and have the dispatch wrapper use those params
-	var args = Array.prototype.slice.call(arguments, 1);
-	args.unshift(dispatchFn);
-	args.unshift(response);
-	args.unshift(request);
-
-	// Wait until next tick, to make sure dispatch() is always async
-	util.nextTick(function() {
-		// Allow the wrapper to audit the message
-		webDispatchWrapper.apply(null, args);
-	});
-
-	response_.request = request;
-	return response_;
-}
-
-// EXPORTED
-// fulfills/reject a promise for a response with the given response
-// - exported because its pretty useful
-function fulfillResponsePromise(p, response) {
-	// wasnt streaming, fulfill now that full response is collected
-	if (response.status >= 200 && response.status < 400)
-		p.fulfill(response);
-	else if (response.status >= 400 && response.status < 600 || response.status === 0)
-		p.reject(response);
-	else
-		p.fulfill(response); // :TODO: 1xx protocol handling
-}
-
-// EXPORTED
-function setDispatchWrapper(wrapperFn) {
-	webDispatchWrapper = wrapperFn;
-}
-
-setDispatchWrapper(function(request, response, dispatch) {
-	dispatch(request, response);
-});
-
-// INTERNAL
-function parseScheme(url) {
-	var schemeMatch = /^([^.^:]*):/.exec(url);
-	if (!schemeMatch) {
-		// shorthand/default schemes
-		if (url.indexOf('//') === 0)
-			return 'http';
-		else if (url.indexOf('||') === 0)
-			return 'nav';
-		else
-			return 'httpl';
-	}
-	return schemeMatch[1];
-}
-
-
-function makeDispSugar(method) {
-	return function(options) {
-		var req = options || {};
-		if (typeof req == 'string') {
-			req = { url: req };
-		}
-		req.method = method;
-		return dispatch(req);
-	};
-}
-function makeDispWBodySugar(method) {
-	return function(body, options) {
-		var req = options || {};
-		if (typeof req == 'string') {
-			req = { url: req };
-		}
-		req.method = method;
-		req.body = body;
-		return dispatch(req);
-	};
-}
-
-module.exports = {
-	dispatch: dispatch,
-	fulfillResponsePromise: fulfillResponsePromise,
-	setDispatchWrapper: setDispatchWrapper,
-
-	SUBSCRIBE: makeDispSugar('SUBSCRIBE'),
-	HEAD:      makeDispSugar('HEAD'),
-	GET:       makeDispSugar('GET'),
-	DELETE:    makeDispSugar('DELETE'),
-	POST:      makeDispWBodySugar('POST'),
-	PUT:       makeDispWBodySugar('PUT'),
-	PATCH:     makeDispWBodySugar('PATCH'),
-	NOTIFY:    makeDispWBodySugar('NOTIFY'),
-};
-},{"../promises.js":4,"../util":9,"./agent.js":10,"./content-types.js":12,"./helpers.js":14,"./request.js":18,"./response.js":19,"./schemes.js":21}],14:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 // Helpers
 // =======
 
-var httpHeaders = require('./http-headers.js');
 var promise = require('../promises.js').promise;
 var UriTemplate = require('./uri-template.js');
 
@@ -2495,15 +1468,11 @@ function joinUri() {
 // EXPORTED
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
-// - eg http://foo.com, //foo.com, local://bar.app
-var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|(local:)|((nav:)?\|\|)|(data:)/;
+// - eg http://foo.com, //foo.com, #bar.app
+var hasSchemeRegex = /^(#)|((http(s|l)?:)?\/\/)|((nav:)?\|\|)|(data:)/;
 function isAbsUri(url) {
 	// Has a scheme?
-	if (hasSchemeRegex.test(url))
-		return true;
-	// No scheme, is it a local server or a global URI?
-	var urld = parseUri(url);
-	return !!require('./httpl.js').getServer(urld.authority) || !!parsePeerDomain(urld.authority);
+	return hasSchemeRegex.test(url);
 }
 
 // EXPORTED
@@ -2528,7 +1497,7 @@ function joinRelPath(urld, relpath) {
 		} else if (urld.source.indexOf('||') === 0) {
 			protocol = '||';
 		} else {
-			protocol = 'local://';
+			protocol = 'http://';
 		}
 	}
 	if (relpath.charAt(0) == '/') {
@@ -2563,26 +1532,6 @@ function parseUri(str) {
 	if (str.slice(0,5) == 'data:') {
 		return { protocol: 'data', source: str };
 	}
-
-	// handle peer-uris specially
-	if (str.indexOf('!') !== -1) {
-		var schemeSepI = str.indexOf('//');
-		var firstSlashI = str.indexOf('/', schemeSepI+2);
-		var peerdomain = str.slice((schemeSepI !== -1) ? schemeSepI+2 : 0, (firstSlashI !== -1) ? firstSlashI : str.length);
-		var peerd = parsePeerDomain(peerdomain);
-		if (peerd) {
-			var urld = {};
-			if (firstSlashI !== -1 && str.slice(firstSlashI)) {
-				urld = parseUri(str.slice(firstSlashI));
-			}
-			urld.protocol = 'local';
-			urld.host = urld.authority = peerdomain;
-			urld.port = urld.password = urld.user = urld.userInfo = '';
-			urld.source = str;
-			return urld;
-		}
-	}
-
 	var	o   = parseUri.options,
 		m   = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
 		uri = {},
@@ -2660,33 +1609,6 @@ function parseNavUri(str) {
 }
 
 // EXPORTED
-// breaks a peer domain into its constituent parts
-// - returns { user:, relay:, app:, sid: }
-var peerDomainRE = /^(.+)@([^!]+)!([^!\/]+)(?:!([\d]+))?$/i;
-function parsePeerDomain(domain) {
-	var match = peerDomainRE.exec(domain);
-	if (match) {
-		return {
-			domain: domain,
-			user: match[1],
-			relay: match[2],
-			provider: match[2], // :TODO: remove
-			app: match[3],
-			stream: match[4] || 0, // :TODO: remove
-			sid: match[4] || 0
-		};
-	}
-	return null;
-}
-
-// EXPORTED
-// constructs a peer domain from its constituent parts
-// - returns string
-function makePeerDomain(user, relay, app, sid) {
-	return user+'@'+relay+'!'+app+((sid) ? '!'+sid : '');
-}
-
-// EXPORTED
 // builds a proxy URI out of an array of templates
 // eg ('local://my_worker.js/', ['local://0.env/{uri}', 'local://foo/{?uri}'])
 // -> "local://0.env/local%3A%2F%2Ffoo%2F%3Furi%3Dhttpl%253A%252F%252Fmy_worker.js%252F"
@@ -2699,44 +1621,10 @@ function makeProxyUri(uri, templates) {
 	return uri;
 }
 
-// EXPORTED
-// sends the given response back verbatim
-// - if `writeHead` has been previously called, it will not change
-// - params:
-//   - `target`: the response to populate
-//   - `source`: the response to pull data from
-//   - `headersCb`: (optional) takes `(headers)` from source and responds updated headers for target
-//   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for target
-function pipe(target, source, headersCB, bodyCb) {
-	headersCB = headersCB || function(v) { return v; };
-	bodyCb = bodyCb || function(v) { return v; };
-	return promise(source)
-		.always(function(source) {
-			if (!target.status) {
-				// copy the header if we don't have one yet
-				target.writeHead(source.status, source.reason, headersCB(source.headers));
-			}
-			if (source.body !== null && typeof source.body != 'undefined') { // already have the body?
-				target.write(bodyCb(source.body));
-			}
-			if (source.on && source.isConnOpen) {
-				// wire up the stream
-				source.on('data', function(data) {
-					target.write(bodyCb(data));
-				});
-				source.on('end', function() {
-					target.end();
-				});
-			} else {
-				target.end();
-			}
-			return target;
-		});
-}
-
+// :TODO:
 // EXPORTED
 // modifies XMLHttpRequest to support HTTPL
-function patchXHR() {
+/*function patchXHR() {
 	// Store references to original methods
 	var orgXHR = XMLHttpRequest;
 	var orgPrototype = XMLHttpRequest.prototype;
@@ -2865,7 +1753,7 @@ function patchXHR() {
 			return this.__xhr_request.getResponseHeader(k);
 		}
 	};
-}
+}*/
 
 module.exports = {
 	extractDocumentLinks: extractDocumentLinks,
@@ -2885,15 +1773,11 @@ module.exports = {
 
 	parseUri: parseUri,
 	parseNavUri: parseNavUri,
-	parsePeerDomain: parsePeerDomain,
-	makePeerDomain: makePeerDomain,
 	makeProxyUri: makeProxyUri,
 
-	pipe: pipe,
-
-	patchXHR: patchXHR
+	// patchXHR: patchXHR :TODO:
 };
-},{"../promises.js":4,"./dispatch.js":13,"./http-headers.js":15,"./httpl.js":16,"./request.js":18,"./uri-template.js":24}],15:[function(require,module,exports){
+},{"../promises.js":4,"./uri-template.js":18}],11:[function(require,module,exports){
 var helpers = require('./helpers.js');
 
 // headers
@@ -3027,869 +1911,439 @@ httpHeaders.register('accept',
 	},
 	helpers.parseAcceptHeader
 );
-
-/*
-Via =  "Via" ":" 1#( received-protocol received-by [ comment ] )
-received-protocol = [ protocol-name "/" ] protocol-version
-protocol-name     = token
-protocol-version  = token
-received-by       = ( host [ ":" port ] ) | pseudonym
-pseudonym         = token
-*/
-//                  proto-name  proto-v   received-by        comment
-//                  ------      -------   --------------     ------
-var viaregex = /(?:([A-z]+)\/)?([\d\.]+) ([-A-z:\d\.@!]*)(?: ([^,]+))?/g;
-httpHeaders.register('via',
-	function (obj) {
-		return obj.map(function(via) {
-			return ((via.proto.name) ? (via.proto.name+'/') : '') + via.proto.version+' '+via.hostname+((via.comment) ? (' '+via.comment) : '');
-		}).join(', ');
-	},
-	function (str) {
-		var vias = [], match;
-		while ((match = viaregex.exec(str))) {
-			var via = { proto: { name: (match[1]||'http'), version: match[2] }, hostname: match[3], comment: match[4] };
-			vias.push(via);
-		}
-		return vias;
-	}
-);
-},{"./helpers.js":14}],16:[function(require,module,exports){
-var schemes = require('./schemes.js');
+},{"./helpers.js":10}],12:[function(require,module,exports){
 var helpers = require('./helpers.js');
+var schemes = require('./schemes.js');
 var contentTypes = require('./content-types.js');
-var Server = require('./server.js');
+var IncomingRequest = require('./incoming-request.js');
+var Response = require('./response.js');
 
-// HTTPL
-// =====
-var hostLookupFn;
-var localNotFoundServer = function(request, response) {
-	response.writeHead(404, 'server not found');
-	response.end();
-};
-var localRelayNotOnlineServer = function(request, response) {
-	response.writeHead(407, 'peer relay not authenticated');
-	response.end();
-};
-schemes.register(['local', 'httpl'], function(request, response) {
-	// Find the local server
-	var server = getServer(request.urld.authority);
-	if (!server) {
-		server = hostLookupFn(request, response);
-		if (!server)
-			server = localNotFoundServer;
+// Local Routes Registry
+// =====================
+var _routes = [];
+
+// EXPORTED
+function at(pathOrRegex, handler) {
+	if (typeof pathOrRegex == 'string') {
+		pathOrRegex = new RegExp('^('+pathOrRegex+')$', 'i');
 	}
 
-	// Deserialize the headers
-	request.deserializeHeaders();
+	_routes.push({ path: pathOrRegex, handler: handler });
+}
 
-	// Pull out and standardize the path & host
-	request.path = request.urld.path;
-	request.headers.host = request.urld.authority;
-	if (!request.path) request.path = '/'; // no path, give a '/'
-	else request.path = request.path.replace(/(.)\/$/, '$1'); // otherwise, never end with a '/'
+// EXPORTED
+function getRoutes() {
+	return _routes;
+}
 
-	// Pull out any query params in the path
-	if (request.urld.query) {
-		var query = contentTypes.deserialize('application/x-www-form-urlencoded', request.urld.query);
-		if (!request.query) { request.query = {}; }
-		for (var k in query) {
-			request.query[k] = query[k];
+// Virtual request handler
+schemes.register('#', function (oreq, ires) {
+	// Parse the virtual path
+	var urld2 = local.parseUri('/' + (oreq.urld.anchor || ''));
+	if (urld2.query) {
+		// mix query params into request
+		var queryParams = local.contentTypes.deserialize('application/x-www-form-urlencoded', urld2.query);
+		oreq.param(queryParams);
+	}
+	oreq.path = '#' + urld2.path.slice(1);
+
+	// Match the route
+	var pathd, handler;
+	for (var i=0; i < _routes.length; i++) {
+		pathd = _routes[i].path.exec(oreq.path);
+		if (pathd) {
+			handler = _routes[i].handler;
+			break;
 		}
 	}
+	// :TODO: equivalent
+	// 	if (req.urld.srcPath) {
+	// 		// Try to load worker to handle response
+	// 		console.log('Spawning temporary worker', req.urld.authority);
+	// 		return require('../spawners.js').spawnWorkerServer(null, { domain: req.urld.authority, temp: true });
+	// 	}
+	oreq.pathd = pathd;
+
+	// Create incoming request / outgoing response
+	var ireq = new IncomingRequest(oreq.headers);
+	var ores = new Response();
+
+	// Wire up events
+	oreq.wireUp(ireq, true);
+	ores.wireUp(ires, true);
 
 	// Support warnings
-	if (request.binary)
-		console.warn('Got HTTPL request with binary=true - sorry, not currently supported', request);
+	if (oreq.isBinary) // :TODO: add support
+		console.warn('Got virtual request with binary=true - sorry, not currently supported', oreq);
 
-	// Pass on to the server
-	if (server.fn) {
-		server.fn.call(server.context, request, response);
-	} else if (server.handleLocalRequest) {
-		server.handleLocalRequest(request, response);
-	} else if (typeof server == 'function') {
-		server(request, response);
+	// Pass on to the handler
+	if (handler) {
+		handler(ireq, ores);
 	} else {
-		throw "Invalid server";
+		ores.s404().end();
 	}
 });
-
-// EXPORTED
-function setHostLookup(fn) {
-	hostLookupFn = fn;
-}
-
-setHostLookup(function(req, res) {
-	if (req.urld.srcPath) {
-		// Try to load worker to handle response
-		console.log('Spawning temporary worker', req.urld.authority);
-		return require('../spawners.js').spawnWorkerServer(null, { domain: req.urld.authority, temp: true });
-	}
-
-	// Check if this is a peerweb URI
-	var peerd = helpers.parsePeerDomain(req.urld.authority);
-	if (peerd) {
-		// See if this is a default stream miss
-		if (peerd.sid == 0) {
-			if (req.urld.authority.slice(-2) == '!0') {
-				server = getServer(req.urld.authority.slice(0,-2));
-			} else {
-				req.urld.authority += '!0';
-				server = getServer(req.urld.authority);
-			}
-		}
-		if (!server) {
-			// Not a default stream miss
-			if (peerd.relay in __peer_relay_registry) {
-				// Try connecting to the peer
-				__peer_relay_registry[peerd.relay].connect(req.urld.authority);
-				return getServer(req.urld.authority);
-			} else {
-				// We're not connected to the relay
-				return localRelayNotOnlineServer;
-			}
-		}
-	}
-	return false;
-});
-
-// Local Server Registry
-// =====================
-var __httpl_registry = {};
-
-// EXPORTED
-function addServer(domain, server, serverContext) {
-	if (__httpl_registry[domain]) throw new Error("server already registered at domain given to addServer");
-
-	var isServerObj = (server instanceof Server);
-	if (isServerObj) {
-		serverContext = server;
-		server = server.handleLocalRequest;
-		serverContext.config.domain = domain;
-	}
-
-	__httpl_registry[domain] = { fn: server, context: serverContext };
-	return __httpl_registry[domain];
-}
-
-// EXPORTED
-function removeServer(domain) {
-	if (__httpl_registry[domain]) {
-		delete __httpl_registry[domain];
-	}
-}
-
-// EXPORTED
-function getServer(domain) {
-	return __httpl_registry[domain];
-}
-
-// EXPORTED
-function getServers() {
-	return __httpl_registry;
-}
-
-
-// Local Relay Registry
-// ====================
-var __peer_relay_registry = {};
-
-// EXPORTED
-function addRelay(domain, relay) {
-	__peer_relay_registry[domain] = relay;
-}
-
-// EXPORTED
-function removeRelay(domain) {
-	if (__peer_relay_registry[domain]) {
-		delete __peer_relay_registry[domain];
-	}
-}
-
-// EXPORTED
-function getRelay(domain) {
-	return __peer_relay_registry[domain];
-}
-
-// EXPORTED
-function getRelays() {
-	return __peer_relay_registry;
-}
 
 module.exports = {
-	addServer: addServer,
-	removeServer: removeServer,
-	getServer: getServer,
-	getServers: getServers,
-
-	addRelay: addRelay,
-	removeRelay: removeRelay,
-	getRelay: getRelay,
-	getRelays: getRelays,
-
-	setHostLookup: setHostLookup
+	at: at,
+	getRoutes: getRoutes
 };
-},{"../spawners.js":6,"./content-types.js":12,"./helpers.js":14,"./schemes.js":21,"./server.js":22}],17:[function(require,module,exports){
+},{"./content-types.js":9,"./helpers.js":10,"./incoming-request.js":13,"./response.js":16,"./schemes.js":17}],13:[function(require,module,exports){
 var util = require('../util');
 var helpers = require('./helpers.js');
-var httpl = require('./httpl.js');
-var agent = require('./agent.js').agent;
-var RTCBridgeServer = require('./rtc-bridge-server.js');
-
-
-function randomStreamId() {
-	return Math.round(Math.random()*10000);
-}
-
-// Relay
-// =====
-// EXPORTED
-// Helper class for managing a peer web relay provider
-// - `config.provider`: optional string, the relay provider
-// - `config.serverFn`: optional function, the function for peerservers' handleRemoteRequest
-// - `config.app`: optional string, the app to join as (defaults to window.location.host)
-// - `config.sid`: optional number, the stream id (defaults to pseudo-random)
-// - `config.ping`: optional number, sends a ping to self via the relay at the given interval (in ms) to keep the stream alive
-//   - set to false to disable keepalive pings
-//   - defaults to 45000
-// - `config.retryTimeout`: optional number, time (in ms) before a peer connection is aborted and retried (defaults to 15000)
-// - `config.retries`: optional number, number of times to retry a peer connection before giving up (defaults to 5)
-// - `config.log`: optional bool, enables logging of all message traffic and webrtc connection processes
-function Relay(config) {
-	if (!config) config = {};
-	if (!config.app) config.app = window.location.host;
-	if (typeof config.sid == 'undefined') { config.sid = randomStreamId(); this.autoRetryStreamTaken = true; }
-	if (typeof config.ping == 'undefined') { config.ping = 45000; }
-	this.config = config;
-	util.mixinEventEmitter(this);
-
-	// State
-	this.assignedDomain = null;
-	this.connectionStatus = 0;
-	Object.defineProperty(this, 'connectedToRelay', {
-		get: function() { return this.connectionStatus == Relay.CONNECTED; },
-		set: function(v) { this.connectionStatus = (v) ? Relay.CONNECTED : Relay.DISCONNECTED; }
-	});
-	this.userId = null;
-	this.accessToken = null;
-	this.bridges = {};
-	this.pingInterval = null;
-	this.registeredLinks = null;
-	this.relayEventStream = null;
-
-	// Internal helpers
-	this.messageFromAuthPopupHandler = null;
-
-	// Agents
-	this.relayService = null;
-	this.usersCollection = null;
-	this.relayItem = null;
-
-	// Setup provider config
-	if (config.provider) {
-		this.setProvider(config.provider);
-	}
-
-	// Bind window close behavior
-	window.addEventListener('beforeunload', this.onPageClose.bind(this));
-}
-module.exports = Relay;
-
-// Constants
-Relay.DISCONNECTED = 0;
-Relay.CONNECTING   = 1;
-Relay.CONNECTED    = 2;
-
-// Sets the access token and triggers a connect flow
-// - `token`: required String?, the access token (null if denied access)
-// - `token` should follow the form '<userId>:<'
-Relay.prototype.setAccessToken = function(token) {
-	if (token == "null") token = null; // this happens sometimes when a bad token gets saved in localStorage
-	if (token) {
-		// Extract user-id from the access token
-		var tokenParts = token.split(':');
-		if (tokenParts.length !== 2) {
-			throw new Error('Invalid access token');
-		}
-
-		// Store
-		this.userId = tokenParts[0];
-		this.accessToken = token;
-
-		if (this.relayService) {
-			this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
-			this.usersCollection.setRequestDefaults({ headers: { authorization: 'Bearer '+token }});
-
-			// Try to validate our access now
-			var self = this;
-			this.relayItem = this.relayService.follow({
-				rel: 'gwr.io/relay',
-				user: this.getUserId(),
-				app: this.getApp(),
-				sid: this.getSid(),
-				nc: Date.now() // nocache
-			});
-			this.relayItem.resolve().then( // a successful HEAD request will verify access
-				function() {
-					// Emit an event
-					self.emit('accessGranted');
-				},
-				function(res) {
-					// Handle error
-					self.onRelayError({ event: 'error', data: res });
-				}
-			);
-		}
-	} else {
-		// Update state and emit event
-		var hadToken = !!this.accessToken;
-		this.userId = null;
-		this.accessToken = null;
-		if (hadToken) {
-			this.emit('accessRemoved');
-		}
-	}
-};
-Relay.prototype.isListening       = function() { return this.connectedToRelay; };
-Relay.prototype.getAssignedDomain = function() { return this.assignedDomain; };
-Relay.prototype.getAssignedUrl    = function() { return 'local://'+this.assignedDomain; };
-Relay.prototype.getUserId         = function() { return this.userId; };
-Relay.prototype.getApp            = function() { return this.config.app; };
-Relay.prototype.setApp            = function(v) { this.config.app = v; };
-Relay.prototype.getStreamId       = function() { return this.config.sid; };
-Relay.prototype.getSid            = Relay.prototype.getStreamId;
-Relay.prototype.setStreamId       = function(sid) { this.config.sid = sid; };
-Relay.prototype.setSid            = Relay.prototype.setStreamId;
-Relay.prototype.getAccessToken    = function() { return this.accessToken; };
-Relay.prototype.getServer         = function() { return this.config.serverFn; };
-Relay.prototype.setServer         = function(fn) { this.config.serverFn = fn; };
-Relay.prototype.getRetryTimeout   = function() { return this.config.retryTimeout; };
-Relay.prototype.setRetryTimeout   = function(v) { this.config.retryTimeout = v; };
-Relay.prototype.getProvider       = function() { return this.config.provider; };
-Relay.prototype.setProvider       = function(providerUrl) {
-	// Abort if already connected
-	if (this.connectedToRelay) {
-		throw new Error("Can not change provider while connected to the relay. Call stopListening() first.");
-	}
-	// Update config
-	this.config.provider = providerUrl;
-	this.providerDomain = helpers.parseUri(providerUrl).authority;
-
-	// Create APIs
-	this.relayService = agent(this.config.provider);
-	this.usersCollection = this.relayService.follow({ rel: 'gwr.io/users' });
-
-	if (this.accessToken) {
-		this.relayService.setRequestDefaults({ headers: { authorization: 'Bearer '+this.accessToken }});
-		this.usersCollection.setRequestDefaults({ headers: { authorization: 'Bearer '+this.accessToken }});
-	}
-};
-
-// Gets an access token from the provider & user using a popup
-// - Best if called within a DOM click handler, as that will avoid popup-blocking
-// - `opts.guestof`: optional string, the host userid providing the guest account. If specified, attempts to get a guest session
-Relay.prototype.requestAccessToken = function(opts) {
-	// Start listening for messages from the popup
-	if (!this.messageFromAuthPopupHandler) {
-		this.messageFromAuthPopupHandler = (function(e) {
-			// Make sure this is from our popup
-			var originUrld = helpers.parseUri(e.origin);
-			var providerUrld = helpers.parseUri(this.config.provider);
-			if (originUrld.authority !== providerUrld.authority) {
-				return;
-			}
-			console.log('Received access token from '+e.origin);
-
-			// Use this moment to switch to HTTPS, if we're using HTTP
-			// - this occurs when the provider domain is given without a protocol, and the server is HTTPS
-			// - failing to do so causes a redirect during the XHR calls to the relay, which violates a CORS condition
-			if (this.config.provider != e.origin) {
-				this.setProvider(e.origin);
-			}
-
-			// Update our token
-			this.setAccessToken(e.data);
-
-			// If given a null, emit denial event
-			if (!e.data) {
-				this.emit('accessDenied');
-			}
-		}).bind(this);
-		window.addEventListener('message', this.messageFromAuthPopupHandler);
-	}
-
-	// Open interface in a popup
-	// :HACK: because popup blocking can only be avoided by a syncronous popup call, we have to manually construct the url (it burns us)
-	var url = this.getProvider() + '/session/' + this.config.app;
-	if (opts && opts.guestof) { url += '?guestof='+encodeURIComponent(opts.guestof); }
-	window.open(url);
-};
-
-// Fetches users from p2pw service
-// - opts.online: optional bool, only online users
-// - opts.trusted: optional bool, only users trusted by our session
-Relay.prototype.getUsers = function(opts) {
-	var api = this.usersCollection;
-	if (opts) {
-		opts.rel = 'self';
-		api = api.follow(opts);
-	}
-	return api.get({ Accept: 'application/json' });
-};
-
-// Fetches a user from p2pw service
-// - `userId`: string
-Relay.prototype.getUser = function(userId) {
-	return this.usersCollection.follow({ rel: 'gwr.io/user', id: userId }).get({ Accept: 'application/json' });
-};
-
-// Sends (or stores to send) links in the relay's registry
-Relay.prototype.registerLinks = function(links) {
-	this.registeredLinks = Array.isArray(links) ? links : [links];
-	if (this.relayItem) {
-		this.relayItem.dispatch({ method: 'PATCH', body: { links: this.registeredLinks }});
-	}
-};
-
-// Creates a new agent with up-to-date links for the relay
-Relay.prototype.agent = function() {
-	if (this.relayService)
-		return this.relayService.follow({ rel: 'gwr.io/relays', links: 1 });
-	return agent();
-};
-
-// Subscribes to the event relay and begins handling signals
-// - enables peers to connect
-Relay.prototype.startListening = function() {
-	var self = this;
-	// Make sure we have an access token
-	if (!this.getAccessToken()) {
-		return;
-	}
-	if (this.connectionStatus !== Relay.DISCONNECTED) {
-		console.error('startListening() called when already connected or connecting to relay. Must call stopListening() first.');
-		return;
-	}
-	// Record our peer domain
-	this.assignedDomain = this.makeDomain(this.getUserId(), this.config.app, this.config.sid);
-	if (this.config.sid === 0) { this.assignedDomain += '!0'; } // full URI always
-	// Connect to the relay stream
-	this.relayItem = this.relayService.follow({
-		rel: 'gwr.io/relay',
-		user: this.getUserId(),
-		app: this.getApp(),
-		sid: this.getSid(),
-		nc: Date.now() // nocache
-	});
-	this.connectionStatus = Relay.CONNECTING;
-	this.relayItem.subscribe()
-		.then(
-			function(stream) {
-				// Update state
-				httpl.addRelay(self.providerDomain, self);
-				self.relayEventStream = stream;
-				self.connectionStatus = Relay.CONNECTED;
-				stream.response_.then(function(response) {
-					// Setup links
-					if (self.registeredLinks) {
-						// We had links stored from before, send them now
-						self.registerLinks(self.registeredLinks);
-					}
-
-					// Emit event
-					self.emit('listening');
-					return response;
-				});
-
-				// Setup handlers
-				stream.on('signal', self.onSignal.bind(self));
-				stream.on('error', self.onRelayError.bind(self));
-				stream.on('close', self.onRelayClose.bind(self));
-
-				// Initiate the ping interval
-				if (self.pingInterval) { clearInterval(self.pingInterval); }
-				if (self.config.ping) {
-					self.pingInterval = setInterval(function() {
-						self.signal(self.getAssignedDomain(), { type: 'noop' });
-					}, self.config.ping);
-				}
-			},
-			function(err) {
-				self.onRelayError({ event: 'error', data: err });
-			}
-		);
-};
-
-// Disconnects from the relay
-// - peers will no longer be able to connect
-Relay.prototype.stopListening = function() {
-	if (this.connectedToRelay) {
-		// Terminate any bridges that are mid-connection
-		for (var domain in this.bridges) {
-			if (this.bridges[domain].isConnecting) {
-				this.bridges[domain].terminate();
-			}
-		}
-
-		// Update state
-		this.connectedToRelay = false;
-		this.relayEventStream.close();
-		this.relayEventStream = null;
-		httpl.removeRelay(this.providerDomain);
-	}
-};
-
-// Spawns an RTCBridgeServer and starts the connection process with the given peer
-// - `peerUrl`: required String, the domain/url of the target peer
-// - `config.initiate`: optional Boolean, should the server initiate the connection?
-//   - defaults to true
-//   - should only be false if the connection was already initiated by the opposite end
-// - `config.retryTimeout`: optional number, time (in ms) before a connection is aborted and retried (defaults to 15000)
-// - `config.retries`: optional number, number of times to retry before giving up (defaults to 5)
-Relay.prototype.connect = function(peerUrl, config) {
-	if (!config) config = {};
-	if (typeof config.initiate == 'undefined') config.initiate = true;
-
-	// Parse the url
-	peerUrl = helpers.parseUri(peerUrl).authority;
-	var peerd = helpers.parsePeerDomain(peerUrl);
-	if (!peerd) {
-		throw new Error("Invalid peer url given to connect(): "+peerUrl);
-	}
-
-	// Make sure the url has a stream id
-	if (peerd.sid === 0 && peerUrl.slice(-2) != '!0') {
-		peerUrl += '!0';
-	}
-
-	// Make sure we're not already connected
-	if (peerUrl in this.bridges) {
-		return this.bridges[peerUrl];
-	}
-
-	// Spawn new server
-	console.log('Initiating WebRTC session with', peerUrl);
-	var server = new RTCBridgeServer({
-		peer:         peerUrl,
-		initiate:     config.initiate,
-		relay:        this,
-		serverFn:     this.config.serverFn,
-		loopback:     (peerUrl == this.assignedDomain),
-		retryTimeout: config.retryTimeout || this.config.retryTimeout,
-		retries:      config.retries || this.config.retries,
-		log:          this.config.log || false
-	});
-
-	// Bind events
-	server.on('connecting', this.emit.bind(this, 'connecting'));
-	server.on('connected', this.emit.bind(this, 'connected'));
-	server.on('disconnected', this.onBridgeDisconnected.bind(this));
-	server.on('disconnected', this.emit.bind(this, 'disconnected'));
-	server.on('error', this.emit.bind(this, 'error'));
-
-	// Add to hostmap
-	this.bridges[peerUrl] = server;
-	httpl.addServer(peerUrl, server);
-
-	return server;
-};
-
-Relay.prototype.signal = function(dst, msg) {
-	if (!this.relayItem) {
-		console.warn('Relay - signal() called before relay is connected');
-		return;
-	}
-	var self = this;
-	var response_ = this.relayItem.dispatch({ method: 'notify', body: { src: this.assignedDomain, dst: dst, msg: msg } });
-	response_.fail(function(res) {
-		if (res.status == 401) {
-			if (!self.accessToken) {
-				return;
-			}
-			// Remove bad access token to stop reconnect attempts
-			self.setAccessToken(null);
-			// Fire event
-			self.emit('accessInvalid');
-		}
-	});
-	return response_;
-};
-
-Relay.prototype.onSignal = function(e) {
-	if (!e.data || !e.data.src || !e.data.msg) {
-		console.warn('discarding faulty signal message', err);
-	}
-	if (e.data.msg.type == 'noop') { return; } // used for heartbeats to keep the stream alive
-
-	// Find bridge that represents this origin
-	var domain = e.data.src;
-	var bridgeServer = this.bridges[domain] || this.bridges[domain + '!0'];
-
-	// Does bridge exist?
-	if (bridgeServer) {
-		// Let bridge handle it
-		bridgeServer.onSignal(e.data.msg);
-	} else {
-		if (e.data.msg.type == 'offer' || e.data.msg.type == 'httpl') {
-			// Create a server to handle the signal
-			bridgeServer = this.connect(domain, { initiate: false });
-			bridgeServer.onSignal(e.data.msg);
-		}
-	}
-};
-
-Relay.prototype.onRelayError = function(e) {
-	if (e.data && e.data.status == 423) { // locked
-		// Update state
-		this.relayEventStream = null;
-		this.connectedToRelay = false;
-
-		if (!this.autoRetryStreamTaken) {
-			// Fire event
-			this.emit('streamTaken');
-		} else {
-			// Auto-retry
-			this.setSid(randomStreamId());
-			this.startListening();
-		}
-	} else if (e.data && e.data.status == 420) { // out of streams
-		// Update state
-		this.relayEventStream = null;
-		this.connectedToRelay = false;
-
-		// Fire event
-		this.emit('outOfStreams');
-	} else if (e.data && (e.data.status == 401 || e.data.status == 403)) { // unauthorized
-		// Remove bad access token to stop reconnect attempts
-		this.setAccessToken(null);
-		this.connectedToRelay = false;
-
-		// Fire event
-		this.emit('accessInvalid');
-	} else if (e.data && (e.data.status === 0 || e.data.status == 404 || e.data.status >= 500)) { // connection lost, looks like server fault?
-		// Update state
-		if (this.connectedToRelay) {
-			this.onRelayClose();
-		}
-		this.connectedToRelay = false;
-		this.relayEventStream = null;
-
-		// Attempt to reconnect in 2 seconds
-		var self = this;
-		setTimeout(function() {
-			self.startListening();
-			// Note - if this fails, an error will be rethrown and take us back here
-		}, 2000);
-	} else {
-		// Fire event
-		this.emit('error', { error: e.data });
-	}
-};
-
-Relay.prototype.onRelayClose = function() {
-	// Update state
-	this.connectedToRelay = false;
-	if (self.pingInterval) { clearInterval(self.pingInterval); }
-
-	// Fire event
-	this.emit('notlistening');
-};
-
-Relay.prototype.onBridgeDisconnected = function(data) {
-	// Stop tracking bridges that close
-	var bridge = this.bridges[data.domain];
-	if (bridge) {
-		delete this.bridges[data.domain];
-		httpl.removeServer(data.domain);
-	}
-};
-
-Relay.prototype.onPageClose = function() {
-	var bridgeDomains = Object.keys(this.bridges);
-	if (this.connectedToRelay && bridgeDomains.length !== 0) {
-		// Collect connected peer destination info
-		var dst = [];
-		for (var domain in this.bridges) {
-			dst.push(this.bridges[domain].config.peer);
-		}
-
-		// Send a synchronous disconnect signal to all connected peers
-		var req = new XMLHttpRequest();
-		req.open('NOTIFY', this.relayItem.context.url, false);
-		req.setRequestHeader('Authorization', 'Bearer '+this.accessToken);
-		req.setRequestHeader('Content-type', 'application/json');
-		req.send(JSON.stringify({ src: this.assignedDomain, dst: dst, msg: { type: 'disconnect' } }));
-	}
-};
-
-Relay.prototype.makeDomain = function(user, app, sid) {
-	return helpers.makePeerDomain(user, this.providerDomain, app, sid);
-};
-
-// :DEBUG: helper to deal with webrtc issues
-if (typeof window !== 'undefined') {
-	window.logWebRTC = function(v) {
-		if (typeof v == 'undefined') v = true;
-		var k;
-		for (k in httpl.getRelays()) {
-			httpl.getRelay(k).config.log = v;
-		}
-		for (k in httpl.getServers()) {
-			var s = httpl.getServer(k);
-			if (s.context && s.context instanceof RTCBridgeServer) {
-				s.context.config.log = v;
-			}
-		}
-	};
-}
-},{"../util":9,"./agent.js":10,"./helpers.js":14,"./httpl.js":16,"./rtc-bridge-server.js":20}],18:[function(require,module,exports){
-var util = require('../util');
-var promise = require('../promises.js').promise;
 var contentTypes = require('./content-types.js');
+
+// IncomingRequest
+// ===============
+// EXPORTED
+// Interface for receiving requests (used in virtual servers)
+function IncomingRequest(headers) {
+	util.EventEmitter.call(this);
+	for (var k in headers) {
+		if (!this[k]) { this[k] = headers[k]; }
+	}
+
+	// Set attributes
+	this.method = (this.method) ? this.method.toUpperCase() : 'GET';
+	this[this.method] = true;
+	this.params = (this.params) || {};
+	this.isBinary = false; // stream is binary? :TODO:
+}
+IncomingRequest.prototype = Object.create(util.EventEmitter.prototype);
+module.exports = IncomingRequest;
+
+// Stream buffering
+// stores the incoming stream and attempts to parse on end
+IncomingRequest.prototype.buffer = function(cb) {
+	// setup buffering
+	if (typeof this._buffer == 'undefined') {
+		var this2 = this;
+		this._buffer = '';
+		this.body = null;
+		this.on('data', function(data) {
+			if (typeof data == 'string') {
+				this2._buffer += data;
+			} else {
+				this2._buffer = data; // Assume it is an array buffer or some such
+			}
+		});
+		this.on('end', function() {
+			if (this2.ContentType)
+				this2.body = contentTypes.deserialize(this2.ContentType, this2._buffer);
+			else
+				this2.body = this2._buffer;
+		});
+	}
+	this.on('end', cb);
+};
+},{"../util":8,"./content-types.js":9,"./helpers.js":10}],14:[function(require,module,exports){
+var util = require('../util');
+var helpers = require('./helpers.js');
 var httpHeaders = require('./http-headers.js');
+var contentTypes = require('./content-types.js');
+
+// IncomingResponse
+// ================
+// EXPORTED
+// Interface for receiving responses
+function IncomingResponse() {
+	util.EventEmitter.call(this);
+
+	this.status = 0;
+	this.reason = null;
+	Object.defineProperty(this, 'latency', { value: undefined }); // non enumerable
+}
+IncomingResponse.prototype = Object.create(util.EventEmitter.prototype);
+module.exports = IncomingResponse;
+
+// Stream buffering
+// stores the incoming stream and attempts to parse on end
+IncomingResponse.prototype.buffer = function(cb) {
+	// setup buffering
+	if (typeof this._buffer == 'undefined') {
+		var this2 = this;
+		this._buffer = '';
+		this.body = null;
+		this.on('data', function(data) {
+			if (typeof data == 'string') {
+				this2._buffer += data;
+			} else {
+				this2._buffer = data; // Assume it is an array buffer or some such
+			}
+		});
+		this.on('end', function() {
+			if (this2.ContentType)
+				this2.body = contentTypes.deserialize(this2.ContentType, this2._buffer);
+			else
+				this2.body = this2._buffer;
+		});
+	}
+	this.on('end', cb);
+};
+
+// Parses headers, makes sure response header links are absolute
+IncomingResponse.prototype.processHeaders = function(oreq, headers) {
+	this.status = headers.status;
+	this.reason = headers.reason;
+
+	// Parse headers
+	for (var k in headers) {
+		var kc = k.charAt(0);
+		if (kc === kc.toUpperCase()) { // starts uppercase?
+			// Is a header, save
+			this[k] = headers[k];
+
+			// Try to parse
+			var parsedHeader = httpHeaders.deserialize(k, headers[k]);
+			if (parsedHeader && typeof parsedHeader != 'string') {
+				this[k.toLowerCase()] = parsedHeader;
+			}
+		}
+	}
+
+	// Update the link headers
+	if (this.link) {
+		this.links = this.link;
+		delete this.link;
+		this.links.forEach(function(link) {
+			// Convert relative paths to absolute uris
+			if (!helpers.isAbsUri(link.href)) {
+				if (oreq.isVirtual) {
+					link.href = '#'+link.href;
+				} else {
+					link.href = helpers.joinRelPath(oreq.urld, link.href);
+				}
+			}
+		});
+	}
+};
+
+},{"../util":8,"./content-types.js":9,"./helpers.js":10,"./http-headers.js":11}],15:[function(require,module,exports){
+var util = require('../util');
+var promises = require('../promises.js');
+var helpers = require('./helpers.js');
+var schemes = require('./schemes.js');
+var contentTypes = require('./content-types.js');
+var IncomingResponse = require('./incoming-response.js');
 
 // Request
 // =======
 // EXPORTED
 // Interface for sending requests
-function Request(options) {
+function Request(headers) {
 	util.EventEmitter.call(this);
+	promises.Promise.call(this);
+	if (!headers) headers = {};
+	if (typeof headers == 'string') headers = { url: headers };
 
-	if (!options) options = {};
-	if (typeof options == 'string')
-		options = { url: options };
+	// Request definition
+	// headers is an object containing method, url, params (the query params) and the header values (as uppercased keys)
+	this.headers = headers;
+	this.headers.method = (this.headers.method) ? this.headers.method.toUpperCase() : 'GET';
+	this.headers.params = (this.headers.params) || {};
+	this.isBinary = false; // stream is binary?
+	this.isVirtual = undefined; // request going to virtual host?
+	this.isBufferingResponse = false; // auto-buffering the response?
 
-	// Pull any header-like keys into the headers object
-	var headers = options.headers || {};
-	extractUppercaseKeys(options, headers); // Foo_Bar or Foo-Bar
-
-	this.method = options.method ? options.method.toUpperCase() : 'GET';
-	this.url = options.url || null;
-	this.path = options.path || null;
-	this.query = options.query || {};
-	this.headers = lowercaseKeys(headers);
-	if (!this.headers.host && options.host) {
-		this.headers.host = options.host;
-	}
-
-	// Guess the content-type if a full body is included in the message
-	if (options.body && !this.headers['content-type']) {
-		this.headers['content-type'] = (typeof options.body == 'string') ? 'text/plain' : 'application/json';
-	}
-	// Make sure we have an accept header
-	if (!this.headers['accept']) {
-		this.headers['accept'] = '*/*';
-	}
-
-	// non-enumerables (dont include in request messages)
-	Object.defineProperty(this, 'parsedHeaders', {
-		value: {},
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-	Object.defineProperty(this, 'body', {
-		value: options.body || '',
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-	Object.defineProperty(this, 'stream', {
-		value: options.stream || false,
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-	Object.defineProperty(this, 'binary', {
-		value: options.binary || false,
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-	Object.defineProperty(this, 'isConnOpen', {
-		value: true,
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-
-	// request buffering
-	Object.defineProperty(this, 'body_', {
-		value: promise(),
-		configurable: true,
-		enumerable: false,
-		writable: false
-	});
-	(function buffer(self) {
-		self.on('data', function(data) {
-			if (typeof data == 'string') {
-				self.body += data;
-			} else {
-				self.body = data; // Assume it is an array buffer or some such
-			}
-		});
-		self.on('end', function() {
-			if (self.headers['content-type'])
-				self.body = contentTypes.deserialize(self.headers['content-type'], self.body);
-			self.body_.fulfill(self.body);
-		});
-	})(this);
+	// Stream state
+	this.isConnOpen = true;
+	this.isStarted = false;
 }
-module.exports = Request;
 Request.prototype = Object.create(util.EventEmitter.prototype);
+util.mixin.call(Request.prototype, promises.Promise.prototype);
+module.exports = Request;
 
+// Header setter
 Request.prototype.header = function(k, v) {
-	if (typeof v != 'undefined')
-		return this.setHeader(k, v);
-	return this.getHeader(k);
+	k = formatHeaderKey(k);
+	// Convert mime if needed
+	if (k == 'ContentType') {
+		v = contentTypes.lookup(v);
+	}
+	this.headers[k] = v;
+	return this;
 };
-Request.prototype.setHeader    = function(k, v) { this.headers[k.toLowerCase()] = v; };
-Request.prototype.getHeader    = function(k) { return this.headers[k.toLowerCase()]; };
-Request.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCase()]; };
 
+// Header sugars
+[ 'Accept', 'Authorization', 'ContentType', 'Expect', 'From', 'Pragma' ].forEach(function(k) {
+	Request.prototype[k] = function(v) {
+		return this.header(k, v);
+	};
+});
+
+// helper to convert a given header value to our standard format - camel case, no dashes
+var headerKeyRegex = /(^|-)(.)/g;
+function formatHeaderKey(str) {
+	// strip any dashes, convert to camelcase
+	// eg 'foo-bar' -> 'FooBar'
+	return str.replace(headerKeyRegex, function(_0,_1,_2) { return _2.toUpperCase(); });
+}
+
+// Param setter
+// - `k` may be an object of keys to add
+// - or `k` can be the keyname and `v` the value
+// - eg: req.param({ foo: 'bar', hot: 'dog' })
+//       req.param('foo', 'bar').param('hot', 'dog')
+Request.prototype.param = function(k, v) {
+	if (k && typeof k == 'object') {
+		for (var k2 in k) {
+			this.param(k2, k[k2]);
+		}
+	} else {
+		this.headers.params[k] = v;
+	}
+	return this;
+};
+
+// Request timeout setter
 // causes the request/response to abort after the given milliseconds
 Request.prototype.setTimeout = function(ms) {
 	var self = this;
 	if (this.__timeoutId) return;
-	Object.defineProperty(this, '__timeoutId', {
-		value: setTimeout(function() {
-			if (self.isConnOpen) { self.close(); }
-			delete self.__timeoutId;
-		}, ms),
-		configurable: true,
-		enumerable: false,
-		writable: true
+	this.__timeoutId = setTimeout(function() {
+		if (self.isConnOpen) { self.close(); }
+		delete self.__timeoutId;
+	}, ms);
+	return this;
+};
+
+// Binary mode
+// causes the request and response to use binary
+// - if no bool is given, sets binary-mode to true
+Request.prototype.setBinary = function(v) {
+	if (typeof v == 'boolean') {
+		this.isBinary = v;
+	} else {
+		this.isBinary = true;
+	}
+	return this;
+};
+
+// Virtual mode
+// forces the request to go to a virtual host (or not)
+// - if no bool is given, sets virtual-mode to true
+Request.prototype.setVirtual = function(v) {
+	if (typeof v == 'boolean') {
+		this.isVirtual = v;
+	} else {
+		this.isVirtual = true;
+	}
+	return this;
+};
+
+// Response buffering
+// instructs the request to auto-buffer the response body and set it to `res.body`
+Request.prototype.bufferResponse = function(v) {
+	if (typeof v == 'boolean') {
+		this.isBufferingResponse = v;
+	} else {
+		this.isBufferingResponse = true;
+	}
+	return this;
+};
+
+// Pipe helper
+// streams an incoming request or response into the outgoing request
+// - doesnt overwrite any previously-set headers
+// - params:
+//   - `source`: the incoming request or response to pull data from
+//   - `headersCb`: (optional) takes `(k, v)` from source and responds updated header for otarget
+//   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for otarget
+Request.prototype.pipe = function(source, headersCB, bodyCb) {
+	var this2 = this;
+	headersCB = headersCB || function(v) { return v; };
+	bodyCb = bodyCb || function(v) { return v; };
+	promise(source).always(function(source) {
+		if (source instanceof require('./incoming-request')) {
+			if (!this2.headers.method) {
+				this2.headers.method = source.method;
+			}
+			if (!this2.headers.url) {
+				this2.headers.url = source.url;
+			}
+			for (var k in source) {
+				if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers)) {
+					this2.header(k, headersCB(k, source[k]));
+				}
+			}
+		}
+		// wire up the stream
+		source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
+		source.on('end', function() { this2.end(); });
 	});
 };
 
-// EXPORTED
-// calls any registered header serialization functions
-// - enables apps to use objects during their operation, but remain conformant with specs during transfer
-Request.prototype.serializeHeaders = function() {
-	for (var k in this.headers) {
-		this.headers[k] = httpHeaders.serialize(k, this.headers[k]);
+// Event connection helper
+// connects events from this stream to the target (event proxying)
+Request.prototype.wireUp = function(other, async) {
+	if (async) {
+		var nextTick = function(fn) { return function(value) { util.nextTick(fn.bind(null, value)); }; };
+		this.on('headers', nextTick(other.emit.bind(other, 'headers')));
+		this.on('data', nextTick(other.emit.bind(other, 'data')));
+		this.on('end', nextTick(other.emit.bind(other, 'end')));
+	} else {
+		this.on('headers', other.emit.bind(other, 'headers'));
+		this.on('data', other.emit.bind(other, 'data'));
+		this.on('end', other.emit.bind(other, 'end'));
 	}
 };
 
-// EXPORTED
-// calls any registered header deserialization functions
-// - enables apps to use objects during their operation, but remain conformant with specs during transfer
-Request.prototype.deserializeHeaders = function() {
-	for (var k in this.headers) {
-		var parsedHeader = httpHeaders.deserialize(k, this.headers[k]);
-		if (parsedHeader && typeof parsedHeader != 'string') {
-			this.parsedHeaders[k] = parsedHeader;
-		}
+// starts the request transaction
+Request.prototype.start = function() {
+	var this2 = this;
+	if (!this.isConnOpen) return this;
+	if (this.isStarted) return this;
+	if (!this.headers || !this.headers.url) throw "No URL on request";
+
+	// Prep request
+	if (typeof this.isVirtual == 'undefined') {
+		// if not forced, decide on whether this is virtual based on the presence of a hash
+		this.isVirtual = (this.headers.url.indexOf('#') !== -1);
 	}
+	this.urld = helpers.parseUri(this.headers.url);
+
+	// Setup response object
+	var requestStartTime = Date.now();
+	var ires = new IncomingResponse();
+	ires.on('headers', ires.processHeaders.bind(ires, this));
+	ires.on('end', function() {
+		// Track latency
+		ires.latency = Date.now() - requestStartTime;
+	});
+	this.on('close', function() { ires.emit('close'); });
+	ires.on('close', function() {
+		// Close the request (if its still open)
+		this2.close();
+	});
+
+	var fulfill = fulfillResponsePromise.bind(null, this, ires);
+	if (this.isBufferingResponse) {
+		ires.buffer(fulfill);
+	} else {
+		ires.on('headers', fulfill);
+	}
+	ires.on('close', fulfill); // will have no effect if already called
+
+	// Execute by scheme
+	var scheme = (this2.isVirtual) ? '#' : parseScheme(this2.headers.url);
+	var schemeHandler = schemes.get(scheme);
+	if (schemeHandler) { schemeHandler(this2, ires); }
+	else {
+		// invalid scheme
+		var ores = new Response();
+		ores.wireUp(ires);
+		ores.status(0, 'unsupported scheme "'+scheme+'"').end();
+	}
+
+	this.isStarted = true;
+	return this;
 };
 
 // sends data over the stream
 // - emits the 'data' event
 Request.prototype.write = function(data) {
-	if (!this.isConnOpen)
-		return this;
-	if (typeof data != 'string' && !(data instanceof ArrayBuffer))
-		data = contentTypes.serialize(this.headers['content-type'], data);
+	if (!this.isConnOpen) return this;
+	if (!this.isStarted) this.start();
 	this.emit('data', data);
 	return this;
 };
@@ -3898,10 +2352,11 @@ Request.prototype.write = function(data) {
 // - `data`: optional mixed, to write before ending
 // - emits 'end' and 'close' events
 Request.prototype.end = function(data) {
-	if (!this.isConnOpen)
-		return this;
-	if (typeof data != 'undefined')
+	if (!this.isConnOpen) return this;
+	if (!this.isStarted) this.start();
+	if (typeof data != 'undefined') {
 		this.write(data);
+	}
 	this.emit('end');
 	// this.close();
 	// ^ do not close - the response should close
@@ -3911,194 +2366,158 @@ Request.prototype.end = function(data) {
 // closes the stream, aborting if not yet finished
 // - emits 'close' event
 Request.prototype.close = function() {
-	if (!this.isConnOpen)
-		return this;
+	if (!this.isConnOpen) return this;
 	this.isConnOpen = false;
 	this.emit('close');
-
-	// :TODO: when events are suspended, this can cause problems
-	//        maybe put these "removes" in a 'close' listener?
-	// this.removeAllListeners('data');
-	// this.removeAllListeners('end');
-	// this.removeAllListeners('close');
+	this.clearEvents();
 	return this;
 };
 
-// internal helper
-function lowercaseKeys(obj) {
-	var obj2 = {};
-	for (var k in obj) {
-		if (obj.hasOwnProperty(k))
-			obj2[k.toLowerCase()] = obj[k];
-	}
-	return obj2;
+// helper
+// fulfills/reject a promise for a response with the given response
+function fulfillResponsePromise(p, response) {
+	// wasnt streaming, fulfill now that full response is collected
+	if (response.status >= 200 && response.status < 400)
+		p.fulfill(response);
+	else if (response.status >= 400 && response.status < 600 || response.status === 0)
+		p.reject(response);
+	else
+		p.fulfill(response); // :TODO: 1xx protocol handling
 }
 
-// internal helper - has side-effects
-var underscoreRegEx = /_/g;
-function extractUppercaseKeys(/*mutable*/ org, /*mutable*/ dst) {
-	for (var k in org) {
-		var kc = k.charAt(0);
-		if (org.hasOwnProperty(k) && kc === kc.toUpperCase()) {
-			var k2 = k.replace(underscoreRegEx, '-');
-			dst[k2] = org[k];
-			delete org[k];
-		}
-	}
+// helper - extracts scheme from the url
+function parseScheme(url) {
+	var schemeMatch = /^([^.^:]*):/.exec(url);
+	return (schemeMatch) ? schemeMatch[1] : 'http';
 }
-},{"../promises.js":4,"../util":9,"./content-types.js":12,"./http-headers.js":15}],19:[function(require,module,exports){
+},{"../promises.js":4,"../util":8,"./content-types.js":9,"./helpers.js":10,"./incoming-request":13,"./incoming-response.js":14,"./schemes.js":17}],16:[function(require,module,exports){
 var util = require('../util');
 var promise = require('../promises.js').promise;
 var helpers = require('./helpers.js');
 var contentTypes = require('./content-types.js');
-var httpHeaders = require('./http-headers.js');
 
 // Response
 // ========
 // EXPORTED
-// Interface for receiving responses
-// - usually created internally and returned by `dispatch`
+// Interface for sending responses (used in virtual servers)
 function Response() {
-	var self = this;
 	util.EventEmitter.call(this);
 
-	this.status = 0;
-	this.reason = null;
 	this.headers = {};
-	this.body = '';
+	this.headers.status = 0;
+	this.headers.reason = '';
+	this.isBinary = false; // stream is binary? :TODO:
 
-	// non-enumerables (dont include in response messages)
-	Object.defineProperty(this, 'parsedHeaders', {
-		value: {},
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-	Object.defineProperty(this, 'isConnOpen', {
-		value: true,
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-	Object.defineProperty(this, 'latency', {
-		value: undefined,
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-
-	// response buffering
-	Object.defineProperty(this, 'body_', {
-		value: promise(),
-		configurable: true,
-		enumerable: false,
-		writable: false
-	});
-	this.on('data', function(data) {
-		if (data instanceof ArrayBuffer)
-			self.body = data; // browsers buffer binary responses, so dont try to stream
-		else
-			self.body += data;
-	});
-	this.on('end', function() {
-		if (self.headers['content-type'])
-			self.body = contentTypes.deserialize(self.headers['content-type'], self.body);
-		self.body_.fulfill(self.body);
-	});
+	// Stream state
+	this.isConnOpen = true;
+	this.isStarted = false;
 }
 module.exports = Response;
 Response.prototype = Object.create(util.EventEmitter.prototype);
 
+// Status & reason setter
+Response.prototype.status = function(code, reason) {
+	this.headers.status = code;
+	this.headers.reason = reason;
+	// :TODO: lookup reason if not given
+	return this;
+};
+
+// Status sugars
+for (var i=200; i <= 599; i++) {
+	(function(i) {
+		Response.prototype['s'+i] = function(reason) {
+			return this.status(i, reason);
+		};
+	})(i);
+}
+
+// Header setter
 Response.prototype.header = function(k, v) {
-	if (typeof v != 'undefined')
-		return this.setHeader(k, v);
-	return this.getHeader(k);
-};
-Response.prototype.setHeader    = function(k, v) { this.headers[k.toLowerCase()] = v; };
-Response.prototype.getHeader    = function(k) { return this.headers[k.toLowerCase()]; };
-Response.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCase()]; };
-
-// EXPORTED
-// calls any registered header serialization functions
-// - enables apps to use objects during their operation, but remain conformant with specs during transfer
-Response.prototype.serializeHeaders = function() {
-	for (var k in this.headers) {
-		this.headers[k] = httpHeaders.serialize(k, this.headers[k]);
+	k = formatHeaderKey(k);
+	// Convert mime if needed
+	if (k == 'ContentType') {
+		v = contentTypes.lookup(v);
 	}
+	this.headers[k] = v;
+	return this;
 };
 
-// EXPORTED
-// calls any registered header deserialization functions
-// - enables apps to use objects during their operation, but remain conformant with specs during transfer
-Response.prototype.deserializeHeaders = function() {
-	for (var k in this.headers) {
-		var parsedHeader = httpHeaders.deserialize(k, this.headers[k]);
-		if (parsedHeader && typeof parsedHeader != 'string') {
-			this.parsedHeaders[k] = parsedHeader;
-		}
-	}
-};
+// Header sugars
+[ 'Allow', 'ContentType', 'Link', 'Location', 'Pragma' ].forEach(function(k) {
+	Response.prototype[k] = function(v) {
+		return this.header(k, v);
+	};
+});
 
-// EXPORTED
-// Makes sure response header links are absolute and extracts additional attributes
-//var isUrlAbsoluteRE = /(:\/\/)|(^[-A-z0-9]*\.[-A-z0-9]*)/; // has :// or starts with ___.___
-Response.prototype.processHeaders = function(request) {
-	var self = this;
+// helper to convert a given header value to our standard format - camel case, no dashes
+var headerKeyRegex = /(^|-)(.)/g;
+function formatHeaderKey(str) {
+	// strip any dashes, convert to camelcase
+	// eg 'foo-bar' -> 'FooBar'
+	return str.replace(headerKeyRegex, function(_0,_1,_2) { return _2.toUpperCase(); });
+}
 
-
-	// Update the link headers
-	if (self.parsedHeaders.link) {
-		self.parsedHeaders.link.forEach(function(link) {
-			// Convert relative paths to absolute uris
-			if (!helpers.isAbsUri(link.href))
-				link.href = helpers.joinRelPath(request.urld, link.href);
-
-			// Extract host data
-			var host_domain = helpers.parseUri(link.href).authority;
-			Object.defineProperty(link, 'host_domain', { enumerable: false, configurable: true, writable: true, value: host_domain });
-			var peerd = helpers.parsePeerDomain(link.host_domain);
-			if (peerd) {
-				Object.defineProperty(link, 'host_user', { enumerable: false, configurable: true, writable: true, value: peerd.user });
-				Object.defineProperty(link, 'host_relay', { enumerable: false, configurable: true, writable: true, value: peerd.relay });
-				Object.defineProperty(link, 'host_app', { enumerable: false, configurable: true, writable: true, value: peerd.app });
-				Object.defineProperty(link, 'host_sid', { enumerable: false, configurable: true, writable: true, value: peerd.sid });
-			} else {
-				delete link.host_user;
-				delete link.host_relay;
-				delete link.host_app;
-				delete link.host_sid;
+// Pipe helper
+// streams an incoming request or response into the outgoing response
+// - doesnt overwrite any previously-set headers
+// - params:
+//   - `source`: the incoming request or response to pull data from
+//   - `headersCb`: (optional) takes `(k, v)` from source and responds updated header for otarget
+//   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for otarget
+Response.prototype.pipe = function(source, headersCB, bodyCb) {
+	var this2 = this;
+	headersCB = headersCB || function(v) { return v; };
+	bodyCb = bodyCb || function(v) { return v; };
+	promise(source).always(function(source) {
+		if (source instanceof require('./incoming-response')) {
+			if (!this2.headers.status) {
+				this2.status(source.status, source.reason);
+				for (var k in source) {
+					if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers)) {
+						this2.header(k, headersCB(k, source[k]));
+					}
+				}
 			}
-		});
+		}
+		// wire up the stream
+		source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
+		source.on('end', function() { this2.end(); });
+	});
+};
+
+// Event connection helper
+// connects events from this stream to the target (event proxying)
+Response.prototype.wireUp = function(other, async) {
+	if (async) {
+		var nextTick = function(fn) { return function(value) { util.nextTick(fn.bind(null, value)); }; };
+		this.on('headers', nextTick(other.emit.bind(other, 'headers')));
+		this.on('data', nextTick(other.emit.bind(other, 'data')));
+		this.on('end', nextTick(other.emit.bind(other, 'end')));
+		this.on('close', nextTick(other.emit.bind(other, 'close')));
+	} else {
+		this.on('headers', other.emit.bind(other, 'headers'));
+		this.on('data', other.emit.bind(other, 'data'));
+		this.on('end', other.emit.bind(other, 'end'));
+		this.on('close', other.emit.bind(other, 'close'));
 	}
 };
 
 // writes the header to the response
 // - emits the 'headers' event
-Response.prototype.writeHead = function(status, reason, headers) {
-	if (!this.isConnOpen)
-		return this;
-	this.status = status;
-	this.reason = reason;
-	if (headers) {
-		for (var k in headers) {
-			if (headers.hasOwnProperty(k))
-				this.setHeader(k, headers[k]);
-		}
-	}
-	this.serializeHeaders();
-
-	this.emit('headers', this);
+Response.prototype.start = function() {
+	if (!this.isConnOpen) return this;
+	if (this.isStarted) return this;
+	this.emit('headers', this.headers);
+	this.isStarted = true;
 	return this;
 };
 
 // sends data over the stream
 // - emits the 'data' event
 Response.prototype.write = function(data) {
-	if (!this.isConnOpen)
-		return this;
-	if (typeof data != 'string' && !(data instanceof ArrayBuffer)) {
-		data = contentTypes.serialize(this.headers['content-type'], data);
-	}
+	if (!this.isConnOpen) return this;
+	if (!this.isStarted) this.start();
 	this.emit('data', data);
 	return this;
 };
@@ -4107,10 +2526,11 @@ Response.prototype.write = function(data) {
 // - `data`: optional mixed, to write before ending
 // - emits 'end' and 'close' events
 Response.prototype.end = function(data) {
-	if (!this.isConnOpen)
-		return this;
-	if (typeof data != 'undefined')
+	if (!this.isConnOpen) return this;
+	if (!this.isStarted) this.start();
+	if (typeof data != 'undefined') {
 		this.write(data);
+	}
 	this.emit('end');
 	this.close();
 	return this;
@@ -4119,507 +2539,18 @@ Response.prototype.end = function(data) {
 // closes the stream, aborting if not yet finished
 // - emits 'close' event
 Response.prototype.close = function() {
-	if (!this.isConnOpen)
-		return this;
+	if (!this.isConnOpen) return this;
 	this.isConnOpen = false;
 	this.emit('close');
-
-	// :TODO: when events are suspended, this can cause problems
-	//        maybe put these "removes" in a 'close' listener?
-	// this.removeAllListeners('headers');
-	// this.removeAllListeners('data');
-	// this.removeAllListeners('end');
-	// this.removeAllListeners('close');
+	this.clearEvents();
 	return this;
 };
-},{"../promises.js":4,"../util":9,"./content-types.js":12,"./helpers.js":14,"./http-headers.js":15}],20:[function(require,module,exports){
-var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};var util = require('../util');
-var helpers = require('./helpers.js');
-var httpl = require('./httpl.js');
-var BridgeServer = require('./bridge-server.js');
-
-var peerConstraints = {
-	optional: [/*{RtpDataChannels: true}, */{DtlsSrtpKeyAgreement: true}]
-};
-var defaultIceServers = { iceServers: [{ url: 'stun:stun.l.google.com:19302' }] };
-
-// Browser compat
-var __env = (typeof window != 'undefined') ? window : ((typeof self != 'undefined') ? self : global);
-var RTCSessionDescription = __env.mozRTCSessionDescription || __env.RTCSessionDescription;
-var RTCPeerConnection = __env.mozRTCPeerConnection || __env.webkitRTCPeerConnection || __env.RTCPeerConnection;
-var RTCIceCandidate = __env.mozRTCIceCandidate || __env.RTCIceCandidate;
-
-
-// RTCBridgeServer
-// ===============
-// EXPORTED
-// server wrapper for WebRTC connections
-// - `config.peer`: required string, who we are connecting to (a valid peer domain)
-// - `config.relay`: required Relay
-// - `config.initiate`: optional bool, if true will initiate the connection processes
-// - `config.loopback`: optional bool, is this the local host? If true, will connect to self
-// - `config.retryTimeout`: optional number, time (in ms) before a connection is aborted and retried (defaults to 15000)
-// - `config.retries`: optional number, number of times to retry before giving up (defaults to 3)
-// - `config.log`: optional bool, enables logging of all message traffic and webrtc connection processes
-function RTCBridgeServer(config) {
-	// Config
-	var self = this;
-	if (!config) config = {};
-	if (!config.peer) throw new Error("`config.peer` is required");
-	if (!config.relay) throw new Error("`config.relay` is required");
-	if (typeof config.retryTimeout == 'undefined') config.retryTimeout = 15000;
-	if (typeof config.retries == 'undefined') config.retries = 3;
-	BridgeServer.call(this, config);
-	util.mixinEventEmitter(this);
-
-	// Parse config.peer
-	var peerd = helpers.parsePeerDomain(config.peer);
-	if (!peerd) {
-		throw new Error("Invalid peer URL: "+config.peer);
-	}
-	this.peerInfo = peerd;
-
-	// Internal state
-	this.isConnecting     = true;
-	this.isOfferExchanged = false;
-	this.isConnected      = false;
-	this.isTerminated     = false;
-	this.candidateQueue   = []; // cant add candidates till we get the offer
-	this.offerNonce       = 0; // a random number used to decide who takes the lead if both nodes send an offer
-	this.retriesLeft      = config.retries;
-	this.rtcPeerConn      = null;
-	this.rtcDataChannel   = null;
-
-	// Create the peer connection
-	this.createPeerConn();
-
-	if (this.config.loopback) {
-		// Setup to serve self
-		this.isOfferExchanged = true;
-		onHttplChannelOpen.call(this);
-	} else {
-		if (this.config.initiate) {
-			// Initiate event will be picked up by the peer
-			// If they want to connect, they'll send an answer back
-			this.sendOffer();
-		}
-	}
-}
-RTCBridgeServer.prototype = Object.create(BridgeServer.prototype);
-module.exports = RTCBridgeServer;
-
-RTCBridgeServer.prototype.getPeerInfo = function() { return this.peerInfo; };
-RTCBridgeServer.prototype.terminate = function(opts) {
-	BridgeServer.prototype.terminate.call(this);
-	this.isTerminated = true;
-	if (this.isConnecting || this.isConnected) {
-		if (!(opts && opts.noSignal)) {
-			this.signal({ type: 'disconnect' });
-		}
-		this.isConnecting = false;
-		this.isConnected = false;
-		this.destroyPeerConn();
-		this.emit('disconnected', Object.create(this.peerInfo), this);
-	}
-};
-
-// Returns true if the channel is ready for activity
-// - returns boolean
-RTCBridgeServer.prototype.isChannelActive = function() {
-	return true;// this.isConnected; - we send messages over the relay before connection
-};
-
-// Sends a single message across the channel
-// - `msg`: required string
-RTCBridgeServer.prototype.channelSendMsg = function(msg) {
-	if (this.config.loopback) {
-		this.onChannelMessage(msg);
-	} else if (!this.isConnected) {
-		this.signal({
-			type: 'httpl',
-			data: msg
-		});
-	} else {
-		try { // :DEBUG: as soon as WebRTC stabilizes some more, let's ditch this
-			this.rtcDataChannel.send(msg);
-
-			// Can now rely on sctp ordering
-			if (this.isReorderingMessages) {
-				this.useMessageReordering(false);
-			}
-		} catch (e) {
-			this.debugLog('NETWORK ERROR, BOUNCING', e);
-			// Probably a NetworkError - one known cause, one party gets a dataChannel and the other doesnt
-			this.signal({
-				type: 'httpl',
-				data: msg
-			});
-		}
-	}
-};
-
-// Remote request handler
-RTCBridgeServer.prototype.handleRemoteRequest = function(request, response) {
-	var server = this.config.relay.getServer();
-	if (server && typeof server == 'function') {
-		server.call(this, request, response, this);
-	} else if (server && server.handleRemoteRequest) {
-		server.handleRemoteRequest(request, response, this);
-	} else {
-		response.writeHead(501, 'not implemented');
-		response.end();
-	}
-};
-
-// HTTPL channel event handlers
-// -
-
-function onHttplChannelMessage(msg) {
-	this.debugLog('HTTPL CHANNEL MSG', msg);
-
-	// Pass on to method in parent prototype
-	this.onChannelMessage(msg.data);
-}
-
-function onHttplChannelOpen(e) {
-	console.log('Successfully established WebRTC session with', this.config.peer);
-	this.debugLog('HTTPL CHANNEL OPEN', e);
-
-	// Update state
-	this.isConnecting = false;
-	this.isConnected = true;
-
-	// Can now rely on sctp ordering :WRONG: it appears "open" get fired assymetrically
-	// this.useMessageReordering(false);
-
-	// Emit event
-	this.emit('connected', Object.create(this.peerInfo), this);
-}
-
-function onHttplChannelClose(e) {
-	console.log('Closed WebRTC session with', this.config.peer);
-	this.debugLog('HTTPL CHANNEL CLOSE', e);
-	this.terminate({ noSignal: true });
-}
-
-function onHttplChannelError(e) {
-	this.debugLog('HTTPL CHANNEL ERR', e);
-	this.emit('error', Object.create(this.peerInfo, { error: { value: e } }), this);
-}
-
-// Signal relay behaviors
-// -
-
-RTCBridgeServer.prototype.onSignal = function(msg) {
-	var self = this;
-
-	switch (msg.type) {
-		case 'disconnect':
-			// Peer's dead, shut it down
-			this.terminate({ noSignal: true });
-			break;
-
-		case 'candidate':
-			this.debugLog('GOT CANDIDATE', msg.candidate);
-			// Received address info from the peer
-			if (!this.isOfferExchanged) {
-				// Store for when offer/answer exchange has finished
-				this.candidateQueue.push(msg.candidate);
-			} else {
-				// Pass into the peer connection
-				this.rtcPeerConn.addIceCandidate(new RTCIceCandidate({ candidate: msg.candidate }));
-			}
-			break;
-
-		case 'offer':
-			// Received a session offer from the peer
-			this.debugLog('GOT OFFER', msg);
-			if (this.isConnected) {
-				this.debugLog('RECEIVED AN OFFER WHEN BELIEVED TO BE CONNECTED, DROPPING');
-				return;
-			}
-
-			// Abandon ye' hope if no rtc support
-			if (typeof RTCSessionDescription == 'undefined') {
-				return;
-			}
-
-			// Emit event
-			if (!this.isOfferExchanged) {
-				this.emit('connecting', Object.create(this.peerInfo), this);
-			}
-
-			// Guard against an offer race conditions
-			if (this.config.initiate) {
-				// Leader conflict - compare nonces
-				this.debugLog('LEADER CONFLICT DETECTED, COMPARING NONCES', 'MINE=', this.offerNonce, 'THEIRS=', msg.nonce);
-				if (this.offerNonce < msg.nonce) {
-					// Reset into follower role
-					this.debugLog('RESETTING INTO FOLLOWER ROLE');
-					this.config.initiate = false;
-					this.resetPeerConn();
-				}
-			}
-
-			// Watch for reset offers from the leader
-			if (!this.config.initiate && this.isOfferExchanged) {
-				if (this.retriesLeft > 0) {
-					this.retriesLeft--;
-					this.debugLog('RECEIVED A NEW OFFER, RESETTING AND RETRYING. RETRIES LEFT:', this.retriesLeft);
-					this.resetPeerConn();
-				} else {
-					this.debugLog('RECEIVED A NEW OFFER, NO RETRIES LEFT. GIVING UP.');
-					this.terminate();
-					return;
-				}
-			}
-
-			// Update the peer connection
-			var desc = new RTCSessionDescription({ type: 'offer', sdp: msg.sdp });
-			this.rtcPeerConn.setRemoteDescription(desc);
-
-			// Burn the ICE candidate queue
-			handleOfferExchanged.call(this);
-
-			// Send an answer
-			this.rtcPeerConn.createAnswer(
-				function(desc) {
-					self.debugLog('CREATED ANSWER', desc);
-
-					// Store the SDP
-					desc.sdp = increaseSDP_MTU(desc.sdp);
-					self.rtcPeerConn.setLocalDescription(desc);
-
-					// Send answer msg
-					self.signal({ type: 'answer', sdp: desc.sdp });
-				},
-				function(error) {
-					self.emit('error', Object.create(this.peerInfo, { error: { value: error } }), self);
-				}
-			);
-			break;
-
-		case 'answer':
-			// Received session confirmation from the peer
-			this.debugLog('GOT ANSWER', msg);
-
-			// Update the peer connection
-			this.rtcPeerConn.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: msg.sdp }));
-
-			// Burn the ICE candidate queue
-			handleOfferExchanged.call(this);
-			break;
-
-		case 'httpl':
-			// Received HTTPL traffic from the peer
-			this.debugLog('GOT HTTPL RELAY', msg);
-
-			// Handle
-			this.onChannelMessage(msg.data);
-			break;
-
-		default:
-			console.warn('RTCBridgeServer - Unrecognized signal message from relay', msg);
-	}
-};
-
-// Helper to send a message to peers on the relay
-RTCBridgeServer.prototype.signal = function(msg) {
-	// Send the message through our relay
-	var self = this;
-	var response_ = this.config.relay.signal(this.config.peer, msg);
-	response_.fail(function(res) {
-		if (res.status == 404 && !self.isTerminated) {
-			// Peer not online, shut down for now. We can try to reconnect later
-			for (var k in self.incomingStreams) {
-				try {
-					self.incomingStreams[k].writeHead(404, 'not found').end();
-				} catch (e) {
-					console.error('That weird peer 404 error', e, self.incomingStreams[k]);
-				}
-			}
-			self.terminate({ noSignal: true });
-			httpl.removeServer(self.config.domain);
-		}
-	});
-	return response_;
-};
-
-// Helper sets up the peer connection
-RTCBridgeServer.prototype.createPeerConn = function() {
-	if (!this.rtcPeerConn && typeof RTCPeerConnection != 'undefined') {
-		var servers = this.config.iceServers || defaultIceServers;
-		this.rtcPeerConn = new RTCPeerConnection(servers, peerConstraints);
-		this.rtcPeerConn.onicecandidate             = onIceCandidate.bind(this);
-		this.rtcPeerConn.oniceconnectionstatechange = onIceConnectionStateChange.bind(this);
-		this.rtcPeerConn.onsignalingstatechange     = onSignalingStateChange.bind(this);
-		this.rtcPeerConn.ondatachannel              = onDataChannel.bind(this);
-
-		// Reorder messages until the WebRTC session is established
-		this.useMessageReordering(true);
-	}
-};
-
-// Helper tears down the peer conn
-RTCBridgeServer.prototype.destroyPeerConn = function(suppressEvents) {
-	if (this.rtcDataChannel) {
-		this.rtcDataChannel.close();
-		if (suppressEvents) {
-			this.rtcDataChannel.onopen    = null;
-			this.rtcDataChannel.onclose   = null;
-			this.rtcDataChannel.onerror   = null;
-			this.rtcDataChannel.onmessage = null;
-		}
-		this.rtcDataChannel = null;
-	}
-	if (this.rtcPeerConn) {
-		this.rtcPeerConn.close();
-		if (suppressEvents) {
-			this.rtcPeerConn.onicecandidate             = null;
-			this.rtcPeerConn.oniceconnectionstatechange = null;
-			this.rtcPeerConn.onsignalingstatechange     = null;
-			this.rtcPeerConn.ondatachannel              = null;
-		}
-		this.rtcPeerConn = null;
-	}
-};
-
-// Helper restarts the connection process
-RTCBridgeServer.prototype.resetPeerConn = function(suppressEvents) {
-	this.destroyPeerConn(true);
-	this.createPeerConn();
-	this.candidateQueue.length = 0;
-	this.isOfferExchanged = false;
-};
-
-// Helper initiates a timeout clock for the connection process
-function initConnectTimeout() {
-	var self = this;
-	setTimeout(function() {
-		// Leader role only
-		if (self.config.initiate && self.isConnected === false) {
-			if (self.retriesLeft > 0) {
-				self.retriesLeft--;
-				self.debugLog('CONNECTION TIMED OUT, RESTARTING. TRIES LEFT:', self.retriesLeft);
-				// Reset
-				self.resetPeerConn();
-				self.sendOffer();
-			} else {
-				// Give up
-				console.log('Failed to establish WebRTC session with', self.config.peer, ' - Will continue bouncing traffic through the relay');
-				self.debugLog('CONNECTION TIMED OUT, GIVING UP');
-				self.resetPeerConn();
-				// ^ resets but doesn't terminate - can try again with sendOffer()
-			}
-		}
-	}, this.config.retryTimeout);
-}
-
-// Helper initiates a session with peers on the relay
-RTCBridgeServer.prototype.sendOffer = function() {
-	var self = this;
-	if (typeof RTCPeerConnection == 'undefined') {
-		return;
-	}
-
-	try {
-		// Create the HTTPL data channel
-		this.rtcDataChannel = this.rtcPeerConn.createDataChannel('httpl', { reliable: true });
-		this.rtcDataChannel.onopen     = onHttplChannelOpen.bind(this);
-		this.rtcDataChannel.onclose    = onHttplChannelClose.bind(this);
-		this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
-		this.rtcDataChannel.onmessage  = onHttplChannelMessage.bind(this);
-	} catch (e) {
-		// Probably a NotSupportedError - give up and let bouncing handle it
-		return;
-	}
-
-	// Start the clock
-	initConnectTimeout.call(this);
-
-	// Generate offer
-	this.rtcPeerConn.createOffer(
-		function(desc) {
-			self.debugLog('CREATED OFFER', desc);
-
-			// Store the SDP
-			desc.sdp = increaseSDP_MTU(desc.sdp);
-			self.rtcPeerConn.setLocalDescription(desc);
-
-			// Generate an offer nonce
-			self.offerNonce = Math.round(Math.random() * 10000000);
-
-			// Send offer msg
-			self.signal({ type: 'offer', sdp: desc.sdp, nonce: self.offerNonce });
-		},
-		function(error) {
-			self.emit('error', Object.create(this.peerInfo, { error: { value: error } }), self);
-		}
-	);
-	// Emit 'connecting' on next tick
-	// (next tick to make sure objects creating us get a chance to wire up the event)
-	util.nextTick(function() {
-		self.emit('connecting', Object.create(self.peerInfo), self);
-	});
-};
-
-// Helper called whenever we have a remote session description
-// (candidates cant be added before then, so they're queued in case they come first)
-function handleOfferExchanged() {
-	var self = this;
-	this.isOfferExchanged = true;
-	this.candidateQueue.forEach(function(candidate) {
-		self.rtcPeerConn.addIceCandidate(new RTCIceCandidate({ candidate: candidate }));
-	});
-	this.candidateQueue.length = 0;
-}
-
-// Called by the RTCPeerConnection when we get a possible connection path
-function onIceCandidate(e) {
-	if (e && !!e.candidate) {
-		this.debugLog('FOUND ICE CANDIDATE', e.candidate);
-		// send connection info to peers on the relay
-		this.signal({ type: 'candidate', candidate: e.candidate.candidate });
-	}
-}
-
-// Called by the RTCPeerConnection on connectivity events
-function onIceConnectionStateChange(e) {
-	if (!!e.target && e.target.iceConnectionState === 'disconnected') {
-		this.debugLog('ICE CONNECTION STATE CHANGE: DISCONNECTED', e);
-		this.terminate({ noSignal: true });
-	}
-}
-
-// Called by the RTCPeerConnection on connectivity events
-function onSignalingStateChange(e) {
-	if(e.target && e.target.signalingState == "closed"){
-		this.debugLog('SIGNALING STATE CHANGE: DISCONNECTED', e);
-		this.terminate({ noSignal: true });
-	}
-}
-
-// Called by the RTCPeerConnection when a datachannel is created (receiving party only)
-function onDataChannel(e) {
-	this.debugLog('DATA CHANNEL PROVIDED', e);
-	this.rtcDataChannel = e.channel;
-	this.rtcDataChannel.onopen     = onHttplChannelOpen.bind(this);
-	this.rtcDataChannel.onclose    = onHttplChannelClose.bind(this);
-	this.rtcDataChannel.onerror    = onHttplChannelError.bind(this);
-	this.rtcDataChannel.onmessage  = onHttplChannelMessage.bind(this);
-}
-
-// Increases the bandwidth allocated to our connection
-// Thanks to michellebu (https://github.com/michellebu/reliable)
-var higherBandwidthSDPRE = /b\=AS\:([\d]+)/i;
-function increaseSDP_MTU(sdp) {
-	return sdp;
-	// return sdp.replace(higherBandwidthSDPRE, 'b=AS:102400'); // 100 Mbps
-}
-},{"../util":9,"./bridge-server.js":11,"./helpers.js":14,"./httpl.js":16}],21:[function(require,module,exports){
+},{"../promises.js":4,"../util":8,"./content-types.js":9,"./helpers.js":10,"./incoming-response":14}],17:[function(require,module,exports){
 var util = require('../util');
 var helpers = require('./helpers.js');
 var contentTypes = require('./content-types.js');
+var httpHeaders = require('./http-headers.js');
+var Response = require('./response.js');
 
 // schemes
 // =======
@@ -4652,13 +2583,13 @@ function schemes__get(scheme) {
 
 // HTTP
 // ====
-schemes.register(['http', 'https'], function(request, response) {
+schemes.register(['http', 'https'], function(oreq, ires) {
 	// parse URL
-	var urld = helpers.parseUri(request.url);
+	var urld = helpers.parseUri(oreq.headers.url);
 
-	// if a query was given in the options, mix it into the urld
-	if (request.query) {
-		var q = contentTypes.serialize('application/x-www-form-urlencoded', request.query);
+	// if query params were given in the headers, mix it into the urld
+	if (Object.keys(oreq.headers.params).length) {
+		var q = contentTypes.serialize('application/x-www-form-urlencoded', oreq.headers.params);
 		if (q) {
 			if (urld.query) { urld.query += '&' + q; }
 			else            { urld.query = q; }
@@ -4669,43 +2600,43 @@ schemes.register(['http', 'https'], function(request, response) {
 	// assemble the final url
 	var url = ((urld.protocol) ? (urld.protocol + '://') : '//') + urld.authority + urld.relative;
 
-	// create the request
+	// create the xhr
 	var xhrRequest = new XMLHttpRequest();
-	xhrRequest.open(request.method, url, true);
-	if (request.binary) {
+	xhrRequest.open(oreq.headers.method, url, true);
+	if (oreq.isBinary) {
 		xhrRequest.responseType = 'arraybuffer';
-		if (request.stream)
-			console.warn('Got HTTP/S request with binary=true and stream=true - sorry, not supported, binary responses must be buffered (its a browser thing)', request);
+		if (oreq.stream)
+			console.warn('Got HTTP/S request with isBinary=true and stream=true - sorry, not supported, binary responses must be buffered (its a browser thing)', request);
 	}
 
 	// set headers
-	request.serializeHeaders();
-	for (var k in request.headers) {
-		if (request.headers[k] !== null && request.headers.hasOwnProperty(k))
-			xhrRequest.setRequestHeader(k, request.headers[k]);
+	var headers = extractOreqHeaders(oreq.headers);
+	for (var k in headers) {
+		if (headers[k] !== null)
+			xhrRequest.setRequestHeader(k, httpHeaders.serialize(k, headers[k]));
 	}
 
 	// buffer the body, send on end
 	var body = '';
-	request.on('data', function(data) {
-		if (typeof data == 'string') {
-			body += data;
-		} else {
-			body = data; // Assume it is an array buffer or some such
-		}
+	oreq.on('data', function(data) {
+		// :TODO: serialize non-string
+		if (typeof data == 'string') { body += data; }
+		else { body = data; } // assume it is an array buffer or some such
 	});
-	request.on('end', function() { xhrRequest.send(body); });
+	oreq.on('end', function() { xhrRequest.send(body); });
 
-	// abort on request close
-	request.on('close', function() {
+	// abort on oreq close
+	oreq.on('close', function() {
 		if (xhrRequest.readyState !== XMLHttpRequest.DONE) {
 			xhrRequest.aborted = true;
 			xhrRequest.abort();
 		}
 	});
 
-	// register response handlers
+	// register res handlers
 	var streamPoller=0, lenOnLastPoll=0, headersSent = false;
+	var ores = new Response();
+	ores.wireUp(ires);
 	xhrRequest.onreadystatechange = function() {
 		if (xhrRequest.readyState >= XMLHttpRequest.HEADERS_RECEIVED && !headersSent) {
 			headersSent = true;
@@ -4717,15 +2648,14 @@ schemes.register(['http', 'https'], function(request, response) {
 					xhrRequest.getAllResponseHeaders().split("\n").forEach(function(h) {
 						if (!h) { return; }
 						var kv = h.replace('\r','').split(': ');
-						headers[kv[0].toLowerCase()] = kv.slice(1).join(': ');
+						ores.header(kv[0], kv.slice(1).join(': '));
 					});
 				} else {
 					// a bug in firefox causes getAllResponseHeaders to return an empty string on CORS
 					// (not ideal, but) iterate the likely headers
 					var extractHeader = function(k) {
 						var v = xhrRequest.getResponseHeader(k);
-						if (v)
-							headers[k.toLowerCase()] = v.toLowerCase();
+						if (v) ores.header(k, v);
 					};
 					extractHeader('Accept-Ranges');
 					extractHeader('Age');
@@ -4760,10 +2690,12 @@ schemes.register(['http', 'https'], function(request, response) {
 				}
 			}
 
-			response.writeHead(xhrRequest.status, xhrRequest.statusText, headers);
+			// send headers
+			ores.status(xhrRequest.status, xhrRequest.statusText);
+			ores.start();
 
 			// start polling for updates
-			if (!response.binary) {
+			if (!oreq.isBinary) {
 				// ^ browsers buffer binary responses, so dont bother streaming
 				streamPoller = setInterval(function() {
 					// new data?
@@ -4771,7 +2703,7 @@ schemes.register(['http', 'https'], function(request, response) {
 					if (len > lenOnLastPoll) {
 						var chunk = xhrRequest.response.slice(lenOnLastPoll);
 						lenOnLastPoll = len;
-						response.write(chunk);
+						ores.write(chunk);
 					}
 				}, 50);
 			}
@@ -4779,29 +2711,51 @@ schemes.register(['http', 'https'], function(request, response) {
 		if (xhrRequest.readyState === XMLHttpRequest.DONE) {
 			if (streamPoller)
 				clearInterval(streamPoller);
-			if (response.status !== 0 && xhrRequest.status === 0 && !xhrRequest.aborted) {
+			if (ires.status !== 0 && xhrRequest.status === 0 && !xhrRequest.aborted) {
 				// a sudden switch to 0 (after getting a non-0) probably means a timeout
 				console.debug('XHR looks like it timed out; treating it as a premature close'); // just in case things get weird
-				response.close();
+				ores.close();
 			} else {
-				if (xhrRequest.response)
-					response.write(xhrRequest.response.slice(lenOnLastPoll));
-				response.end();
+				if (xhrRequest.response) {
+					if (typeof xhrRequest.response == 'string') {
+						var len = xhrRequest.response.length;
+						if (len > lenOnLastPoll) {
+							ores.write(xhrRequest.response.slice(lenOnLastPoll));
+						}
+					} else {
+						ores.write(xhrRequest.response);
+					}
+				}
+				ores.end();
 			}
 		}
 	};
 });
 
+// helper
+// pulls non-standard headers out of the request and makes sure they're formatted correctly
+var ucRegEx = /([a-z])([A-Z])/g; // lowercase followed by an uppercase
+function extractOreqHeaders(headers) {
+	var extraHeaders = {};
+	for (var k in headers) {
+		var kc = k.charAt(0);
+		if (headers.hasOwnProperty(k) && kc === kc.toUpperCase()) { // starts uppercase?
+			var k2 = k.replace(ucRegEx, function(all, $1, $2) { return $1+'-'+$2; });
+			extraHeaders[k2] = headers[k];
+		}
+	}
+	return extraHeaders;
+}
 
 // Data
 // ====
-schemes.register('data', function(request, response) {
-	var firstColonIndex = request.url.indexOf(':');
-	var firstCommaIndex = request.url.indexOf(',');
+schemes.register('data', function(oreq, ires) {
+	var firstColonIndex = oreq.headers.url.indexOf(':');
+	var firstCommaIndex = oreq.headers.url.indexOf(',');
 
 	// parse parameters
 	var param;
-	var params = request.url.slice(firstColonIndex+1, firstCommaIndex).split(';');
+	var params = oreq.headers.url.slice(firstColonIndex+1, firstCommaIndex).split(';');
 	var contentType = params.shift();
 	var isBase64 = false;
 	while ((param = params.shift())) {
@@ -4810,247 +2764,18 @@ schemes.register('data', function(request, response) {
 	}
 
 	// parse data
-	var data = request.url.slice(firstCommaIndex+1);
+	var data = oreq.headers.url.slice(firstCommaIndex+1);
 	if (!data) data = '';
 	if (isBase64) data = atob(data);
 	else data = decodeURIComponent(data);
 
-	// respond (async)
-	util.nextTick(function() {
-		response.writeHead(200, 'ok', {'content-type': contentType});
-		response.end(data);
-	});
+	// respond
+	var ores = new Response();
+	ores.wireUp(ires);
+	ores.s200().ContentType(contentType);
+	ores.end(data);
 });
-},{"../util":9,"./content-types.js":12,"./helpers.js":14}],22:[function(require,module,exports){
-// Server
-// ======
-// EXPORTED
-// core type for all servers
-// - should be used as a prototype
-function Server(config) {
-	this.config = { domain: null, log: false };
-	if (config) {
-		for (var k in config)
-			this.config[k] = config[k];
-	}
-}
-module.exports = Server;
-
-Server.prototype.getDomain = function() { return this.config.domain; };
-Server.prototype.getUrl = function() { return 'local://' + this.config.domain; };
-
-Server.prototype.debugLog = function() {
-	if (!this.config.log) return;
-	var args = [this.config.domain].concat([].slice.call(arguments));
-	console.debug.apply(console, args);
-};
-
-// Local request handler
-// - should be overridden
-Server.prototype.handleLocalRequest = function(request, response) {
-	console.warn('handleLocalRequest not defined', this);
-	response.writeHead(501, 'server not implemented');
-	response.end();
-};
-
-// Called before server destruction
-// - may be overridden
-// - executes syncronously; does not wait for cleanup to finish
-Server.prototype.terminate = function() {
-};
-
-},{}],23:[function(require,module,exports){
-// Events
-// ======
-var util = require('../util');
-var dispatch = require('./dispatch.js').dispatch;
-var Request = require('./request.js');
-var Response = require('./response.js');
-var contentTypes = require('./content-types.js');
-
-// subscribe()
-// ===========
-// EXPORTED
-// Establishes a connection and begins an event stream
-// - sends a GET request with 'text/event-stream' as the Accept header
-// - `request`: request object, formed as in `dispatch()`
-// - returns a `EventStream` object
-function subscribe(request) {
-	if (typeof request == 'string')
-		request = { url: request };
-	request.stream = true; // stream the response
-	if (!request.method) request.method = 'SUBSCRIBE';
-	if (!request.headers) request.headers = { accept : 'text/event-stream' };
-	if (!request.headers.accept) request.headers.accept = 'text/event-stream';
-
-	var response_ = dispatch(request);
-	return new EventStream(response_.request, response_);
-}
-
-
-// EventStream
-// ===========
-// EXPORTED
-// wraps a response to emit the events
-function EventStream(request, response_) {
-	util.EventEmitter.call(this);
-	this.request = request;
-	this.response = null;
-	this.response_ = null;
-	this.lastEventId = -1;
-	this.isConnOpen = true;
-
-	this.connect(response_);
-}
-EventStream.prototype = Object.create(util.EventEmitter.prototype);
-EventStream.prototype.getUrl = function() { return this.request.url; };
-EventStream.prototype.connect = function(response_) {
-	var self = this;
-	var buffer = '', eventDelimIndex;
-	this.response_ = response_;
-	response_.then(
-		function(response) {
-			self.isConnOpen = true;
-			self.response = response;
-			response.on('data', function(payload) {
-				// Add any data we've buffered from past events
-				payload = buffer + payload;
-				// Step through each event, as its been given
-				while ((eventDelimIndex = payload.indexOf('\r\n\r\n')) !== -1) {
-					var event = payload.slice(0, eventDelimIndex);
-					emitEvent.call(self, event);
-					payload = payload.slice(eventDelimIndex+4);
-				}
-				// Hold onto any lefovers
-				buffer = payload;
-				// Clear the response' buffer
-				response.body = '';
-			});
-			response.on('end', function() { self.close(); });
-			response.on('close', function() { if (self.isConnOpen) { self.reconnect(); } });
-			// ^ a close event should be predicated by an end(), giving us time to close ourselves
-			//   if we get a close from the other side without an end message, we assume connection fault
-			return response;
-		},
-		function(response) {
-			self.response = response;
-			emitError.call(self, { event: 'error', data: response });
-			self.close();
-			throw response;
-		}
-	);
-};
-EventStream.prototype.reconnect = function() {
-	// Shut down anything old
-	if (this.isConnOpen) {
-		this.isConnOpen = false;
-		this.request.close();
-	}
-
-	// Hold off if the app is tearing down (Firefox will succeed in the request and then hold onto the stream)
-	if (util.isAppClosing) {
-		return;
-	}
-
-	// Re-establish the connection
-	this.request = new Request(this.request);
-	if (!this.request.headers) this.request.headers = {};
-	if (this.lastEventId) this.request.headers['last-event-id'] = this.lastEventId;
-	this.connect(dispatch(this.request));
-	this.request.end();
-};
-EventStream.prototype.close = function() {
-	if (this.isConnOpen) {
-		this.isConnOpen = false;
-		this.request.close();
-		this.emit('close');
-	}
-};
-function emitError(e) {
-	this.emit('message', e);
-	this.emit('error', e);
-}
-function emitEvent(e) {
-	e = contentTypes.deserialize('text/event-stream', e);
-	var id = parseInt(e.id, 10);
-	if (typeof id != 'undefined' && id > this.lastEventId)
-		this.lastEventId = id;
-	this.emit('message', e);
-	this.emit(e.event, e);
-}
-
-
-// EventHost
-// =========
-// EXPORTED
-// manages response streams for a server to emit events to
-function EventHost() {
-	this.streams = [];
-}
-
-// listener management
-EventHost.prototype.addStream = function(responseStream) {
-	responseStream.broadcastStreamId = this.streams.length;
-	this.streams.push(responseStream);
-	var self = this;
-	responseStream.on('close', function() {
-		self.endStream(responseStream);
-	});
-	return responseStream.broadcastStreamId;
-};
-EventHost.prototype.endStream = function(responseStream) {
-	if (typeof responseStream == 'number') {
-		responseStream = this.streams[responseStream];
-	}
-	delete this.streams[responseStream.broadcastStreamId];
-	responseStream.end();
-};
-EventHost.prototype.endAllStreams = function() {
-	this.streams.forEach(function(rS) { rS.end(); });
-	this.streams.length = 0;
-};
-
-// Sends an event to all streams
-// - `opts.exclude`: optional number|Response|[number]|[Response], streams not to send to
-EventHost.prototype.emit = function(eventName, data, opts) {
-	if (!opts) opts = {};
-	if (opts.exclude) {
-		if (!Array.isArray(opts.exclude)) {
-			opts.exclude = [opts.exclude];
-		}
-		// Convert to ids
-		opts.exclude = opts.exclude.map(function(v) {
-			if (v instanceof Response) {
-				return v.broadcastStreamId;
-			}
-			return v;
-		}, this);
-	}
-	this.streams.forEach(function(rS, i) {
-		if (opts.exclude && opts.exclude.indexOf(i) !== -1) {
-			return;
-		}
-		this.emitTo(rS, eventName, data);
-	}, this);
-};
-
-// sends an event to the given response stream
-EventHost.prototype.emitTo = function(responseStream, eventName, data) {
-	if (typeof responseStream == 'number') {
-		responseStream = this.streams[responseStream];
-	}
-	responseStream.write({ event: eventName, data: data });
-
-	// Clear the response's buffer, as the data is handled on emit
-	responseStream.body = '';
-};
-
-module.exports = {
-	subscribe: subscribe,
-	EventStream: EventStream,
-	EventHost: EventHost
-};
-},{"../util":9,"./content-types.js":12,"./dispatch.js":13,"./request.js":18,"./response.js":19}],24:[function(require,module,exports){
+},{"../util":8,"./content-types.js":9,"./helpers.js":10,"./http-headers.js":11,"./response.js":16}],18:[function(require,module,exports){
 /*
  UriTemplate Copyright (c) 2012-2013 Franz Antesberger. All Rights Reserved.
  Available via the MIT license.
@@ -5923,485 +3648,5 @@ var UriTemplate = (function () {
 }(function (UriTemplate) {
     module.exports = UriTemplate;
 }));
-},{}],25:[function(require,module,exports){
-var promise = require('../promises.js').promise;
-var helpers = require('./helpers.js');
-var BridgeServer = require('./bridge-server.js');
-
-// a map of known protocols for http/s domains
-// (reduces the frequency of failed HTTPS lookups when loading scripts without a scheme)
-var _domainSchemes = {};
-
-// WorkerBridgeServer
-// ==================
-// EXPORTED
-// wrapper for servers run within workers
-// - `config.src`: optional URL, required unless `config.domain` is given
-// - `config.domain`: optional hostname, required with a source-path unless `config.src` is given
-// - `config.serverFn`: optional function to replace handleRemoteRequest
-// - `config.shared`: boolean, should the workerserver be shared?
-// - `config.namespace`: optional string, what should the shared worker be named?
-//   - defaults to `config.src` if undefined
-// - `config.temp`: optional bool, instructs the worker to self-destruct after its finished responding to its requests
-// - `config.onerror`: optional function, set to the worker's onerror callback
-// - `config.log`: optional bool, enables logging of all message traffic
-function WorkerBridgeServer(config) {
-	var self = this;
-	if (!config || (!config.src && !config.domain))
-		throw new Error("WorkerBridgeServer requires config with `src` or `domain` attribute.");
-	BridgeServer.call(this, config);
-	this.isActive = false; // when true, ready for activity
-	this.hasHostPrivileges = true; // do we have full control over the worker?
-	// ^ set to false by the ready message of a shared worker (if we're not the first page to connect)
-	if (config.serverFn) {
-		this.configServerFn = config.serverFn;
-		delete this.config.serverFn; // clear out the function from config, so we dont get an error when we send config to the worker
-	}
-
-	var src_ = promise();
-	if (config.src) {
-		if (config.src.indexOf('blob:') === 0) {
-			src_.fulfill(config.src);
-		} else {
-			loadScript(config.src);
-		}
-	}
-	else if (config.domain) {
-		// No src? Try fetching from sourcepath
-		var domaind = helpers.parseUri(config.domain);
-		if (domaind.srcPath) {
-			// :WARN: in FF, Workers created by Blobs have been known to fail with a CSP script directive set
-			// https://bugzilla.mozilla.org/show_bug.cgi?id=964276
-			var host = domaind.host;
-			if (domaind.port) {
-				host += ':'+domaind.port;
-			}
-			loadScript(helpers.joinUri(host, domaind.srcPath));
-		} else {
-			src_.reject(null);
-			this.terminate(404, 'Worker Not Properly Constructed');
-			throw "Worker incorrectly constructed without src or a domain with a source-path";
-		}
-	}
-
-	function loadScript(url) {
-		var urld = local.parseUri(url);
-		if (urld.protocol != 'data' && (!urld.authority || urld.authority == '.' || urld.authority.indexOf('.') === -1)) {
-			var dir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
-			var dirurl = window.location.protocol + '//' + window.location.hostname + dir;
-			url = helpers.joinRelPath(dirurl, url);
-			urld = local.parseUri(url);
-		}
-		var full_url = url;
-        if (!urld.protocol) {
-            var scheme = _domainSchemes[urld.authority];
-            if (!scheme) {
-                scheme = _domainSchemes[urld.authority] = 'https://';
-            }
-            full_url = scheme + url;
-        }
-		local.GET(full_url)
-			.fail(function(res) {
-				if (!urld.protocol && res.status === 0) {
-					// Domain error? Try again without ssl
-                    full_url = 'http://'+url;
-                    _domainSchemes[urld.authority] = 'http://'; // we know it isn't https at least
-					return local.GET(full_url);
-				}
-				throw res;
-			})
-			.then(function(res) {
-				// Setup the bootstrap source to import scripts relative to the origin
-				var bootstrap_src = require('../config.js').workerBootstrapScript;
-				var hosturld = local.parseUri((urld.protocol != 'data') ? full_url : (window.location.protocol+'//'+window.location.hostname));
-				var hostroot = hosturld.protocol + '://' + hosturld.authority;
-				bootstrap_src = bootstrap_src.replace(/\{\{HOST\}\}/g, hostroot);
-				bootstrap_src = bootstrap_src.replace(/\{\{HOST_DIR_PATH\}\}/g, (hosturld.directory||'').slice(0,-1));
-				bootstrap_src = bootstrap_src.replace(/\{\{HOST_DIR_URL\}\}/g, hostroot + (hosturld.directory||'').slice(0,-1));
-
-				// Create worker
-				var script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'; if (main) { self.main = main; }})();'], { type: "text/javascript" });
-				src_.fulfill(window.URL.createObjectURL(script_blob));
-			})
-			.fail(function(res) {
-				src_.reject(null);
-				self.terminate(404, 'Worker Not Found');
-			});
-	}
-
-	src_.then(function(src) {
-		self.config.src = src;
-
-		// Prep config
-		if (!self.config.domain) { // assign a temporary label for logging if no domain is given yet
-			self.config.domain = '<'+self.config.src.slice(0,40)+'>';
-		}
-		self.config.environmentHost = window.location.host; // :TODO: needed? I think workers can access this directly
-
-		// Initialize the worker
-		if (self.config.shared) {
-			self.worker = new SharedWorker(src, config.namespace);
-			self.worker.port.start();
-		} else {
-			self.worker = new Worker(src);
-		}
-		if (typeof config.onerror == 'function') {
-			self.worker.onerror = config.onerror;
-		}
-
-		// Setup the incoming message handler
-		self.getPort().addEventListener('message', function(event) {
-			var message = event.data;
-			if (!message)
-				return console.error('Invalid message from worker: Payload missing', self, event);
-			if (self.config.log) { self.debugLog('received from worker', message); }
-
-			// Handle messages with an `op` field as worker-control packets rather than HTTPL messages
-			switch (message.op) {
-				case 'ready':
-					// Worker can now accept commands
-					self.onWorkerReady(message.body);
-					break;
-				case 'log':
-					self.onWorkerLog(message.body);
-					break;
-				case 'terminate':
-					self.terminate();
-					break;
-				default:
-					// If no 'op' field is given, treat it as an HTTPL request and pass onto our BridgeServer parent method
-					self.onChannelMessage(message);
-					break;
-			}
-		});
-	});
-}
-WorkerBridgeServer.prototype = Object.create(BridgeServer.prototype);
-module.exports = WorkerBridgeServer;
-
-// Returns the worker's messaging interface
-// - varies between shared and normal workers
-WorkerBridgeServer.prototype.getPort = function() {
-	return this.worker.port ? this.worker.port : this.worker;
-};
-
-WorkerBridgeServer.prototype.terminate = function(status, reason) {
-	BridgeServer.prototype.terminate.call(this, status, reason);
-	if (this.worker) this.worker.terminate();
-	if (typeof this.config.src == 'string' && this.config.src.indexOf('blob:') === 0) {
-		window.URL.revokeObjectURL(this.config.src);
-	}
-	this.worker = null;
-	this.isActive = false;
-};
-
-// Returns true if the channel is ready for activity
-// - returns boolean
-WorkerBridgeServer.prototype.isChannelActive = function() {
-	return this.isActive;
-};
-
-// Sends a single message across the channel
-// - `msg`: required string
-WorkerBridgeServer.prototype.channelSendMsg = function(msg) {
-	if (this.config.log) { this.debugLog('sending to worker', msg); }
-	this.getPort().postMessage(msg);
-};
-
-// Remote request handler
-// - should be overridden
-WorkerBridgeServer.prototype.handleRemoteRequest = function(request, response) {
-	var httpl = require('./httpl.js');
-	if (this.configServerFn) {
-		this.configServerFn.call(this, request, response, this);
-	} else if (httpl.getServer('worker-bridge')) {
-		var server = httpl.getServer('worker-bridge');
-		server.fn.call(server.context, request, response, this);
-	} else {
-		response.writeHead(501, 'server not implemented');
-		response.end();
-	}
-};
-
-// helper used to decide if a temp worker can be ejected
-WorkerBridgeServer.prototype.isInTransaction = function() {
-	if (!this.isActive) return false;
-
-	// Are we waiting on any streams from the worker?
-	if (Object.keys(this.incomingStreams).length !== 0) {
-		var Response = require('./response.js');
-		// See if any of those streams are responses
-		for (var sid in this.incomingStreams) {
-			if (this.incomingStreams[sid] instanceof Response && this.incomingStreams[sid].isConnOpen) {
-				// not done, worker still responding
-				return true;
-			}
-		}
-	}
-    return false;
-};
-
-// Starts normal functioning
-// - called when the local.js signals that it has finished loading
-WorkerBridgeServer.prototype.onWorkerReady = function(message) {
-	this.hasHostPrivileges = message.hostPrivileges;
-	if (this.hasHostPrivileges) {
-		// Send config
-		var cfg = JSON.parse(JSON.stringify(this.config)); // clone to ditch non-transferable objects (functions)
-		this.channelSendMsg({ op: 'configure', body: cfg });
-	}
-	this.isActive = true;
-	this.flushBufferedMessages();
-};
-
-// Logs message data from the worker
-WorkerBridgeServer.prototype.onWorkerLog = function(message) {
-	if (!message)
-		return;
-	if (!Array.isArray(message))
-		return console.error('Received invalid "log" operation: Payload must be an array', message);
-
-	var type = message.shift();
-	var args = ['['+this.config.domain+']'].concat(message);
-	switch (type) {
-		case 'error':
-			console.error.apply(console, args);
-			break;
-		case 'warn':
-			console.warn.apply(console, args);
-			break;
-		default:
-			console.log.apply(console, args);
-			break;
-	}
-};
-},{"../config.js":1,"../promises.js":4,"./bridge-server.js":11,"./helpers.js":14,"./httpl.js":16,"./response.js":19}],26:[function(require,module,exports){
-module.exports = {};
-},{}],27:[function(require,module,exports){
-if (typeof self != 'undefined' && typeof self.window == 'undefined') {
-
-	var util = require('../util');
-	var schemes = require('../web/schemes.js');
-	var httpl = require('../web/httpl.js');
-	var WorkerConfig = require('./config.js');
-	var PageBridgeServer = require('./page-bridge-server.js');
-
-	// Setup
-	// =====
-	module.exports = { config: WorkerConfig };
-	util.mixinEventEmitter(module.exports);
-
-	// EXPORTED
-	// console.* replacements
-	self.console = {
-		log: function() {
-			var args = Array.prototype.slice.call(arguments);
-			doLog('log', args);
-		},
-		dir: function() {
-			var args = Array.prototype.slice.call(arguments);
-			doLog('dir', args);
-		},
-		debug: function() {
-			var args = Array.prototype.slice.call(arguments);
-			doLog('debug', args);
-		},
-		warn: function() {
-			var args = Array.prototype.slice.call(arguments);
-			doLog('warn', args);
-		},
-		error: function() {
-			var args = Array.prototype.slice.call(arguments);
-			doLog('error', args);
-		}
-	};
-	function doLog(type, args) {
-		var hostPage = module.exports.hostPage;
-		try { hostPage.channelSendMsg({ op: 'log', body: [type].concat(args) }); }
-		catch (e) {
-			// this is usually caused by trying to log information that cant be serialized
-			hostPage.channelSendMsg({ op: 'log', body: [type].concat(args.map(JSONifyMessage)) });
-		}
-	}
-
-	// INTERNAL
-	// helper to try to get a failed log message through
-	function JSONifyMessage(data) {
-		if (Array.isArray(data))
-			return data.map(JSONifyMessage);
-		if (data && typeof data == 'object')
-			return JSON.stringify(data);
-		return data;
-	}
-
-	// INTERNAL
-	// set the http/s schemes to report disabled
-	schemes.register(['http', 'https'], function(req, res) {
-		res.writeHead(0, 'XHR Not Allowed in Workers for Security Reasons').end();
-	});
-
-	// EXPORTED
-	// btoa shim
-	// - from https://github.com/lydonchandra/base64encoder
-	//   (thanks to Lydon Chandra)
-	if (!self.btoa) {
-		var PADCHAR = '=';
-		var ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-		function getbyte(s,i) {
-			var x = s.charCodeAt(i) & 0xFF;
-			return x;
-		}
-		self.btoa = function(s) {
-			var padchar = PADCHAR;
-			var alpha   = ALPHA;
-
-			var i, b10;
-			var x = [];
-
-			// convert to string
-			s = '' + s;
-
-			var imax = s.length - s.length % 3;
-
-			if (s.length === 0) {
-				return s;
-			}
-			for (i = 0; i < imax; i += 3) {
-				b10 = (getbyte(s,i) << 16) | (getbyte(s,i+1) << 8) | getbyte(s,i+2);
-				x.push(alpha.charAt(b10 >> 18));
-				x.push(alpha.charAt((b10 >> 12) & 0x3F));
-				x.push(alpha.charAt((b10 >> 6) & 0x3f));
-				x.push(alpha.charAt(b10 & 0x3f));
-			}
-			switch (s.length - imax) {
-			case 1:
-				b10 = getbyte(s,i) << 16;
-				x.push(alpha.charAt(b10 >> 18) + alpha.charAt((b10 >> 12) & 0x3F) + padchar + padchar);
-				break;
-			case 2:
-				b10 = (getbyte(s,i) << 16) | (getbyte(s,i+1) << 8);
-				x.push(alpha.charAt(b10 >> 18) + alpha.charAt((b10 >> 12) & 0x3F) +
-					   alpha.charAt((b10 >> 6) & 0x3f) + padchar);
-				break;
-			}
-			return x.join('');
-		};
-	}
-
-	module.exports.setServer = function(fn) {
-		self.main = fn;
-		httpl.addServer('self', fn);
-	};
-
-	module.exports.pages = [];
-	function addConnection(port) {
-		// Create new page server
-		var isHost = (!module.exports.hostPage); // First to add = host page
-		var page = new PageBridgeServer(module.exports.pages.length, port, isHost);
-
-		// Track new connection
-		if (isHost) {
-			module.exports.hostPage = page;
-			httpl.addServer('host.env', page);
-		}
-		module.exports.pages.push(page);
-		httpl.addServer(page.id+'.env', page);
-
-		// Let the document know we're active
-		if (port.start) {
-			port.start();
-		}
-		page.channelSendMsg({ op: 'ready', body: { hostPrivileges: isHost } });
-
-		// Fire event
-		module.exports.emit('connect', page);
-	}
-
-	// Setup for future connections (shared worker)
-	addEventListener('connect', function(e) {
-		addConnection(e.ports[0]);
-	});
-	// Create connection to host page (regular worker)
-	if (self.postMessage) {
-		addConnection(self);
-	}
-}
-},{"../util":9,"../web/httpl.js":16,"../web/schemes.js":21,"./config.js":26,"./page-bridge-server.js":28}],28:[function(require,module,exports){
-var util = require('../util');
-var workerConfig = require('./config.js');
-var BridgeServer = require('../web/bridge-server.js');
-
-// PageServer
-// ==========
-// EXPORTED
-// wraps the comm interface to a page for messaging
-// - `id`: required number, should be the index of the connection in the list
-// - `port`: required object, either `self` (for non-shared workers) or a port from `onconnect`
-// - `isHost`: boolean, should connection get host privileges?
-function PageServer(id, port, isHost) {
-	BridgeServer.call(this);
-	this.id = id;
-	this.port = port;
-	this.isHostPage = isHost;
-
-	// Setup the incoming message handler
-	this.port.addEventListener('message', (function(event) {
-		var message = event.data;
-		if (!message)
-			return console.error('Invalid message from page: Payload missing', event);
-
-		// Handle messages with an `op` field as worker-control packets rather than HTTPL messages
-		switch (message.op) {
-			case 'configure':
-				this.onPageConfigure(message.body);
-				break;
-			case 'terminate':
-				this.terminate();
-				break;
-			default:
-				// If no recognized 'op' field is given, treat it as an HTTPL request and pass onto our BridgeServer parent method
-				this.onChannelMessage(message);
-				break;
-		}
-	}).bind(this));
-}
-PageServer.prototype = Object.create(BridgeServer.prototype);
-module.exports = PageServer;
-
-// Returns true if the channel is ready for activity
-// - returns boolean
-PageServer.prototype.isChannelActive = function() {
-	return true;
-};
-
-// Sends a single message across the channel
-// - `msg`: required string
-PageServer.prototype.channelSendMsg = function(msg) {
-	this.port.postMessage(msg);
-};
-
-// Remote request handler
-PageServer.prototype.handleRemoteRequest = function(request, response) {
-	var server = self.main;
-	if (server && typeof server == 'function') {
-		server.call(this, request, response, this);
-	} else if (server && server.handleRemoteRequest) {
-		server.handleRemoteRequest(request, response, this);
-	} else {
-		response.writeHead(501, 'not implemented');
-		response.end();
-	}
-};
-
-// Stores configuration sent by the page
-PageServer.prototype.onPageConfigure = function(message) {
-	if (!this.isHostPage) {
-		console.log('rejected "configure" from non-host connection');
-		return;
-	}
-	var serverFn = workerConfig.serverFn;
-	util.mixin.call(workerConfig, message);
-	workerConfig.serverFn = serverFn;
-};
-},{"../util":9,"../web/bridge-server.js":11,"./config.js":26}]},{},[3])
+},{}]},{},[3])
 ;

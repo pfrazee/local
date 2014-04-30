@@ -1,150 +1,228 @@
 var util = require('../util');
-var promise = require('../promises.js').promise;
+var promises = require('../promises.js');
+var helpers = require('./helpers.js');
+var schemes = require('./schemes.js');
 var contentTypes = require('./content-types.js');
-var httpHeaders = require('./http-headers.js');
+var IncomingResponse = require('./incoming-response.js');
 
 // Request
 // =======
 // EXPORTED
 // Interface for sending requests
-function Request(options) {
+function Request(headers) {
 	util.EventEmitter.call(this);
+	promises.Promise.call(this);
+	if (!headers) headers = {};
+	if (typeof headers == 'string') headers = { url: headers };
 
-	if (!options) options = {};
-	if (typeof options == 'string')
-		options = { url: options };
+	// Request definition
+	// headers is an object containing method, url, params (the query params) and the header values (as uppercased keys)
+	this.headers = headers;
+	this.headers.method = (this.headers.method) ? this.headers.method.toUpperCase() : 'GET';
+	this.headers.params = (this.headers.params) || {};
+	this.isBinary = false; // stream is binary?
+	this.isVirtual = undefined; // request going to virtual host?
+	this.isBufferingResponse = false; // auto-buffering the response?
 
-	// Pull any header-like keys into the headers object
-	var headers = options.headers || {};
-	extractUppercaseKeys(options, headers); // Foo_Bar or Foo-Bar
-
-	this.method = options.method ? options.method.toUpperCase() : 'GET';
-	this.url = options.url || null;
-	this.path = options.path || null;
-	this.query = options.query || {};
-	this.headers = lowercaseKeys(headers);
-	if (!this.headers.host && options.host) {
-		this.headers.host = options.host;
-	}
-
-	// Guess the content-type if a full body is included in the message
-	if (options.body && !this.headers['content-type']) {
-		this.headers['content-type'] = (typeof options.body == 'string') ? 'text/plain' : 'application/json';
-	}
-	// Make sure we have an accept header
-	if (!this.headers['accept']) {
-		this.headers['accept'] = '*/*';
-	}
-
-	// non-enumerables (dont include in request messages)
-	Object.defineProperty(this, 'parsedHeaders', {
-		value: {},
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-	Object.defineProperty(this, 'body', {
-		value: options.body || '',
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-	Object.defineProperty(this, 'stream', {
-		value: options.stream || false,
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-	Object.defineProperty(this, 'binary', {
-		value: options.binary || false,
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-	Object.defineProperty(this, 'isConnOpen', {
-		value: true,
-		configurable: true,
-		enumerable: false,
-		writable: true
-	});
-
-	// request buffering
-	Object.defineProperty(this, 'body_', {
-		value: promise(),
-		configurable: true,
-		enumerable: false,
-		writable: false
-	});
-	(function buffer(self) {
-		self.on('data', function(data) {
-			if (typeof data == 'string') {
-				self.body += data;
-			} else {
-				self.body = data; // Assume it is an array buffer or some such
-			}
-		});
-		self.on('end', function() {
-			if (self.headers['content-type'])
-				self.body = contentTypes.deserialize(self.headers['content-type'], self.body);
-			self.body_.fulfill(self.body);
-		});
-	})(this);
+	// Stream state
+	this.isConnOpen = true;
+	this.isStarted = false;
 }
-module.exports = Request;
 Request.prototype = Object.create(util.EventEmitter.prototype);
+util.mixin.call(Request.prototype, promises.Promise.prototype);
+module.exports = Request;
 
+// Header setter
 Request.prototype.header = function(k, v) {
-	if (typeof v != 'undefined')
-		return this.setHeader(k, v);
-	return this.getHeader(k);
+	k = formatHeaderKey(k);
+	// Convert mime if needed
+	if (k == 'ContentType') {
+		v = contentTypes.lookup(v);
+	}
+	this.headers[k] = v;
+	return this;
 };
-Request.prototype.setHeader    = function(k, v) { this.headers[k.toLowerCase()] = v; };
-Request.prototype.getHeader    = function(k) { return this.headers[k.toLowerCase()]; };
-Request.prototype.removeHeader = function(k) { delete this.headers[k.toLowerCase()]; };
 
+// Header sugars
+[ 'Accept', 'Authorization', 'ContentType', 'Expect', 'From', 'Pragma' ].forEach(function(k) {
+	Request.prototype[k] = function(v) {
+		return this.header(k, v);
+	};
+});
+
+// helper to convert a given header value to our standard format - camel case, no dashes
+var headerKeyRegex = /(^|-)(.)/g;
+function formatHeaderKey(str) {
+	// strip any dashes, convert to camelcase
+	// eg 'foo-bar' -> 'FooBar'
+	return str.replace(headerKeyRegex, function(_0,_1,_2) { return _2.toUpperCase(); });
+}
+
+// Param setter
+// - `k` may be an object of keys to add
+// - or `k` can be the keyname and `v` the value
+// - eg: req.param({ foo: 'bar', hot: 'dog' })
+//       req.param('foo', 'bar').param('hot', 'dog')
+Request.prototype.param = function(k, v) {
+	if (k && typeof k == 'object') {
+		for (var k2 in k) {
+			this.param(k2, k[k2]);
+		}
+	} else {
+		this.headers.params[k] = v;
+	}
+	return this;
+};
+
+// Request timeout setter
 // causes the request/response to abort after the given milliseconds
 Request.prototype.setTimeout = function(ms) {
 	var self = this;
 	if (this.__timeoutId) return;
-	Object.defineProperty(this, '__timeoutId', {
-		value: setTimeout(function() {
-			if (self.isConnOpen) { self.close(); }
-			delete self.__timeoutId;
-		}, ms),
-		configurable: true,
-		enumerable: false,
-		writable: true
+	this.__timeoutId = setTimeout(function() {
+		if (self.isConnOpen) { self.close(); }
+		delete self.__timeoutId;
+	}, ms);
+	return this;
+};
+
+// Binary mode
+// causes the request and response to use binary
+// - if no bool is given, sets binary-mode to true
+Request.prototype.setBinary = function(v) {
+	if (typeof v == 'boolean') {
+		this.isBinary = v;
+	} else {
+		this.isBinary = true;
+	}
+	return this;
+};
+
+// Virtual mode
+// forces the request to go to a virtual host (or not)
+// - if no bool is given, sets virtual-mode to true
+Request.prototype.setVirtual = function(v) {
+	if (typeof v == 'boolean') {
+		this.isVirtual = v;
+	} else {
+		this.isVirtual = true;
+	}
+	return this;
+};
+
+// Response buffering
+// instructs the request to auto-buffer the response body and set it to `res.body`
+Request.prototype.bufferResponse = function(v) {
+	if (typeof v == 'boolean') {
+		this.isBufferingResponse = v;
+	} else {
+		this.isBufferingResponse = true;
+	}
+	return this;
+};
+
+// Pipe helper
+// streams an incoming request or response into the outgoing request
+// - doesnt overwrite any previously-set headers
+// - params:
+//   - `source`: the incoming request or response to pull data from
+//   - `headersCb`: (optional) takes `(k, v)` from source and responds updated header for otarget
+//   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for otarget
+Request.prototype.pipe = function(source, headersCB, bodyCb) {
+	var this2 = this;
+	headersCB = headersCB || function(v) { return v; };
+	bodyCb = bodyCb || function(v) { return v; };
+	promise(source).always(function(source) {
+		if (source instanceof require('./incoming-request')) {
+			if (!this2.headers.method) {
+				this2.headers.method = source.method;
+			}
+			if (!this2.headers.url) {
+				this2.headers.url = source.url;
+			}
+			for (var k in source) {
+				if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in this2.headers)) {
+					this2.header(k, headersCB(k, source[k]));
+				}
+			}
+		}
+		// wire up the stream
+		source.on('data', function(chunk) { this2.write(bodyCb(chunk)); });
+		source.on('end', function() { this2.end(); });
 	});
 };
 
-// EXPORTED
-// calls any registered header serialization functions
-// - enables apps to use objects during their operation, but remain conformant with specs during transfer
-Request.prototype.serializeHeaders = function() {
-	for (var k in this.headers) {
-		this.headers[k] = httpHeaders.serialize(k, this.headers[k]);
+// Event connection helper
+// connects events from this stream to the target (event proxying)
+Request.prototype.wireUp = function(other, async) {
+	if (async) {
+		var nextTick = function(fn) { return function(value) { util.nextTick(fn.bind(null, value)); }; };
+		this.on('headers', nextTick(other.emit.bind(other, 'headers')));
+		this.on('data', nextTick(other.emit.bind(other, 'data')));
+		this.on('end', nextTick(other.emit.bind(other, 'end')));
+	} else {
+		this.on('headers', other.emit.bind(other, 'headers'));
+		this.on('data', other.emit.bind(other, 'data'));
+		this.on('end', other.emit.bind(other, 'end'));
 	}
 };
 
-// EXPORTED
-// calls any registered header deserialization functions
-// - enables apps to use objects during their operation, but remain conformant with specs during transfer
-Request.prototype.deserializeHeaders = function() {
-	for (var k in this.headers) {
-		var parsedHeader = httpHeaders.deserialize(k, this.headers[k]);
-		if (parsedHeader && typeof parsedHeader != 'string') {
-			this.parsedHeaders[k] = parsedHeader;
-		}
+// starts the request transaction
+Request.prototype.start = function() {
+	var this2 = this;
+	if (!this.isConnOpen) return this;
+	if (this.isStarted) return this;
+	if (!this.headers || !this.headers.url) throw "No URL on request";
+
+	// Prep request
+	if (typeof this.isVirtual == 'undefined') {
+		// if not forced, decide on whether this is virtual based on the presence of a hash
+		this.isVirtual = (this.headers.url.indexOf('#') !== -1);
 	}
+	this.urld = helpers.parseUri(this.headers.url);
+
+	// Setup response object
+	var requestStartTime = Date.now();
+	var ires = new IncomingResponse();
+	ires.on('headers', ires.processHeaders.bind(ires, this));
+	ires.on('end', function() {
+		// Track latency
+		ires.latency = Date.now() - requestStartTime;
+	});
+	this.on('close', function() { ires.emit('close'); });
+	ires.on('close', function() {
+		// Close the request (if its still open)
+		this2.close();
+	});
+
+	var fulfill = fulfillResponsePromise.bind(null, this, ires);
+	if (this.isBufferingResponse) {
+		ires.buffer(fulfill);
+	} else {
+		ires.on('headers', fulfill);
+	}
+	ires.on('close', fulfill); // will have no effect if already called
+
+	// Execute by scheme
+	var scheme = (this2.isVirtual) ? '#' : parseScheme(this2.headers.url);
+	var schemeHandler = schemes.get(scheme);
+	if (schemeHandler) { schemeHandler(this2, ires); }
+	else {
+		// invalid scheme
+		var ores = new Response();
+		ores.wireUp(ires);
+		ores.status(0, 'unsupported scheme "'+scheme+'"').end();
+	}
+
+	this.isStarted = true;
+	return this;
 };
 
 // sends data over the stream
 // - emits the 'data' event
 Request.prototype.write = function(data) {
-	if (!this.isConnOpen)
-		return this;
-	if (typeof data != 'string' && !(data instanceof ArrayBuffer))
-		data = contentTypes.serialize(this.headers['content-type'], data);
+	if (!this.isConnOpen) return this;
+	if (!this.isStarted) this.start();
 	this.emit('data', data);
 	return this;
 };
@@ -153,10 +231,11 @@ Request.prototype.write = function(data) {
 // - `data`: optional mixed, to write before ending
 // - emits 'end' and 'close' events
 Request.prototype.end = function(data) {
-	if (!this.isConnOpen)
-		return this;
-	if (typeof data != 'undefined')
+	if (!this.isConnOpen) return this;
+	if (!this.isStarted) this.start();
+	if (typeof data != 'undefined') {
 		this.write(data);
+	}
 	this.emit('end');
 	// this.close();
 	// ^ do not close - the response should close
@@ -166,38 +245,27 @@ Request.prototype.end = function(data) {
 // closes the stream, aborting if not yet finished
 // - emits 'close' event
 Request.prototype.close = function() {
-	if (!this.isConnOpen)
-		return this;
+	if (!this.isConnOpen) return this;
 	this.isConnOpen = false;
 	this.emit('close');
-
-	// :TODO: when events are suspended, this can cause problems
-	//        maybe put these "removes" in a 'close' listener?
-	// this.removeAllListeners('data');
-	// this.removeAllListeners('end');
-	// this.removeAllListeners('close');
+	this.clearEvents();
 	return this;
 };
 
-// internal helper
-function lowercaseKeys(obj) {
-	var obj2 = {};
-	for (var k in obj) {
-		if (obj.hasOwnProperty(k))
-			obj2[k.toLowerCase()] = obj[k];
-	}
-	return obj2;
+// helper
+// fulfills/reject a promise for a response with the given response
+function fulfillResponsePromise(p, response) {
+	// wasnt streaming, fulfill now that full response is collected
+	if (response.status >= 200 && response.status < 400)
+		p.fulfill(response);
+	else if (response.status >= 400 && response.status < 600 || response.status === 0)
+		p.reject(response);
+	else
+		p.fulfill(response); // :TODO: 1xx protocol handling
 }
 
-// internal helper - has side-effects
-var underscoreRegEx = /_/g;
-function extractUppercaseKeys(/*mutable*/ org, /*mutable*/ dst) {
-	for (var k in org) {
-		var kc = k.charAt(0);
-		if (org.hasOwnProperty(k) && kc === kc.toUpperCase()) {
-			var k2 = k.replace(underscoreRegEx, '-');
-			dst[k2] = org[k];
-			delete org[k];
-		}
-	}
+// helper - extracts scheme from the url
+function parseScheme(url) {
+	var schemeMatch = /^([^.^:]*):/.exec(url);
+	return (schemeMatch) ? schemeMatch[1] : 'http';
 }

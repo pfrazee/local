@@ -4,19 +4,25 @@
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'http://grimwire.com:8080', headers: { accept: 'application/json' } });
-res.then(printSuccess, printError).always(finishTest);
+GET('http://grimwire.com:8080')
+  .Accept('json')
+  .then(printSuccess, printError)
+  .always(finishTest);
 wait(function () { return done; });
 
 /* =>
 success
 {
+  Allow: "OPTIONS, HEAD, GET, SUBSCRIBE",
+  ContentType: "application/json",
+  Link: "</>; rel=\"self current\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\"",
+  _buffer: "{\"hello\":\"world\"}",
   body: {hello: "world"},
-  headers: {
-    allow: "OPTIONS, HEAD, GET, SUBSCRIBE",
-    "content-type": "application/json",
-    link: "</>; rel=\"self current\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
-  },
+  links: [
+    {href: "http://grimwire.com:8080/", rel: "self current"},
+    {href: "http://grimwire.com:8080/foo", id: "foo", rel: "collection"},
+    {href: "http://grimwire.com:8080/{id}", rel: "collection"}
+  ],
   reason: "Ok",
   status: 200
 }
@@ -26,15 +32,15 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'http://grimwire.com:8080/bad/url' });
-res.then(printSuccess, printError).always(finishTest);
+GET('http://grimwire.com:8080/bad/url').then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>
 error
 {
+  Allow: "OPTIONS, HEAD, GET, SUBSCRIBE",
+  _buffer: "",
   body: "",
-  headers: {allow: "OPTIONS, HEAD, GET, SUBSCRIBE"},
   reason: "Not Found",
   status: 404
 }
@@ -44,14 +50,12 @@ error
 
 done = false;
 startTime = Date.now();
-var request = new local.Request({ method:'get', url:'http://grimwire.com:8080', headers: { accept: 'application/json' } });
-var res = local.dispatch(request);
-res.then(printSuccess, printError).always(finishTest);
-request.end();
+var request = GET('http://grimwire.com:8080').Accept('json').start();
+request.then(printSuccess, printError).always(finishTest);
 request.close();
 wait(function () { return done; });
 /* => error
-{body: "", headers: {}, reason: null, status: 0}
+{_buffer: "", body: null, reason: null, status: 0}
 */
 
 // == SECTION core - document local requests
@@ -60,223 +64,124 @@ wait(function () { return done; });
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'local://test.com' });
-res.then(printSuccess, printError).always(finishTest);
+GET('#').then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>
 success
 {
+  ContentType: "text/plain",
+  Link: [
+    {
+      href: "#",
+      rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
+    },
+    {href: "#events", id: "events", rel: "collection"},
+    {href: "#foo", id: "foo", rel: "collection"},
+    {href: "#{id}", rel: "collection"}
+  ],
+  _buffer: "service resource",
   body: "service resource",
-  headers: {
-    "content-type": "text/plain",
-    link: "</>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
-  },
-  reason: "ok",
+  links: [
+    {
+      href: "#",
+      rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
+    },
+    {href: "#events", id: "events", rel: "collection"},
+    {href: "#foo", id: "foo", rel: "collection"},
+    {href: "#{id}", rel: "collection"}
+  ],
+  reason: undefined,
   status: 200
 }
 */
 
-// local requests without the scheme
+// streamed local responses
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'test.com' });
-res.then(printSuccess, printError).always(finishTest);
+GET('#')
+  .bufferResponse(false)
+  .then(function(res) {
+    print('success');
+    res.on('data', print);
+    res.on('end', finishTest);
+  }, printErrorAndFinish);
 wait(function () { return done; });
 
 /* =>
 success
-{
-  body: "service resource",
-  headers: {
-    "content-type": "text/plain",
-    link: "</>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
-  },
-  reason: "ok",
-  status: 200
-}
+service resource
 */
 
 // unsuccessful local requests
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'local://test.com/bad/url' });
-res.then(printSuccess, printError).always(finishTest);
+GET('#bad/url').then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>
 error
-{body: "", headers: {},  reason: "not found", status: 404}
+{_buffer: "", body: "", reason: undefined, status: 404}
 */
 
 // successful local posts
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({
-  method: 'post',
-  url: 'local://test.com/foo',
-  headers: { 'content-type': 'text/plain' },
-  body: 'echo this, please'
-});
-res.then(printSuccess, printError).always(finishTest);
+POST('#foo')
+  .ContentType('plain')
+  .end('echo this, please')
+  .then(printSuccess, printError)
+  .always(finishTest);
 wait(function () { return done; });
 
 /* =>
 success
 {
+  ContentType: "text/plain",
+  _buffer: "echo this, please",
   body: "echo this, please",
-  headers: {"content-type": "text/plain"},
-  reason: "ok",
+  reason: undefined,
   status: 200
 }
 */
 
-// uppercase request headers
+// streamed local post and streamed response
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({
-  method: 'post',
-  url: 'local://test.com/foo',
-  headers: { 'Content-Type': 'text/plain', 'Accept': 'text/plain' },
-  body: 'echo this, please'
-});
-res.then(printSuccess, printError).always(finishTest);
+var req = new local.Request({ method: 'POST', url: '#foo', ContentType: 'plain' });
+req.write('echo this,');
+req.write(' also');
+req.end();
+req.then(function(res) {
+  print('success');
+  res.on('data', print);
+  res.on('end', finishTest);
+}, printErrorAndFinish);
 wait(function () { return done; });
 
 /* =>
 success
-{
-  body: "echo this, please",
-  headers: {"content-type": "text/plain"},
-  reason: "ok",
-  status: 200
-}
-*/
-
-// uppercase request headers mixed into options
-
-done = false;
-startTime = Date.now();
-var res = local.dispatch({
-  method: 'POST', Accept: 'text/plain',
-  url: 'local://test.com/foo',
-  body: 'echo this, please', 'Content-Type': 'text/plain'
-});
-res.then(printSuccess, printError).always(finishTest);
-wait(function () { return done; });
-
-/* =>
-success
-{
-  body: "echo this, please",
-  headers: {"content-type": "text/plain"},
-  reason: "ok",
-  status: 200
-}
-*/
-
-// uppercase underscores in headers to avoid quotes
-
-done = false;
-startTime = Date.now();
-var res = local.dispatch({
-  method: 'POST', Accept: 'text/plain',
-  url: 'local://test.com/foo',
-  body: 'echo this, please', Content_Type: 'text/plain',
-});
-res.then(printSuccess, printError).always(finishTest);
-wait(function () { return done; });
-
-/* =>
-success
-{
-  body: "echo this, please",
-  headers: {"content-type": "text/plain"},
-  reason: "ok",
-  status: 200
-}
-*/
-
-// request sugar (GET)
-
-done = false;
-startTime = Date.now();
-var res = local.GET('local://test.com');
-res.then(printSuccess, printError).always(finishTest);
-wait(function () { return done; });
-
-/* =>
-success
-{
-  body: "service resource",
-  headers: {
-    "content-type": "text/plain",
-    link: "</>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
-  },
-  reason: "ok",
-  status: 200
-}
-*/
-
-// request sugar (POST)
-
-done = false;
-startTime = Date.now();
-var res = local.POST('echo this, please', {
-  url: 'local://test.com/foo',
-  Accept: 'text/plain',
-  Content_Type: 'text/plain',
-});
-res.then(printSuccess, printError).always(finishTest);
-wait(function () { return done; });
-
-/* =>
-success
-{
-  body: "echo this, please",
-  headers: {"content-type": "text/plain"},
-  reason: "ok",
-  status: 200
-}
-*/
-
-// header() function
-
-done = false;
-startTime = Date.now();
-var req = new local.Request({ method: 'GET', url: 'local://test.com' });
-req.header('Accept', 'text/plain');
-local.dispatch(req).then(
-  function(res) { print('success'); print(res.header('Content-Type')); print(res.header('content-type')); },
-  printError
-).always(finishTest);
-wait(function () { return done; });
-
-/* =>
-success
-text/plain
-text/plain
+echo this,
+ also
 */
 
 // local request timeout
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({
-  method: 'get',
-  url: 'local://test.com/timeout',
-  timeout: 1000
-});
-res.then(printError, printSuccess).always(finishTest);
+GET('#timeout')
+  .setTimeout(1000)
+  .then(printError, printSuccess)
+  .always(finishTest);
 wait(function () { return done; });
 
 /* =>
 success
-{body: "", headers: {}, reason: null, status: 0}
+{_buffer: "", body: null, reason: null, status: 0}
 */
 
 // == SECTION core - worker local requests
@@ -285,8 +190,32 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'local://dev.grimwire.com(test/web/_worker.js)' });
-res.then(printSuccess, printError).always(finishTest);
+GET('dev.grimwire.com/test/web/_worker.js#')
+  .then(printSuccess, printError)
+  .always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  body: "service resource",
+  headers: {
+    "content-type": "text/plain",
+    link: "</>; rel=\"self current\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
+  },
+  reason: "ok",
+  status: 200
+}
+*/
+
+// forced-virtual
+
+done = false;
+startTime = Date.now();
+GET('dev.grimwire.com/test/web/_worker.js')
+  .setVirtual()
+  .then(printSuccess, printError)
+  .always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -306,8 +235,9 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'local://dev.grimwire.com(test/web/_worker.js)/bad/url' });
-res.then(printSuccess, printError).always(finishTest);
+GET('dev.grimwire.com/test/web/_worker.js#/bad/url')
+  .then(printSuccess, printError)
+  .always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -319,8 +249,9 @@ error
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'local://dev.grimwire.com(test/web/_worker.js)/unserializable-response' });
-res.then(printSuccess, printError).always(finishTest);
+GET('dev.grimwire.com/test/web/_worker.js#unserializable-response')
+  .then(printSuccess, printError)
+  .always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -337,8 +268,9 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'local://dev.grimwire.com(test/web/_worker.js)', query: { foo: 'bar' } });
-res.then(printSuccess, printError).always(finishTest);
+GET('dev.grimwire.com/test/web/_worker.js#', { foo: 'bar' })
+  .then(printSuccess, printError)
+  .always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -354,53 +286,26 @@ success
 }
 */
 
-// == SECTION core - nav-uri requests
-
-// successful local requests
+// query params 2
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'nav:||local://test.com|collection=foo|item=baz' });
-res.then(printSuccess, printError).always(finishTest);
+GET('dev.grimwire.com/test/web/_worker.js#?foo=bar')
+  .then(printSuccess, printError)
+  .always(finishTest);
 wait(function () { return done; });
 
 /* =>
 success
 {
-  body: "baz",
+  body: "service resource {\"foo\":\"bar\"}",
   headers: {
-    "content-type": "application/json",
-    link: "</>; rel=\"via service\", </foo>; rel=\"up collection index\", </foo/baz>; rel=\"self current\", </foo/bar>; rel=\"first\", </foo/blah>; rel=\"last\", </foo/bar>; rel=\"prev\", </foo/blah>; rel=\"next\""
+    "content-type": "text/plain",
+    link: "</>; rel=\"self current\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
   },
   reason: "ok",
   status: 200
 }
-*/
-
-// unsuccessful local requests
-
-done = false;
-startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'nav:||local://test.com|collection=lolno|item=baz' });
-res.then(printSuccess, printError).always(finishTest);
-wait(function () { return done; });
-
-/* =>
-error
-{body: "", headers: {}, reason: "not found", status: 404}
-*/
-
-// unsuccessful local requests
-
-done = false;
-startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'nav:||local://test.com|collection=foo|item=blammo' });
-res.then(printSuccess, printError).always(finishTest);
-wait(function () { return done; });
-
-/* =>
-error
-{body: "", headers: {}, reason: "not found", status: 404}
 */
 
 // == SECTION core - data-uri requests
@@ -409,16 +314,18 @@ error
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'data:text/html;charset=utf-8,%3Ch1%3EHello%20World%21%3C%2Fh1%3E' });
-res.then(printSuccess, printError).always(finishTest);
+GET('data:text/html;charset=utf-8,%3Ch1%3EHello%20World%21%3C%2Fh1%3E')
+  .then(printSuccess, printError)
+  .always(finishTest);
 wait(function () { return done; });
 
 /* =>
 success
 {
+  ContentType: "text/html",
+  _buffer: "<h1>Hello World!</h1>",
   body: "<h1>Hello World!</h1>",
-  headers: {"content-type": "text/html"},
-  reason: "ok",
+  reason: undefined,
   status: 200
 }
 */
@@ -427,16 +334,18 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'data:text/html;charset=utf-8;base64,PGgxPkhlbGxvIFdvcmxkITwvaDE+' });
-res.then(printSuccess, printError).always(finishTest);
+GET('data:text/html;charset=utf-8;base64,PGgxPkhlbGxvIFdvcmxkITwvaDE+')
+  .then(printSuccess, printError)
+  .always(finishTest);
 wait(function () { return done; });
 
 /* =>
 success
 {
+  ContentType: "text/html",
+  _buffer: "<h1>Hello World!</h1>",
   body: "<h1>Hello World!</h1>",
-  headers: {"content-type": "text/html"},
-  reason: "ok",
+  reason: undefined,
   status: 200
 }
 */
@@ -445,190 +354,38 @@ success
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'data:text/html;charset=utf-8,' });
-res.then(printSuccess, printError).always(finishTest);
+GET('data:text/html;charset=utf-8,')
+  .then(printSuccess, printError)
+  .always(finishTest);
 wait(function () { return done; });
 
 /* =>
 success
-{body: "", headers: {"content-type": "text/html"}, reason: "ok", status: 200}
+{
+  ContentType: "text/html",
+  _buffer: "",
+  body: "",
+  reason: undefined,
+  status: 200
+}
 */
 
 // empty body, base64-encoded
 
 done = false;
 startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'data:text/html;charset=utf-8;base64,' });
-res.then(printSuccess, printError).always(finishTest);
+GET('data:text/html;charset=utf-8;base64,')
+  .then(printSuccess, printError)
+  .always(finishTest);
 wait(function () { return done; });
 
 /* =>
-success
-{body: "", headers: {"content-type": "text/html"}, reason: "ok", status: 200}
-*/
-
-
-// == SECTION core - proxy requests
-
-// proxy to local server
-
-done = false;
-startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'local://proxy/local://test.com' });
-res.then(function(res) {
-  res.parsedHeaders.link.forEach(function(link) {
-    var props = Object.getOwnPropertyNames(link);
-    print(props.map(function(prop){ return prop+'="'+link[prop]+'"'; }).join('; '));
-  });
-  return res;
-}).then(printSuccess, printError).always(finishTest);
-wait(function () { return done; });
-
-/* =>
-href="local://test.com/"; rel="self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"; host_domain="test.com"
-href="local://test.com/events"; rel="collection"; id="events"; host_domain="test.com"
-href="local://test.com/foo"; rel="collection"; id="foo"; host_domain="test.com"
-href="local://test.com/{id}"; rel="collection"; host_domain="test.com"
 success
 {
-  body: "service resource",
-  headers: {
-    "content-type": "text/plain",
-    link: "<local://test.com/>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", <local://test.com/events>; rel=\"collection\"; id=\"events\", <local://test.com/foo>; rel=\"collection\"; id=\"foo\", <local://test.com/{id}>; rel=\"collection\"",
-    "proxy-tmpl": "local://proxy/{uri}",
-    via: "httpl/1.0 proxy"
-  },
-  reason: "ok",
-  status: 200
-}
-*/
-
-// proxy to proxy to local server
-
-done = false;
-startTime = Date.now();
-var res = local.dispatch({ method:'get', url:'local://proxy/local://proxy/local://test.com' });
-res.then(function(res) {
-  res.parsedHeaders.link.forEach(function(link) {
-    var props = Object.getOwnPropertyNames(link);
-    print(props.map(function(prop){ return prop+'="'+link[prop]+'"'; }).join('; '));
-  });
-  return res;
-}).then(printSuccess, printError).always(finishTest);
-wait(function () { return done; });
-
-/* =>
-href="local://test.com/"; rel="self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"; host_domain="test.com"
-href="local://test.com/events"; rel="collection"; id="events"; host_domain="test.com"
-href="local://test.com/foo"; rel="collection"; id="foo"; host_domain="test.com"
-href="local://test.com/{id}"; rel="collection"; host_domain="test.com"
-success
-{
-  body: "service resource",
-  headers: {
-    "content-type": "text/plain",
-    link: "<local://test.com/>; rel=\"self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com\", <local://test.com/events>; rel=\"collection\"; id=\"events\", <local://test.com/foo>; rel=\"collection\"; id=\"foo\", <local://test.com/{id}>; rel=\"collection\"",
-    "proxy-tmpl": "local://proxy/{uri} local://proxy/{uri}",
-    via: "httpl/1.0 proxy, httpl/1.0 proxy"
-  },
-  reason: "ok",
-  status: 200
-}
-*/
-
-// Proxy-Tmpl header
-
-done = false;
-startTime = Date.now();
-var proxyagent = local.agent('local://proxy/local://test.com');
-var res = proxyagent.follow({ rel: 'collection', id: 'foo' }).GET();
-res.then(function(res) {
-  res.parsedHeaders.link.forEach(function(link) {
-    var props = Object.getOwnPropertyNames(link);
-    print(props.map(function(prop){ return prop+'="'+link[prop]+'"'; }).join('; '));
-  });
-  return res;
-}).then(printSuccess, printError).always(finishTest);
-wait(function () { return done; });
-
-/* =>
-href="local://test.com/"; rel="up via service"; host_domain="test.com"
-href="local://test.com/foo"; rel="self current"; host_domain="test.com"
-href="local://test.com/foo/{id}"; rel="item"; host_domain="test.com"
-success
-{
-  body: ["bar", "baz", "blah"],
-  headers: {
-    "content-type": "application/json",
-    link: "<local://test.com/>; rel=\"up via service\", <local://test.com/foo>; rel=\"self current\", <local://test.com/foo/{id}>; rel=\"item\"",
-    "proxy-tmpl": "local://proxy/{uri}",
-    via: "httpl/1.0 proxy"
-  },
-  reason: "ok",
-  status: 200
-}
-*/
-
-// Proxy-Tmpl header through the proxy-proxy
-
-done = false;
-startTime = Date.now();
-var proxyagent = local.agent('local://proxy/local://proxy/local://test.com');
-var res = proxyagent.follow({ rel: 'collection', id: 'foo' }).GET();
-res.then(function(res) {
-  res.parsedHeaders.link.forEach(function(link) {
-    var props = Object.getOwnPropertyNames(link);
-    print(props.map(function(prop){ return prop+'="'+link[prop]+'"'; }).join('; '));
-  });
-  return res;
-}).then(printSuccess, printError).always(finishTest);
-wait(function () { return done; });
-
-/* =>
-href="local://test.com/"; rel="up via service"; host_domain="test.com"
-href="local://test.com/foo"; rel="self current"; host_domain="test.com"
-href="local://test.com/foo/{id}"; rel="item"; host_domain="test.com"
-success
-{
-  body: ["bar", "baz", "blah"],
-  headers: {
-    "content-type": "application/json",
-    link: "<local://test.com/>; rel=\"up via service\", <local://test.com/foo>; rel=\"self current\", <local://test.com/foo/{id}>; rel=\"item\"",
-    "proxy-tmpl": "local://proxy/{uri} local://proxy/{uri}",
-    via: "httpl/1.0 proxy, httpl/1.0 proxy"
-  },
-  reason: "ok",
-  status: 200
-}
-*/
-
-// Proxy-Tmpl header w/noproxy links
-
-done = false;
-startTime = Date.now();
-var proxyagent = local.agent('local://proxy');
-var res = proxyagent.follow({ rel: 'self' }).GET();
-res.then(function(res) {
-  res.parsedHeaders.link.forEach(function(link) {
-    var props = Object.getOwnPropertyNames(link);
-    print(props.map(function(prop){ return prop+'="'+link[prop]+'"'; }).join('; '));
-  });
-  return res;
-}).then(printSuccess, printError).always(finishTest);
-wait(function () { return done; });
-
-/* =>
-href="local://proxy/"; rel="self service"; noproxy="true"; host_domain="proxy"
-href="local://test.com"; rel="service"; host_domain="test.com"
-href="local://proxy/{uri}"; rel="service"; noproxy="true"; host_domain="proxy"
-success
-{
+  ContentType: "text/html",
+  _buffer: "",
   body: "",
-  headers: {
-    link: "</>; rel=\"self service\"; noproxy, <local://test.com>; rel=\"service\", </{uri}>; rel=\"service\"; noproxy",
-    "proxy-tmpl": "local://proxy/{uri}"
-  },
-  reason: "ok, no content",
-  status: 204
+  reason: undefined,
+  status: 200
 }
 */

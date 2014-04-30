@@ -1,6 +1,8 @@
 var util = require('../util');
 var helpers = require('./helpers.js');
 var contentTypes = require('./content-types.js');
+var httpHeaders = require('./http-headers.js');
+var Response = require('./response.js');
 
 // schemes
 // =======
@@ -33,13 +35,13 @@ function schemes__get(scheme) {
 
 // HTTP
 // ====
-schemes.register(['http', 'https'], function(request, response) {
+schemes.register(['http', 'https'], function(oreq, ires) {
 	// parse URL
-	var urld = helpers.parseUri(request.url);
+	var urld = helpers.parseUri(oreq.headers.url);
 
-	// if a query was given in the options, mix it into the urld
-	if (request.query) {
-		var q = contentTypes.serialize('application/x-www-form-urlencoded', request.query);
+	// if query params were given in the headers, mix it into the urld
+	if (Object.keys(oreq.headers.params).length) {
+		var q = contentTypes.serialize('application/x-www-form-urlencoded', oreq.headers.params);
 		if (q) {
 			if (urld.query) { urld.query += '&' + q; }
 			else            { urld.query = q; }
@@ -50,43 +52,43 @@ schemes.register(['http', 'https'], function(request, response) {
 	// assemble the final url
 	var url = ((urld.protocol) ? (urld.protocol + '://') : '//') + urld.authority + urld.relative;
 
-	// create the request
+	// create the xhr
 	var xhrRequest = new XMLHttpRequest();
-	xhrRequest.open(request.method, url, true);
-	if (request.binary) {
+	xhrRequest.open(oreq.headers.method, url, true);
+	if (oreq.isBinary) {
 		xhrRequest.responseType = 'arraybuffer';
-		if (request.stream)
-			console.warn('Got HTTP/S request with binary=true and stream=true - sorry, not supported, binary responses must be buffered (its a browser thing)', request);
+		if (oreq.stream)
+			console.warn('Got HTTP/S request with isBinary=true and stream=true - sorry, not supported, binary responses must be buffered (its a browser thing)', request);
 	}
 
 	// set headers
-	request.serializeHeaders();
-	for (var k in request.headers) {
-		if (request.headers[k] !== null && request.headers.hasOwnProperty(k))
-			xhrRequest.setRequestHeader(k, request.headers[k]);
+	var headers = extractOreqHeaders(oreq.headers);
+	for (var k in headers) {
+		if (headers[k] !== null)
+			xhrRequest.setRequestHeader(k, httpHeaders.serialize(k, headers[k]));
 	}
 
 	// buffer the body, send on end
 	var body = '';
-	request.on('data', function(data) {
-		if (typeof data == 'string') {
-			body += data;
-		} else {
-			body = data; // Assume it is an array buffer or some such
-		}
+	oreq.on('data', function(data) {
+		// :TODO: serialize non-string
+		if (typeof data == 'string') { body += data; }
+		else { body = data; } // assume it is an array buffer or some such
 	});
-	request.on('end', function() { xhrRequest.send(body); });
+	oreq.on('end', function() { xhrRequest.send(body); });
 
-	// abort on request close
-	request.on('close', function() {
+	// abort on oreq close
+	oreq.on('close', function() {
 		if (xhrRequest.readyState !== XMLHttpRequest.DONE) {
 			xhrRequest.aborted = true;
 			xhrRequest.abort();
 		}
 	});
 
-	// register response handlers
+	// register res handlers
 	var streamPoller=0, lenOnLastPoll=0, headersSent = false;
+	var ores = new Response();
+	ores.wireUp(ires);
 	xhrRequest.onreadystatechange = function() {
 		if (xhrRequest.readyState >= XMLHttpRequest.HEADERS_RECEIVED && !headersSent) {
 			headersSent = true;
@@ -98,15 +100,14 @@ schemes.register(['http', 'https'], function(request, response) {
 					xhrRequest.getAllResponseHeaders().split("\n").forEach(function(h) {
 						if (!h) { return; }
 						var kv = h.replace('\r','').split(': ');
-						headers[kv[0].toLowerCase()] = kv.slice(1).join(': ');
+						ores.header(kv[0], kv.slice(1).join(': '));
 					});
 				} else {
 					// a bug in firefox causes getAllResponseHeaders to return an empty string on CORS
 					// (not ideal, but) iterate the likely headers
 					var extractHeader = function(k) {
 						var v = xhrRequest.getResponseHeader(k);
-						if (v)
-							headers[k.toLowerCase()] = v.toLowerCase();
+						if (v) ores.header(k, v);
 					};
 					extractHeader('Accept-Ranges');
 					extractHeader('Age');
@@ -141,10 +142,12 @@ schemes.register(['http', 'https'], function(request, response) {
 				}
 			}
 
-			response.writeHead(xhrRequest.status, xhrRequest.statusText, headers);
+			// send headers
+			ores.status(xhrRequest.status, xhrRequest.statusText);
+			ores.start();
 
 			// start polling for updates
-			if (!response.binary) {
+			if (!oreq.isBinary) {
 				// ^ browsers buffer binary responses, so dont bother streaming
 				streamPoller = setInterval(function() {
 					// new data?
@@ -152,7 +155,7 @@ schemes.register(['http', 'https'], function(request, response) {
 					if (len > lenOnLastPoll) {
 						var chunk = xhrRequest.response.slice(lenOnLastPoll);
 						lenOnLastPoll = len;
-						response.write(chunk);
+						ores.write(chunk);
 					}
 				}, 50);
 			}
@@ -160,29 +163,51 @@ schemes.register(['http', 'https'], function(request, response) {
 		if (xhrRequest.readyState === XMLHttpRequest.DONE) {
 			if (streamPoller)
 				clearInterval(streamPoller);
-			if (response.status !== 0 && xhrRequest.status === 0 && !xhrRequest.aborted) {
+			if (ires.status !== 0 && xhrRequest.status === 0 && !xhrRequest.aborted) {
 				// a sudden switch to 0 (after getting a non-0) probably means a timeout
 				console.debug('XHR looks like it timed out; treating it as a premature close'); // just in case things get weird
-				response.close();
+				ores.close();
 			} else {
-				if (xhrRequest.response)
-					response.write(xhrRequest.response.slice(lenOnLastPoll));
-				response.end();
+				if (xhrRequest.response) {
+					if (typeof xhrRequest.response == 'string') {
+						var len = xhrRequest.response.length;
+						if (len > lenOnLastPoll) {
+							ores.write(xhrRequest.response.slice(lenOnLastPoll));
+						}
+					} else {
+						ores.write(xhrRequest.response);
+					}
+				}
+				ores.end();
 			}
 		}
 	};
 });
 
+// helper
+// pulls non-standard headers out of the request and makes sure they're formatted correctly
+var ucRegEx = /([a-z])([A-Z])/g; // lowercase followed by an uppercase
+function extractOreqHeaders(headers) {
+	var extraHeaders = {};
+	for (var k in headers) {
+		var kc = k.charAt(0);
+		if (headers.hasOwnProperty(k) && kc === kc.toUpperCase()) { // starts uppercase?
+			var k2 = k.replace(ucRegEx, function(all, $1, $2) { return $1+'-'+$2; });
+			extraHeaders[k2] = headers[k];
+		}
+	}
+	return extraHeaders;
+}
 
 // Data
 // ====
-schemes.register('data', function(request, response) {
-	var firstColonIndex = request.url.indexOf(':');
-	var firstCommaIndex = request.url.indexOf(',');
+schemes.register('data', function(oreq, ires) {
+	var firstColonIndex = oreq.headers.url.indexOf(':');
+	var firstCommaIndex = oreq.headers.url.indexOf(',');
 
 	// parse parameters
 	var param;
-	var params = request.url.slice(firstColonIndex+1, firstCommaIndex).split(';');
+	var params = oreq.headers.url.slice(firstColonIndex+1, firstCommaIndex).split(';');
 	var contentType = params.shift();
 	var isBase64 = false;
 	while ((param = params.shift())) {
@@ -191,14 +216,14 @@ schemes.register('data', function(request, response) {
 	}
 
 	// parse data
-	var data = request.url.slice(firstCommaIndex+1);
+	var data = oreq.headers.url.slice(firstCommaIndex+1);
 	if (!data) data = '';
 	if (isBase64) data = atob(data);
 	else data = decodeURIComponent(data);
 
-	// respond (async)
-	util.nextTick(function() {
-		response.writeHead(200, 'ok', {'content-type': contentType});
-		response.end(data);
-	});
+	// respond
+	var ores = new Response();
+	ores.wireUp(ires);
+	ores.s200().ContentType(contentType);
+	ores.end(data);
 });
