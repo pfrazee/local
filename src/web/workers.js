@@ -90,7 +90,7 @@ function spawnWorker(urld) {
 }
 
 function WorkerWrapper() {
-	this.isActive = false;
+	this.isReady = false;
 	this.isTemp = false;
 
 	this.worker = null;
@@ -107,7 +107,7 @@ WorkerWrapper.prototype.setTemporary = function(v) {
 };
 
 WorkerWrapper.prototype.load = function(urld) {
-	var url = urld.source;
+	var url = ((urld.protocol) ? urld.protocol + '://' : '') + urld.authority + urld.path;
 	var this2 = this;
 
 	// If no scheme was given, check our cache to see if we can save ourselves some trouble
@@ -144,7 +144,7 @@ WorkerWrapper.prototype.load = function(urld) {
 			bootstrap_src = bootstrap_src.replace(/<HOST_DIR_URL>/g, hostroot + (hosturld.directory||'').slice(0,-1));
 
 			// Create worker
-			this2.script_blob = new Blob([bootstrap_src+res.body], { type: "text/javascript" });
+			this2.script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'})();'], { type: "text/javascript" });
 			this2.script_objurl = window.URL.createObjectURL(this2.script_blob);
 			this2.worker = new Worker(this2.script_objurl);
 			this2.setup();
@@ -166,7 +166,7 @@ WorkerWrapper.prototype.setup = function() {
 		// Handle messages with an `op` field as worker-control packets rather than HTTPL messages
 		switch (message.op) {
 			case 'ready':
-				this2.isActive = true;
+				this2.isReady = true;
 				this2.bridge.flushBufferedMessages();
 				break;
 			case 'log':
@@ -200,7 +200,7 @@ WorkerWrapper.prototype.terminate = function(status, reason) {
 	this.worker = null;
 	this.script_blob = null;
 	this.script_objurl = null;
-	this.isActive = false;
+	this.isReady = false;
 };
 
 // Logs message data from the worker

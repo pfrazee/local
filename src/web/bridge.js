@@ -1,6 +1,8 @@
 var helpers = require('./helpers.js');
 var Request = require('./request.js');
 var Response = require('./response.js');
+var IncomingRequest = require('./incoming-request.js');
+var IncomingResponse = require('./incoming-response.js');
 
 var debugLog = false;
 
@@ -89,14 +91,14 @@ Bridge.prototype.onRequest = function(ireq, ores) {
 			msg[k] = ireq[k];
 		}
 	}
-	this.send(JSON.stringify(msg));
+	this.send(msg);
 
 	// Wire up ireq stream events
 	var this2 = this;
-	ireq.on('data',  function(data) { this2.send(JSON.stringify({ sid: sid, body: data })); });
-	ireq.on('end', function()       { this2.send(JSON.stringify({ sid: sid, end: true })); });
+	ireq.on('data',  function(data) { this2.send({ sid: sid, body: data }); });
+	ireq.on('end', function()       { this2.send({ sid: sid, end: true }); });
 	ireq.on('close', function()     {
-		this2.send(JSON.stringify({ sid: sid, close: true }));
+		this2.send({ sid: sid, close: true });
 		delete this2.outgoingStreams[sid];
 	});
 };
@@ -131,53 +133,80 @@ Bridge.prototype.onMessage = function(msg) {
 
 		// Is a new request - validate URL
 		if (!msg.path) { return this.log('warn', 'Dropping HTTPL request with no path', msg); }
-		msg.url = (msg.path.charAt(0) == '#') ? msg.path : ('#'+msg.path);
-		delete msg.path;
 
-		// Create request
-		var oreq = new Request(msg, this.channel);
-		stream = this.incomingStreams[msg.sid] = oreq;
+	    // Get the handler
+        var httpl = require('./httpl.js');
+	    var handler, pathd, routes = httpl.getRoutes();
+		for (var i=0; i < routes.length; i++) {
+			pathd = routes[i].path.exec(msg.path);
+			if (pathd) {
+				handler = routes[i].handler;
+				break;
+			}
+		}
+		msg.pathd = pathd;
+        if (!handler) { handler = function(req, res) { res.s404('not found').end(); }; };
 
+	    // Create incoming request, incoming response and outgoing response
+	    var ireq = new IncomingRequest(msg);
+        var ires = new IncomingResponse();
+	    var ores = new Response();
+        stream = this.incomingStreams[msg.sid] = ireq;
+        this.outgoingStreams[resSid] = ires;
+
+	    // Wire up events
+	    ores.wireUp(ires);
+        ireq.memoEventsTillNextTick();
+        ires.memoEventsTillNextTick();
+
+        // Wire response into the channel
 		var this2 = this;
 		var resSid = -(msg.sid);
-		oreq.always(function(ires) {
-			this2.outgoingStreams[resSid] = ires;
-
-			// Send headers
-			var msg = { sid: resSid, status: ires.status, reason: ires.reason };
-			for (var k in ires) { if (helpers.isHeaderKey(k)) { msg[k] = ires[k]; } }
-			this2.send(JSON.stringify(msg));
-
-			// Wire response into the channel
-			ires.on('data', function(data) {
-				this2.send(JSON.stringify({ sid: resSid, body: data }));
-			});
-			ires.on('end', function() {
-				this2.send(JSON.stringify({ sid: resSid, end: true }));
-			});
-			ires.on('close', function() {
-				this2.send(JSON.stringify({ sid: resSid, close: true }));
-				delete this2.outgoingStreams[resSid];
-			});
+        ires.on('headers', function(headers) {
+			var msg = { sid: resSid, status: headers.status, reason: headers.reason };
+			for (var k in headers) { if (helpers.isHeaderKey(k)) { msg[k] = headers[k]; } }
+			this2.send(msg);
+        });		
+		ires.on('data', function(data) {
+			this2.send({ sid: resSid, body: data });
 		});
+		ires.on('end', function() {
+			this2.send({ sid: resSid, end: true });
+		});
+		ires.on('close', function() {
+			this2.send({ sid: resSid, close: true });
+			delete this2.outgoingStreams[resSid];
+		});
+
+        // Fire handler
+        handler(ireq, ores);
 	}
 
 	// Pipe received data into stream
-	if (msg.sid < 0 && (stream instanceof Response) && typeof msg.status != 'undefined') {
-		stream.status(msg.status, msg.reason);
-		for (var k in msg) {
-			if (helpers.isHeaderKey(k)) {
-				stream.header(k, msg[k]);
-			}
-		}
-		stream.start();
-	}
-	if (msg.body) { stream.write(msg.body); }
-	if (msg.end) { stream.end(); }
-	if (msg.close) {
-		stream.close();
-		delete this.incomingStreams[msg.sid];
-	}
+	if (msg.sid < 0 && (stream instanceof Response)) {
+        if (typeof msg.status != 'undefined') {
+		    stream.status(msg.status, msg.reason);
+		    for (var k in msg) {
+			    if (helpers.isHeaderKey(k)) {
+				    stream.header(k, msg[k]);
+			    }
+		    }
+		    stream.start();
+	    }
+	    if (msg.body) { stream.write(msg.body); }
+	    if (msg.end) { stream.end(); }
+	    if (msg.close) {
+		    stream.close();
+		    delete this.incomingStreams[msg.sid];
+	    }
+    } else if (msg.sid > 0 && (stream instanceof IncomingRequest)) {
+        if (msg.body) { stream.emit('data', msg.body); }
+        if (msg.end) { stream.emit('end'); }
+        if (msg.close) {
+            stream.emit('close');
+            delete this.incomingStreams[msg.sid];
+        }
+    }
 };
 
 // helper used to decide if a temp worker can be ejected

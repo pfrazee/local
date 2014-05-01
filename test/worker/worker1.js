@@ -1,34 +1,29 @@
 importScripts('../../local.js');
 var counter = 0;
-local.worker.setServer(function(req, res, page) {
-	if (req.path == '/' && req.method == 'GET') {
-		res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
+local.at('#', function(req, res) {
+	if (req.GET) {
+        res.s200().ContentType('text');
 		res.end(''+counter++);
 		return;
 	}
-	if (req.path == '/' && req.method == 'POST') {
-		req.body_.then(function(body) {
-			res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
-			res.end(body.toUpperCase());
+	if (req.POST) {
+        req.buffer(function() {
+            res.s200().ContentType('text');
+			res.end(req.body.toUpperCase());
 		});
 		return;
 	}
-	if (req.path == '/' && req.method == 'BOUNCE') {
-		local.dispatch({ method: 'GET', url: 'local://host.env?foo='+local.worker.config.myname, query: { bar: 'bazz' } })
-			.always(function(res2) {
-				res.writeHead(200, 'ok', { 'content-type': 'text/plain' });
-				res.end(res2.body);
-			});
-		return;
+    if (req.BOUNCE) {
+        return GET('#hello?foo=alice', { bar: 'bazz' }).pipe(res);
 	}
-	if (req.path == '/' && req.method == 'IMPORT') {
+    if (req.IMPORT) {
 		try {
 			importScripts('../../local.js');
-			res.writeHead(500, 'Lib Error').end('Error: import was allowed');
+            res.s500('lib error').end('Error: import was allowed');
 		} catch(e) {
-			res.writeHead(200, 'OK').end(e.toString());
+            res.s200().end(e.toString());
 		}
 		return;
 	}
-	res.writeHead(404, 'not found').end();
+    res.s405().end();
 });

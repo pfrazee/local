@@ -36,11 +36,14 @@ schemes.register('#', function (oreq, ires) {
 
 	// Get the handler
 	var handler;
+    // Are we in a worker?
+    if (typeof self.document == 'undefined' && self.pageBridge) {
+        handler = self.pageBridge.onRequest.bind(self.pageBridge);
 	// Is a host URL given?
-	if (oreq.urld.path) {
+	} else if (oreq.urld.path) {
 		// Try to get/load the VM
 		handler = workers.getWorker(oreq.urld);
-	} else {
+    } else {
 		// Match the route in the current page
 		var pathd;
 		for (var i=0; i < _routes.length; i++) {

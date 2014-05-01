@@ -1,23 +1,36 @@
 // load worker
-local.spawnWorkerServer('/test/worker/worker1.js', { myname: 'alice' }, function(req, res, me) {
+local.spawnWorker('/test/worker/worker1.js', { myname: 'alice' }, function(req, res, me) {
 	console.log(me.config.domain);
-	res.writeHead(200, 'ok', { 'content-type': 'text/plain' }).end('yes, hello '+req.query.foo+' '+req.query.bar);
+
 });
-// local.spawnWorkerServer('/test/worker/worker2.js', { myname: 'bob' });
-local.addServer('worker-bridge', function(req, res, worker) {
-	console.log(worker.config.domain);
-	res.writeHead(200, 'ok', { 'content-type': 'text/plain' }).end('no, bye '+req.query.foo+' '+req.query.bar);
+// local.spawnWorker('/test/worker/worker2.js', { myname: 'bob' });
+
+local.at('#hello', function(req, res, worker) {
+    console.log(worker);
+    res.s200().ContentType('text').end('yes, hello '+req.params.foo+' '+req.params.bar);
+});
+
+local.at('#worker1.js/?(.*)', function(req, res, worker) {
+    console.log(worker);
+    var req2 = local.dispatch({ method: req.method, url: '/test/worker/worker2.js#'+req.pathd[1] });
+    req.pipe(req2);
+    req2.pipe(res);
+});
+
+local.at('#worker2.js/?(.*)', function(req, res, worker) {
+    console.log(worker);
+    var req2 = local.dispatch({ method: req.method, url: '/test/worker/worker2.js#'+req.pathd[1] });
+    req.pipe(req2);
+    req2.pipe(res);
 });
 
 // GET tests
 done = false;
 startTime = Date.now();
-var worker1API = local.agent('local://dev.grimwire.com(test/worker/worker1.js)');
-var worker2API = local.agent('local://dev.grimwire.com(test/worker/worker2.js)');
 var responses_ = [];
 for (var i = 0; i < 10; i++) {
-	responses_.push(worker1API.dispatch());
-	responses_.push(worker2API.dispatch());
+	responses_.push(GET('/test/worker/worker1.js#').end());
+    responses_.push(GET('/test/worker/worker2.js#').end());
 }
 
 local.promise.bundle(responses_)
@@ -55,12 +68,10 @@ wait(function () { return done; });
 
 done = false;
 startTime = Date.now();
-var worker1API = local.agent('local://dev.grimwire.com(test/worker/worker1.js)');
-var worker2API = local.agent('local://dev.grimwire.com(test/worker/worker2.js)');
 var responses_ = [];
 for (var i = 0; i < 10; i++) {
-	responses_.push(worker1API.post('FooBar'));
-	responses_.push(worker2API.post('FooBar'));
+	responses_.push(POST('/test/worker/worker1.js#').end('FooBar'));
+    responses_.push(POST('/test/worker/worker2.js#').end('FooBar'));
 }
 
 local.promise.bundle(responses_)
@@ -98,11 +109,9 @@ wait(function () { return done; });
 
 done = false;
 startTime = Date.now();
-var worker1API = local.agent('local://dev.grimwire.com(test/worker/worker1.js)');
-var worker2API = local.agent('local://dev.grimwire.com(test/worker/worker2.js)');
 var responses_ = [
-	worker1API.dispatch({ method: 'bounce' }),
-	worker2API.dispatch({ method: 'bounce' })
+    local.dispatch({ method: 'BOUNCE', url: '/test/worker/worker1.js#' }),
+    local.dispatch({ method: 'BOUNCE', url: '/test/worker/worker2.js#' })
 ];
 
 local.promise.bundle(responses_)
@@ -117,14 +126,13 @@ wait(function () { return done; });
 
 /* =>
 200 yes, hello alice bazz
-200 no, bye bob buzz
+200 yes, hello bob buzz
 */
 
 // importScripts() disabling test
 done = false;
 startTime = Date.now();
-var worker1API = local.agent('local://dev.grimwire.com(test/worker/worker1.js)');
-worker1API.dispatch({ method: 'IMPORT' })
+local.dispatch({ method: 'IMPORT', url: '/test/worker/worker1.js#' })
 	.always(function(res) {
 		print(res.status + ' ' + res.body);
 		finishTest();

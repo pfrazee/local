@@ -89,7 +89,7 @@ if (typeof self != 'undefined' && typeof self.window == 'undefined') { (function
 
 	// Setup page connection
 	var Bridge = require('../web/bridge.js');
-	var pageBridge = new Bridge(self);
+    self.pageBridge = new Bridge(self);
 	self.addEventListener('message', function(event) {
 		var message = event.data;
 		if (!message)
