@@ -1,12 +1,10 @@
 // load worker
-local.spawnWorker('/test/worker/worker1.js', { myname: 'alice' }, function(req, res, me) {
-	console.log(me.config.domain);
-
-});
-// local.spawnWorker('/test/worker/worker2.js', { myname: 'bob' });
+local.spawnWorker('/test/worker/worker1.js');
+// local.spawnWorker('/test/worker/worker2.js');
 
 local.at('#hello', function(req, res, worker) {
     console.log(worker);
+    res.Link({ href: '#' });
     res.s200().ContentType('text').end('yes, hello '+req.params.foo+' '+req.params.bar);
 });
 
@@ -35,7 +33,8 @@ for (var i = 0; i < 10; i++) {
 
 local.promise.bundle(responses_)
 	.always(function(responses) {
-		responses.forEach(function(res) {
+		responses.forEach(function(res, i) {
+            if (i==0) print(res.links);
 			print(res.status + ' ' + res.body);
 			console.log(res.latency+' ms');
 		});
@@ -44,6 +43,7 @@ local.promise.bundle(responses_)
 wait(function () { return done; });
 
 /* =>
+[{href: "http://test/worker/worker1.js/#"}]
 200 0
 200 100
 200 1
@@ -118,6 +118,7 @@ local.promise.bundle(responses_)
 	.always(function(responses) {
 		responses.forEach(function(res) {
 			print(res.status + ' ' + res.body);
+            print(res.Link);
 			console.log(res.latency+' ms');
 		});
 		finishTest();
@@ -126,7 +127,9 @@ wait(function () { return done; });
 
 /* =>
 200 yes, hello alice bazz
+{href: "http://dev.grimwire.com/test/worker/worker1.js/#"}
 200 yes, hello bob buzz
+{href: "http://dev.grimwire.com/test/worker/worker2.js/#"}
 */
 
 // importScripts() disabling test

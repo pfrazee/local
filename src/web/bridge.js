@@ -4,7 +4,7 @@ var Response = require('./response.js');
 var IncomingRequest = require('./incoming-request.js');
 var IncomingResponse = require('./incoming-response.js');
 
-var debugLog = false;
+var debugLog = true;
 
 // Bridge
 // ======
@@ -165,6 +165,7 @@ Bridge.prototype.onMessage = function(msg) {
         ires.on('headers', function(headers) {
 			var msg = { sid: resSid, status: headers.status, reason: headers.reason };
 			for (var k in headers) { if (helpers.isHeaderKey(k)) { msg[k] = headers[k]; } }
+            ires.processHeaders(this2.channel.source_url, headers);
 			this2.send(msg);
         });		
 		ires.on('data', function(data) {

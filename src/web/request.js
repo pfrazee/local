@@ -161,7 +161,7 @@ Request.prototype.start = function() {
 	// Setup response object
 	var requestStartTime = Date.now();
 	var ires = new IncomingResponse();
-	ires.on('headers', ires.processHeaders.bind(ires, this));
+	ires.on('headers', ires.processHeaders.bind(ires, (this.isVirtual && !this.urld.authority && !this.urld.path) ? false : this.urld));
 	ires.on('end', function() {
 		// Track latency
 		ires.latency = Date.now() - requestStartTime;

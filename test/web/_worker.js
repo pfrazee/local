@@ -11,10 +11,10 @@ local.at('#', function(req, res) {
 		payload += ' '+JSON.stringify(req.params);
 	}
 	linkHeader = [
-		{ rel:'self current', href:'/' },
-		{ rel:'collection', href:'/events', id:'events' },
-		{ rel:'collection', href:'/foo', id:'foo' },
-		{ rel:'collection', href:'/{id}' }
+		{ rel:'self current', href:'#' },
+		{ rel:'collection', href:'#events', id:'events' },
+		{ rel:'collection', href:'#foo', id:'foo' },
+		{ rel:'collection', href:'#{id}' }
 	];
 	res.s200().ContentType('plain').Link(linkHeader).end(payload);
 });
@@ -50,17 +50,17 @@ local.at('#foo/([A-z]*)$', function(req, res) {
 		payload = itemName;
 	}
 	linkHeader = [
-		{ rel:'via service', href:'/' },
-		{ rel:'up collection index', href:'/foo' },
-		{ rel:'self current', href:'/foo/'+itemName },
-		{ rel:'first', href:'/foo/'+foos[0] },
-		{ rel:'last', href:'/foo/'+foos[foos.length - 1] }
+		{ rel:'via service', href:'#' },
+		{ rel:'up collection index', href:'#foo' },
+		{ rel:'self current', href:'#foo/'+itemName },
+		{ rel:'first', href:'#foo/'+foos[0] },
+		{ rel:'last', href:'#foo/'+foos[foos.length - 1] }
 	];
 	if (itemIndex !== 0) {
-		linkHeader.push({ rel:'prev', href:'/foo/'+foos[itemIndex - 1] });
+		linkHeader.push({ rel:'prev', href:'#foo/'+foos[itemIndex - 1] });
 	}
 	if (itemIndex !== foos.length - 1) {
-		linkHeader.push({ rel:'next', href:'/foo/'+foos[itemIndex + 1] });
+		linkHeader.push({ rel:'next', href:'#foo/'+foos[itemIndex + 1] });
 	}
 	res.s200().ContentType('json').Link(linkHeader);
 	res.end('"'+payload+'"');

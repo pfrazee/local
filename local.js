@@ -1051,7 +1051,7 @@ var Response = require('./response.js');
 var IncomingRequest = require('./incoming-request.js');
 var IncomingResponse = require('./incoming-response.js');
 
-var debugLog = false;
+var debugLog = true;
 
 // Bridge
 // ======
@@ -1212,6 +1212,7 @@ Bridge.prototype.onMessage = function(msg) {
         ires.on('headers', function(headers) {
 			var msg = { sid: resSid, status: headers.status, reason: headers.reason };
 			for (var k in headers) { if (helpers.isHeaderKey(k)) { msg[k] = headers[k]; } }
+            ires.processHeaders(this2.channel.source_url, headers);
 			this2.send(msg);
         });		
 		ires.on('data', function(data) {
@@ -2340,7 +2341,7 @@ IncomingRequest.prototype.buffer = function(cb) {
 //   - `headersCb`: (optional) takes `(k, v)` from source and responds updated header for otarget
 //   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for otarget
 IncomingRequest.prototype.pipe = function(target, headersCB, bodyCb) {
-	headersCB = headersCB || function(v) { return v; };
+	headersCB = headersCB || function(k, v) { return v; };
 	bodyCb = bodyCb || function(v) { return v; };
 	if (target instanceof require('./request')) {
 		if (!target.headers.method) {
@@ -2398,7 +2399,7 @@ IncomingResponse.prototype = Object.create(util.EventEmitter.prototype);
 module.exports = IncomingResponse;
 
 // Parses headers, makes sure response header links are absolute
-IncomingResponse.prototype.processHeaders = function(oreq, headers) {
+IncomingResponse.prototype.processHeaders = function(baseUrl, headers) {
 	this.status = headers.status;
 	this.reason = headers.reason;
 
@@ -2418,15 +2419,15 @@ IncomingResponse.prototype.processHeaders = function(oreq, headers) {
 
 	// Update the link headers
 	if (this.link) {
-		this.links = this.link;
+		this.links = Array.isArray(this.link) ? this.link : [this.link];
 		delete this.link;
 		this.links.forEach(function(link) {
 			// Convert relative paths to absolute uris
-			if (!helpers.isAbsUri(link.href)) {
-				if (oreq.isVirtual) {
-					link.href = '#'+link.href;
+			if (!helpers.isAbsUri(link.href) || (baseUrl && link.href.charAt(0) == '#')) {
+				if (baseUrl) {
+                    link.href = helpers.joinRelPath(baseUrl, link.href);
 				} else {
-					link.href = helpers.joinRelPath(oreq.urld, link.href);
+					link.href = '#'+link.href;
 				}
 			}
 		});
@@ -2466,7 +2467,7 @@ IncomingResponse.prototype.buffer = function(cb) {
 //   - `headersCb`: (optional) takes `(k, v)` from source and responds updated header for target
 //   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for target
 IncomingResponse.prototype.pipe = function(target, headersCB, bodyCb) {
-	headersCB = headersCB || function(v) { return v; };
+	headersCB = headersCB || function(k, v) { return v; };
 	bodyCb = bodyCb || function(v) { return v; };
 	if (target instanceof require('./response')) {
 		if (!target.headers.status) {
@@ -2655,7 +2656,7 @@ Request.prototype.start = function() {
 	// Setup response object
 	var requestStartTime = Date.now();
 	var ires = new IncomingResponse();
-	ires.on('headers', ires.processHeaders.bind(ires, this));
+	ires.on('headers', ires.processHeaders.bind(ires, (this.isVirtual && !this.urld.authority && !this.urld.path) ? false : this.urld));
 	ires.on('end', function() {
 		// Track latency
 		ires.latency = Date.now() - requestStartTime;

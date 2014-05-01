@@ -3,6 +3,7 @@ var counter = 0;
 local.at('#', function(req, res) {
 	if (req.GET) {
         res.s200().ContentType('text');
+        res.Link({ href: '#' });
 		res.end(''+counter++);
 		return;
 	}

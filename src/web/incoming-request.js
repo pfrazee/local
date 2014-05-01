@@ -73,7 +73,7 @@ IncomingRequest.prototype.buffer = function(cb) {
 //   - `headersCb`: (optional) takes `(k, v)` from source and responds updated header for otarget
 //   - `bodyCb`: (optional) takes `(body)` from source and responds updated body for otarget
 IncomingRequest.prototype.pipe = function(target, headersCB, bodyCb) {
-	headersCB = headersCB || function(v) { return v; };
+	headersCB = headersCB || function(k, v) { return v; };
 	bodyCb = bodyCb || function(v) { return v; };
 	if (target instanceof require('./request')) {
 		if (!target.headers.method) {
