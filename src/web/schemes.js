@@ -35,7 +35,18 @@ function schemes__get(scheme) {
 
 // HTTP
 // ====
+var inWorker = (typeof self != 'undefined' && typeof self.window == 'undefined');
 schemes.register(['http', 'https'], function(oreq, ires) {
+	var ores = new Response();
+	ores.wireUp(ires);
+
+	// No XHR in workers
+	if (inWorker) {
+		ores.status(0, 'public web requests are not allowed from workers');
+		ores.end();
+		return;
+	}
+
 	// parse URL
 	var urld = helpers.parseUri(oreq.headers.url);
 
@@ -87,8 +98,6 @@ schemes.register(['http', 'https'], function(oreq, ires) {
 
 	// register res handlers
 	var streamPoller=0, lenOnLastPoll=0, headersSent = false;
-	var ores = new Response();
-	ores.wireUp(ires);
 	xhrRequest.onreadystatechange = function() {
 		if (xhrRequest.readyState >= XMLHttpRequest.HEADERS_RECEIVED && !headersSent) {
 			headersSent = true;
@@ -187,12 +196,12 @@ schemes.register(['http', 'https'], function(oreq, ires) {
 // helper
 // pulls non-standard headers out of the request and makes sure they're formatted correctly
 var ucRegEx = /([a-z])([A-Z])/g; // lowercase followed by an uppercase
+function headerReplacer(all, $1, $2) { return $1+'-'+$2; }
 function extractOreqHeaders(headers) {
 	var extraHeaders = {};
 	for (var k in headers) {
-		var kc = k.charAt(0);
-		if (headers.hasOwnProperty(k) && kc === kc.toUpperCase()) { // starts uppercase?
-			var k2 = k.replace(ucRegEx, function(all, $1, $2) { return $1+'-'+$2; });
+		if (helpers.isHeaderKey(k)) {
+			var k2 = k.replace(ucRegEx, headerReplacer);
 			extraHeaders[k2] = headers[k];
 		}
 	}

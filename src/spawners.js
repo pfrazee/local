@@ -34,9 +34,23 @@ function spawnWorkerServer(src, config, serverFn) {
 			domain = window.location.host + '(' + src_parts[0].slice(1) + ')';
 		}
 	}
-
-	// Create the server
 	if (httpl.getServer(domain)) throw "Worker already exists";
+
+	// Eject a temp server if needed
+	var nWorkerServers = 0, ejectCandidate = null;
+	for (var d in httpl.getServers()) {
+		var s = httpl.getServer(d).context;
+		if (!(s instanceof WorkerBridgeServer))
+			continue;
+		if (!ejectCandidate && s.config.temp && !s.isInTransaction())
+			ejectCandidate = s;
+		nWorkerServers++;
+	}
+	if (nWorkerServers >= localConfig.maxActiveWorkers && ejectCandidate) {
+		console.log('Closing temporary worker', ejectCandidate.config.domain);
+		ejectCandidate.terminate();
+		httpl.removeServer(ejectCandidate.config.domain);
+	}
 	var server = new WorkerBridgeServer(config);
 	httpl.addServer(domain, server);
 

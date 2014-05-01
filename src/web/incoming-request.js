@@ -15,11 +15,11 @@ function IncomingRequest(headers) {
 	// Set attributes
 	this.method = (headers.method) ? headers.method.toUpperCase() : 'GET';
 	this[this.method] = true;
+	this.path = headers.path || '#';
 	this.params = (headers.params) || {};
 	this.isBinary = false; // stream is binary? :TODO:
 	for (var k in headers) {
-		var kc = k.charAt(0);
-		if (kc === kc.toUpperCase()) { // starts uppercase?
+		if (helpers.isHeaderKey(k)) { // starts uppercase?
 			// Is a header, save
 			this[k] = headers[k];
 
@@ -83,7 +83,7 @@ IncomingRequest.prototype.pipe = function(target, headersCB, bodyCb) {
 			target.headers.url = this.url;
 		}
 		for (var k in this) {
-			if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in target.headers) && k.charAt(0) != '_') {
+			if (helpers.isHeaderKey(k)) {
 				target.header(k, headersCB(k, this[k]));
 			}
 		}

@@ -3,24 +3,21 @@ var util = require('./util');
 module.exports = {
 	Request: require('./web/request.js'),
 	Response: require('./web/response.js'),
-	// BridgeServer: require('./web/bridge-server.js'),
-	// WorkerBridgeServer: require('./web/worker-bridge-server.js'),
+	Bridge: require('./web/bridge.js'),
 	UriTemplate: require('./web/uri-template.js'),
 
 	util: util,
 	schemes: require('./web/schemes.js'),
 	httpHeaders: require('./web/http-headers.js'),
-	contentTypes: require('./web/content-types.js'),
-
-	// worker: require('./worker'),
+	contentTypes: require('./web/content-types.js')
 };
 util.mixin.call(module.exports, require('./constants.js'));
 util.mixin.call(module.exports, require('./config.js'));
 util.mixin.call(module.exports, require('./promises.js'));
-// util.mixin.call(module.exports, require('./spawners.js'));
 util.mixin.call(module.exports, require('./request-event.js'));
 util.mixin.call(module.exports, require('./web/helpers.js'));
 util.mixin.call(module.exports, require('./web/httpl.js'));
+util.mixin.call(module.exports, require('./web/workers.js'));
 // util.mixin.call(module.exports, require('./web/subscribe.js'));
 // util.mixin.call(module.exports, require('./web/agent.js'));
 
@@ -63,3 +60,6 @@ if (global) {
 	global.SUBSCRIBE = local.SUBSCRIBE;
 	global.NOTIFY    = local.NOTIFY;
 }
+
+// Run worker setup (does nothing outside of a worker)
+require('./worker');

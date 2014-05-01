@@ -3,6 +3,7 @@ var schemes = require('./schemes.js');
 var contentTypes = require('./content-types.js');
 var IncomingRequest = require('./incoming-request.js');
 var Response = require('./response.js');
+var workers = require('./workers.js');
 
 // Local Routes Registry
 // =====================
@@ -31,24 +32,26 @@ schemes.register('#', function (oreq, ires) {
 		var queryParams = local.contentTypes.deserialize('application/x-www-form-urlencoded', urld2.query);
 		oreq.param(queryParams);
 	}
-	oreq.path = '#' + urld2.path.slice(1);
+	oreq.headers.path = '#' + urld2.path.slice(1);
 
-	// Match the route
-	var pathd, handler;
-	for (var i=0; i < _routes.length; i++) {
-		pathd = _routes[i].path.exec(oreq.path);
-		if (pathd) {
-			handler = _routes[i].handler;
-			break;
+	// Get the handler
+	var handler;
+	// Is a host URL given?
+	if (oreq.urld.path) {
+		// Try to get/load the VM
+		handler = workers.getWorker(oreq.urld);
+	} else {
+		// Match the route in the current page
+		var pathd;
+		for (var i=0; i < _routes.length; i++) {
+			pathd = _routes[i].path.exec(oreq.headers.path);
+			if (pathd) {
+				handler = _routes[i].handler;
+				break;
+			}
 		}
+		oreq.headers.pathd = pathd;
 	}
-	// :TODO: equivalent
-	// 	if (req.urld.srcPath) {
-	// 		// Try to load worker to handle response
-	// 		console.log('Spawning temporary worker', req.urld.authority);
-	// 		return require('../spawners.js').spawnWorkerServer(null, { domain: req.urld.authority, temp: true });
-	// 	}
-	oreq.pathd = pathd;
 
 	// Create incoming request / outgoing response
 	var ireq = new IncomingRequest(oreq.headers);
@@ -64,7 +67,7 @@ schemes.register('#', function (oreq, ires) {
 
 	// Pass on to the handler
 	if (handler) {
-		handler(ireq, ores);
+		handler(ireq, ores, oreq.originChannel);
 	} else {
 		ores.s404().end();
 	}

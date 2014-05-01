@@ -382,12 +382,22 @@ wait(function () { return done; });
 /* =>
 success
 {
+  ContentType: "text/plain",
+  Link: [
+    {href: "#/", rel: "self current"},
+    {href: "#/events", id: "events", rel: "collection"},
+    {href: "#/foo", id: "foo", rel: "collection"},
+    {href: "#/{id}", rel: "collection"}
+  ],
+  _buffer: "service resource",
   body: "service resource",
-  headers: {
-    "content-type": "text/plain",
-    link: "</>; rel=\"self current\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
-  },
-  reason: "ok",
+  links: [
+    {href: "#/", rel: "self current"},
+    {href: "#/events", id: "events", rel: "collection"},
+    {href: "#/foo", id: "foo", rel: "collection"},
+    {href: "#/{id}", rel: "collection"}
+  ],
+  reason: undefined,
   status: 200
 }
 */
@@ -405,12 +415,22 @@ wait(function () { return done; });
 /* =>
 success
 {
+  ContentType: "text/plain",
+  Link: [
+    {href: "#/", rel: "self current"},
+    {href: "#/events", id: "events", rel: "collection"},
+    {href: "#/foo", id: "foo", rel: "collection"},
+    {href: "#/{id}", rel: "collection"}
+  ],
+  _buffer: "service resource",
   body: "service resource",
-  headers: {
-    "content-type": "text/plain",
-    link: "</>; rel=\"self current\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
-  },
-  reason: "ok",
+  links: [
+    {href: "#/", rel: "self current"},
+    {href: "#/events", id: "events", rel: "collection"},
+    {href: "#/foo", id: "foo", rel: "collection"},
+    {href: "#/{id}", rel: "collection"}
+  ],
+  reason: undefined,
   status: 200
 }
 */
@@ -426,26 +446,7 @@ wait(function () { return done; });
 
 /* =>
 error
-{body: "", headers: {},  reason: "not found", status: 404}
-*/
-
-// test of a unserializable response
-
-done = false;
-startTime = Date.now();
-GET('dev.grimwire.com/test/web/_worker.js#unserializable-response')
-  .then(printSuccess, printError)
-  .always(finishTest);
-wait(function () { return done; });
-
-/* =>
-success
-{
-  body: "[object Object]",
-  headers: {"content-type": "text/faketype"},
-  reason: "ok",
-  status: 200
-}
+{_buffer: "", body: "", reason: undefined, status: 404}
 */
 
 // query params
@@ -460,12 +461,22 @@ wait(function () { return done; });
 /* =>
 success
 {
+  ContentType: "text/plain",
+  Link: [
+    {href: "#/", rel: "self current"},
+    {href: "#/events", id: "events", rel: "collection"},
+    {href: "#/foo", id: "foo", rel: "collection"},
+    {href: "#/{id}", rel: "collection"}
+  ],
+  _buffer: "service resource {\"foo\":\"bar\"}",
   body: "service resource {\"foo\":\"bar\"}",
-  headers: {
-    "content-type": "text/plain",
-    link: "</>; rel=\"self current\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
-  },
-  reason: "ok",
+  links: [
+    {href: "#/", rel: "self current"},
+    {href: "#/events", id: "events", rel: "collection"},
+    {href: "#/foo", id: "foo", rel: "collection"},
+    {href: "#/{id}", rel: "collection"}
+  ],
+  reason: undefined,
   status: 200
 }
 */
@@ -482,12 +493,22 @@ wait(function () { return done; });
 /* =>
 success
 {
+  ContentType: "text/plain",
+  Link: [
+    {href: "#/", rel: "self current"},
+    {href: "#/events", id: "events", rel: "collection"},
+    {href: "#/foo", id: "foo", rel: "collection"},
+    {href: "#/{id}", rel: "collection"}
+  ],
+  _buffer: "service resource {\"foo\":\"bar\"}",
   body: "service resource {\"foo\":\"bar\"}",
-  headers: {
-    "content-type": "text/plain",
-    link: "</>; rel=\"self current\", </events>; rel=\"collection\"; id=\"events\", </foo>; rel=\"collection\"; id=\"foo\", </{id}>; rel=\"collection\""
-  },
-  reason: "ok",
+  links: [
+    {href: "#/", rel: "self current"},
+    {href: "#/events", id: "events", rel: "collection"},
+    {href: "#/foo", id: "foo", rel: "collection"},
+    {href: "#/{id}", rel: "collection"}
+  ],
+  reason: undefined,
   status: 200
 }
 */

@@ -7,8 +7,8 @@ local.at('#', function(req, res) {
 	if (req.method === 'GET') {
 		payload = 'service resource';
 	}
-	if (Object.keys(req.query).length > 0) {
-		payload += ' '+JSON.stringify(req.query);
+	if (Object.keys(req.params).length > 0) {
+		payload += ' '+JSON.stringify(req.params);
 	}
 	linkHeader = [
 		{ rel:'self current', href:'/' },
@@ -87,9 +87,4 @@ local.at('#pipe', function(req, res) {
 		return body.toUpperCase();
 	};
 	res.pipe(GET('#').end(), headerUpdate, bodyUpdate);
-});
-
-local.at('#unserializable-res', function(req, res) {
-	res.s200().ContentType('text/faketype');
-	res.end({ unserializable: 'res' });
 });

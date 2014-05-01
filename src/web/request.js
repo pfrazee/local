@@ -9,7 +9,7 @@ var IncomingResponse = require('./incoming-response.js');
 // =======
 // EXPORTED
 // Interface for sending requests
-function Request(headers) {
+function Request(headers, originChannel) {
 	util.EventEmitter.call(this);
 	promises.Promise.call(this);
 	if (!headers) headers = {};
@@ -20,6 +20,7 @@ function Request(headers) {
 	this.headers = headers;
 	this.headers.method = (this.headers.method) ? this.headers.method.toUpperCase() : 'GET';
 	this.headers.params = (this.headers.params) || {};
+	this.originChannel = originChannel;
 	this.isBinary = false; // stream is binary?
 	this.isVirtual = undefined; // request going to virtual host?
 	this.isBufferingResponse = false; // auto-buffering the response?
@@ -180,9 +181,9 @@ Request.prototype.start = function() {
 	ires.on('close', fulfill); // will have no effect if already called
 
 	// Execute by scheme
-	var scheme = (this2.isVirtual) ? '#' : parseScheme(this2.headers.url);
+	var scheme = (this.isVirtual) ? '#' : parseScheme(this.headers.url);
 	var schemeHandler = schemes.get(scheme);
-	if (schemeHandler) { schemeHandler(this2, ires); }
+	if (schemeHandler) { schemeHandler(this, ires); }
 	else {
 		// invalid scheme
 		var ores = new Response();

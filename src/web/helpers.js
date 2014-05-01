@@ -371,6 +371,16 @@ function makeProxyUri(uri, templates) {
 	return uri;
 }
 
+// EXPORTED
+// identifiers a string as a header key
+// - 'FooBar' -> true
+// - 'foo' -> false
+// - 'foo-bar' -> false
+var ucRegEx = /^[A-Z]/;
+function isHeaderKey(k) {
+	return ucRegEx.test(k);
+}
+
 // :TODO:
 // EXPORTED
 // modifies XMLHttpRequest to support HTTPL
@@ -524,6 +534,8 @@ module.exports = {
 	parseUri: parseUri,
 	parseNavUri: parseNavUri,
 	makeProxyUri: makeProxyUri,
+
+	isHeaderKey: isHeaderKey,
 
 	// patchXHR: patchXHR :TODO:
 };

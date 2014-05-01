@@ -1,18 +1,6 @@
-if (typeof self != 'undefined' && typeof self.window == 'undefined') {
-
-	var util = require('../util');
-	var schemes = require('../web/schemes.js');
-	var httpl = require('../web/httpl.js');
-	var WorkerConfig = require('./config.js');
-	var PageBridgeServer = require('./page-bridge-server.js');
-
-	// Setup
-	// =====
-	module.exports = { config: WorkerConfig };
-	util.mixinEventEmitter(module.exports);
-
-	// EXPORTED
-	// console.* replacements
+if (typeof self != 'undefined' && typeof self.window == 'undefined') { (function() {
+	// GLOBAL
+	// custom console.*
 	self.console = {
 		log: function() {
 			var args = Array.prototype.slice.call(arguments);
@@ -36,15 +24,12 @@ if (typeof self != 'undefined' && typeof self.window == 'undefined') {
 		}
 	};
 	function doLog(type, args) {
-		var hostPage = module.exports.hostPage;
-		try { hostPage.channelSendMsg({ op: 'log', body: [type].concat(args) }); }
+		try { self.postMessage({ op: 'log', body: [type].concat(args) }); }
 		catch (e) {
 			// this is usually caused by trying to log information that cant be serialized
-			hostPage.channelSendMsg({ op: 'log', body: [type].concat(args.map(JSONifyMessage)) });
+			self.postMessage({ op: 'log', body: [type].concat(args.map(JSONifyMessage)) });
 		}
 	}
-
-	// INTERNAL
 	// helper to try to get a failed log message through
 	function JSONifyMessage(data) {
 		if (Array.isArray(data))
@@ -54,17 +39,11 @@ if (typeof self != 'undefined' && typeof self.window == 'undefined') {
 		return data;
 	}
 
-	// INTERNAL
-	// set the http/s schemes to report disabled
-	schemes.register(['http', 'https'], function(req, res) {
-		res.writeHead(0, 'XHR Not Allowed in Workers for Security Reasons').end();
-	});
-
-	// EXPORTED
-	// btoa shim
+	// GLOBAL
+	// btoa polyfill
 	// - from https://github.com/lydonchandra/base64encoder
 	//   (thanks to Lydon Chandra)
-	if (!self.btoa) {
+	if (typeof btoa == 'undefined') {
 		var PADCHAR = '=';
 		var ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 		function getbyte(s,i) {
@@ -108,41 +87,14 @@ if (typeof self != 'undefined' && typeof self.window == 'undefined') {
 		};
 	}
 
-	module.exports.setServer = function(fn) {
-		self.main = fn;
-		httpl.addServer('self', fn);
-	};
-
-	module.exports.pages = [];
-	function addConnection(port) {
-		// Create new page server
-		var isHost = (!module.exports.hostPage); // First to add = host page
-		var page = new PageBridgeServer(module.exports.pages.length, port, isHost);
-
-		// Track new connection
-		if (isHost) {
-			module.exports.hostPage = page;
-			httpl.addServer('host.env', page);
-		}
-		module.exports.pages.push(page);
-		httpl.addServer(page.id+'.env', page);
-
-		// Let the document know we're active
-		if (port.start) {
-			port.start();
-		}
-		page.channelSendMsg({ op: 'ready', body: { hostPrivileges: isHost } });
-
-		// Fire event
-		module.exports.emit('connect', page);
-	}
-
-	// Setup for future connections (shared worker)
-	addEventListener('connect', function(e) {
-		addConnection(e.ports[0]);
+	// Setup page connection
+	var Bridge = require('../web/bridge.js');
+	var pageBridge = new Bridge(self);
+	self.addEventListener('message', function(event) {
+		var message = event.data;
+		if (!message)
+			return console.error('Invalid message from page: Payload missing', event);
+		pageBridge.onMessage(message);
 	});
-	// Create connection to host page (regular worker)
-	if (self.postMessage) {
-		addConnection(self);
-	}
-}
+	self.postMessage({ op: 'ready' });
+})(); }

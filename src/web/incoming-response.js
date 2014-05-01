@@ -33,8 +33,7 @@ IncomingResponse.prototype.processHeaders = function(oreq, headers) {
 
 	// Parse headers
 	for (var k in headers) {
-		var kc = k.charAt(0);
-		if (kc === kc.toUpperCase()) { // starts uppercase?
+		if (helpers.isHeaderKey(k)) {
 			// Is a header, save
 			this[k] = headers[k];
 
@@ -103,7 +102,7 @@ IncomingResponse.prototype.pipe = function(target, headersCB, bodyCb) {
 			target.status(this.status, this.reason);
 		}
 		for (var k in this) {
-			if (k.charAt(0) == k.charAt(0).toUpperCase() && !(k in target.headers) && k.charAt(0) != '_') {
+			if (helpers.isHeaderKey(k)) {
 				target.header(k, headersCB(k, this[k]));
 			}
 		}

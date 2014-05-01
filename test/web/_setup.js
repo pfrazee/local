@@ -1,5 +1,5 @@
 // worker local scaffold server
-// local.spawnWorkerServer('/test/web/_worker.js', { log: true });
+local.spawnWorker('/test/web/_worker.js');
 
 // document local scaffold server
 
