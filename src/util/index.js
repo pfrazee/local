@@ -25,24 +25,7 @@ if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage)
 	// fallback for other environments / postMessage behaves badly on IE8
 	nextTick = function(fn) { setTimeout(fn, 0); };
 } else {
-	var nextTickIndex = 0, nextTickFns = {};
-	nextTick = function(fn) {
-		if (typeof fn != 'function') { throw "Invalid function provided to nextTick"; }
-		window.postMessage('nextTick'+nextTickIndex, '*');
-		nextTickFns['nextTick'+nextTickIndex] = fn;
-		nextTickIndex++;
-	};
-	window.addEventListener('message', function(evt){
-		var fn = nextTickFns[evt.data];
-		if (fn) {
-			delete nextTickFns[evt.data];
-			fn();
-		}
-	}, true);
-
-	// The following is the original version by // https://github.com/timoxley/next-tick
-	// It was replaced by the above to avoid the try/catch block
-	/*
+	// https://github.com/timoxley/next-tick
 	var nextTickQueue = [];
 	nextTick = function(fn) {
 		if (!nextTickQueue.length) window.postMessage('nextTick', '*');
@@ -61,7 +44,6 @@ if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage)
 		}
 		nextTickQueue.length = 0;
 	}, true);
-	*/
 }
 
 module.exports = {

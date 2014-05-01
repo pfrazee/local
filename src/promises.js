@@ -61,12 +61,12 @@ Promise.prototype.then = function(succeedFn, failFn) {
 		this.failCBs.push({ p:p, fn:failFn });
 	} else {
 		var self = this;
-		util.nextTick(function() {
+		//util.nextTick(function() {
 			if (self.isFulfilled())
 				execCallback(self, p, succeedFn);
 			else
 				execCallback(self, p, failFn);
-		});
+		//});
 	}
 	return p;
 };

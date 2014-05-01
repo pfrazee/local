@@ -210,12 +210,12 @@ Promise.prototype.then = function(succeedFn, failFn) {
 		this.failCBs.push({ p:p, fn:failFn });
 	} else {
 		var self = this;
-		util.nextTick(function() {
+		//util.nextTick(function() {
 			if (self.isFulfilled())
 				execCallback(self, p, succeedFn);
 			else
 				execCallback(self, p, failFn);
-		});
+		//});
 	}
 	return p;
 };
@@ -993,24 +993,7 @@ if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage)
 	// fallback for other environments / postMessage behaves badly on IE8
 	nextTick = function(fn) { setTimeout(fn, 0); };
 } else {
-	var nextTickIndex = 0, nextTickFns = {};
-	nextTick = function(fn) {
-		if (typeof fn != 'function') { throw "Invalid function provided to nextTick"; }
-		window.postMessage('nextTick'+nextTickIndex, '*');
-		nextTickFns['nextTick'+nextTickIndex] = fn;
-		nextTickIndex++;
-	};
-	window.addEventListener('message', function(evt){
-		var fn = nextTickFns[evt.data];
-		if (fn) {
-			delete nextTickFns[evt.data];
-			fn();
-		}
-	}, true);
-
-	// The following is the original version by // https://github.com/timoxley/next-tick
-	// It was replaced by the above to avoid the try/catch block
-	/*
+	// https://github.com/timoxley/next-tick
 	var nextTickQueue = [];
 	nextTick = function(fn) {
 		if (!nextTickQueue.length) window.postMessage('nextTick', '*');
@@ -1029,7 +1012,6 @@ if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage)
 		}
 		nextTickQueue.length = 0;
 	}, true);
-	*/
 }
 
 module.exports = {
@@ -1069,7 +1051,7 @@ Bridge.prototype.log = function(type) {
 
 // Sends messages that were buffered while waiting for the channel to setup
 Bridge.prototype.flushBufferedMessages = function() {
-	this.log('debug', 'FLUSHING MESSAGES', JSON.stringify(this.msgBuffer));
+	//this.log('debug', 'FLUSHING MESSAGES', JSON.stringify(this.msgBuffer));
 	this.msgBuffer.forEach(function(msg) {
 		this.channel.postMessage(msg);
 	}, this);
@@ -1082,7 +1064,7 @@ Bridge.prototype.send = function(msg) {
 		// Buffer messages if not ready
 		this.msgBuffer.push(msg);
 	} else {
-		this.log('debug', 'SEND', msg);
+		//this.log('debug', 'SEND', msg);
         if (true || !!self.window) {
 		    this.channel.postMessage(msg);
         }
@@ -1145,7 +1127,7 @@ Bridge.prototype.onRequest = function(ireq, ores) {
 
 // HTTPL implementation for incoming messages
 Bridge.prototype.onMessage = function(msg) {
-	this.log('debug', 'RECV', msg);
+	//this.log('debug', 'RECV', msg);
 
 	// Validate and parse JSON
 	if (typeof msg == 'string') {

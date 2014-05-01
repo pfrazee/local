@@ -97,6 +97,23 @@ success
 }
 */
 
+// virtual request speedtest
+
+done = false;
+startTime = Date.now();
+GET('#').end().always(finishTest);
+wait(function () { return done; });
+done = false;
+startTime = Date.now();
+GET('#').end().always(finishTest);
+wait(function () { return done; });
+done = false;
+startTime = Date.now();
+GET('#').bufferResponse(false).end().always(finishTest);
+wait(function () { return done; });
+print('done');
+// => done
+
 // streamed virtual responses
 
 done = false;
