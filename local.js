@@ -1049,6 +1049,8 @@ var helpers = require('./helpers.js');
 var Request = require('./request.js');
 var Response = require('./response.js');
 
+var debugLog = false;
+
 // Bridge
 // ======
 // EXPORTED
@@ -1072,7 +1074,7 @@ Bridge.prototype.log = function(type) {
 
 // Sends messages that were buffered while waiting for the channel to setup
 Bridge.prototype.flushBufferedMessages = function() {
-	//this.log('debug', 'FLUSHING MESSAGES', JSON.stringify(this.msgBuffer));
+	if (debugLog) { this.log('debug', 'FLUSHING MESSAGES', JSON.stringify(this.msgBuffer)); }
 	this.msgBuffer.forEach(function(msg) {
 		this.channel.postMessage(msg);
 	}, this);
@@ -1085,7 +1087,7 @@ Bridge.prototype.send = function(msg) {
 		// Buffer messages if not ready
 		this.msgBuffer.push(msg);
 	} else {
-		//this.log('debug', 'SEND', msg);
+	    if (debugLog) { this.log('debug', 'SEND', msg); }
         if (true || !!self.window) {
 		    this.channel.postMessage(msg);
         }
@@ -1148,7 +1150,7 @@ Bridge.prototype.onRequest = function(ireq, ores) {
 
 // HTTPL implementation for incoming messages
 Bridge.prototype.onMessage = function(msg) {
-	//this.log('debug', 'RECV', msg);
+	if (debugLog) { this.log('debug', 'RECV', msg); }
 
 	// Validate and parse JSON
 	if (typeof msg == 'string') {
@@ -2212,6 +2214,7 @@ schemes.register('#', function (oreq, ires) {
 	ores.wireUp(ires);
     ireq.memoEventsTillNextTick();
     ires.memoEventsTillNextTick();
+	oreq.on('close', function() { ores.close(); });
 
 	// Support warnings
 	if (oreq.isBinary) // :TODO: add support
@@ -2593,13 +2596,13 @@ Request.prototype.pipe = function(target, headersCb, bodyCb) {
 Request.prototype.wireUp = function(other, async) {
 	if (async) {
 		var nextTick = function(fn) { return function(value) { util.nextTick(fn.bind(null, value)); }; };
-		this.on('headers', nextTick(other.emit.bind(other, 'headers')));
+		this.once('headers', nextTick(other.emit.bind(other, 'headers')));
 		this.on('data', nextTick(other.emit.bind(other, 'data')));
-		this.on('end', nextTick(other.emit.bind(other, 'end')));
+		this.once('end', nextTick(other.emit.bind(other, 'end')));
 	} else {
-		this.on('headers', other.emit.bind(other, 'headers'));
+		this.once('headers', other.emit.bind(other, 'headers'));
 		this.on('data', other.emit.bind(other, 'data'));
-		this.on('end', other.emit.bind(other, 'end'));
+		this.once('end', other.emit.bind(other, 'end'));
 	}
 };
 
@@ -2625,7 +2628,6 @@ Request.prototype.start = function() {
 		// Track latency
 		ires.latency = Date.now() - requestStartTime;
 	});
-	this.on('close', function() { ires.emit('close'); });
 	ires.on('close', function() {
 		// Close the request (if its still open)
 		this2.close();
@@ -2782,15 +2784,15 @@ function formatHeaderKey(str) {
 Response.prototype.wireUp = function(other, async) {
 	if (async) {
 		var nextTick = function(fn) { return function(value) { util.nextTick(fn.bind(null, value)); }; };
-		this.on('headers', nextTick(other.emit.bind(other, 'headers')));
+		this.once('headers', nextTick(other.emit.bind(other, 'headers')));
 		this.on('data', nextTick(other.emit.bind(other, 'data')));
-		this.on('end', nextTick(other.emit.bind(other, 'end')));
-		this.on('close', nextTick(other.emit.bind(other, 'close')));
+		this.once('end', nextTick(other.emit.bind(other, 'end')));
+		this.once('close', nextTick(other.emit.bind(other, 'close')));
 	} else {
-		this.on('headers', other.emit.bind(other, 'headers'));
+		this.once('headers', other.emit.bind(other, 'headers'));
 		this.on('data', other.emit.bind(other, 'data'));
-		this.on('end', other.emit.bind(other, 'end'));
-		this.on('close', other.emit.bind(other, 'close'));
+		this.once('end', other.emit.bind(other, 'end'));
+		this.once('close', other.emit.bind(other, 'close'));
 	}
 };
 
@@ -2937,6 +2939,7 @@ schemes.register(['http', 'https'], function(oreq, ires) {
 			xhrRequest.aborted = true;
 			xhrRequest.abort();
 		}
+        ores.close();
 	});
 
 	// register res handlers

@@ -94,6 +94,7 @@ schemes.register(['http', 'https'], function(oreq, ires) {
 			xhrRequest.aborted = true;
 			xhrRequest.abort();
 		}
+        ores.close();
 	});
 
 	// register res handlers

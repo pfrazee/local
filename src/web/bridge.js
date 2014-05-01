@@ -2,6 +2,8 @@ var helpers = require('./helpers.js');
 var Request = require('./request.js');
 var Response = require('./response.js');
 
+var debugLog = false;
+
 // Bridge
 // ======
 // EXPORTED
@@ -25,7 +27,7 @@ Bridge.prototype.log = function(type) {
 
 // Sends messages that were buffered while waiting for the channel to setup
 Bridge.prototype.flushBufferedMessages = function() {
-	//this.log('debug', 'FLUSHING MESSAGES', JSON.stringify(this.msgBuffer));
+	if (debugLog) { this.log('debug', 'FLUSHING MESSAGES', JSON.stringify(this.msgBuffer)); }
 	this.msgBuffer.forEach(function(msg) {
 		this.channel.postMessage(msg);
 	}, this);
@@ -38,7 +40,7 @@ Bridge.prototype.send = function(msg) {
 		// Buffer messages if not ready
 		this.msgBuffer.push(msg);
 	} else {
-		//this.log('debug', 'SEND', msg);
+	    if (debugLog) { this.log('debug', 'SEND', msg); }
         if (true || !!self.window) {
 		    this.channel.postMessage(msg);
         }
@@ -101,7 +103,7 @@ Bridge.prototype.onRequest = function(ireq, ores) {
 
 // HTTPL implementation for incoming messages
 Bridge.prototype.onMessage = function(msg) {
-	//this.log('debug', 'RECV', msg);
+	if (debugLog) { this.log('debug', 'RECV', msg); }
 
 	// Validate and parse JSON
 	if (typeof msg == 'string') {

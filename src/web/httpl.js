@@ -62,6 +62,7 @@ schemes.register('#', function (oreq, ires) {
 	ores.wireUp(ires);
     ireq.memoEventsTillNextTick();
     ires.memoEventsTillNextTick();
+	oreq.on('close', function() { ores.close(); });
 
 	// Support warnings
 	if (oreq.isBinary) // :TODO: add support

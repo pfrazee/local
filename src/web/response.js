@@ -71,15 +71,15 @@ function formatHeaderKey(str) {
 Response.prototype.wireUp = function(other, async) {
 	if (async) {
 		var nextTick = function(fn) { return function(value) { util.nextTick(fn.bind(null, value)); }; };
-		this.on('headers', nextTick(other.emit.bind(other, 'headers')));
+		this.once('headers', nextTick(other.emit.bind(other, 'headers')));
 		this.on('data', nextTick(other.emit.bind(other, 'data')));
-		this.on('end', nextTick(other.emit.bind(other, 'end')));
-		this.on('close', nextTick(other.emit.bind(other, 'close')));
+		this.once('end', nextTick(other.emit.bind(other, 'end')));
+		this.once('close', nextTick(other.emit.bind(other, 'close')));
 	} else {
-		this.on('headers', other.emit.bind(other, 'headers'));
+		this.once('headers', other.emit.bind(other, 'headers'));
 		this.on('data', other.emit.bind(other, 'data'));
-		this.on('end', other.emit.bind(other, 'end'));
-		this.on('close', other.emit.bind(other, 'close'));
+		this.once('end', other.emit.bind(other, 'end'));
+		this.once('close', other.emit.bind(other, 'close'));
 	}
 };
 
