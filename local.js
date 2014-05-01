@@ -880,19 +880,37 @@ function EventEmitter() {
 		enumerable: false,
 		writable: true
 	});
+
+    Object.defineProperty(this, '_memoHistory', {
+		value: null,
+		configurable: false,
+		enumerable: false,
+		writable: true
+	});
 }
 module.exports = EventEmitter;
 
+EventEmitter.prototype.memoEventsTillNextTick = function() {
+    this._memoHistory = {};
+    require('./index.js').nextTick((function() {
+        this._memoHistory = null;
+    }).bind(this));
+};
 
 EventEmitter.prototype.emit = function(type) {
 	var args = Array.prototype.slice.call(arguments);
+    args = args.slice(1);
 
 	var handlers = this._events[type];
-	if (!handlers) return false;
+	if (handlers) {
+	    for (var i = 0, l = handlers.length; i < l; i++)
+		    handlers[i].apply(this, args);
+    }
 
-	args = args.slice(1);
-	for (var i = 0, l = handlers.length; i < l; i++)
-		handlers[i].apply(this, args);
+    if (this._memoHistory) {
+        if (!this._memoHistory[type]) { this._memoHistory[type] = []; }
+        this._memoHistory[type].push(args);
+    }
 
 	return true;
 };
@@ -916,6 +934,12 @@ EventEmitter.prototype.addListener = function(type, listener) {
 	} else {
 		this._events[type].push(listener);
 	}
+
+    if (this._memoHistory && this._memoHistory[type] && this._memoHistory[type].length) {
+        for (var i = 0; i < this._memoHistory[type].length; i++) {
+            listener.apply(this, this._memoHistory[type][i]);
+        }
+    }
 
 	return this;
 };
@@ -965,7 +989,7 @@ EventEmitter.prototype.clearEvents = function() {
 EventEmitter.prototype.listeners = function(type) {
 	return this._events[type];
 };
-},{}],8:[function(require,module,exports){
+},{"./index.js":8}],8:[function(require,module,exports){
 var EventEmitter = require('./event-emitter.js');
 var DOM = require('./dom.js');
 
@@ -994,6 +1018,7 @@ if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage)
 	nextTick = function(fn) { setTimeout(fn, 0); };
 } else {
 	// https://github.com/timoxley/next-tick
+    var nextTickItem = 0; // tracked outside the handler in case one of them throws
 	var nextTickQueue = [];
 	nextTick = function(fn) {
 		if (!nextTickQueue.length) window.postMessage('nextTick', '*');
@@ -1001,16 +1026,12 @@ if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage)
 	};
 	window.addEventListener('message', function(evt){
 		if (evt.data != 'nextTick') { return; }
-		var i = 0;
-		while (i < nextTickQueue.length) {
-			try { nextTickQueue[i++](); }
-			catch (e) {
-				nextTickQueue = nextTickQueue.slice(i);
-				window.postMessage('nextTick', '*');
-				throw e;
-			}
+		while (nextTickItem < nextTickQueue.length) {
+            var i = nextTickItem; nextTickItem++;
+			nextTickQueue[i]();
 		}
 		nextTickQueue.length = 0;
+        nextTickItem = 0;
 	}, true);
 }
 
@@ -2187,8 +2208,10 @@ schemes.register('#', function (oreq, ires) {
 	var ores = new Response();
 
 	// Wire up events
-	oreq.wireUp(ireq, true);
-	ores.wireUp(ires, true);
+	oreq.wireUp(ireq);
+	ores.wireUp(ires);
+    ireq.memoEventsTillNextTick();
+    ires.memoEventsTillNextTick();
 
 	// Support warnings
 	if (oreq.isBinary) // :TODO: add support

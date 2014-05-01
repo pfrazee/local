@@ -10,19 +10,37 @@ function EventEmitter() {
 		enumerable: false,
 		writable: true
 	});
+
+    Object.defineProperty(this, '_memoHistory', {
+		value: null,
+		configurable: false,
+		enumerable: false,
+		writable: true
+	});
 }
 module.exports = EventEmitter;
 
+EventEmitter.prototype.memoEventsTillNextTick = function() {
+    this._memoHistory = {};
+    require('./index.js').nextTick((function() {
+        this._memoHistory = null;
+    }).bind(this));
+};
 
 EventEmitter.prototype.emit = function(type) {
 	var args = Array.prototype.slice.call(arguments);
+    args = args.slice(1);
 
 	var handlers = this._events[type];
-	if (!handlers) return false;
+	if (handlers) {
+	    for (var i = 0, l = handlers.length; i < l; i++)
+		    handlers[i].apply(this, args);
+    }
 
-	args = args.slice(1);
-	for (var i = 0, l = handlers.length; i < l; i++)
-		handlers[i].apply(this, args);
+    if (this._memoHistory) {
+        if (!this._memoHistory[type]) { this._memoHistory[type] = []; }
+        this._memoHistory[type].push(args);
+    }
 
 	return true;
 };
@@ -46,6 +64,12 @@ EventEmitter.prototype.addListener = function(type, listener) {
 	} else {
 		this._events[type].push(listener);
 	}
+
+    if (this._memoHistory && this._memoHistory[type] && this._memoHistory[type].length) {
+        for (var i = 0; i < this._memoHistory[type].length; i++) {
+            listener.apply(this, this._memoHistory[type][i]);
+        }
+    }
 
 	return this;
 };

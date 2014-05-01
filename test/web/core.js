@@ -419,6 +419,23 @@ success
 }
 */
 
+// virtual request speedtest
+
+done = false;
+startTime = Date.now();
+GET('dev.grimwire.com/test/web/_worker.js#').end().always(finishTest);
+wait(function () { return done; });
+done = false;
+startTime = Date.now();
+GET('dev.grimwire.com/test/web/_worker.js#').end().always(finishTest);
+wait(function () { return done; });
+done = false;
+startTime = Date.now();
+GET('dev.grimwire.com/test/web/_worker.js#').bufferResponse(false).end().always(finishTest);
+wait(function () { return done; });
+print('done');
+// => done
+
 // forced-virtual
 
 done = false;

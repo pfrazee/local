@@ -26,6 +26,7 @@ if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage)
 	nextTick = function(fn) { setTimeout(fn, 0); };
 } else {
 	// https://github.com/timoxley/next-tick
+    var nextTickItem = 0; // tracked outside the handler in case one of them throws
 	var nextTickQueue = [];
 	nextTick = function(fn) {
 		if (!nextTickQueue.length) window.postMessage('nextTick', '*');
@@ -33,16 +34,12 @@ if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage)
 	};
 	window.addEventListener('message', function(evt){
 		if (evt.data != 'nextTick') { return; }
-		var i = 0;
-		while (i < nextTickQueue.length) {
-			try { nextTickQueue[i++](); }
-			catch (e) {
-				nextTickQueue = nextTickQueue.slice(i);
-				window.postMessage('nextTick', '*');
-				throw e;
-			}
+		while (nextTickItem < nextTickQueue.length) {
+            var i = nextTickItem; nextTickItem++;
+			nextTickQueue[i]();
 		}
 		nextTickQueue.length = 0;
+        nextTickItem = 0;
 	}, true);
 }
 
