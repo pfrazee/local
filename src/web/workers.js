@@ -67,21 +67,18 @@ function spawnWorker(urld) {
 	}
 
 	// Eject a temp server if needed
-	// :TODO:
-	/*var nWorkerServers = 0, ejectCandidate = null;
-	for (var d in httpl.getServers()) {
-		var s = httpl.getServer(d).context;
-		if (!(s instanceof WorkerBridgeServer))
-			continue;
-		if (!ejectCandidate && s.config.temp && !s.isInTransaction())
-			ejectCandidate = s;
-		nWorkerServers++;
+	if (Object.keys(_workers).length >= local.maxActiveWorkers) {
+        var eject = null;
+	    for (var d in _workers) {
+		    if ( _workers[d].isTemp && !_workers[d].bridge.isInTransaction()) {
+                eject = d;
+                break;
+            }
+	    }
+		console.log('Closing temporary worker', eject);
+		_workers[eject].terminate();
+        delete _workers[eject];
 	}
-	if (nWorkerServers >= localConfig.maxActiveWorkers && ejectCandidate) {
-		console.log('Closing temporary worker', ejectCandidate.config.domain);
-		ejectCandidate.terminate();
-		httpl.removeServer(ejectCandidate.config.domain);
-	}*/
 
 	var worker = new WorkerWrapper();
 	_workers[urld.authority+urld.path] = worker;

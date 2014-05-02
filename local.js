@@ -1053,7 +1053,7 @@ var Response = require('./response.js');
 var IncomingRequest = require('./incoming-request.js');
 var IncomingResponse = require('./incoming-response.js');
 
-var debugLog = true;
+var debugLog = false;
 
 // Bridge
 // ======
@@ -1103,16 +1103,20 @@ Bridge.prototype.terminate = function(status, reason) {
 	status = status || 503;
 	reason = reason || 'Service Unavailable';
 	for (var sid in this.incomingStreams) {
-		if ((this.incomingStreams[sid] instanceof Response) && !this.incomingStreams[sid].headers.status) {
-			this.incomingStreams[sid].status(status, reason);
+        var s = this.incomingStreams[sid];
+		if ((s instanceof Response) && !s.headers.status) {
+			s.status(status, reason);
 		}
-		this.incomingStreams[sid].end();
+        if (s.end) { s.end(); }
+        else { s.clearEvents(); }
 	}
 	for (sid in this.outgoingStreams) {
-		if ((this.outgoingStreams[sid] instanceof Response) && !this.outgoingStreams[sid].headers.status) {
-			this.outgoingStreams[sid].status(status, reason);
+        var s = this.outgoingStreams[sid];
+		if ((s instanceof Response) && !s.headers.status) {
+			s.status(status, reason);
 		}
-		this.outgoingStreams[sid].end();
+        if (s.end) { s.end(); }
+        else { s.clearEvents(); }
 	}
 	this.incomingStreams = {};
 	this.outgoingStreams = {};
@@ -4264,21 +4268,18 @@ function spawnWorker(urld) {
 	}
 
 	// Eject a temp server if needed
-	// :TODO:
-	/*var nWorkerServers = 0, ejectCandidate = null;
-	for (var d in httpl.getServers()) {
-		var s = httpl.getServer(d).context;
-		if (!(s instanceof WorkerBridgeServer))
-			continue;
-		if (!ejectCandidate && s.config.temp && !s.isInTransaction())
-			ejectCandidate = s;
-		nWorkerServers++;
+	if (Object.keys(_workers).length >= local.maxActiveWorkers) {
+        var eject = null;
+	    for (var d in _workers) {
+		    if ( _workers[d].isTemp && !_workers[d].bridge.isInTransaction()) {
+                eject = d;
+                break;
+            }
+	    }
+		console.log('Closing temporary worker', eject);
+		_workers[eject].terminate();
+        delete _workers[eject];
 	}
-	if (nWorkerServers >= localConfig.maxActiveWorkers && ejectCandidate) {
-		console.log('Closing temporary worker', ejectCandidate.config.domain);
-		ejectCandidate.terminate();
-		httpl.removeServer(ejectCandidate.config.domain);
-	}*/
 
 	var worker = new WorkerWrapper();
 	_workers[urld.authority+urld.path] = worker;

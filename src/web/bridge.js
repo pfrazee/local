@@ -4,7 +4,7 @@ var Response = require('./response.js');
 var IncomingRequest = require('./incoming-request.js');
 var IncomingResponse = require('./incoming-response.js');
 
-var debugLog = true;
+var debugLog = false;
 
 // Bridge
 // ======
@@ -54,16 +54,20 @@ Bridge.prototype.terminate = function(status, reason) {
 	status = status || 503;
 	reason = reason || 'Service Unavailable';
 	for (var sid in this.incomingStreams) {
-		if ((this.incomingStreams[sid] instanceof Response) && !this.incomingStreams[sid].headers.status) {
-			this.incomingStreams[sid].status(status, reason);
+        var s = this.incomingStreams[sid];
+		if ((s instanceof Response) && !s.headers.status) {
+			s.status(status, reason);
 		}
-		this.incomingStreams[sid].end();
+        if (s.end) { s.end(); }
+        else { s.clearEvents(); }
 	}
 	for (sid in this.outgoingStreams) {
-		if ((this.outgoingStreams[sid] instanceof Response) && !this.outgoingStreams[sid].headers.status) {
-			this.outgoingStreams[sid].status(status, reason);
+        var s = this.outgoingStreams[sid];
+		if ((s instanceof Response) && !s.headers.status) {
+			s.status(status, reason);
 		}
-		this.outgoingStreams[sid].end();
+        if (s.end) { s.end(); }
+        else { s.clearEvents(); }
 	}
 	this.incomingStreams = {};
 	this.outgoingStreams = {};
