@@ -11,7 +11,7 @@ function EventEmitter() {
 		writable: true
 	});
 
-    Object.defineProperty(this, '_memoHistory', {
+    Object.defineProperty(this, '_memo', {
 		value: null,
 		configurable: false,
 		enumerable: false,
@@ -21,9 +21,10 @@ function EventEmitter() {
 module.exports = EventEmitter;
 
 EventEmitter.prototype.memoEventsTillNextTick = function() {
-    this._memoHistory = {};
+    if (this._memo) return;
+    this._memo = [];
     require('./index.js').nextTick((function() {
-        this._memoHistory = null;
+        this._memo = null;
     }).bind(this));
 };
 
@@ -37,9 +38,8 @@ EventEmitter.prototype.emit = function(type) {
 		    handlers[i].apply(this, args);
     }
 
-    if (this._memoHistory) {
-        if (!this._memoHistory[type]) { this._memoHistory[type] = []; }
-        this._memoHistory[type].push(args);
+    if (this._memo) {
+        this._memo.push([type,args]);
     }
 
 	return true;
@@ -65,9 +65,11 @@ EventEmitter.prototype.addListener = function(type, listener) {
 		this._events[type].push(listener);
 	}
 
-    if (this._memoHistory && this._memoHistory[type] && this._memoHistory[type].length) {
-        for (var i = 0; i < this._memoHistory[type].length; i++) {
-            listener.apply(this, this._memoHistory[type][i]);
+    if (this._memo && this._memo.length) {
+        for (var i = 0; i < this._memo.length; i++) {
+            if (this._memo[i][0] == type) {
+                listener.apply(this, this._memo[i][1]);
+            }
         }
     }
 

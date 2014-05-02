@@ -5,8 +5,7 @@
 
 done = false;
 startTime = Date.now();
-var stream = local.subscribe({ url:'#events' });
-stream.on('message', function(m) { print(m); });
+var stream = local.subscribe('#events');
 stream.on('foo', function(m) { print('foo', m.data); });
 stream.on('bar', function(m) { print('bar', m.data); });
 stream.on('close', function(e) {
@@ -17,15 +16,10 @@ stream.on('close', function(e) {
 wait(function () { return done; });
 
 /* =>
-{data: {c: 1}, event: "foo"}
 foo {c: 1}
-{data: {c: 2}, event: "foo"}
 foo {c: 2}
-{data: {c: 3}, event: "bar"}
 bar {c: 3}
-{data: {c: 4}, event: "foo"}
 foo {c: 4}
-{data: {c: 5}, event: "foo"}
 foo {c: 5}
 close
 */
@@ -34,8 +28,7 @@ close
 
 done = false;
 startTime = Date.now();
-var stream = local.subscribe({ url:'dev.grimwire.com/test/web/_worker.js#events' });
-stream.on('message', function(m) { print(m); });
+var stream = local.subscribe('dev.grimwire.com/test/web/_worker.js#events');
 stream.on('foo', function(m) { print('foo', m.data); });
 stream.on('bar', function(m) { print('bar', m.data); });
 stream.on('close', function(e) {
@@ -46,15 +39,10 @@ stream.on('close', function(e) {
 wait(function () { return done; });
 
 /* =>
-{data: {c: 1}, event: "foo"}
 foo {c: 1}
-{data: {c: 2}, event: "foo"}
 foo {c: 2}
-{data: {c: 3}, event: "bar"}
 bar {c: 3}
-{data: {c: 4}, event: "foo"}
 foo {c: 4}
-{data: {c: 5}, event: "foo"}
 foo {c: 5}
 close
 */
@@ -63,8 +51,7 @@ close
 
 done = false;
 startTime = Date.now();
-var stream2 = local.subscribe({ url:'http://grimwire.com:8080/events' });
-stream2.on('message', function(m) { print(m); });
+var stream2 = local.subscribe('http://grimwire.com:8080/events');
 stream2.on('foo', function(m) { print('foo', m.data); });
 stream2.on('bar', function(m) { print('bar', m.data); });
 stream2.on('close', function(e) {
@@ -75,15 +62,10 @@ stream2.on('close', function(e) {
 wait(function () { return done; });
 
 /* =>
-{data: {c: 1}, event: "foo"}
 foo {c: 1}
-{data: {c: 2}, event: "foo"}
 foo {c: 2}
-{data: {c: 3}, event: "bar"}
 bar {c: 3}
-{data: {c: 4}, event: "foo"}
 foo {c: 4}
-{data: {c: 5}, event: "foo"}
 foo {c: 5}
 close
 */

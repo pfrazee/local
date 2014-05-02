@@ -18,7 +18,7 @@ util.mixin.call(module.exports, require('./request-event.js'));
 util.mixin.call(module.exports, require('./web/helpers.js'));
 util.mixin.call(module.exports, require('./web/httpl.js'));
 util.mixin.call(module.exports, require('./web/workers.js'));
-// util.mixin.call(module.exports, require('./web/subscribe.js'));
+util.mixin.call(module.exports, require('./web/subscribe.js'));
 // util.mixin.call(module.exports, require('./web/agent.js'));
 
 // Request sugars
