@@ -19,7 +19,7 @@ util.mixin.call(module.exports, require('./web/helpers.js'));
 util.mixin.call(module.exports, require('./web/httpl.js'));
 util.mixin.call(module.exports, require('./web/workers.js'));
 util.mixin.call(module.exports, require('./web/subscribe.js'));
-// util.mixin.call(module.exports, require('./web/agent.js'));
+util.mixin.call(module.exports, require('./web/client.js'));
 
 // Request sugars
 function dispatch(headers) {
@@ -32,6 +32,9 @@ function dispatch(headers) {
 }
 function makeRequestSugar(method) {
 	return function(url, params) {
+        if (url instanceof module.exports.Client) {
+            return url[method]();
+        }
 		return dispatch({ method: method, url: url, params: params });
 	};
 }
@@ -59,6 +62,7 @@ if (global) {
 	global.DELETE    = local.DELETE;
 	global.SUBSCRIBE = local.SUBSCRIBE;
 	global.NOTIFY    = local.NOTIFY;
+    global.from      = local.client;
 }
 
 // Run worker setup (does nothing outside of a worker)

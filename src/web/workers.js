@@ -42,7 +42,7 @@ function get(urld) {
 
 	// Send back a failure responder
 	return function(req, res) {
-		res.status(0, 'request to '+req.headers.url+' expects '+req.urld.path+' to be a .js file');
+		res.status(0, 'request to '+url.source+' expects '+urld.path+' to be a .js file');
 		res.end();
 	};
 }

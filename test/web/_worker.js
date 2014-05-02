@@ -1,6 +1,6 @@
 importScripts('../../local.js');
 
-var foos = ['bar', 'baz', 'blah'];
+var foos = ['bar', 'bazzzz', 'blah'];
 
 local.at('#', function(req, res) {
 	var payload = null, linkHeader;
@@ -25,11 +25,11 @@ local.at('#foo', function(req, res) {
 		payload = foos;
 	}
 	linkHeader = [
-		{ rel:'up via service', href:'/' },
-		{ rel:'self current', href:'/foo' },
-		{ rel:'item', href:'/foo/{id}' }
+		{ rel:'up via service', href:'#' },
+		{ rel:'self current', href:'#foo' },
+		{ rel:'item', href:'#foo/{id}' }
 	];
-	res.writeHead(200, 'ok', { 'content-type':'application/json', 'link':linkHeader });
+	res.s200().ContentType('json').Link(linkHeader);
 	// so we can experiment with streaming, write the json in bits:
 	if (payload) {
 		res.write('[');
@@ -42,6 +42,7 @@ local.at('#foo', function(req, res) {
 local.at('#foo/([A-z]*)$', function(req, res) {
 	var payload = null, linkHeader;
 	var itemName = req.pathd[1];
+    console.log(req.pathd);
 	var itemIndex = foos.indexOf(itemName);
 	if (itemIndex === -1) {
 		return res.s404().end();

@@ -43,7 +43,7 @@ local.promise.bundle(responses_)
 wait(function () { return done; });
 
 /* =>
-[{href: "http://test/worker/worker1.js/#"}]
+[{href: "/test/worker/worker1.js#"}]
 200 0
 200 100
 200 1
@@ -127,9 +127,9 @@ wait(function () { return done; });
 
 /* =>
 200 yes, hello alice bazz
-{href: "http://dev.grimwire.com/test/worker/worker1.js/#"}
+{href: "http://dev.grimwire.com/test/worker/worker1.js#"}
 200 yes, hello bob buzz
-{href: "http://dev.grimwire.com/test/worker/worker2.js/#"}
+{href: "http://dev.grimwire.com/test/worker/worker2.js#"}
 */
 
 // importScripts() disabling test

@@ -14,7 +14,7 @@ function at(path, handler) {
 	if (path.charAt(0) != '#') {
 		path = '#' + path;
 	}
-	path = new RegExp('^('+path+')$', 'i');
+	path = new RegExp('^'+path+'$', 'i');
 	_routes.push({ path: path, handler: handler });
 }
 

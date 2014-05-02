@@ -51,13 +51,18 @@ IncomingResponse.prototype.processHeaders = function(baseUrl, headers) {
 		delete this.link;
 		this.links.forEach(function(link) {
 			// Convert relative paths to absolute uris
-			if (!helpers.isAbsUri(link.href) || (baseUrl && link.href.charAt(0) == '#')) {
+			if (!helpers.isAbsUri(link.href)) {
 				if (baseUrl) {
                     link.href = helpers.joinRelPath(baseUrl, link.href);
 				} else {
 					link.href = '#'+link.href;
 				}
-			}
+			} else if (baseUrl && link.href.charAt(0) == '#') {
+                if (baseUrl.source) {
+                    baseUrl = ((baseUrl.protocol) ? baseUrl.protocol + '://' : '') + baseUrl.authority + baseUrl.path;
+                }
+                link.href = helpers.joinUri(baseUrl, link.href);
+            }
 		});
 	}
 };

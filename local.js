@@ -102,7 +102,7 @@ util.mixin.call(module.exports, require('./web/helpers.js'));
 util.mixin.call(module.exports, require('./web/httpl.js'));
 util.mixin.call(module.exports, require('./web/workers.js'));
 util.mixin.call(module.exports, require('./web/subscribe.js'));
-// util.mixin.call(module.exports, require('./web/agent.js'));
+util.mixin.call(module.exports, require('./web/client.js'));
 
 // Request sugars
 function dispatch(headers) {
@@ -115,6 +115,9 @@ function dispatch(headers) {
 }
 function makeRequestSugar(method) {
 	return function(url, params) {
+        if (url instanceof module.exports.Client) {
+            return url[method]();
+        }
 		return dispatch({ method: method, url: url, params: params });
 	};
 }
@@ -142,11 +145,12 @@ if (global) {
 	global.DELETE    = local.DELETE;
 	global.SUBSCRIBE = local.SUBSCRIBE;
 	global.NOTIFY    = local.NOTIFY;
+    global.from      = local.client;
 }
 
 // Run worker setup (does nothing outside of a worker)
 require('./worker');
-},{"./config.js":1,"./constants.js":2,"./promises.js":4,"./request-event.js":5,"./util":8,"./web/bridge.js":9,"./web/content-types.js":10,"./web/helpers.js":11,"./web/http-headers.js":12,"./web/httpl.js":13,"./web/request.js":16,"./web/response.js":17,"./web/schemes.js":18,"./web/subscribe.js":19,"./web/uri-template.js":20,"./web/workers.js":21,"./worker":22}],4:[function(require,module,exports){
+},{"./config.js":1,"./constants.js":2,"./promises.js":4,"./request-event.js":5,"./util":8,"./web/bridge.js":9,"./web/client.js":10,"./web/content-types.js":11,"./web/helpers.js":12,"./web/http-headers.js":13,"./web/httpl.js":14,"./web/request.js":17,"./web/response.js":18,"./web/schemes.js":19,"./web/subscribe.js":20,"./web/uri-template.js":21,"./web/workers.js":22,"./worker":23}],4:[function(require,module,exports){
 var localConfig = require('./config.js');
 var util = require('./util');
 
@@ -1295,7 +1299,405 @@ function validateHttplMessage(parsedmsg) {
 		return false;
 	return true;
 }
-},{"./helpers.js":11,"./httpl.js":13,"./incoming-request.js":14,"./incoming-response.js":15,"./request.js":16,"./response.js":17}],10:[function(require,module,exports){
+},{"./helpers.js":12,"./httpl.js":14,"./incoming-request.js":15,"./incoming-response.js":16,"./request.js":17,"./response.js":18}],10:[function(require,module,exports){
+var constants = require('../constants.js');
+var util = require('../util');
+var promise = require('../promises.js').promise;
+var helpers = require('./helpers.js');
+var UriTemplate = require('./uri-template.js');
+var httpl = require('./httpl.js');
+var Request = require('./request.js');
+var Response = require('./response.js');
+var subscribe = require('./subscribe.js').subscribe;
+
+// Context
+// =======
+// INTERNAL
+// information about the resource that a agent targets
+//  - exists in an "unresolved" state until the URI is confirmed by a response from the server
+//  - enters a "bad" state if an attempt to resolve the link failed
+//  - may be "relative" if described by a relation from another context (eg a query or a relative URI)
+//  - may be "absolute" if described by an absolute URI
+// :NOTE: absolute contexts may have a URI without being resolved, so don't take the presence of a URI as a sign that the resource exists
+function Context(query) {
+	this.query = query;
+	this.resolveState = Context.UNRESOLVED;
+	this.error = null;
+	this.queryIsAbsolute = (typeof query == 'string' && helpers.isAbsUri(query));
+	if (this.queryIsAbsolute) {
+		this.url  = query;
+		this.urld = helpers.parseUri(this.url);
+	} else {
+		this.url  = null;
+		this.urld = null;
+	}
+}
+Context.UNRESOLVED = 0;
+Context.RESOLVED   = 1;
+Context.FAILED     = 2;
+Context.prototype.isResolved = function() { return this.resolveState === Context.RESOLVED; };
+Context.prototype.isBad      = function() { return this.resolveState === Context.FAILED; };
+Context.prototype.isRelative = function() { return (!this.queryIsAbsolute); };
+Context.prototype.isAbsolute = function() { return this.queryIsAbsolute; };
+Context.prototype.getUrl     = function() { return this.url; };
+Context.prototype.getError   = function() { return this.error; };
+Context.prototype.resetResolvedState = function() {
+	this.resolveState = Context.UNRESOLVED;
+	this.error = null;
+};
+Context.prototype.setResolved = function(url) {
+	this.error = null;
+	this.resolveState = Context.RESOLVED;
+	if (url) {
+		this.url  = url;
+		this.urld = helpers.parseUri(this.url);
+	}
+};
+Context.prototype.setFailed = function(error) {
+	this.error = error;
+	this.resolveState = Context.FAILED;
+};
+
+// Client
+// ======
+// EXPORTED
+// API to follow resource links (as specified by the response Link header)
+//  - uses the rel attribute as the primary link label
+//  - uses URI templates to generate URIs
+//  - queues link navigations until a request is made
+/*
+
+// EXAMPLE 1. Get Bob from Foobar.com
+// - basic navigation
+// - requests
+var foobarService = local.client('https://foobar.com');
+var bob = foobarService.follow('|collection=users|item=bob');
+// ^ or local.client('nav:||https://foobar.com|collection=users|item=bob')
+// ^ or foobarService.follow([{ rel: 'collection', id: 'users' }, { rel: 'item', id:'bob' }]);
+// ^ or foobarService.follow({ rel: 'collection', id: 'users' }).follow({ rel: 'item', id:'bob' });
+// ^ or foobarService.collection('users').item('bob')
+bob.GET()
+	// -> HEAD https://foobar.com
+	// -> HEAD https://foobar.com/users
+	// -> GET  https://foobar.com/users/bob (Accept: application/json)
+	.then(function(response) {
+		var bobsProfile = response.body;
+
+		// Update Bob's email
+		bobsProfile.email = 'bob@gmail.com';
+		bob.PUT(bobsProfile);
+		// -> PUT https://foobar.com/users/bob { email:'bob@gmail.com', ...} (Content-Type: application/json)
+	});
+
+// EXAMPLE 2. Get all users who joined after 2013, in pages of 150
+// - additional navigation query parameters
+// - server-driven batching
+var pageCursor = foobarService.collection('users', { since: '2013-01-01', limit: 150 });
+pageCursor.get()
+	// -> GET https://foobar.com/users?since=2013-01-01&limit=150 (Accept: application/json)
+	.then(function readNextPage(response) {
+		// Send the emails
+		emailNewbieGreetings(response.body); // -- emailNewbieGreetings is a fake utility function
+
+		// Go to the 'next page' link, as supplied by the response
+		pageCursor = pageCursor.next();
+		return pageCursor.GET().then(readNextPage);
+		// -> GET https://foobar.com/users?since=2013-01-01&limit=150&offset=150 (Accept: application/json)
+	})
+	.fail(function(response, request) {
+		// Not finding a 'rel=next' link means the server didn't give us one.
+		if (response.status == local.LINK_NOT_FOUND) { // 001 Local: Link not found - termination condition
+			// Tell Bob his greeting was sent
+			bob.service({ rel: 'foo.com/rel/inbox' }).POST({
+				title: '2013 Welcome Emails Sent',
+				body: 'Good work, Bob.'
+			});
+			// -> POST https://foobar.com/mail/users/bob/inbox (Content-Type: application/json)
+		} else {
+			// Tell Bob something went wrong
+            bob.service({ rel: 'foo.com/rel/inbox' }).POST({
+				title: 'ERROR! 2013 Welcome Emails Failed!',
+				body: 'Way to blow it, Bob.',
+				attachments: {
+					'dump.json': {
+						context: pageCursor.getContext(),
+						request: request,
+						response: response
+					}
+				}
+			});
+			// -> POST https://foobar.com/mail/users/bob/inbox (Content-Type: application/json)
+		}
+	});
+*/
+function Client(context, parentClient) {
+	this.context         = context      || null;
+	this.parentClient    = parentClient || null;
+	this.links           = null;
+}
+
+
+// Executes an HTTP request to our context
+//  - uses additional parameters on the request options:
+//    - noretry: bool, should the url resolve fail automatically if it previously failed?
+Client.prototype.dispatch = function(req) {
+	if (!req) req = {};
+	var self = this;
+
+	// If given a request, streaming may occur. Suspend events on the request until resolved, as the dispatcher wont wire up until after resolution.
+	//if (req instanceof Request) {
+    //req.suspendEvents();
+	//}:TODO: ?
+
+	// Resolve our target URL
+	return ((req.url) ? promise(req.url) : this.resolve({ noretry: req.noretry, nohead: true }))
+		.succeed(function(url) {
+			req.url = url;
+		    return local.dispatch(req);
+            // :TODO: ?
+			/*if (req instanceof Request) {
+				req.resumeEvents();
+			}*/
+		})
+		.succeed(function(res) {
+			// After every successful request, update our links and mark our context as good (in case it had been bad)
+			self.context.setResolved();
+			if (res.links) self.links = res.links;
+			else self.links = self.links || []; // cache an empty link list so we dont keep trying during resolution
+			return res;
+		})
+		.fail(function(res) {
+            console.debug('fail',req.url,res.status);
+			// Let a 1 or 404 indicate a bad context (as opposed to some non-navigational error like a bad request body)
+			if (res.status === constants.LINK_NOT_FOUND || res.status === 404)
+				self.context.setFailed(res);
+			throw res;
+		});
+};
+
+// Executes a GET text/event-stream request to our context
+Client.prototype.subscribe = function(req) {
+	var self = this;
+	var eventStream;
+	if (!req) req = {};
+	return this.resolve({ nohead: true }).succeed(function(url) {
+		req.url = url;
+		eventStream = subscribe(req);
+        //		return eventStream.response_;
+        //:TODO:? }).then(function() {
+		return eventStream;
+	});
+};
+
+// Follows a link relation from our context, generating a new agent
+// - `query` may be:
+//   - an object in the same form of a `local.queryLink()` parameter
+//   - an array of link query objects (to be followed sequentially)
+//   - a URI string
+//     - if using the 'nav:' scheme, will convert the URI into a link query object
+//     - if a relative URI using the HTTP/S/L scheme, will follow the relation relative to the current context
+//     - if an absolute URI using the HTTP/S/L scheme, will go to that URI
+// - uses URI Templates to generate URLs
+// - when querying, only the `rel` and `id` (if specified) attributes must match
+//   - the exception to this is: `rel` matches and the HREF has an {id} token
+//   - all other attributes are used to fill URI Template tokens and are not required to match
+Client.prototype.follow = function(query) {
+	// convert nav: uri to a query array, string to rel query
+	if (typeof query == 'string') {
+		if (helpers.isNavSchemeUri(query)) {
+			query = helpers.parseNavUri(query);
+		} else {
+			query = { rel: query };
+		}
+	}
+
+	// make sure we always have an array
+	if (!Array.isArray(query))
+		query = [query];
+
+	// build a full follow() chain
+	var nav = this;
+	do {
+		nav = new Client(new Context(query.shift()), nav);
+		if (this.requestDefaults)
+			nav.setRequestDefaults(this.requestDefaults);
+	} while (query[0]);
+
+	return nav;
+};
+
+// Resets the agent's resolution state, causing it to reissue HEAD requests (relative to any parent agents)
+Client.prototype.unresolve = function() {
+	this.context.resetResolvedState();
+	this.links = null;
+	return this;
+};
+
+// Reassigns the agent to a new absolute URL
+// - `url`: required string, the URL to rebase the agent to
+// - resets the resolved state
+Client.prototype.rebase = function(url) {
+	this.unresolve();
+	this.context.query = url;
+	this.context.queryIsAbsolute = true;
+	this.context.url  = url;
+	this.context.urld = helpers.parseUri(url);
+	return this;
+};
+
+// Resolves the agent's URL, reporting failure if a link or resource is unfound
+//  - also ensures the links have been retrieved from the context
+//  - may trigger resolution of parent contexts
+//  - options is optional and may include:
+//    - noretry: bool, should the url resolve fail automatically if it previously failed?
+//    - nohead: bool, should we issue a HEAD request once we have a URL? (not favorable if planning to dispatch something else)
+//  - returns a promise which will fulfill with the resolved url
+Client.prototype.resolve = function(options) {
+	var self = this;
+	options = options || {};
+
+	var nohead = options.nohead;
+	delete options.nohead;
+	// ^ pull `nohead` out so that parent resolves are `nohead: false` - we do want them to dispatch HEAD requests to resolve us
+
+	var resolvePromise = promise();
+	if (this.links !== null && (this.context.isResolved() || (this.context.isAbsolute() && this.context.isBad() === false))) {
+		// We have links and we were previously resolved (or we're absolute so there's no need)
+		resolvePromise.fulfill(this.context.getUrl());
+	} else if (this.context.isBad() === false || (this.context.isBad() && !options.noretry)) {
+		// We don't have links, and we haven't previously failed (or we want to try again)
+		this.context.resetResolvedState();
+		if (this.context.isRelative()) {
+            if (!this.parentClient) {
+                // Parent failed, we failed
+			    self.context.setFailed({ status: 404, reason: 'not found' });
+			    resolvePromise.reject(this.context.getError());
+			    return resolvePromise;
+		    }
+
+			// Up the chain we go
+			resolvePromise = this.parentClient.resolve(options)
+				.succeed(function() {
+					// Parent resolved, query its links
+					var childUrl = self.parentClient.lookupLink(self.context);
+					if (childUrl) {
+						// We have a link!
+						self.context.setResolved(childUrl);
+
+						// Send a HEAD request to get our links
+						if (nohead) // unless dont
+							return childUrl;
+						return self.dispatch({ method: 'HEAD', url: childUrl }).succeed(function() { return childUrl; }); // fulfill resolvePromise afterward
+					}
+
+					// Error - Link not found
+					var response = new Response();
+					response.status(constants.LINK_NOT_FOUND, 'Link Query Failed to Match').end();
+					throw response;
+				})
+				.fail(function(error) {
+					self.context.setFailed(error);
+					throw error;
+				});
+		} else {
+			// At the top of the chain already
+			if (nohead)
+				resolvePromise.fulfill(self.context.getUrl());
+			else {
+				resolvePromise = self.dispatch({ method: 'HEAD', url: self.context.getUrl() })
+					.succeed(function(res) { return self.context.getUrl(); });
+			}
+		}
+	} else {
+		// We failed in the past and we don't want to try again
+		resolvePromise.reject(this.context.getError());
+	}
+	return resolvePromise;
+};
+
+// Looks up a link in the cache and generates the URI (the follow logic)
+Client.prototype.lookupLink = function(context) {
+	if (context.query) {
+		if (typeof context.query == 'object') {
+			// Try to find a link that matches
+			var link = helpers.queryLinks(this.links, context.query)[0];
+			if (link) {
+				return UriTemplate.parse(link.href).expand(context.query);
+			}
+		}
+		else if (typeof context.query == 'string') {
+			// A URL
+			if (!helpers.isAbsUri(context.query))
+				return helpers.joinRelPath(this.context.urld, context.query);
+			return context.query;
+		}
+	}
+	console.log('Failed to find a link to resolve context. Link query:', context.query, 'Client:', this);
+	return null;
+};
+
+// Dispatch Sugars
+// ===============
+function makeDispSugar(method) {
+	return function(params) {
+		return this.dispatch({ method: method, params: params });
+	};
+}
+Client.prototype.HEAD      = makeDispSugar('HEAD');
+Client.prototype.GET       = makeDispSugar('GET');
+Client.prototype.DELETE    = makeDispSugar('DELETE');
+Client.prototype.POST      = makeDispSugar('POST');
+Client.prototype.PUT       = makeDispSugar('PUT');
+Client.prototype.PATCH     = makeDispSugar('PATCH');
+Client.prototype.SUBSCRIBE = makeDispSugar('SUBSCRIBE');
+Client.prototype.NOTIFY    = makeDispSugar('NOTIFY');
+
+// Follow sugars
+function makeFollowSugar(rel) {
+    return function(id, opts) {
+        if (id && typeof id == 'object') {
+            opts = id;
+        }
+        opts = opts || {};
+        if (opts.rel) { opts.rel = rel + ' ' + opts.rel; }
+        else opts.rel = rel;
+        if (id) opts.id = id;
+        return this.follow(opts);
+    }
+}
+['service', 'collection', 'item', 'via', 'up', 'first', 'prev', 'next', 'last', 'self'].forEach(function(rel) {
+    Client.prototype[rel] = makeFollowSugar(rel);
+});
+
+
+// Builder
+// =======
+var client = function(query) {
+	if (query instanceof Client)
+		return query;
+
+	// convert nav: uri to a query array
+	if (typeof query == 'string' && helpers.isNavSchemeUri(query))
+		query = helpers.parseNavUri(query);
+
+	// make sure we always have an array
+	if (!Array.isArray(query))
+		query = [query];
+
+	// build a full follow() chain
+	var cl = new Client(new Context(query.shift()));
+	while (query[0]) {
+		cl = new Client(new Context(query.shift()), cl);
+	}
+
+	return cl;
+};
+
+module.exports = {
+	Client: Client,
+	client: client
+};
+},{"../constants.js":2,"../promises.js":4,"../util":8,"./helpers.js":12,"./httpl.js":14,"./request.js":17,"./response.js":18,"./subscribe.js":20,"./uri-template.js":21}],11:[function(require,module,exports){
 // contentTypes
 // ============
 // EXPORTED
@@ -1509,7 +1911,7 @@ function splitEventstreamKV(kv) {
 	var i = kv.indexOf(':');
 	return [kv.slice(0, i).trim(), kv.slice(i+1).trim()];
 }
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 // Helpers
 // =======
 
@@ -1714,27 +2116,30 @@ function preferredType(accept, provided) {
 
 // EXPORTED
 // correctly joins together all url segments given in the arguments
-// eg joinUri('/foo/', '/bar', '/baz/') -> '/foo/bar/baz/'
+// eg joinUri('/foo/', '/bar', '#baz/') -> '/foo/bar#baz/'
 function joinUri() {
-	var parts = Array.prototype.map.call(arguments, function(arg, i) {
-		arg = ''+arg;
-		var lo = 0, hi = arg.length;
-		if (arg == '/') return '';
-		if (i !== 0 && arg.charAt(0) === '/') { lo += 1; }
-		if (arg.charAt(hi - 1) === '/') { hi -= 1; }
-		return arg.substring(lo, hi);
-	});
-	return parts.join('/');
+    var parts = Array.prototype.map.call(arguments, function(arg, i) {
+        arg = ''+arg;
+        var hi = arg.length;
+        if (arg == '/' || arg == '#') return arg;
+
+        if (arg.charAt(hi - 1) === '/') { hi -= 1; }
+        arg = arg.substring(0, hi);
+
+        if (i!==0 && arg.charAt(0) != '/' && arg.charAt(0) != '#') return '/'+arg;
+        return arg;
+    });
+    return parts.join('');
 }
 
 // EXPORTED
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
-// - eg http://foo.com, //foo.com, #bar.app
+// - eg http://foo.com, //foo.com, #bar.app, foo.com/test.js#bar
 var hasSchemeRegex = /^(#)|((http(s|l)?:)?\/\/)|((nav:)?\|\|)|(data:)/;
 function isAbsUri(url) {
 	// Has a scheme?
-	return hasSchemeRegex.test(url);
+	return hasSchemeRegex.test(url) || url.indexOf('#') !== -1;
 }
 
 // EXPORTED
@@ -1752,15 +2157,15 @@ function joinRelPath(urld, relpath) {
 	if (typeof urld == 'string') {
 		urld = parseUri(urld);
 	}
-	var protocol = (urld.protocol) ? urld.protocol + '://' : false;
+	var protocol = (urld.protocol) ? urld.protocol + '://' : '';
 	if (!protocol) {
 		if (urld.source.indexOf('//') === 0) {
 			protocol = '//';
 		} else if (urld.source.indexOf('||') === 0) {
 			protocol = '||';
-		} else {
-			protocol = 'http://';
-		}
+		} else if (urld.authority && urld.authority.indexOf('.') !== -1) {
+            protocol = 'http://';
+        }
 	}
 	if (relpath.charAt(0) == '/') {
 		// "absolute" relative, easy stuff
@@ -1779,7 +2184,9 @@ function joinRelPath(urld, relpath) {
 		else
 			hostpathParts.push(relpathParts[i]);
 	}
-	return joinUri(protocol + urld.authority, hostpathParts.join('/'));
+    var path = hostpathParts.join('/');
+    if (relpath.charAt(0) == '#') path = '#' + path.slice(1);
+	return joinUri(protocol + urld.authority, path);
 }
 
 // EXPORTED
@@ -2051,7 +2458,7 @@ module.exports = {
 
 	// patchXHR: patchXHR :TODO:
 };
-},{"../promises.js":4,"./content-types.js":10,"./uri-template.js":20}],12:[function(require,module,exports){
+},{"../promises.js":4,"./content-types.js":11,"./uri-template.js":21}],13:[function(require,module,exports){
 var helpers = require('./helpers.js');
 
 // headers
@@ -2185,7 +2592,7 @@ httpHeaders.register('accept',
 	},
 	helpers.parseAcceptHeader
 );
-},{"./helpers.js":11}],13:[function(require,module,exports){
+},{"./helpers.js":12}],14:[function(require,module,exports){
 var helpers = require('./helpers.js');
 var schemes = require('./schemes.js');
 var contentTypes = require('./content-types.js');
@@ -2202,7 +2609,7 @@ function at(path, handler) {
 	if (path.charAt(0) != '#') {
 		path = '#' + path;
 	}
-	path = new RegExp('^('+path+')$', 'i');
+	path = new RegExp('^'+path+'$', 'i');
 	_routes.push({ path: path, handler: handler });
 }
 
@@ -2271,7 +2678,7 @@ module.exports = {
 	at: at,
 	getRoutes: getRoutes
 };
-},{"./content-types.js":10,"./helpers.js":11,"./incoming-request.js":14,"./response.js":17,"./schemes.js":18,"./workers.js":21}],14:[function(require,module,exports){
+},{"./content-types.js":11,"./helpers.js":12,"./incoming-request.js":15,"./response.js":18,"./schemes.js":19,"./workers.js":22}],15:[function(require,module,exports){
 var util = require('../util');
 var helpers = require('./helpers.js');
 var httpHeaders = require('./http-headers.js');
@@ -2290,6 +2697,7 @@ function IncomingRequest(headers) {
 	this.method = (headers.method) ? headers.method.toUpperCase() : 'GET';
 	this[this.method] = true;
 	this.path = headers.path || '#';
+    this.pathd = headers.pathd || [this.path];
 	this.params = (headers.params) || {};
 	this.isBinary = false; // stream is binary? :TODO:
 	for (var k in headers) {
@@ -2375,7 +2783,7 @@ IncomingRequest.prototype.pipe = function(target, headersCB, bodyCb) {
 		this.on('end', function() { target.end(); });
 	}
 };
-},{"../util":8,"./content-types.js":10,"./helpers.js":11,"./http-headers.js":12,"./request":16,"./response":17}],15:[function(require,module,exports){
+},{"../util":8,"./content-types.js":11,"./helpers.js":12,"./http-headers.js":13,"./request":17,"./response":18}],16:[function(require,module,exports){
 var util = require('../util');
 var helpers = require('./helpers.js');
 var httpHeaders = require('./http-headers.js');
@@ -2429,13 +2837,18 @@ IncomingResponse.prototype.processHeaders = function(baseUrl, headers) {
 		delete this.link;
 		this.links.forEach(function(link) {
 			// Convert relative paths to absolute uris
-			if (!helpers.isAbsUri(link.href) || (baseUrl && link.href.charAt(0) == '#')) {
+			if (!helpers.isAbsUri(link.href)) {
 				if (baseUrl) {
                     link.href = helpers.joinRelPath(baseUrl, link.href);
 				} else {
 					link.href = '#'+link.href;
 				}
-			}
+			} else if (baseUrl && link.href.charAt(0) == '#') {
+                if (baseUrl.source) {
+                    baseUrl = ((baseUrl.protocol) ? baseUrl.protocol + '://' : '') + baseUrl.authority + baseUrl.path;
+                }
+                link.href = helpers.joinUri(baseUrl, link.href);
+            }
 		});
 	}
 };
@@ -2498,7 +2911,7 @@ IncomingResponse.prototype.pipe = function(target, headersCB, bodyCb) {
 		this.on('end', function() { target.end(); });
 	}
 };
-},{"../util":8,"./content-types.js":10,"./helpers.js":11,"./http-headers.js":12,"./request":16,"./response":17}],16:[function(require,module,exports){
+},{"../util":8,"./content-types.js":11,"./helpers.js":12,"./http-headers.js":13,"./request":17,"./response":18}],17:[function(require,module,exports){
 var util = require('../util');
 var promises = require('../promises.js');
 var helpers = require('./helpers.js');
@@ -2749,7 +3162,7 @@ function parseScheme(url) {
 	var schemeMatch = /^([^.^:]*):/.exec(url);
 	return (schemeMatch) ? schemeMatch[1] : 'http';
 }
-},{"../promises.js":4,"../util":8,"./content-types.js":10,"./helpers.js":11,"./incoming-response.js":15,"./schemes.js":18}],17:[function(require,module,exports){
+},{"../promises.js":4,"../util":8,"./content-types.js":11,"./helpers.js":12,"./incoming-response.js":16,"./schemes.js":19}],18:[function(require,module,exports){
 var util = require('../util');
 var promise = require('../promises.js').promise;
 var helpers = require('./helpers.js');
@@ -2881,7 +3294,7 @@ Response.prototype.close = function() {
 	this.clearEvents();
 	return this;
 };
-},{"../promises.js":4,"../util":8,"./content-types.js":10,"./helpers.js":11}],18:[function(require,module,exports){
+},{"../promises.js":4,"../util":8,"./content-types.js":11,"./helpers.js":12}],19:[function(require,module,exports){
 var util = require('../util');
 var helpers = require('./helpers.js');
 var contentTypes = require('./content-types.js');
@@ -3121,7 +3534,7 @@ schemes.register('data', function(oreq, ires) {
 	ores.s200().ContentType(contentType);
 	ores.end(data);
 });
-},{"../util":8,"./content-types.js":10,"./helpers.js":11,"./http-headers.js":12,"./response.js":17}],19:[function(require,module,exports){
+},{"../util":8,"./content-types.js":11,"./helpers.js":12,"./http-headers.js":13,"./response.js":18}],20:[function(require,module,exports){
 // Events
 // ======
 var util = require('../util');
@@ -3325,7 +3738,7 @@ module.exports = {
 	EventStream: EventStream,
 	EventHost: EventHost
 };
-},{"../util":8,"./content-types.js":10,"./request.js":16,"./response.js":17}],20:[function(require,module,exports){
+},{"../util":8,"./content-types.js":11,"./request.js":17,"./response.js":18}],21:[function(require,module,exports){
 /*
  UriTemplate Copyright (c) 2012-2013 Franz Antesberger. All Rights Reserved.
  Available via the MIT license.
@@ -4198,7 +4611,7 @@ var UriTemplate = (function () {
 }(function (UriTemplate) {
     module.exports = UriTemplate;
 }));
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var helpers = require('./helpers.js');
 var promise = require('../promises.js').promise;
 var Bridge = require('./bridge.js');
@@ -4243,7 +4656,7 @@ function get(urld) {
 
 	// Send back a failure responder
 	return function(req, res) {
-		res.status(0, 'request to '+req.headers.url+' expects '+req.urld.path+' to be a .js file');
+		res.status(0, 'request to '+url.source+' expects '+urld.path+' to be a .js file');
 		res.end();
 	};
 }
@@ -4422,7 +4835,7 @@ WorkerWrapper.prototype.onWorkerLog = function(message) {
 			break;
 	}
 };
-},{"../config.js":1,"../promises.js":4,"./bridge.js":9,"./helpers.js":11}],22:[function(require,module,exports){
+},{"../config.js":1,"../promises.js":4,"./bridge.js":9,"./helpers.js":12}],23:[function(require,module,exports){
 if (typeof self != 'undefined' && typeof self.window == 'undefined') { (function() {
 	// GLOBAL
 	// custom console.*

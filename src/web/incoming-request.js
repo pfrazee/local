@@ -16,6 +16,7 @@ function IncomingRequest(headers) {
 	this.method = (headers.method) ? headers.method.toUpperCase() : 'GET';
 	this[this.method] = true;
 	this.path = headers.path || '#';
+    this.pathd = headers.pathd || [this.path];
 	this.params = (headers.params) || {};
 	this.isBinary = false; // stream is binary? :TODO:
 	for (var k in headers) {

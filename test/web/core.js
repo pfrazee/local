@@ -401,40 +401,34 @@ success
 {
   ContentType: "text/plain",
   Link: [
-    {href: "http://dev.grimwire.com/test/web/_worker.js/#", rel: "self current"},
+    {href: "dev.grimwire.com/test/web/_worker.js#", rel: "self current"},
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#events",
+      href: "dev.grimwire.com/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#foo",
+      href: "dev.grimwire.com/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
     },
-    {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#{id}",
-      rel: "collection"
-    }
+    {href: "dev.grimwire.com/test/web/_worker.js#{id}", rel: "collection"}
   ],
   _buffer: "service resource",
   body: "service resource",
   links: [
-    {href: "http://dev.grimwire.com/test/web/_worker.js/#", rel: "self current"},
+    {href: "dev.grimwire.com/test/web/_worker.js#", rel: "self current"},
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#events",
+      href: "dev.grimwire.com/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#foo",
+      href: "dev.grimwire.com/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
     },
-    {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#{id}",
-      rel: "collection"
-    }
+    {href: "dev.grimwire.com/test/web/_worker.js#{id}", rel: "collection"}
   ],
   reason: undefined,
   status: 200
@@ -473,40 +467,34 @@ success
 {
   ContentType: "text/plain",
   Link: [
-    {href: "http://dev.grimwire.com/test/web/_worker.js/#", rel: "self current"},
+    {href: "dev.grimwire.com/test/web/_worker.js#", rel: "self current"},
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#events",
+      href: "dev.grimwire.com/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#foo",
+      href: "dev.grimwire.com/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
     },
-    {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#{id}",
-      rel: "collection"
-    }
+    {href: "dev.grimwire.com/test/web/_worker.js#{id}", rel: "collection"}
   ],
   _buffer: "service resource",
   body: "service resource",
   links: [
-    {href: "http://dev.grimwire.com/test/web/_worker.js/#", rel: "self current"},
+    {href: "dev.grimwire.com/test/web/_worker.js#", rel: "self current"},
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#events",
+      href: "dev.grimwire.com/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#foo",
+      href: "dev.grimwire.com/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
     },
-    {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#{id}",
-      rel: "collection"
-    }
+    {href: "dev.grimwire.com/test/web/_worker.js#{id}", rel: "collection"}
   ],
   reason: undefined,
   status: 200
@@ -541,40 +529,34 @@ success
 {
   ContentType: "text/plain",
   Link: [
-    {href: "http://dev.grimwire.com/test/web/_worker.js/#", rel: "self current"},
+    {href: "dev.grimwire.com/test/web/_worker.js#", rel: "self current"},
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#events",
+      href: "dev.grimwire.com/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#foo",
+      href: "dev.grimwire.com/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
     },
-    {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#{id}",
-      rel: "collection"
-    }
+    {href: "dev.grimwire.com/test/web/_worker.js#{id}", rel: "collection"}
   ],
   _buffer: "service resource {\"foo\":\"bar\"}",
   body: "service resource {\"foo\":\"bar\"}",
   links: [
-    {href: "http://dev.grimwire.com/test/web/_worker.js/#", rel: "self current"},
+    {href: "dev.grimwire.com/test/web/_worker.js#", rel: "self current"},
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#events",
+      href: "dev.grimwire.com/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#foo",
+      href: "dev.grimwire.com/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
     },
-    {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#{id}",
-      rel: "collection"
-    }
+    {href: "dev.grimwire.com/test/web/_worker.js#{id}", rel: "collection"}
   ],
   reason: undefined,
   status: 200
@@ -595,40 +577,34 @@ success
 {
   ContentType: "text/plain",
   Link: [
-    {href: "http://dev.grimwire.com/test/web/_worker.js/#", rel: "self current"},
+    {href: "dev.grimwire.com/test/web/_worker.js#", rel: "self current"},
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#events",
+      href: "dev.grimwire.com/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#foo",
+      href: "dev.grimwire.com/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
     },
-    {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#{id}",
-      rel: "collection"
-    }
+    {href: "dev.grimwire.com/test/web/_worker.js#{id}", rel: "collection"}
   ],
   _buffer: "service resource {\"foo\":\"bar\"}",
   body: "service resource {\"foo\":\"bar\"}",
   links: [
-    {href: "http://dev.grimwire.com/test/web/_worker.js/#", rel: "self current"},
+    {href: "dev.grimwire.com/test/web/_worker.js#", rel: "self current"},
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#events",
+      href: "dev.grimwire.com/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#foo",
+      href: "dev.grimwire.com/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
     },
-    {
-      href: "http://dev.grimwire.com/test/web/_worker.js/#{id}",
-      rel: "collection"
-    }
+    {href: "dev.grimwire.com/test/web/_worker.js#{id}", rel: "collection"}
   ],
   reason: undefined,
   status: 200

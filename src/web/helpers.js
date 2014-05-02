@@ -202,27 +202,30 @@ function preferredType(accept, provided) {
 
 // EXPORTED
 // correctly joins together all url segments given in the arguments
-// eg joinUri('/foo/', '/bar', '/baz/') -> '/foo/bar/baz/'
+// eg joinUri('/foo/', '/bar', '#baz/') -> '/foo/bar#baz/'
 function joinUri() {
-	var parts = Array.prototype.map.call(arguments, function(arg, i) {
-		arg = ''+arg;
-		var lo = 0, hi = arg.length;
-		if (arg == '/') return '';
-		if (i !== 0 && arg.charAt(0) === '/') { lo += 1; }
-		if (arg.charAt(hi - 1) === '/') { hi -= 1; }
-		return arg.substring(lo, hi);
-	});
-	return parts.join('/');
+    var parts = Array.prototype.map.call(arguments, function(arg, i) {
+        arg = ''+arg;
+        var hi = arg.length;
+        if (arg == '/' || arg == '#') return arg;
+
+        if (arg.charAt(hi - 1) === '/') { hi -= 1; }
+        arg = arg.substring(0, hi);
+
+        if (i!==0 && arg.charAt(0) != '/' && arg.charAt(0) != '#') return '/'+arg;
+        return arg;
+    });
+    return parts.join('');
 }
 
 // EXPORTED
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
-// - eg http://foo.com, //foo.com, #bar.app
+// - eg http://foo.com, //foo.com, #bar.app, foo.com/test.js#bar
 var hasSchemeRegex = /^(#)|((http(s|l)?:)?\/\/)|((nav:)?\|\|)|(data:)/;
 function isAbsUri(url) {
 	// Has a scheme?
-	return hasSchemeRegex.test(url);
+	return hasSchemeRegex.test(url) || url.indexOf('#') !== -1;
 }
 
 // EXPORTED
@@ -240,15 +243,15 @@ function joinRelPath(urld, relpath) {
 	if (typeof urld == 'string') {
 		urld = parseUri(urld);
 	}
-	var protocol = (urld.protocol) ? urld.protocol + '://' : false;
+	var protocol = (urld.protocol) ? urld.protocol + '://' : '';
 	if (!protocol) {
 		if (urld.source.indexOf('//') === 0) {
 			protocol = '//';
 		} else if (urld.source.indexOf('||') === 0) {
 			protocol = '||';
-		} else {
-			protocol = 'http://';
-		}
+		} else if (urld.authority && urld.authority.indexOf('.') !== -1) {
+            protocol = 'http://';
+        }
 	}
 	if (relpath.charAt(0) == '/') {
 		// "absolute" relative, easy stuff
@@ -267,7 +270,9 @@ function joinRelPath(urld, relpath) {
 		else
 			hostpathParts.push(relpathParts[i]);
 	}
-	return joinUri(protocol + urld.authority, hostpathParts.join('/'));
+    var path = hostpathParts.join('/');
+    if (relpath.charAt(0) == '#') path = '#' + path.slice(1);
+	return joinUri(protocol + urld.authority, path);
 }
 
 // EXPORTED
