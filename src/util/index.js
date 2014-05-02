@@ -20,6 +20,22 @@ function deepClone(obj) {
 	return JSON.parse(JSON.stringify(obj));
 }
 
+// helper to make an array of objects
+// - takes an array of keys (the table "header")
+// - consumes the remaining arguments as table values
+// table(['hello, goodye'], 'world', 'kids') // => { hello: 'world', goodbye: 'kids' }
+function table(keys) {
+	var obj, i, j=-1;
+	var arr = [];
+	for (i=1, j; i < arguments.length; i++, j++) {
+		if (!keys[j]) { if (obj) { arr.push(obj); } obj = {}; j = 0; } // new object
+        if (typeof arguments[i] == 'undefined') continue; // skip undefineds
+		obj[keys[j]] = arguments[i];
+	}
+	arr.push(obj); // dont forget the last one
+	return arr;
+}
+
 var nextTick;
 if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage) {
 	// fallback for other environments / postMessage behaves badly on IE8
@@ -49,6 +65,7 @@ module.exports = {
 	mixin: mixin,
 	mixinEventEmitter: mixinEventEmitter,
 	deepClone: deepClone,
+    table: table,
 	nextTick: nextTick
 };
 mixin.call(module.exports, DOM);

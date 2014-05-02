@@ -1018,6 +1018,22 @@ function deepClone(obj) {
 	return JSON.parse(JSON.stringify(obj));
 }
 
+// helper to make an array of objects
+// - takes an array of keys (the table "header")
+// - consumes the remaining arguments as table values
+// table(['hello, goodye'], 'world', 'kids') // => { hello: 'world', goodbye: 'kids' }
+function table(keys) {
+	var obj, i, j=-1;
+	var arr = [];
+	for (i=1, j; i < arguments.length; i++, j++) {
+		if (!keys[j]) { if (obj) { arr.push(obj); } obj = {}; j = 0; } // new object
+        if (typeof arguments[i] == 'undefined') continue; // skip undefineds
+		obj[keys[j]] = arguments[i];
+	}
+	arr.push(obj); // dont forget the last one
+	return arr;
+}
+
 var nextTick;
 if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage) {
 	// fallback for other environments / postMessage behaves badly on IE8
@@ -1047,6 +1063,7 @@ module.exports = {
 	mixin: mixin,
 	mixinEventEmitter: mixinEventEmitter,
 	deepClone: deepClone,
+    table: table,
 	nextTick: nextTick
 };
 mixin.call(module.exports, DOM);
@@ -2835,6 +2852,10 @@ IncomingResponse.prototype.processHeaders = function(baseUrl, headers) {
 	if (this.link) {
 		this.links = Array.isArray(this.link) ? this.link : [this.link];
 		delete this.link;
+        noEnumDesc.value = helpers.queryLinks.bind(null, this.links);
+        Object.defineProperty(this.links, 'query', noEnumDesc);
+        noEnumDesc.value = function(query) { return this.query(query)[0]; };
+        Object.defineProperty(this.links, 'first', noEnumDesc);
 		this.links.forEach(function(link) {
 			// Convert relative paths to absolute uris
 			if (!helpers.isAbsUri(link.href)) {
@@ -2849,9 +2870,16 @@ IncomingResponse.prototype.processHeaders = function(baseUrl, headers) {
                 }
                 link.href = helpers.joinUri(baseUrl, link.href);
             }
+
+            // Add `is` helper
+            if (link.is && typeof link.is != 'function') link._is = link.is;
+            noEnumDesc.value = helpers.queryLink.bind(null, link);
+            Object.defineProperty(link, 'is', noEnumDesc);
 		});
 	}
 };
+var noEnumDesc = { value: null, enumerable: false, configurable: true, writable: true };
+
 
 // Stream buffering
 // stores the incoming stream and attempts to parse on end
@@ -3223,6 +3251,36 @@ Response.prototype.header = function(k, v) {
 	};
 });
 
+// Link-header construction helper
+Response.prototype.link = function(link) {
+    if (!this.headers.Link) { this.headers.Link = []; }
+    if (arguments.length > 1) {
+        if (Array.isArray(arguments[0])) {
+            // table form
+            this.link(util.table.apply(null, arguments));
+        } else {
+            // (href, rel, opts) form
+            var href = arguments[0];
+            var rel = arguments[1];
+            var opts = arguments[2];
+            if (rel && typeof rel == 'object') {
+                opts = rel;
+                rel = false;
+            }
+            if (!opts) opts = {};
+            opts.href = href;
+            if (rel) { opts.rel = (opts.rel) ? (opts.rel+' '+rel) : rel; }
+            this.link(opts);
+        }
+    } else if (Array.isArray(link)) {
+        // [{rel:,href:}...] form
+        this.headers.Link = this.headers.Link.concat(link);
+    } else {
+        // {rel:,href:} form
+        this.headers.Link.push(link);
+    }
+};
+
 // helper to convert a given header value to our standard format - camel case, no dashes
 var headerKeyRegex = /(^|-)(.)/g;
 function formatHeaderKey(str) {
@@ -3230,6 +3288,8 @@ function formatHeaderKey(str) {
 	// eg 'foo-bar' -> 'FooBar'
 	return str.replace(headerKeyRegex, function(_0,_1,_2) { return _2.toUpperCase(); });
 }
+
+// 
 
 // Event connection helper
 // connects events from this stream to the target (event proxying)

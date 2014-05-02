@@ -9,13 +9,14 @@ local.at('#', function(req, res) {
 	if (req.method === 'GET') {
 		payload = 'service resource';
 	}
-	linkHeader = [
-		{ rel:'self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com', href:'#' },
-		{ rel:'collection', href:'#events', id:'events' },
-		{ rel:'collection', href:'#foo', id:'foo' },
-		{ rel:'collection', href:'#{id}' }
-	];
-	res.s200().ContentType('plain').Link(linkHeader).end(payload);
+    res.link({ rel:'self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com', href:'#' });
+    res.link(
+        ['rel',       'href',    'id'],
+		'collection', '#events', 'events',
+        'collection', '#foo',    'foo',
+		'collection', '#{id}',   undefined
+    );
+	res.s200().ContentType('plain').end(payload);
 });
 
 local.at('#foo', function(req, res) {
@@ -32,7 +33,7 @@ local.at('#foo', function(req, res) {
 		{ rel:'self current', href:'#foo' },
 		{ rel:'item', href:'#foo/{id}' }
 	];
-	res.s200().ContentType('json').Link(linkHeader);
+	res.s200().ContentType('json').link(linkHeader);
 	// so we can experiment with streaming, write the json in bits:
 	if (payload) {
 		res.write('[');
@@ -52,20 +53,18 @@ local.at('#foo/([A-z]*)', function(req, res) {
 	if (req.method === 'GET') {
 		payload = itemName;
 	}
-	linkHeader = [
-		{ rel:'via service', href:'#' },
-		{ rel:'up collection index', href:'#foo' },
-		{ rel:'self current', href:'#foo/'+itemName },
-		{ rel:'first', href:'#foo/'+foos[0] },
-		{ rel:'last', href:'#foo/'+foos[foos.length - 1] }
-	];
+    res.link('#', 'via service');
+    res.link('#foo', 'up collection index');
+    res.link('#foo/'+itemName, 'self current');
+    res.link('#foo/'+foos[0], 'first');
+    res.link('#foo/'+foos[foos.length - 1], 'last');
 	if (itemIndex !== 0) {
-		linkHeader.push({ rel:'prev', href:'#foo/'+foos[itemIndex - 1] });
+        res.link('#foo/'+foos[itemIndex - 1], 'prev');
 	}
 	if (itemIndex !== foos.length - 1) {
-		linkHeader.push({ rel:'next', href:'#foo/'+foos[itemIndex + 1] });
+		res.link('#foo/'+foos[itemIndex + 1], 'next');
 	}
-	res.s200().ContentType('json').Link(linkHeader);
+	res.s200().ContentType('json');
 	res.end('"'+payload+'"');
 });
 
@@ -134,7 +133,7 @@ local.at('#pipe', function(req, res) {
 		return v;
 	};
 	var bodyUpdate = function(body) {
-		return body.toUpperCase();
+		return (req.params.toLower) ? body.toLowerCase() : body.toUpperCase();
 	};
 	if (req.method == 'GET')
 		GET(req.params.src).pipe(res, headerUpdate, bodyUpdate);
