@@ -4696,7 +4696,7 @@ function get(urld) {
 	// Relative to current host? Construct full URL
 	if (!urld.authority || urld.authority == '.' || urld.authority.indexOf('.') === -1) {
 		var dir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
-		var dirurl = window.location.protocol + '//' + window.location.hostname + dir;
+		var dirurl = window.location.origin + dir;
 		var url = helpers.joinRelPath(dirurl, urld.source);
 		urld = local.parseUri(url);
 	}
