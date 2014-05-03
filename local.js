@@ -2851,10 +2851,6 @@ IncomingResponse.prototype.processHeaders = function(baseUrl, headers) {
 	if (this.link) {
 		this.links = Array.isArray(this.link) ? this.link : [this.link];
 		delete this.link;
-        noEnumDesc.value = helpers.queryLinks.bind(null, this.links);
-        Object.defineProperty(this.links, 'query', noEnumDesc);
-        noEnumDesc.value = function(query) { return this.query(query)[0]; };
-        Object.defineProperty(this.links, 'first', noEnumDesc);
 		this.links.forEach(function(link) {
 			// Convert relative paths to absolute uris
 			if (!helpers.isAbsUri(link.href)) {
@@ -2875,7 +2871,13 @@ IncomingResponse.prototype.processHeaders = function(baseUrl, headers) {
             noEnumDesc.value = helpers.queryLink.bind(null, link);
             Object.defineProperty(link, 'is', noEnumDesc);
 		});
+	} else {
+		this.links = [];
 	}
+    noEnumDesc.value = helpers.queryLinks.bind(null, this.links);
+    Object.defineProperty(this.links, 'query', noEnumDesc);
+    noEnumDesc.value = function(query) { return this.query(query)[0]; };
+    Object.defineProperty(this.links, 'first', noEnumDesc);
 };
 var noEnumDesc = { value: null, enumerable: false, configurable: true, writable: true };
 
