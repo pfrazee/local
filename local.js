@@ -1432,7 +1432,7 @@ pageCursor.get()
 			// -> POST https://foobar.com/mail/users/bob/inbox (Content-Type: application/json)
 		} else {
 			// Tell Bob something went wrong
-            bob.service({ rel: 'foo.com/rel/inbox' }).POST({
+			bob.service({ rel: 'foo.com/rel/inbox' }).POST({
 				title: 'ERROR! 2013 Welcome Emails Failed!',
 				body: 'Way to blow it, Bob.',
 				attachments: {
@@ -1463,32 +1463,31 @@ Client.prototype.dispatch = function(req) {
 
 	// If given a request, streaming may occur. Suspend events on the request until resolved, as the dispatcher wont wire up until after resolution.
 	//if (req instanceof Request) {
-    //req.suspendEvents();
+	//req.suspendEvents();
 	//}:TODO: ?
 
 	// Resolve our target URL
 	return ((req.url) ? promise(req.url) : this.resolve({ noretry: req.noretry, nohead: true }))
 		.succeed(function(url) {
 			req.url = url;
-		    return local.dispatch(req);
-            // :TODO: ?
-			/*if (req instanceof Request) {
-				req.resumeEvents();
-			}*/
-		})
-		.succeed(function(res) {
-			// After every successful request, update our links and mark our context as good (in case it had been bad)
-			self.context.setResolved();
-			if (res.links) self.links = res.links;
-			else self.links = self.links || []; // cache an empty link list so we dont keep trying during resolution
-			return res;
-		})
-		.fail(function(res) {
-            console.debug('fail',req.url,res.status);
-			// Let a 1 or 404 indicate a bad context (as opposed to some non-navigational error like a bad request body)
-			if (res.status === constants.LINK_NOT_FOUND || res.status === 404)
-				self.context.setFailed(res);
-			throw res;
+			req = local.dispatch(req);
+
+			req.succeed(function(res) {
+				// After every successful request, update our links and mark our context as good (in case it had been bad)
+				self.context.setResolved();
+				if (res.links) self.links = res.links;
+				else self.links = self.links || []; // cache an empty link list so we dont keep trying during resolution
+				return res;
+			})
+			.fail(function(res) {
+				console.debug('fail',req.url,res.status);
+				// Let a 1 or 404 indicate a bad context (as opposed to some non-navigational error like a bad request body)
+				if (res.status === constants.LINK_NOT_FOUND || res.status === 404)
+					self.context.setFailed(res);
+				throw res;
+			});
+
+			return req;
 		});
 };
 
@@ -1500,8 +1499,8 @@ Client.prototype.subscribe = function(req) {
 	return this.resolve({ nohead: true }).succeed(function(url) {
 		req.url = url;
 		eventStream = subscribe(req);
-        //		return eventStream.response_;
-        //:TODO:? }).then(function() {
+		//		return eventStream.response_;
+		//:TODO:? }).then(function() {
 		return eventStream;
 	});
 };
@@ -1585,12 +1584,12 @@ Client.prototype.resolve = function(options) {
 		// We don't have links, and we haven't previously failed (or we want to try again)
 		this.context.resetResolvedState();
 		if (this.context.isRelative()) {
-            if (!this.parentClient) {
-                // Parent failed, we failed
-			    self.context.setFailed({ status: 404, reason: 'not found' });
-			    resolvePromise.reject(this.context.getError());
-			    return resolvePromise;
-		    }
+			if (!this.parentClient) {
+				// Parent failed, we failed
+				self.context.setFailed({ status: 404, reason: 'not found' });
+				resolvePromise.reject(this.context.getError());
+				return resolvePromise;
+			}
 
 			// Up the chain we go
 			resolvePromise = this.parentClient.resolve(options)
@@ -1671,19 +1670,19 @@ Client.prototype.NOTIFY    = makeDispSugar('NOTIFY');
 
 // Follow sugars
 function makeFollowSugar(rel) {
-    return function(id, opts) {
-        if (id && typeof id == 'object') {
-            opts = id;
-        }
-        opts = opts || {};
-        if (opts.rel) { opts.rel = rel + ' ' + opts.rel; }
-        else opts.rel = rel;
-        if (id) opts.id = id;
-        return this.follow(opts);
-    }
+	return function(id, opts) {
+		if (id && typeof id == 'object') {
+			opts = id;
+		}
+		opts = opts || {};
+		if (opts.rel) { opts.rel = rel + ' ' + opts.rel; }
+		else opts.rel = rel;
+		if (id) opts.id = id;
+		return this.follow(opts);
+	}
 }
 ['service', 'collection', 'item', 'via', 'up', 'first', 'prev', 'next', 'last', 'self'].forEach(function(rel) {
-    Client.prototype[rel] = makeFollowSugar(rel);
+	Client.prototype[rel] = makeFollowSugar(rel);
 });
 
 
@@ -3439,7 +3438,9 @@ schemes.register(['http', 'https'], function(oreq, ires) {
 	// buffer the body, send on end
 	var body = '';
 	oreq.on('data', function(data) {
-		// :TODO: serialize non-string
+		if (data && typeof data == 'object' && oreq.headers.ContentType) {
+			data = contentTypes.serialize(oreq.headers.ContentType, data);
+		}
 		if (typeof data == 'string') { body += data; }
 		else { body = data; } // assume it is an array buffer or some such
 	});

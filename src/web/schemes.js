@@ -82,7 +82,9 @@ schemes.register(['http', 'https'], function(oreq, ires) {
 	// buffer the body, send on end
 	var body = '';
 	oreq.on('data', function(data) {
-		// :TODO: serialize non-string
+		if (data && typeof data == 'object' && oreq.headers.ContentType) {
+			data = contentTypes.serialize(oreq.headers.ContentType, data);
+		}
 		if (typeof data == 'string') { body += data; }
 		else { body = data; } // assume it is an array buffer or some such
 	});
