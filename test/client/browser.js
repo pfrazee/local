@@ -21,12 +21,7 @@ document.getElementById('atag1').dispatchEvent(clickEvent);
 wait(function () { return done; });
 
 /* =>
-{
-  headers: {accept: null},
-  method: null,
-  target: null,
-  url: "http://www.atag1.com"
-}
+{Accept: null, method: null, target: null, url: "http://www.atag1.com"}
 */
 
 // test: completely-filled anchor tag
@@ -41,7 +36,7 @@ wait(function () { return done; });
 
 /* =>
 {
-  headers: {accept: "text/plain"},
+  Accept: "text/plain",
   method: "POST",
   target: "target1",
   url: "http://www.atag2.com"
@@ -83,19 +78,19 @@ wait(function () { return done; });
 
 /* =>
 {
-	body: {
-		check1: ["b"],
-		radio1: "radio1 value1",
-		radio2: "radio2 value2",
-		select1: "select1 value1",
-		select2: "select2 value2",
-		select3: "select3 value3",
-		text1: "text1 value",
-		text2: "text2 value",
-		textarea1: "textarea 1 value"
-	},
-	headers: {"content-type": "application/x-www-form-urlencoded"},
-	url: "http://www.form1.com"
+  ContentType: "application/x-www-form-urlencoded",
+  body: {
+    check1: ["b"],
+    radio1: "radio1 value1",
+    radio2: "radio2 value2",
+    select1: "select1 value1",
+    select2: "select2 value2",
+    select3: "select3 value3",
+    text1: "text1 value",
+    text2: "text2 value",
+    textarea1: "textarea 1 value"
+  },
+  url: "http://www.form1.com"
 }
 */
 
@@ -111,22 +106,22 @@ wait(function () { return done; });
 
 /* =>
 {
-	body: {
-		check1: ["b"],
-		form1submit2: "form1submit2 value",
-		radio1: "radio1 value1",
-		radio2: "radio2 value2",
-		select1: "select1 value1",
-		select2: "select2 value2",
-		select3: "select3 value3",
-		text1: "text1 value",
-		text2: "text2 value",
-		textarea1: "textarea 1 value"
-	},
-	headers: {"content-type": "application/json"},
-	method: "patch",
-	target: "target1",
-	url: "http://www.form1.com/foobar"
+  ContentType: "application/json",
+  body: {
+    check1: ["b"],
+    form1submit2: "form1submit2 value",
+    radio1: "radio1 value1",
+    radio2: "radio2 value2",
+    select1: "select1 value1",
+    select2: "select2 value2",
+    select3: "select3 value3",
+    text1: "text1 value",
+    text2: "text2 value",
+    textarea1: "textarea 1 value"
+  },
+  method: "patch",
+  target: "target1",
+  url: "http://www.form1.com/foobar"
 }
 */
 
@@ -142,6 +137,7 @@ wait(function () { return done; });
 
 /* =>
 {
+  ContentType: "application/json",
   body: {
     check1: ["b"],
     form1submit3: "form1submit3 value",
@@ -154,7 +150,6 @@ wait(function () { return done; });
     text2: "text2 value",
     textarea1: "textarea 1 value"
   },
-  headers: {"content-type": "application/json"},
   method: "patch",
   target: "target1",
   url: "http://www.form1.com/foobaz"
@@ -173,11 +168,11 @@ wait(function () { return done; });
 
 /* =>
 {
-	body: {},
-	headers: {"content-type": "application/json"},
-	method: "post",
-	target: "target1",
-	url: "http://www.form2.com"
+  ContentType: "application/json",
+  body: {},
+  method: "post",
+  target: "target1",
+  url: "http://www.form2.com"
 }
 */
 

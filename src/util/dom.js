@@ -130,7 +130,7 @@ function extractRequest(targetElem, containerElem) {
 	// combine then all, with precedence given to rightmost objects in param list
 	var req = reduceObjects(requests.form, requests.elem);
 	var payloadWrapper = {};
-	payloadWrapper[/GET/i.test(req.method) ? 'query' : 'body'] = payload;
+	payloadWrapper[/GET/i.test(req.method) ? 'params' : 'body'] = payload;
 	return reduceObjects(req, payloadWrapper);
 }
 
@@ -140,14 +140,14 @@ extractRequest.fromAnchor = function(node) {
 
 	// get the anchor
 	node = findParentNode.byTagOrAlias(node, 'A');
-	if (!node || !node.attributes.href || node.attributes.href.value.charAt(0) == '#') { return null; }
+	if (!node || !node.attributes.href) { return null; }
 
 	// pull out params
 	var request = {
 		method: node.getAttribute('method'),
 		url: node.attributes.href.value,
 		target: node.getAttribute('target'),
-		headers: { accept: node.getAttribute('type') }
+		Accept: node.getAttribute('type')
 	};
 	return request;
 };
@@ -160,13 +160,11 @@ extractRequest.fromFormElement = function(node) {
 
 	// pull out params
 	var request = {
-		method  : node.getAttribute('formmethod'),
-		url     : node.getAttribute('formaction'),
-		target  : node.getAttribute('formtarget'),
-		headers : {
-			'content-type' : node.getAttribute('formenctype'),
-			accept         : node.getAttribute('formaccept')
-		}
+		method      : node.getAttribute('formmethod'),
+		url         : node.getAttribute('formaction'),
+		target      : node.getAttribute('formtarget'),
+		ContentType : node.getAttribute('formenctype'),
+		Accept      : node.getAttribute('formaccept')
 	};
 	return request;
 };
@@ -191,13 +189,11 @@ extractRequest.fromForm = function(form, submittingElem) {
 	// extract submitting element headers
 	if (submittingElem) {
 		requests.submitter = {
-			method  : submittingElem.getAttribute('formmethod'),
-			url     : submittingElem.getAttribute('formaction'),
-			target  : submittingElem.getAttribute('formtarget'),
-			headers : {
-				'content-type' : submittingElem.getAttribute('formenctype'),
-				accept         : submittingElem.getAttribute('formaccept')
-			}
+			method      : submittingElem.getAttribute('formmethod'),
+			url         : submittingElem.getAttribute('formaction'),
+			target      : submittingElem.getAttribute('formtarget'),
+			ContentType : submittingElem.getAttribute('formenctype'),
+			Accept      : submittingElem.getAttribute('formaccept')
 		};
 
 		// find fieldset(s)
@@ -216,15 +212,13 @@ extractRequest.fromForm = function(form, submittingElem) {
 	}
 	// extract form headers
 	requests.form = {
-		method  : form.getAttribute('method'),
-		url     : form.getAttribute('action'),
-		target  : form.getAttribute('target'),
-		headers : {
-			'content-type' : form.getAttribute('enctype') || form.enctype,
-			'accept'       : form.getAttribute('accept')
-		}
+		method      : form.getAttribute('method'),
+		url         : form.getAttribute('action'),
+		target      : form.getAttribute('target'),
+		ContentType : form.getAttribute('enctype') || form.enctype,
+		Accept      : form.getAttribute('accept')
 	};
-	if (form.acceptCharset) { requests.form.headers.accept = form.acceptCharset; }
+	if (form.acceptCharset) { requests.form.Accept = form.acceptCharset; }
 
 	// combine, with precedence to the submitting element
 	var request = reduceObjects(requests.form, requests.fieldset, requests.submitter);
@@ -346,10 +340,10 @@ function readFileLoadEnd(data, elem, file, index) {
 }
 function finishPayloadFileReads(request) {
 	var fileReads = (request.body) ? request.body.__fileReads :
-					((request.query) ? request.query.__fileReads : []);
+					((request.params) ? request.params.__fileReads : []);
 	return require('../promises.js').promise.bundle(fileReads).then(function(files) {
 		if (request.body) delete request.body.__fileReads;
-		if (request.query) delete request.query.__fileReads;
+		if (request.params) delete request.params.__fileReads;
 		files.forEach(function(file) {
 			if (typeof file.formindex != 'undefined')
 				request.body[file.formattr][file.formindex] = file;
