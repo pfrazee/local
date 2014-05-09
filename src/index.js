@@ -3,6 +3,8 @@ var util = require('./util');
 module.exports = {
 	Request: require('./web/request.js'),
 	Response: require('./web/response.js'),
+	IncomingRequest: require('./web/incoming-request.js'),
+	IncomingResponse: require('./web/incoming-response.js'),
 	Bridge: require('./web/bridge.js'),
 	UriTemplate: require('./web/uri-template.js'),
 

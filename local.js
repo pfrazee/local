@@ -89,6 +89,8 @@ var util = require('./util');
 module.exports = {
 	Request: require('./web/request.js'),
 	Response: require('./web/response.js'),
+	IncomingRequest: require('./web/incoming-request.js'),
+	IncomingResponse: require('./web/incoming-response.js'),
 	Bridge: require('./web/bridge.js'),
 	UriTemplate: require('./web/uri-template.js'),
 
@@ -153,7 +155,7 @@ if (global) {
 
 // Run worker setup (does nothing outside of a worker)
 require('./worker');
-},{"./config.js":1,"./constants.js":2,"./promises.js":4,"./request-event.js":5,"./util":8,"./web/bridge.js":9,"./web/client.js":10,"./web/content-types.js":11,"./web/helpers.js":12,"./web/http-headers.js":13,"./web/httpl.js":14,"./web/request.js":17,"./web/response.js":18,"./web/schemes.js":19,"./web/subscribe.js":20,"./web/uri-template.js":21,"./web/workers.js":22,"./worker":23}],4:[function(require,module,exports){
+},{"./config.js":1,"./constants.js":2,"./promises.js":4,"./request-event.js":5,"./util":8,"./web/bridge.js":9,"./web/client.js":10,"./web/content-types.js":11,"./web/helpers.js":12,"./web/http-headers.js":13,"./web/httpl.js":14,"./web/incoming-request.js":15,"./web/incoming-response.js":16,"./web/request.js":17,"./web/response.js":18,"./web/schemes.js":19,"./web/subscribe.js":20,"./web/uri-template.js":21,"./web/workers.js":22,"./worker":23}],4:[function(require,module,exports){
 var localConfig = require('./config.js');
 var util = require('./util');
 
