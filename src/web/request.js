@@ -3,6 +3,7 @@ var promises = require('../promises.js');
 var helpers = require('./helpers.js');
 var schemes = require('./schemes.js');
 var contentTypes = require('./content-types.js');
+var Response = require('./response.js');
 var IncomingResponse = require('./incoming-response.js');
 
 // Request
@@ -23,6 +24,7 @@ function Request(headers, originChannel) {
 	this.originChannel = originChannel;
 	this.isBinary = false; // stream is binary?
 	this.isVirtual = undefined; // request going to virtual host?
+    this.isForcedLocal = local.localOnly; // forcing request to be local?
 	this.isBufferingResponse = false; // auto-buffering the response?
 
 	// Stream state
@@ -112,6 +114,17 @@ Request.prototype.setVirtual = function(v) {
 	return this;
 };
 
+// Forced local
+// instructs the request to prepend a '#' if needed
+Request.prototype.forceLocal = function(v) {
+	if (typeof v == 'boolean') {
+		this.isForcedLocal = v;
+	} else {
+		this.isForcedLocal = true;
+	}
+	return this;
+};
+
 // Response buffering
 // instructs the request to auto-buffer the response body and set it to `res.body`
 Request.prototype.bufferResponse = function(v) {
@@ -119,6 +132,17 @@ Request.prototype.bufferResponse = function(v) {
 		this.isBufferingResponse = v;
 	} else {
 		this.isBufferingResponse = true;
+	}
+	return this;
+};
+
+// Forced local
+// instructs the request to prepend a '#' if needed
+Request.prototype.forceLocal = function(v) {
+	if (typeof v == 'boolean') {
+		this.isForcedLocal = v;
+	} else {
+		this.isForcedLocal = true;
 	}
 	return this;
 };
@@ -160,7 +184,7 @@ Request.prototype.start = function() {
         // if virtual only, force
         this.isVirtual = true;
     }
-    if (local.localOnly && this.headers.url.charAt(0) !== '#') {
+    if (this.isForcedLocal && this.headers.url.charAt(0) !== '#') {
         // if local only, foce
         this.headers.url = '#' + this.headers.url;
     }
