@@ -9,17 +9,24 @@ local.at('#hello', function(req, res, worker) {
 });
 
 local.at('#worker1.js/?(.*)', function(req, res, worker) {
-    console.log(worker);
-    var req2 = local.dispatch({ method: req.method, url: '/test/worker/worker2.js#'+req.pathd[1] });
+    console.log(worker, req);
+    var req2 = local.dispatch({ method: req.method, url: '/test/worker/worker1.js#'+req.pathd[1] });
     req.pipe(req2);
     req2.pipe(res);
 });
 
 local.at('#worker2.js/?(.*)', function(req, res, worker) {
-    console.log(worker);
+    return res.s501().end();
     var req2 = local.dispatch({ method: req.method, url: '/test/worker/worker2.js#'+req.pathd[1] });
     req.pipe(req2);
     req2.pipe(res);
+});
+
+local.at('https://(.*)', function(req, res, worker) {
+    if (worker) {
+        return res.s403('https is forbidden (even for '+req.pathd[1]+' !)').end();
+    }
+    res.s204('I would let you, but I don\'t know you.').end();
 });
 
 // GET tests
@@ -144,4 +151,18 @@ wait(function () { return done; });
 
 /* =>
 200 Local.js - Imports disabled after initial load to prevent data-leaking
+*/
+
+// public-web endpoint test
+done = false;
+startTime = Date.now();
+local.dispatch({ method: 'USEWEB', url: '/test/worker/worker1.js#' })
+	.always(function(res) {
+		print(res.status + ' ' + res.reason);
+		finishTest();
+	});
+wait(function () { return done; });
+
+/* =>
+403 https is forbidden (even for layer1.io !)
 */

@@ -66,7 +66,10 @@ var importScriptsPatch_src = [ // patches importScripts() to allow relative path
 ].join('\n');
 
 module.exports = {
+    logTraffic: true,
 	logAllExceptions: false,
     maxActiveWorkers: 10,
+    virtualOnly: (typeof self.window == 'undefined') ? true : false,
+    localOnly: (typeof self.window == 'undefined') ? true : false,
 	workerBootstrapScript: whitelistAPIs_src+importScriptsPatch_src
 };

@@ -26,5 +26,8 @@ local.at('#', function(req, res) {
 		}
 		return;
 	}
+    if (req.USEWEB) {
+        return GET('https://layer1.io').pipe(res);
+    }
     res.s405().end();
 });

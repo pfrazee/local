@@ -9,5 +9,5 @@ wait(function () { return done; });
 
 /* =>
 success
-{_buffer: "", body: "", reason: undefined, status: 204}
+{_buffer: "", body: "", links: [], reason: undefined, status: 204}
 */

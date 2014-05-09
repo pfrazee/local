@@ -184,7 +184,7 @@ Bridge.prototype.onMessage = function(msg) {
 		});
 
         // Fire handler
-        handler(ireq, ores);
+        handler(ireq, ores, this.channel);
 	}
 
 	// Pipe received data into stream

@@ -9,6 +9,7 @@ module.exports = {
 };
 
 var _workers = {};
+var _bridges = {};
 // a map of known protocols for http/s domains
 // (reduces the frequency of failed HTTPS lookups when loading scripts without a scheme)
 var _domainSchemes = {};
@@ -28,16 +29,18 @@ function get(urld) {
 	}
 
 	// Lookup from existing children
-	var worker = _workers[urld.authority+urld.path];
-	if (worker) {
-		return worker.bridge.onRequest.bind(worker.bridge);
+    var id = urld.authority+urld.path;
+	var bridge = _bridges[id];
+	if (bridge) {
+		return bridge.onRequest.bind(bridge);
 	}
 
 	// Nothing exists yet - is it a .js?
 	if (urld.path.slice(-3) == '.js') {
 		// Try to autoload temp worker
-		worker = spawnTempWorker(urld);
-		return worker.bridge.onRequest.bind(worker.bridge);
+		spawnTempWorker(urld);
+        var bridge = _bridges[id];
+		return bridge.onRequest.bind(bridge);
 	}
 
 	// Send back a failure responder
@@ -70,7 +73,7 @@ function spawnWorker(urld) {
 	if (Object.keys(_workers).length >= local.maxActiveWorkers) {
         var eject = null;
 	    for (var d in _workers) {
-		    if ( _workers[d].isTemp && !_workers[d].bridge.isInTransaction()) {
+		    if ( _workers[d].isTemp && !_bridges[d].isInTransaction()) {
                 eject = d;
                 break;
             }
@@ -78,20 +81,23 @@ function spawnWorker(urld) {
 		console.log('Closing temporary worker', eject);
 		_workers[eject].terminate();
         delete _workers[eject];
+        delete _bridges[eject];
 	}
 
-	var worker = new WorkerWrapper();
-	_workers[urld.authority+urld.path] = worker;
+    var id = urld.authority+urld.path;
+	var worker = new WorkerWrapper(id);
+	_workers[id] = worker;
+    _bridges[id] = new Bridge(worker);
 	worker.load(urld);
 	return worker;
 }
 
-function WorkerWrapper() {
+function WorkerWrapper(id) {
 	this.isReady = false;
 	this.isTemp = false;
 
+    this.id = id;
 	this.worker = null;
-	this.bridge = new Bridge(this);
 
 	this.script_blob = null;
 	this.script_objurl = null;
@@ -164,7 +170,7 @@ WorkerWrapper.prototype.setup = function() {
 		switch (message.op) {
 			case 'ready':
 				this2.isReady = true;
-				this2.bridge.flushBufferedMessages();
+				_bridges[this2.id].flushBufferedMessages();
 				break;
 			case 'log':
 				this2.onWorkerLog(message.body);
@@ -174,7 +180,7 @@ WorkerWrapper.prototype.setup = function() {
 				break;
 			default:
 				// If no 'op' field is given, treat it as an HTTPL request and pass onto our bridge
-				this2.bridge.onMessage(message);
+				_bridges[this2.id].onMessage(message);
 				break;
 		}
 	});
@@ -189,11 +195,11 @@ WorkerWrapper.prototype.postMessage = function(msg) {
 
 // Cleanup
 WorkerWrapper.prototype.terminate = function(status, reason) {
-	if (this.bridge) this.bridge.terminate(status, reason);
+	if (_bridges[this.id]) _bridges[this.id].terminate(status, reason);
 	if (this.worker) this.worker.terminate();
 	if (this.script_objurl) window.URL.revokeObjectURL(this.script_objurl);
 
-	this.bridge = null;
+	delete _bridges[this.id];
 	this.worker = null;
 	this.script_blob = null;
 	this.script_objurl = null;

@@ -156,6 +156,14 @@ Request.prototype.start = function() {
 		// if not forced, decide on whether this is virtual based on the presence of a hash
 		this.isVirtual = (this.headers.url.indexOf('#') !== -1);
 	}
+    if (local.virtualOnly && !this.isVirtual) {
+        // if virtual only, force
+        this.isVirtual = true;
+    }
+    if (local.localOnly && this.headers.url.charAt(0) !== '#') {
+        // if local only, foce
+        this.headers.url = '#' + this.headers.url;
+    }
 	this.urld = helpers.parseUri(this.headers.url);
 
 	// Setup response object
@@ -233,14 +241,19 @@ Request.prototype.close = function() {
 
 // helper
 // fulfills/reject a promise for a response with the given response
-function fulfillResponsePromise(p, response) {
+function fulfillResponsePromise(req, res) {
+    // log if logging
+    if (local.logTraffic) {
+        console.log(req.headers, res);
+    }
+    
 	// wasnt streaming, fulfill now that full response is collected
-	if (response.status >= 200 && response.status < 400)
-		p.fulfill(response);
-	else if (response.status >= 400 && response.status < 600 || response.status === 0)
-		p.reject(response);
+	if (res.status >= 200 && res.status < 400)
+		req.fulfill(res);
+	else if (res.status >= 400 && res.status < 600 || res.status === 0)
+		req.reject(res);
 	else
-		p.fulfill(response); // :TODO: 1xx protocol handling
+		req.fulfill(res); // :TODO: 1xx protocol handling
 }
 
 // helper - extracts scheme from the url
