@@ -136,17 +136,6 @@ Request.prototype.bufferResponse = function(v) {
 	return this;
 };
 
-// Forced local
-// instructs the request to prepend a '#' if needed
-Request.prototype.forceLocal = function(v) {
-	if (typeof v == 'boolean') {
-		this.isForcedLocal = v;
-	} else {
-		this.isForcedLocal = true;
-	}
-	return this;
-};
-
 // Pipe helper
 // passes through to its incoming response
 Request.prototype.pipe = function(target, headersCb, bodyCb) {
@@ -185,8 +174,9 @@ Request.prototype.start = function() {
         this.isVirtual = true;
     }
     if (this.isForcedLocal && this.headers.url.charAt(0) !== '#') {
-        // if local only, foce
+        // if local only, force
         this.headers.url = '#' + this.headers.url;
+        this.isVirtual = true;
     }
 	this.urld = helpers.parseUri(this.headers.url);
 
@@ -266,6 +256,9 @@ Request.prototype.close = function() {
 // helper
 // fulfills/reject a promise for a response with the given response
 function fulfillResponsePromise(req, res) {
+    if (!req.isUnfulfilled())
+        return;
+
     // log if logging
     if (local.logTraffic) {
         console.log(req.headers, res);
