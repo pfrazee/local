@@ -249,7 +249,7 @@ success
   status: 200
 }
 error
-{_buffer: "", body: "", reason: undefined, status: 404}
+{_buffer: "", body: "", links: [], reason: undefined, status: 404}
 success
 {
   ContentType: "application/json",

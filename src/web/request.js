@@ -62,6 +62,19 @@ function formatHeaderKey(str) {
 	return str.replace(headerKeyRegex, function(_0,_1,_2) { return _2.toUpperCase(); });
 }
 
+// Content-type sugars
+[ 'json', 'text', 'html', 'csv' ].forEach(function(k) {
+    Request.prototype[k] = function (v) {
+        this.ContentType(k);
+        this.write(v);
+        return this;
+    };
+    Request.prototype['to'+k] = function (v) {
+        this.Accept(k);
+        return this;
+    };
+});
+
 // Param setter
 // - `k` may be an object of keys to add
 // - or `k` can be the keyname and `v` the value

@@ -58,34 +58,48 @@ Response.prototype.header = function(k, v) {
 	};
 });
 
+// Content-type sugars
+[ 'json', 'text', 'html', 'csv' ].forEach(function(k) {
+	Response.prototype[k] = function (v) {
+		this.ContentType(k);
+		this.write(v);
+		return this;
+	};
+});
+Response.prototype.event = function(event, data) {
+	this.ContentType('event-stream');
+	this.write({ event: event, data: data });
+	return this;
+};
+
 // Link-header construction helper
 Response.prototype.link = function(link) {
-    if (!this.headers.Link) { this.headers.Link = []; }
-    if (arguments.length > 1) {
-        if (Array.isArray(arguments[0])) {
-            // table form
-            this.link(util.table.apply(null, arguments));
-        } else {
-            // (href, rel, opts) form
-            var href = arguments[0];
-            var rel = arguments[1];
-            var opts = arguments[2];
-            if (rel && typeof rel == 'object') {
-                opts = rel;
-                rel = false;
-            }
-            if (!opts) opts = {};
-            opts.href = href;
-            if (rel) { opts.rel = (opts.rel) ? (opts.rel+' '+rel) : rel; }
-            this.link(opts);
-        }
-    } else if (Array.isArray(link)) {
-        // [{rel:,href:}...] form
-        this.headers.Link = this.headers.Link.concat(link);
-    } else {
-        // {rel:,href:} form
-        this.headers.Link.push(link);
-    }
+	if (!this.headers.Link) { this.headers.Link = []; }
+	if (arguments.length > 1) {
+		if (Array.isArray(arguments[0])) {
+			// table form
+			this.link(util.table.apply(null, arguments));
+		} else {
+			// (href, rel, opts) form
+			var href = arguments[0];
+			var rel = arguments[1];
+			var opts = arguments[2];
+			if (rel && typeof rel == 'object') {
+				opts = rel;
+				rel = false;
+			}
+			if (!opts) opts = {};
+			opts.href = href;
+			if (rel) { opts.rel = (opts.rel) ? (opts.rel+' '+rel) : rel; }
+			this.link(opts);
+		}
+	} else if (Array.isArray(link)) {
+		// [{rel:,href:}...] form
+		this.headers.Link = this.headers.Link.concat(link);
+	} else {
+		// {rel:,href:} form
+		this.headers.Link.push(link);
+	}
 };
 
 // helper to convert a given header value to our standard format - camel case, no dashes
@@ -96,7 +110,7 @@ function formatHeaderKey(str) {
 	return str.replace(headerKeyRegex, function(_0,_1,_2) { return _2.toUpperCase(); });
 }
 
-// 
+//
 
 // Event connection helper
 // connects events from this stream to the target (event proxying)

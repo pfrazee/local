@@ -41,6 +41,7 @@ error
   Allow: "OPTIONS, HEAD, GET, SUBSCRIBE",
   _buffer: "",
   body: "",
+  links: [],
   reason: "Not Found",
   status: 404
 }
@@ -141,7 +142,7 @@ wait(function () { return done; });
 
 /* =>
 error
-{_buffer: "", body: "", reason: undefined, status: 404}
+{_buffer: "", body: "", links: [], reason: undefined, status: 404}
 */
 
 // successful virtual posts
@@ -161,6 +162,7 @@ success
   ContentType: "text/plain",
   _buffer: "echo this, please",
   body: "echo this, please",
+  links: [],
   reason: undefined,
   status: 200
 }
@@ -209,6 +211,7 @@ success
   FooBar: "FooBar",
   _buffer: "",
   body: "",
+  links: [],
   reason: undefined,
   status: 204
 }
@@ -229,8 +232,10 @@ wait(function () { return done; });
 /* =>
 success
 {
+  ContentType: "text/html",
   _buffer: "<strong>foo,bar</strong>",
   body: "<strong>foo,bar</strong>",
+  links: [],
   reason: undefined,
   status: 200
 }
@@ -256,9 +261,41 @@ wait(function () { return done; });
 
 /* =>
 error
-{_buffer: "", body: "", reason: "can only provide html", status: 406}
+{_buffer: "", body: "", links: [], reason: "can only provide html", status: 406}
 error
-{_buffer: "", body: "", reason: "only understands text/csv", status: 415}
+{
+  _buffer: "",
+  body: "",
+  links: [],
+  reason: "only understands text/csv",
+  status: 415
+}
+*/
+
+// mimetype header sugars
+
+done = false;
+startTime = Date.now();
+POST('#mimetype-alises-echo').csv('foo,bar').tojson()
+    .then(printSuccess, printError)
+    .always(function() {
+        return POST('#mimetype-alises-echo').text('').tohtml();
+    })
+    .then(printSuccess, printError)
+    .always(finishTest);
+wait(function () { return done; });
+
+/* =>
+error
+{_buffer: "", body: "", links: [], reason: "can only provide html", status: 406}
+error
+{
+  _buffer: "",
+  body: "",
+  links: [],
+  reason: "only understands text/csv",
+  status: 415
+}
 */
 
 // virtual poundsign optional
@@ -272,7 +309,7 @@ wait(function () { return done; });
 
 /* =>
 success
-{_buffer: "", body: "", reason: undefined, status: 204}
+{_buffer: "", body: "", links: [], reason: undefined, status: 204}
 */
 
 // virtual body parsing
@@ -294,9 +331,22 @@ wait(function () { return done; });
 
 /* =>
 success
-{_buffer: {foo: "bar"}, body: {foo: "bar"}, reason: undefined, status: 200}
+{
+  _buffer: {foo: "bar"},
+  body: {foo: "bar"},
+  links: [],
+  reason: undefined,
+  status: 200
+}
 success
-{_buffer: {foo2: "bar2"}, body: {foo2: "bar2"}, reason: undefined, status: 200}
+{
+  _buffer: {foo2: "bar2"},
+  body: {foo2: "bar2"},
+  links: [],
+  reason: undefined,
+  status: 200
+}
+
 */
 
 // virtual query parameters
@@ -316,6 +366,7 @@ success
   ContentType: "application/json",
   _buffer: {itsa: "me", number: 5, thunder: "flash", yeah: "buddy"},
   body: {itsa: "me", number: 5, thunder: "flash", yeah: "buddy"},
+  links: [],
   reason: undefined,
   status: 200
 }
@@ -335,6 +386,7 @@ GET('#pipe', { src: '#' })
   .always(finishTest);
 wait(function () { return done; });
 /* =>
+
 success
 {
   ContentType: "text/piped+plain",
@@ -365,6 +417,7 @@ success
 {
   _buffer: "AND ALSO PIPE THIS",
   body: "AND ALSO PIPE THIS",
+  links: [],
   reason: undefined,
   status: 200
 }
@@ -512,7 +565,7 @@ wait(function () { return done; });
 
 /* =>
 error
-{_buffer: "", body: "", reason: "not found", status: 404}
+{_buffer: "", body: "", links: [], reason: "not found", status: 404}
 */
 
 // query params
@@ -628,6 +681,7 @@ success
   ContentType: "text/html",
   _buffer: "<h1>Hello World!</h1>",
   body: "<h1>Hello World!</h1>",
+  links: [],
   reason: undefined,
   status: 200
 }
@@ -648,6 +702,7 @@ success
   ContentType: "text/html",
   _buffer: "<h1>Hello World!</h1>",
   body: "<h1>Hello World!</h1>",
+  links: [],
   reason: undefined,
   status: 200
 }
@@ -668,6 +723,7 @@ success
   ContentType: "text/html",
   _buffer: "",
   body: "",
+  links: [],
   reason: undefined,
   status: 200
 }
@@ -688,6 +744,7 @@ success
   ContentType: "text/html",
   _buffer: "",
   body: "",
+  links: [],
   reason: undefined,
   status: 200
 }

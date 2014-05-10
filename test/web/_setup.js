@@ -33,12 +33,12 @@ local.at('#foo', function(req, res) {
 		{ rel:'self current', href:'#foo' },
 		{ rel:'item', href:'#foo/{id}' }
 	];
-	res.s200().ContentType('json').link(linkHeader);
+	res.s200().link(linkHeader);
 	// so we can experiment with streaming, write the json in bits:
 	if (payload) {
-		res.write('[');
-		payload.forEach(function(p, i) { res.write((i!==0?',':'')+'"'+p+'"'); });
-		res.write(']');
+		res.json('[');
+		payload.forEach(function(p, i) { res.json((i!==0?',':'')+'"'+p+'"'); });
+		res.json(']');
 	}
 	res.end();
 });
@@ -85,7 +85,7 @@ local.at('#mimetype-alises-echo', function(req, res) {
 		return res.s406('can only provide html').end();
 	}
 	req.buffer(function() {
-		res.s200().end('<strong>'+req.body+'</strong>');
+		res.s200().html('<strong>'+req.body+'</strong>').end();
 	});
 });
 
@@ -106,14 +106,14 @@ local.at('#parse-body', function(req, res) {
 
 // query params
 local.at('#query-params', function(req, res) {
-	res.s200().ContentType('json').end(req.params);
+	res.s200().json(req.params).end();
 });
 
 local.at('#events', function(req, res) {
-	res.s200().ContentType('event-stream');
-	res.write({ event:'foo', data:{ c:1 }});
-	res.write({ event:'foo', data:{ c:2 }});
-	res.write({ event:'bar', data:{ c:3 }});
+	res.s200()
+		.event('foo', { c: 1 })
+		.event('foo', { c: 2 })
+		.event('bar', { c: 3 });
 	res.write('event: foo\r\n');
 	setTimeout(function() { // break up the event to make sure the client waits for the whole thing
 		res.write('data: { "c": 4 }\r\n\r\n');
