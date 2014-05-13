@@ -1990,6 +1990,10 @@ function queryLink(link, query) {
 			if (!query[attr].call(null, link[attr], attr)) {
 				return false;
 			}
+		} else if (query[attr] instanceof RegExp) {
+			if (!query[attr].test(link[attr])) {
+				return false;
+			}
 		} else if (attr == 'rel') {
 			var terms = query.rel.split(/\s+/);
 			for (var i=0; i < terms.length; i++) {
