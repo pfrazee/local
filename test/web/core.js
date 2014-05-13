@@ -505,11 +505,90 @@ wait(function () { return done; });
 print('done');
 // => done
 
+// set-unvirtual
+
+done = false;
+startTime = Date.now();
+GET('dev.grimwire.com/test/web/_worker.js#')
+  .setVirtual(false)
+  .then(function(res) { print('success'); delete res.body; delete res._buffer; print(res); }, printError)
+  .always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  AcceptRanges: "bytes",
+  AccessControlAllowOrigin: "*",
+  ContentEncoding: "gzip",
+  ContentLength: "929",
+  ContentType: "application/javascript",
+  Date: "Tue, 13 May 2014 20:15:59 GMT",
+  ETag: "\"259b43-a27-4f862a6fe26c0\"",
+  LastModified: "Fri, 02 May 2014 03:48:19 GMT",
+  Server: "Apache/2.2.14 (Ubuntu)",
+  Vary: "Accept-Encoding",
+  links: [],
+  reason: "OK",
+  status: 200
+}
+*/
+
+// set-virtual
+
+done = false;
+startTime = Date.now();
+GET('dev.grimwire.com/test/web/_worker.js')
+  .setVirtual()
+  .then(printSuccess, printError)
+  .always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  ContentType: "text/plain",
+  Link: [
+    {href: "dev.grimwire.com/test/web/_worker.js#", rel: "self current"},
+    {
+      href: "dev.grimwire.com/test/web/_worker.js#events",
+      id: "events",
+      rel: "collection"
+    },
+    {
+      href: "dev.grimwire.com/test/web/_worker.js#foo",
+      id: "foo",
+      rel: "collection"
+    },
+    {href: "dev.grimwire.com/test/web/_worker.js#{id}", rel: "collection"}
+  ],
+  _buffer: "service resource",
+  body: "service resource",
+  links: [
+    {href: "dev.grimwire.com/test/web/_worker.js#", rel: "self current"},
+    {
+      href: "dev.grimwire.com/test/web/_worker.js#events",
+      id: "events",
+      rel: "collection"
+    },
+    {
+      href: "dev.grimwire.com/test/web/_worker.js#foo",
+      id: "foo",
+      rel: "collection"
+    },
+    {href: "dev.grimwire.com/test/web/_worker.js#{id}", rel: "collection"}
+  ],
+  reason: undefined,
+  status: 200
+}
+*/
+
 // forced-virtual
 
 done = false;
 startTime = Date.now();
 GET('dev.grimwire.com/test/web/_worker.js')
+  .setVirtual(false)
   .forceVirtual()
   .then(printSuccess, printError)
   .always(finishTest);
