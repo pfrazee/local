@@ -536,16 +536,16 @@ module.exports = {
 	parseMediaType: parseMediaType,
 	parseAcceptHeader: parseAcceptHeader,
 
-	joinUri: joinUri,
+	joinUri: joinUri, joinUrl: joinUri,
 	joinRelPath: joinRelPath,
 
-	isAbsUri: isAbsUri,
-	isNavSchemeUri: isNavSchemeUri,
+	isAbsUri: isAbsUri, isAbsUrl: isAbsUri,
+	isNavSchemeUri: isNavSchemeUri, isNavSchemeUrl: isNavSchemeUri,
 
-	parseUri: parseUri,
-	parseNavUri: parseNavUri,
-	makeProxyUri: makeProxyUri,
-	renderUri: renderUri,
+	parseUri: parseUri, parseUrl: parseUri,
+	parseNavUri: parseNavUri, parseNavUrl: parseNavUri,
+	makeProxyUri: makeProxyUri, makeProxyUrl: makeProxyUri,
+	renderUri: renderUri, renderUrl: renderUri,
 
 	isHeaderKey: isHeaderKey,
 
