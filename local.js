@@ -2323,140 +2323,6 @@ function isHeaderKey(k) {
 	return ucRegEx.test(k);
 }
 
-// :TODO:
-// EXPORTED
-// modifies XMLHttpRequest to support HTTPL
-/*function patchXHR() {
-	// Store references to original methods
-	var orgXHR = XMLHttpRequest;
-	var orgPrototype = XMLHttpRequest.prototype;
-	function localXMLHttpRequest() {}
-	(window || self).XMLHttpRequest = localXMLHttpRequest;
-	localXMLHttpRequest.UNSENT = 0;
-	localXMLHttpRequest.OPENED = 1;
-	localXMLHttpRequest.HEADERS_RECEIVED = 2;
-	localXMLHttpRequest.LOADING = 4;
-	localXMLHttpRequest.DONE = 4;
-
-	localXMLHttpRequest.prototype.open = function(method, url, async, user, password) {
-		// Is HTTPL?
-		var urld = parseUri(url);
-		if (urld.protocol != 'httpl' && urld.protocol != 'local') {
-			Object.defineProperty(this, '__xhr_request', { value: new orgXHR() });
-			return this.__xhr_request.open(method, url, async, user, password);
-		}
-
-		// Construct request
-		var Request = require('./request.js');
-		Object.defineProperty(this, '__local_request', { value: new Request({ method: method, url: url, stream: true }) });
-		if (user) {
-			this.__local_request.setHeader('Authorization', 'Basic '+btoa(user+':'+password));
-		}
-
-		// Update state
-		this.readyState = 1;
-		if (this.onreadystatechange) {
-			this.onreadystatechange();
-		}
-	};
-
-	localXMLHttpRequest.prototype.send = function(data) {
-		var this2 = this;
-		if (this.__local_request) {
-			// Dispatch and send data
-			var res_ = require('./dispatch.js').dispatch(this.__local_request);
-			this.__local_request.end(data);
-
-			// Wire up events
-			res_.always(function(res) {
-				Object.defineProperty(this2, '__local_response', { value: res });
-				// Update state
-				this2.readyState = 2;
-				this2.status = res.status;
-				this2.statusText = res.status + ' ' + res.reason;
-				this2.responseText = null;
-				// Fire event
-				if (this2.onreadystatechange) {
-					this2.onreadystatechange();
-				}
-				res.on('data', function(chunk) {
-					this2.readyState = 3;
-					if (this2.responseText === null && typeof chunk == 'string') this2.responseText = '';
-					this2.responseText += chunk;
-					// Fire event
-					if (this2.onreadystatechange) {
-						this2.onreadystatechange();
-					}
-				});
-				res.on('end', function() {
-					this2.readyState = 4;
-					switch (this2.responseType) {
-						case 'json':
-							this2.response = res.body;
-							break;
-
-						case 'text':
-						default:
-							this2.response = this2.responseText;
-							break;
-					}
-					// Fire event
-					if (this2.onreadystatechange) {
-						this2.onreadystatechange();
-					}
-					if (this2.onload) {
-						this2.onload();
-					}
-				});
-			});
-		} else {
-			// Copy over any attributes we've been given
-			this.__xhr_request.onreadystatechange = function() {
-				for (var k in this) {
-					if (typeof this[k] == 'function') continue;
-					this2[k] = this[k];
-				}
-				if (this2.onreadystatechange) {
-					this2.onreadystatechange();
-				}
-			};
-			return this.__xhr_request.send(data);
-		}
-	};
-
-	localXMLHttpRequest.prototype.abort = function() {
-		if (this.__local_request) {
-			return this.__local_request.close();
-		} else {
-			return this.__xhr_request.abort();
-		}
-	};
-
-	localXMLHttpRequest.prototype.setRequestHeader = function(k, v) {
-		if (this.__local_request) {
-			return this.__local_request.setHeader(k.toLowerCase(), v);
-		} else {
-			return this.__xhr_request.setRequestHeader(k, v);
-		}
-	};
-
-	localXMLHttpRequest.prototype.getAllResponseHeaders = function(k) {
-		if (this.__local_request) {
-			return this.__local_response ? this.__local_response.headers : null;
-		} else {
-			return this.__xhr_request.getAllResponseHeaders(k);
-		}
-	};
-
-	localXMLHttpRequest.prototype.getResponseHeader = function(k) {
-		if (this.__local_request) {
-			return this.__local_response ? this.__local_response.getHeader(k) : null;
-		} else {
-			return this.__xhr_request.getResponseHeader(k);
-		}
-	};
-}*/
-
 module.exports = {
 	extractDocumentLinks: extractDocumentLinks,
 	queryLinks: queryLinks,
@@ -2472,15 +2338,12 @@ module.exports = {
 
 	isAbsUri: isAbsUri, isAbsUrl: isAbsUri,
 	isNavSchemeUri: isNavSchemeUri, isNavSchemeUrl: isNavSchemeUri,
+	isHeaderKey: isHeaderKey,
 
 	parseUri: parseUri, parseUrl: parseUri,
 	parseNavUri: parseNavUri, parseNavUrl: parseNavUri,
 	makeProxyUri: makeProxyUri, makeProxyUrl: makeProxyUri,
 	renderUri: renderUri, renderUrl: renderUri,
-
-	isHeaderKey: isHeaderKey,
-
-	// patchXHR: patchXHR :TODO:
 };
 },{"../promises.js":4,"./content-types.js":11,"./uri-template.js":21}],13:[function(require,module,exports){
 var helpers = require('./helpers.js');
