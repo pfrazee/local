@@ -2,7 +2,6 @@
 local.spawnWorker('/test/web/_worker.js');
 
 // document local scaffold server
-
 var foos = ['bar', 'baz', 'blah'];
 local.at('#', function(req, res) {
 	var payload = null, linkHeader;

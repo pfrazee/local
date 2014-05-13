@@ -3235,6 +3235,7 @@ Request.prototype.close = function() {
 	this.isConnOpen = false;
 	this.emit('close');
 	this.clearEvents();
+
 	if (!this.isStarted) {
 		// Fulfill with abort response
 		var ires = new IncomingResponse();
@@ -4777,7 +4778,8 @@ var Bridge = require('./bridge.js');
 module.exports = {
 	getWorker: get,
 	spawnWorker: spawnWorker,
-	spawnTempWorker: spawnTempWorker
+	spawnTempWorker: spawnTempWorker,
+	closeWorker: closeWorker
 };
 
 var _workers = {};
@@ -4862,6 +4864,28 @@ function spawnWorker(urld) {
     _bridges[id] = new Bridge(worker);
 	worker.load(urld);
 	return worker;
+}
+
+function closeWorker(url) {
+	var urld = local.parseUri(url);
+
+	// Relative to current host? Construct full URL
+	if (!urld.authority || urld.authority == '.' || urld.authority.indexOf('.') === -1) {
+		var dir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+		var dirurl = window.location.protocol + '//' + window.location.hostname + dir;
+		var url = helpers.joinRelPath(dirurl, urld.source);
+		urld = local.parseUri(url);
+	}
+
+	// Find and terminate
+	var id = urld.authority + urld.path;
+	if (id in _workers) {
+		_workers[id].terminate();
+        delete _workers[id];
+        delete _bridges[id];
+        return true;
+	}
+	return false;
 }
 
 function WorkerWrapper(id) {
