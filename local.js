@@ -112,7 +112,6 @@ util.mixin.call(module.exports, require('./web/client.js'));
 // Request sugars
 function dispatch(headers) {
 	var req = new module.exports.Request(headers);
-	req.bufferResponse(true);
 	req.autoEnd();
 	return req;
 }
@@ -2981,7 +2980,7 @@ function Request(headers, originChannel) {
 
 	// Behavior flags
     this.isForcedLocal = local.localOnly; // forcing request to be local
-	this.isBufferingResponse = false; // auto-buffering the response?
+	this.isBufferingResponse = true; // auto-buffering the response?
 	this.isAutoEnding = false; // auto-ending the request on next tick?
 
 	// Stream state

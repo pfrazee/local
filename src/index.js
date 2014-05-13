@@ -26,7 +26,6 @@ util.mixin.call(module.exports, require('./web/client.js'));
 // Request sugars
 function dispatch(headers) {
 	var req = new module.exports.Request(headers);
-	req.bufferResponse(true);
 	req.autoEnd();
 	return req;
 }
