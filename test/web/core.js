@@ -445,6 +445,20 @@ success
 }
 */
 
+// pipe request abort on 404
+
+done = false;
+startTime = Date.now();
+GET('#not-gonna-find-anything-here')
+  .pipe(POST('#pipe'))
+  .then(printSuccess, printError)
+  .always(finishTest);
+wait(function () { return done; });
+/* =>
+error
+{links: [], reason: "aborted by client", status: 0}
+*/
+
 // virtual request timeout
 
 done = false;

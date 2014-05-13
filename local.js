@@ -2932,6 +2932,11 @@ IncomingResponse.prototype.pipe = function(target, headersCB, bodyCb) {
 			}
 		}
 	} else if (target instanceof require('./request')) {
+		if (this.status < 200 || this.status >= 400) {
+			// We're a failed response, abort the request
+			target.close();
+			return target;
+		}
 		if (!target.headers.ContentType && this.ContentType) {
 			target.ContentType(this.ContentType);
 		}
@@ -3104,7 +3109,6 @@ Request.prototype.bufferResponse = function(v) {
 // queues a callback next tick to end the stream, for non-streaming requests
 Request.prototype.autoEnd = function(v) {
 	v = (typeof v != 'undefined') ? v : true;
-	if (!v) console.log('unautoending')
 	if (v && !this.isAutoEnding) {
 		// End next tick
 		var self = this;
@@ -3231,6 +3235,15 @@ Request.prototype.close = function() {
 	this.isConnOpen = false;
 	this.emit('close');
 	this.clearEvents();
+	if (!this.isStarted) {
+		// Fulfill with abort response
+		var ires = new IncomingResponse();
+		ires.on('headers', ires.processHeaders.bind(ires, (this.isVirtual && !this.urld.authority && !this.urld.path) ? false : this.urld));
+		var ores = new Response();
+		ores.wireUp(ires);
+		ores.status(0, 'aborted by client').end();
+		fulfillResponsePromise(this, ires);
+	}
 	return this;
 };
 

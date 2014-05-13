@@ -128,6 +128,11 @@ IncomingResponse.prototype.pipe = function(target, headersCB, bodyCb) {
 			}
 		}
 	} else if (target instanceof require('./request')) {
+		if (this.status < 200 || this.status >= 400) {
+			// We're a failed response, abort the request
+			target.close();
+			return target;
+		}
 		if (!target.headers.ContentType && this.ContentType) {
 			target.ContentType(this.ContentType);
 		}

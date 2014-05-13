@@ -281,6 +281,16 @@ Request.prototype.close = function() {
 	this.isConnOpen = false;
 	this.emit('close');
 	this.clearEvents();
+
+	if (!this.isStarted) {
+		// Fulfill with abort response
+		var ires = new IncomingResponse();
+		ires.on('headers', ires.processHeaders.bind(ires, (this.isVirtual && !this.urld.authority && !this.urld.path) ? false : this.urld));
+		var ores = new Response();
+		ores.wireUp(ires);
+		ores.status(0, 'aborted by client').end();
+		fulfillResponsePromise(this, ires);
+	}
 	return this;
 };
 
