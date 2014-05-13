@@ -118,7 +118,7 @@ Request.prototype.setBinary = function(v) {
 // Virtual mode
 // forces the request to go to a virtual host (or not)
 // - if no bool is given, sets virtual-mode to true
-Request.prototype.setVirtual = function(v) {
+Request.prototype.forceVirtual = function(v) {
 	if (typeof v == 'boolean') {
 		this.isVirtual = v;
 	} else {
@@ -276,7 +276,7 @@ function fulfillResponsePromise(req, res) {
     if (local.logTraffic) {
         console.log(req.headers, res);
     }
-    
+
 	// wasnt streaming, fulfill now that full response is collected
 	if (res.status >= 200 && res.status < 400)
 		req.fulfill(res);

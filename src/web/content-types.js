@@ -99,6 +99,7 @@ function contentTypes__mkTypesList(type) {
 // INTERNAL
 // finds the closest-matching type in the registry and gives the request function
 function contentTypes__find(type, fn) {
+	type = contentTypes__lookup(type); // in case we were given an alias
 	var types = contentTypes__mkTypesList(type);
 	for (var i=0; i < types.length; i++) {
 		if (types[i] in contentTypes__registry)

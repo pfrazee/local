@@ -510,7 +510,7 @@ print('done');
 done = false;
 startTime = Date.now();
 GET('dev.grimwire.com/test/web/_worker.js')
-  .setVirtual()
+  .forceVirtual()
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });

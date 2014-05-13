@@ -1814,6 +1814,7 @@ function contentTypes__mkTypesList(type) {
 // INTERNAL
 // finds the closest-matching type in the registry and gives the request function
 function contentTypes__find(type, fn) {
+	type = contentTypes__lookup(type); // in case we were given an alias
 	var types = contentTypes__mkTypesList(type);
 	for (var i=0; i < types.length; i++) {
 		if (types[i] in contentTypes__registry)
@@ -3060,7 +3061,7 @@ Request.prototype.setBinary = function(v) {
 // Virtual mode
 // forces the request to go to a virtual host (or not)
 // - if no bool is given, sets virtual-mode to true
-Request.prototype.setVirtual = function(v) {
+Request.prototype.forceVirtual = function(v) {
 	if (typeof v == 'boolean') {
 		this.isVirtual = v;
 	} else {
@@ -3218,7 +3219,7 @@ function fulfillResponsePromise(req, res) {
     if (local.logTraffic) {
         console.log(req.headers, res);
     }
-    
+
 	// wasnt streaming, fulfill now that full response is collected
 	if (res.status >= 200 && res.status < 400)
 		req.fulfill(res);
