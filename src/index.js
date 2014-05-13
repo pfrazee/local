@@ -27,9 +27,7 @@ util.mixin.call(module.exports, require('./web/client.js'));
 function dispatch(headers) {
 	var req = new module.exports.Request(headers);
 	req.bufferResponse(true);
-	util.nextTick(function() {
-		req.end(); // send next tick
-	});
+	req.autoEnd();
 	return req;
 }
 function makeRequestSugar(method) {

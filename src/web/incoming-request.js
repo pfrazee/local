@@ -76,6 +76,9 @@ IncomingRequest.prototype.buffer = function(cb) {
 IncomingRequest.prototype.pipe = function(target, headersCB, bodyCb) {
 	headersCB = headersCB || function(k, v) { return v; };
 	bodyCb = bodyCb || function(v) { return v; };
+	if (target.autoEnd) {
+		target.autoEnd(false); // disable auto-ending, we are now streaming
+	}
 	if (target instanceof require('./request')) {
 		if (!target.headers.method) {
 			target.headers.method = this.method;
@@ -101,4 +104,5 @@ IncomingRequest.prototype.pipe = function(target, headersCB, bodyCb) {
 		this.on('data', function(chunk) { target.write(bodyCb(chunk)); });
 		this.on('end', function() { target.end(); });
 	}
+	return target;
 };

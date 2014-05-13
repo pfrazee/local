@@ -113,9 +113,7 @@ util.mixin.call(module.exports, require('./web/client.js'));
 function dispatch(headers) {
 	var req = new module.exports.Request(headers);
 	req.bufferResponse(true);
-	util.nextTick(function() {
-		req.end(); // send next tick
-	});
+	req.autoEnd();
 	return req;
 }
 function makeRequestSugar(method) {
@@ -2773,6 +2771,9 @@ IncomingRequest.prototype.buffer = function(cb) {
 IncomingRequest.prototype.pipe = function(target, headersCB, bodyCb) {
 	headersCB = headersCB || function(k, v) { return v; };
 	bodyCb = bodyCb || function(v) { return v; };
+	if (target.autoEnd) {
+		target.autoEnd(false); // disable auto-ending, we are now streaming
+	}
 	if (target instanceof require('./request')) {
 		if (!target.headers.method) {
 			target.headers.method = this.method;
@@ -2798,6 +2799,7 @@ IncomingRequest.prototype.pipe = function(target, headersCB, bodyCb) {
 		this.on('data', function(chunk) { target.write(bodyCb(chunk)); });
 		this.on('end', function() { target.end(); });
 	}
+	return target;
 };
 },{"../util":8,"./content-types.js":11,"./helpers.js":12,"./http-headers.js":13,"./request":17,"./response":18}],16:[function(require,module,exports){
 var util = require('../util');
@@ -2917,6 +2919,9 @@ IncomingResponse.prototype.buffer = function(cb) {
 IncomingResponse.prototype.pipe = function(target, headersCB, bodyCb) {
 	headersCB = headersCB || function(k, v) { return v; };
 	bodyCb = bodyCb || function(v) { return v; };
+	if (target.autoEnd) {
+		target.autoEnd(false); // disable auto-ending, we are now streaming
+	}
 	if (target instanceof require('./response')) {
 		if (!target.headers.status) {
 			target.status(this.status, this.reason);
@@ -2939,6 +2944,7 @@ IncomingResponse.prototype.pipe = function(target, headersCB, bodyCb) {
 		this.on('data', function(chunk) { target.write(bodyCb(chunk)); });
 		this.on('end', function() { target.end(); });
 	}
+	return target;
 };
 },{"../util":8,"./content-types.js":11,"./helpers.js":12,"./http-headers.js":13,"./request":17,"./response":18}],17:[function(require,module,exports){
 var util = require('../util');
@@ -2971,6 +2977,7 @@ function Request(headers, originChannel) {
 	// Behavior flags
     this.isForcedLocal = local.localOnly; // forcing request to be local
 	this.isBufferingResponse = false; // auto-buffering the response?
+	this.isAutoEnding = false; // auto-ending the request on next tick?
 
 	// Stream state
 	this.isConnOpen = true;
@@ -3093,10 +3100,31 @@ Request.prototype.bufferResponse = function(v) {
 	return this;
 };
 
+// Auto-end
+// queues a callback next tick to end the stream, for non-streaming requests
+Request.prototype.autoEnd = function(v) {
+	v = (typeof v != 'undefined') ? v : true;
+	if (!v) console.log('unautoending')
+	if (v && !this.isAutoEnding) {
+		// End next tick
+		var self = this;
+		util.nextTick(function() {
+			if (self.isAutoEnding) { // still planned?
+				self.end(); // send next tick
+			}
+		});
+	}
+	this.isAutoEnding = v;
+};
+
 // Pipe helper
 // passes through to its incoming response
 Request.prototype.pipe = function(target, headersCb, bodyCb) {
+	if (target.autoEnd) {
+		target.autoEnd(false); // disable auto-ending, we are now streaming
+	}
 	this.always(function(res) { res.pipe(target, headersCb, bodyCb); });
+	return target;
 };
 
 // Event connection helper

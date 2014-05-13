@@ -28,6 +28,7 @@ function Request(headers, originChannel) {
 	// Behavior flags
     this.isForcedLocal = local.localOnly; // forcing request to be local
 	this.isBufferingResponse = false; // auto-buffering the response?
+	this.isAutoEnding = false; // auto-ending the request on next tick?
 
 	// Stream state
 	this.isConnOpen = true;
@@ -150,10 +151,30 @@ Request.prototype.bufferResponse = function(v) {
 	return this;
 };
 
+// Auto-end
+// queues a callback next tick to end the stream, for non-streaming requests
+Request.prototype.autoEnd = function(v) {
+	v = (typeof v != 'undefined') ? v : true;
+	if (v && !this.isAutoEnding) {
+		// End next tick
+		var self = this;
+		util.nextTick(function() {
+			if (self.isAutoEnding) { // still planned?
+				self.end(); // send next tick
+			}
+		});
+	}
+	this.isAutoEnding = v;
+};
+
 // Pipe helper
 // passes through to its incoming response
 Request.prototype.pipe = function(target, headersCb, bodyCb) {
+	if (target.autoEnd) {
+		target.autoEnd(false); // disable auto-ending, we are now streaming
+	}
 	this.always(function(res) { res.pipe(target, headersCb, bodyCb); });
+	return target;
 };
 
 // Event connection helper
