@@ -236,3 +236,8 @@ print(local.parseNavUri('nav:||http://foo.com|foo|foo|foo|foo|foo|foo|foo|foo|fo
   {rel: "foo"}
 ]*/
 finishTest();
+
+
+// renderUri
+print(local.renderUri('http://foo.com/{baz}{?bar}', { baz: 'BAZ', bar: 'BAZAR' }));
+// => http://foo.com/BAZ?bar=BAZAR

@@ -2304,6 +2304,12 @@ function makeProxyUri(uri, templates) {
 }
 
 // EXPORTED
+// convenience wrapper around uri template
+function renderUri(tmpl, ctx) {
+	return UriTemplate.parse(tmpl).expand(ctx);
+}
+
+// EXPORTED
 // identifiers a string as a header key
 // - 'FooBar' -> true
 // - 'foo' -> false
@@ -2466,6 +2472,7 @@ module.exports = {
 	parseUri: parseUri,
 	parseNavUri: parseNavUri,
 	makeProxyUri: makeProxyUri,
+	renderUri: renderUri,
 
 	isHeaderKey: isHeaderKey,
 
