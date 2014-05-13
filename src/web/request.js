@@ -23,11 +23,10 @@ function Request(headers, originChannel) {
 	this.headers.params = (this.headers.params) || {};
 	this.originChannel = originChannel;
 	this.isBinary = false; // stream is binary?
-	this.isVirtual = undefined; // request going to virtual host?
+	this.isVirtual = local.virtualOnly || undefined; // request going to virtual host?
 
 	// Behavior flags
-	this.isForcedVirtual = local.virtualOnly; // forcing request to be virtual?
-    this.isForcedLocal = local.localOnly; // forcing request to be local?
+    this.isForcedLocal = local.localOnly; // forcing request to be local
 	this.isBufferingResponse = false; // auto-buffering the response?
 
 	// Stream state
@@ -129,17 +128,6 @@ Request.prototype.setVirtual = function(v) {
 	return this;
 };
 
-// Forced virtual
-// instructs the request to only route to virtual endpoints (current page, workers)
-Request.prototype.forceVirtual = function(v) {
-	if (typeof v == 'boolean') {
-		this.isForcedVirtual = v;
-	} else {
-		this.isForcedVirtual = true;
-	}
-	return this;
-};
-
 // Forced local
 // instructs the request to only route to endpoints in the current page
 Request.prototype.forceLocal = function(v) {
@@ -192,13 +180,9 @@ Request.prototype.start = function() {
 
 	// Prep request
 	if (typeof this.isVirtual == 'undefined') {
-		// if not forced, decide on whether this is virtual based on the presence of a hash
+		// decide on whether this is virtual based on the presence of a hash
 		this.isVirtual = (this.headers.url.indexOf('#') !== -1);
 	}
-    if (this.isForcedVirtual) {
-        // if virtual only, force
-        this.isVirtual = true;
-    }
     if (this.isForcedLocal && this.headers.url.charAt(0) !== '#') {
         // if local only, force
         this.headers.url = '#' + this.headers.url;

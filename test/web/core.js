@@ -583,56 +583,6 @@ success
 }
 */
 
-// forced-virtual
-
-done = false;
-startTime = Date.now();
-GET('dev.grimwire.com/test/web/_worker.js')
-  .setVirtual(false)
-  .forceVirtual()
-  .then(printSuccess, printError)
-  .always(finishTest);
-wait(function () { return done; });
-
-/* =>
-success
-{
-  ContentType: "text/plain",
-  Link: [
-    {href: "dev.grimwire.com/test/web/_worker.js#", rel: "self current"},
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#events",
-      id: "events",
-      rel: "collection"
-    },
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#foo",
-      id: "foo",
-      rel: "collection"
-    },
-    {href: "dev.grimwire.com/test/web/_worker.js#{id}", rel: "collection"}
-  ],
-  _buffer: "service resource",
-  body: "service resource",
-  links: [
-    {href: "dev.grimwire.com/test/web/_worker.js#", rel: "self current"},
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#events",
-      id: "events",
-      rel: "collection"
-    },
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#foo",
-      id: "foo",
-      rel: "collection"
-    },
-    {href: "dev.grimwire.com/test/web/_worker.js#{id}", rel: "collection"}
-  ],
-  reason: undefined,
-  status: 200
-}
-*/
-
 // unsuccessful virtual requests
 
 done = false;
