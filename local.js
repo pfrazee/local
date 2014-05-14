@@ -2029,6 +2029,43 @@ function queryLink(link, query) {
 	return true;
 }
 
+// EXPORTED
+// takes set of links and a search string, does a per-term filter
+// - `links`: [object]/object/Document, either the parsed array of links, the request/response object, or a Document
+// - `searchTerms`: [string]/string, an array or space-separated string of search terms
+function searchLinks(links, searchTerms) {
+	if (!links || !searchTerms) return [];
+	if (__docexists && links instanceof Document) links = extractDocumentLinks(links); // actually the document
+	if (links.parsedHeaders) links = links.parsedHeaders.link; // actually a request or response object
+	if (!Array.isArray(links)) return [];
+	if (!Array.isArray(searchTerms)) searchTerms = searchTerms.split(' ');
+	return links.filter(function(link) { return searchLink(link, searchTerms); });
+}
+
+// EXPORTED
+// takes parsed link and string of search terms, produces boolean `isMatch`
+function searchLink(link, searchTerms) {
+	// Combine link att values into a single string
+	var linkText = '';
+	if (typeof link == 'string') {
+		linkText = link;
+	} else {
+		for (var k in link) {
+			linkText += link[k] + ' ';
+		}
+	}
+
+	// Break the search into individual terms
+	if (!Array.isArray(searchTerms)) searchTerms = searchTerms.split(' ');
+
+	// Search for each term
+	for (var i=0; i < searchTerms.length; i++) {
+		if (linkText.indexOf(searchTerms[i]) === -1)
+			return false;
+	}
+	return true;
+}
+
 // <https://github.com/federomero/negotiator>
 // thanks to ^ for the content negotation helpers below
 // INTERNAL
@@ -2327,6 +2364,8 @@ module.exports = {
 	extractDocumentLinks: extractDocumentLinks,
 	queryLinks: queryLinks,
 	queryLink: queryLink,
+	searchLinks: searchLinks,
+	searchLink: searchLink,
 
 	preferredTypes: preferredTypes,
 	preferredType: preferredType,
@@ -2586,7 +2625,6 @@ function IncomingRequest(headers) {
 	this.path = headers.path || '#';
     this.pathd = headers.pathd || [this.path];
 	this.params = (headers.params) || {};
-	this.isBinary = false; // stream is binary? :TODO:
 	for (var k in headers) {
 		if (helpers.isHeaderKey(k)) { // starts uppercase?
 			// Is a header, save
@@ -2752,7 +2790,9 @@ IncomingResponse.prototype.processHeaders = function(baseUrl, headers) {
     noEnumDesc.value = helpers.queryLinks.bind(null, this.links);
     Object.defineProperty(this.links, 'query', noEnumDesc);
     noEnumDesc.value = function(query) { return this.query(query)[0]; };
-    Object.defineProperty(this.links, 'first', noEnumDesc);
+    Object.defineProperty(this.links, 'get', noEnumDesc);
+    noEnumDesc.value = helpers.searchLinks.bind(null, this.links);
+    Object.defineProperty(this.links, 'search', noEnumDesc);
 };
 var noEnumDesc = { value: null, enumerable: false, configurable: true, writable: true };
 
@@ -3162,7 +3202,6 @@ function Response() {
 	this.headers = {};
 	this.headers.status = 0;
 	this.headers.reason = '';
-	this.isBinary = false; // stream is binary? :TODO:
 
 	// Stream state
 	this.isConnOpen = true;

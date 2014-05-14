@@ -75,7 +75,9 @@ IncomingResponse.prototype.processHeaders = function(baseUrl, headers) {
     noEnumDesc.value = helpers.queryLinks.bind(null, this.links);
     Object.defineProperty(this.links, 'query', noEnumDesc);
     noEnumDesc.value = function(query) { return this.query(query)[0]; };
-    Object.defineProperty(this.links, 'first', noEnumDesc);
+    Object.defineProperty(this.links, 'get', noEnumDesc);
+    noEnumDesc.value = helpers.searchLinks.bind(null, this.links);
+    Object.defineProperty(this.links, 'search', noEnumDesc);
 };
 var noEnumDesc = { value: null, enumerable: false, configurable: true, writable: true };
 
