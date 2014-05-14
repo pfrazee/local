@@ -31,7 +31,7 @@ h3 { font-size:20px }
 .container h3 { font-size: 24px; line-height: 28px; }
 .container p, .container ul li { font-size: 16px; }
 .container ul li { color: gray; margin-bottom: 12px; padding: 0 2px; }
-.container .intro { margin: 60px 20px 40px; }
+.container .intro { margin: 20px 20px; min-height: 220px; }
 .container .intro img { width: 96px; margin: 0 auto; display: block; }
 #footer-wrapper-helper { min-height: 100%; height: auto !important; height: 100%; margin: 0 auto -60px; }
 #footer-wrapper-push, #footer { height: 60px; }
@@ -40,7 +40,7 @@ h3 { font-size:20px }
 #footer ul { text-align: center; }
 @media (min-width: 640px) {
 	.container > .row { margin-bottom: 100px; }
-	.container .intro { margin: 100px 20px; }
+	.container .intro { margin: 60px 20px; }
 	.container .intro p { padding-top: 40px; }
 	.container .intro img { float: left; margin-right: 20px; width: 128px; }
 }

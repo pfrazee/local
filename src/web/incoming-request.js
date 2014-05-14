@@ -18,7 +18,6 @@ function IncomingRequest(headers) {
 	this.path = headers.path || '#';
     this.pathd = headers.pathd || [this.path];
 	this.params = (headers.params) || {};
-	this.isBinary = false; // stream is binary? :TODO:
 	for (var k in headers) {
 		if (helpers.isHeaderKey(k)) { // starts uppercase?
 			// Is a header, save

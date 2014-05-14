@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 	<head>
-		<title>Local.js 0.6.2 - Run services in Web Workers and on the Page.</title>
+		<title>Local.js 0.7 - Run services in Web Workers and on the Page.</title>
 
 		<!-- styling -->
 		<style>
@@ -20,6 +20,27 @@
 			@media (min-width: 800px) {
 				#hero h1 { font-size: 70px; }
 				#hero h1, #hero h4 { margin-right: 50px; }
+			}
+
+			.button {
+				background: #ddd;
+				border-radius: 8px;
+				padding: 15px;
+				margin: 0 15px;
+				color: #333;
+				font-size: 18px;
+			}
+			.button:hover {
+				text-decoration: none;
+				background: #ccc;
+				color: #333;
+			}
+			.button.primary {
+				background: #1F6CB1;
+				color: #fff;
+			}
+			.button.primary:hover {
+				background: #0F5CA1;
 			}
 
 			pre[class*="language-"] { background: #fff; border: 0; }
@@ -49,249 +70,59 @@
 
 			<div class="container">
 				<div class="intro">
-					<img src="assets/icon-download.png">
-					<p><strong>On-Demand Worker-services.</strong> Send Ajax requests to Javascript files on the Web: Local.js loads them into Web Workers to generate a response, then destroys the Workers to preserve resources.</p>
+					<img src="assets/icon-network.png">
+					<p><strong>Simple Ajax</strong><br><small>Promise-based, supports streams, piping, and automatic body-parsing.</small></p>
+					<pre><code class="language-javascript">GET('https://myhost.com')
+  .Accept('json')
+  .then(function(res) {
+  	res.status; // => 200
+  	res.reason; // => 'OK'
+    res.ContentType; // => 'application/json'
+    res.body; // => { hello: 'world' }
+  });</code></pre>
 				</div>
 				<div class="intro">
-					<img src="assets/icon-network.png">
-					<p><strong>Application as a Services Architecture.</strong> Decouple the application into Page, Worker, and Web services, and enable users to add new services at runtime.</p>
+					<img src="assets/icon-document.png">
+					<p><strong>Virtual servers on the page</strong><br><small>An emulation of HTTP lets you answer requests from client-side javascript.</small></p>
+					<pre><code class="language-javascript">local.at('#hi', function(req, res) {
+  res.status(200, 'OK');
+  res.ContentType('html');
+  res.Link({ href: '#hi', rel: 'self service', title: 'Hello Service' });
+  res.end('&lt;h1&gt;Hello, '+req.params.who+'&lt;/h1&gt;');
+});
+GET('#hi?who=World').then(...);</code></pre>
+				</div>
+				<div class="intro">
+					<img src="assets/icon-download.png">
+					<p><strong>Virtual servers in Web workers</strong><br><small>Workers are loaded on-demand to answer requests to their hash-uris, then destroyed to preserve resources.</small></p>
+					<pre><code class="language-javascript">local.spawnWorker('/my-worker.js'); // optional
+GET('/my-worker.js#hi?who=World').then(function(res) {
+  	res.status; // => 200
+  	res.reason; // => 'OK'
+    res.ContentType; // => 'text/html'
+    res.body; // => &lt;h1&gt;Hello, World&lt;/ht&gt;
+});</code></pre>
 				</div>
 				<div class="intro">
 					<img src="assets/icon-link.png">
-					<p><strong>Labelled Links.</strong> Exchange and search through typed links to automate configuration.</p>
+					<p><strong>HATEOAS-driven</strong><br><small>Entries from the Link header are searched and navigated by a programmatic user-agent.</small></p>
+					<pre><code class="language-javascript">var host = local.client('/');
+GET(host.collection('users').item('bob')).then(function(res) {
+  res.links.first('self');
+  // => { rel: 'self item', href: 'https://myhost.com/users/bob', id: 'bob' }
+});</code></pre>
 				</div>
 			</div>
 			<br><br>
 
 			<div class="container">
+
 				<div class="row">
-					<div class="span5">
-						<h3>Ajax-Everywhere</h3>
-						<p>Local.js registers the "local://" scheme, enabling functions to respond to requests.</p>
-						<ul>
-							<li>Target links and forms at server functions.</li>
-							<li>Run local proxies to your backend that degrade gracefully into offline-mode on a connection-drop.</li>
-							<li>Host scaffold servers to mock behaviors during development.</li>
-						</ul>
-					</div>
-					<div class="span6 offset1">
-						<pre><code class="language-javascript">// Register a new server in the local hostmap
-local.addServer('hello-world', function(req, res) {
-  res.writeHead(200, 'OK');
-  res.end('Hello, world!');
-}
-
-// Dispatch an ajax request to that function
-local.GET('local://hello-world')
-  .then(function(res) {
-    console.log(res.body);
-    // => 'Hello, world!'
-  });</code></pre>
-					</div>
-				</div>
-				<div class="row">
-					<div class="span5">
-						<h3>Safe Execution with Worker&nbsp;VMs</h3>
-						<p>Local.js uses a bootstrap script to disable XHR, WebSockets, Sub-workers, and any other external-interfacing API except postMessage*.</p>
-						<ul>
-							<li>Execute code from any domain with the protection of multi-threaded Virtual Machines.</li>
-							<li>Contain data safely on the client - Workers can only talk to the page.</li>
-							<li>Send requests from the Worker to the Page, then enact or discard by applying permissions.</li>
-						</ul>
-						<p><small>*The exception is <code>importScripts</code>, which is disabled after init.</small></p>
-					</div>
-					<div class="span6 offset1">
-						<pre><code class="language-javascript">// http://myserver.com/worker.js
-function main(req, res) {
-  res.writeHead(200, 'OK');
-  res.end('Hello, other world!');
-}
-
-// The page:
-local.GET('local://myserver.com(/worker.js)/')
-  .then(function(res) {
-    console.log(res.body);
-    // => "Hello, other world!"
-  });</code></pre>
-						<p><code>local://<span class="text-warning">myserver.com</span><span class="text-error">(/worker.js)</span>/</code> <small>Worker URLs add a
-							<span class="text-error">source path</span> to the <span class="text-warning">hostname</span> so their scripts can be automatically found and loaded. This worker script lives at <code>myserver.com/worker.js</code>.</small></p>
-					</div>
-				</div>
-				<div class="row">
-					<div class="span5">
-						<h3>API Queries</h3>
-						<p>Find endpoints by fetching Link headers and querying against the received indexes.</p>
-						<ul>
-							<li>Built with standards (<a href="http://tools.ietf.org/html/rfc5988">the Link header</a> and <a href="http://tools.ietf.org/html/rfc6570">URI templates</a>).</li>
-							<li>Reason about endpoints without <a href="http://en.wikipedia.org/wiki/Web_Services_Description_Language">complex IDLs</a>.</li>
-							<li>Navigate remote servers, local functions, and Worker plugins in a unified graph.</li>
-						</ul>
-					</div>
-					<div class="span6 offset1">
-						<pre><code class="language-javascript">// Get the Bob user
-local.agent('http://myserver.com')
-  .follow({ rel: 'collection', id: 'users' })
-  .follow({ rel: 'schema.org/Person', id: 'bob' })
-  .GET()
-  .then(function(res) {
-    console.log(res.body);
-    /* => {
-      name: "Bob Robertson",
-      description: "Project lead",
-      ...
-    } */
-  });</code></pre>
-					</div>
-				</div>
-				<hr>
-				<div class="row">
-					<div class="span12">
-						<h3 class="centered" style="padding-right: 40px">Example 1: User Templates</h3>
-						<p>Imagine we're building a user-extensible social network. We'll want to let users render their own profiles, so why not use a Worker?</p>
-						<div class="row">
-							<div class="span6">
-								<form method="POST" action="local://album-manager">
-									<textarea style="width: 100%"; rows="20" name="src">importScripts('/local.min.js');
-function main(req, res) {
-  // Set headers
-  res.header('Link', [{ href: '/', rel: 'self', title: 'My Renderer' }]);
-  res.header('Content-Type', 'text/html');
-
-  if (req.method == 'HEAD') {
-    // Respond with headers only
-    res.writeHead(204, 'OK, no content').end();
-    return;
-  }
-
-  if (req.method == 'POST') {
-    // Validate
-    if (req.header('Content-Type') != 'application/json') {
-      return res.writeHead(415, 'Bad Type').end();
-    }
-    // Render
-    req.on('end', function() {
-      res.writeHead(200, 'OK');
-      res.end([
-        '<img class="thumbnail pull-left" src="'+req.body.image+'" style="margin: 5px">',
-        '<h4>'+req.body.name+'</h4>',
-        '<p>'+req.body.description+'</p>'
-      ].join(''));
-    });
-    return;
-  }
-
-  // Invalid method
-  res.writeHead(405, 'Bad Method').end();
-}</textarea>
-									<input class="btn btn-primary" type="submit" value="Render">
-								</form>
-							</div>
-							<div class="span6" id="album-out"></div>
-						</div>
-						<p>Scripts like this can be uploaded to your service's database or hosted by users on the Web. Because the script's only job is to convert JSON to HTML, well restrict it from sending any requests: all it can do is accept a render request and respond with HTML. (You should also use <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe">iframe sandboxes</a> and <a href="https://developer.mozilla.org/en-US/docs/Security/CSP">Content-Security Policies</a> to make sure the HTML is safe to render.)</p>
-                        <p>For reference, here's how that renderer is executed:</p>
-						<pre><code class="language-javascript">var src = 'data:application/javascript;base64,'+btoa(req.body.src);
-var renderer = local.spawnWorkerServer(src, {
-  domain: 'album-renderer',
-  temp: true, // close after all requests are handled
-  onerror: function() {
-    renderer.terminate();
-    $('#album-out').html('There was an error running the script.');
-  }
-});
-local.POST(albumDesc, 'local://album-renderer')
-  .then(function(res) { $('#album-out').html(res.body); })
-  .fail(function(res) { console.error(res); });
-  </code></pre>
-					</div>
-				</div>
-				<hr>
-				<div class="row">
-					<div class="span12">
-						<h3 class="centered" style="padding-right: 40px">Example 2: Composable Pipelines</h3>
-						<p>Imagine we're implementing a Unix-style pipes-and-streams interface. We'll want to arrange transformer programs in a sequence, then pipe the output from one program into the input of the next. How do we get started?</p>
-						<p><strong>First, we'll publish a reltype</strong> which defines the program behavior: <a href="http://stdrel.com/transformer" target="_top">stdrel.com/transfomer</a>. To summarize, a transformer accepts <code>POST</code> with content-type of <code>text/plain</code> and responds <code>200 OK</code> with the transformed <code>text/plain</code>.</p>
-						<p>Here's an implementation:</p>
-						<pre><code class="language-javascript">/**
- * local://httplocal.com(/examples/toupper.js)/
- */
-importScripts('/local.min.js');
-function main(req, res) {
-  // Set headers
-  res.header('Link', [{ href: '/', rel: 'self stdrel.com/transformer', title: 'To Uppercase' }]);
-  res.header('Content-Type', 'text/plain');
-
-  if (req.method == 'HEAD') {
-    // Respond with headers only
-    res.writeHead(204, 'OK, no content').end();
-    return;
-  }
-
-  if (req.method == 'POST') {
-    // Apply transformation
-    res.writeHead(200, 'OK'); // because HTTPL is full-duplex, we can respond while the request is streaming
-    req.on('data', function(chunk) { res.write(chunk.toUpperCase()); });
-    req.on('end',  function()      { res.end(); });
-    return;
-  }
-
-  // Invalid method
-  res.writeHead(405, 'Bad Method').end();
-}</code></pre>
-					<p><strong>Next, we'll create the client.</strong> Our pipeline-creator will take URLs and send HEAD requests in order to check the <code>self</code> link. If the self-link asserts that the URL is a transformer, we add the URL to our sequence. To execute the sequence, we'll open <code>POST</code> requests to each entry, passing along the responses.</p>
-					<pre><code class="language-javascript">// Verify the given URL is a transformer
-function verifyTransformer(url) {
-  return local.HEAD(url).then(function(res) {
-    var selfLink = local.queryLinks(res, { rel: 'self stdrel.com/transformer' })[0];
-    if (!selfLink) {
-      throw 'Not a valid transformer';
-    }
-    return selfLink;
-  });
-}</code></pre>
-						<form action="local://pipes" method="ADD">
-							<p><strong>Let's give it a shot!</strong> Try these URLs: <code>local://httplocal.com(/examples/toupper.js)/</code> <button class="btn btn-mini" name="url" value="local://httplocal.com(/examples/toupper.js)/"><strong>+</strong></button> <code>local://httplocal.com(/examples/slugify.js)/</code> <button class="btn btn-mini" name="url" value="local://httplocal.com(/examples/slugify.js)/"><strong>+</strong></button> and <code>local://httplocal.com(/examples/charcount.js)/</code> <button class="btn btn-mini" name="url" value="local://httplocal.com(/examples/charcount.js)/"><strong>+</strong></button>.</p>
-							<div class="row">
-								<div class="span4">
-									<p><strong>URL Entry</strong></p>
-									<input class="input-block-level" type="url" name="url" id="url-input">
-									<br>
-									<input class="btn btn-primary" type="submit" value="Add"><br>
-									<p id="pipes-errout" class="help-text text-danger"></p>
-								</div>
-								<div class="span4">
-									<p><strong>Pipeline</strong></p>
-									<div class="well" id="pipes-sequence">
-										<em>No URLs Added</em>
-									</div>
-								</div>
-								<div class="span4">
-									<p><strong>Input</strong>: "Welcome, my son. Welcome... to the machine."</p>
-									<p><span id="pipes-output"></span></p>
-								</div>
-							</div>
-						</form>
-						<hr>
-					</div>
-				</div>
-				<div class="row" style="margin-top: -30px">
-					<div class="span12">
-						<h2>Get Started</h2>
-						<div class="well well-small">
-							<a target="_top" class="btn btn-large btn-primary" href="http://dev.grimwire.com/docs.html">Documentation</a>
-							&nbsp;
-							<a target="_top" class="btn btn-large" href="http://httplocal.com/todosoa">TodoSOA</a>
-							&nbsp;
-							<a target="_top" class="btn btn-large" href="https://github.com/pfraze/servware">Servware Framework</a>
-							&nbsp;
-							<a target="_top" class="btn btn-large" href="http://stdrel.com">STDRel.com</a>
-						</div>
-						<p><strong>Learn In Depth:</strong></p>
-						<ul>
-							<li><a target="_top" href="/docs.html#docs/in-application-sandboxing-with-web-workers.md">How Web Workers are used to Sandbox Plugins</a></li>
-							<li><a target="_top" href="/docs.html#docs/communicating-with-web-workers-using-http.md">Why HTTP was chosen to Communicate with Workers</a></li>
-							<li><a target="_top" href="/docs.html#docs/applying-user-agent-behaviors.md">How a Browser-like Program-model can drive Runtime Extension</a></li>
-						</ul>
+					<div class="span12" style="text-align: center">
+						<a class="button primary" href="/docs.html">Read More</a>
+						<a class="button" href="https://github.com/pfraze/local">Get Started</a>
+						<!-- <a target="_top" class="button" href="/docs.html">Documentation</a> -->
+						<!-- <a target="_top" class="button" href="http://httplocal.com/todosoa">TodoSOA</a> -->
 					</div>
 				</div>
 			</div>
@@ -312,8 +143,6 @@ function verifyTransformer(url) {
 		<!-- environment -->
 		<script src="assets/jquery-2.1.0.min.js"></script>
 		<script src="assets/jquery.sticky.js"></script>
-		<script src="local.js"></script>
-		<script src="assets/index.js"></script>
 		<script>
 			$(document).ready(function(){
 				if ($(window).width() > 640) {

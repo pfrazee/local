@@ -1,5 +1,5 @@
-Local.js 0.6.2
-==============
+Local.js 0.7
+============
 
 [<a href="https://github.com/pfraze/local">Repository</a> | <a href="https://github.com/pfraze/local/issues">Issues</a> | <a href="http://httplocal.com/docs.html">Documentation</a>]
 

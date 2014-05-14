@@ -13,7 +13,6 @@ function Response() {
 	this.headers = {};
 	this.headers.status = 0;
 	this.headers.reason = '';
-	this.isBinary = false; // stream is binary? :TODO:
 
 	// Stream state
 	this.isConnOpen = true;
