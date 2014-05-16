@@ -22,13 +22,6 @@ local.at('#worker2.js/?(.*)', function(req, res, worker) {
     req2.pipe(res);
 });
 
-local.at('https://(.*)', function(req, res, worker) {
-    if (worker) {
-        return res.s403('https is forbidden (even for '+req.pathd[1]+' !)').end();
-    }
-    res.s204('I would let you, but I don\'t know you.').end();
-});
-
 // GET tests
 done = false;
 startTime = Date.now();
@@ -164,5 +157,5 @@ local.dispatch({ method: 'USEWEB', url: '/test/worker/worker1.js#' })
 wait(function () { return done; });
 
 /* =>
-403 https is forbidden (even for layer1.io !)
+0 public web requests are not allowed from workers
 */

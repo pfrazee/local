@@ -14,14 +14,14 @@ var subscribe = require('./subscribe.js').subscribe;
 // information about the resource that a agent targets
 //  - exists in an "unresolved" state until the URI is confirmed by a response from the server
 //  - enters a "bad" state if an attempt to resolve the link failed
-//  - may be "relative" if described by a relation from another context (eg a query or a relative URI)
+//  - may be "relative" if described by a relation from another context (eg a query)
 //  - may be "absolute" if described by an absolute URI
 // :NOTE: absolute contexts may have a URI without being resolved, so don't take the presence of a URI as a sign that the resource exists
 function Context(query) {
 	this.query = query;
 	this.resolveState = Context.UNRESOLVED;
 	this.error = null;
-	this.queryIsAbsolute = (typeof query == 'string' && helpers.isAbsUri(query));
+	this.queryIsAbsolute = (typeof query == 'string');
 	if (this.queryIsAbsolute) {
 		this.url  = query;
 		this.urld = helpers.parseUri(this.url);
@@ -264,14 +264,7 @@ Client.prototype.resolve = function(options) {
 	} else if (this.context.isBad() === false || (this.context.isBad() && !options.noretry)) {
 		// We don't have links, and we haven't previously failed (or we want to try again)
 		this.context.resetResolvedState();
-		if (this.context.isRelative()) {
-			if (!this.parentClient) {
-				// Parent failed, we failed
-				self.context.setFailed({ status: 404, reason: 'not found' });
-				resolvePromise.reject(this.context.getError());
-				return resolvePromise;
-			}
-
+		if (this.context.isRelative() && this.parentClient) {
 			// Up the chain we go
 			resolvePromise = this.parentClient.resolve(options)
 				.succeed(function() {

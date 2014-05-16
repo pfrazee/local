@@ -70,8 +70,8 @@ module.exports = {
     logTraffic: true,
 	logAllExceptions: false,
     maxActiveWorkers: 10,
-    virtualOnly: (typeof self.window == 'undefined') ? true : false,
-    localOnly: (typeof self.window == 'undefined') ? true : false,
+    virtualOnly: false,
+    localOnly: false,
 	workerBootstrapScript: whitelistAPIs_src+importScriptsPatch_src
 };
 },{}],2:[function(require,module,exports){
@@ -1329,14 +1329,14 @@ var subscribe = require('./subscribe.js').subscribe;
 // information about the resource that a agent targets
 //  - exists in an "unresolved" state until the URI is confirmed by a response from the server
 //  - enters a "bad" state if an attempt to resolve the link failed
-//  - may be "relative" if described by a relation from another context (eg a query or a relative URI)
+//  - may be "relative" if described by a relation from another context (eg a query)
 //  - may be "absolute" if described by an absolute URI
 // :NOTE: absolute contexts may have a URI without being resolved, so don't take the presence of a URI as a sign that the resource exists
 function Context(query) {
 	this.query = query;
 	this.resolveState = Context.UNRESOLVED;
 	this.error = null;
-	this.queryIsAbsolute = (typeof query == 'string' && helpers.isAbsUri(query));
+	this.queryIsAbsolute = (typeof query == 'string');
 	if (this.queryIsAbsolute) {
 		this.url  = query;
 		this.urld = helpers.parseUri(this.url);
@@ -1579,14 +1579,7 @@ Client.prototype.resolve = function(options) {
 	} else if (this.context.isBad() === false || (this.context.isBad() && !options.noretry)) {
 		// We don't have links, and we haven't previously failed (or we want to try again)
 		this.context.resetResolvedState();
-		if (this.context.isRelative()) {
-			if (!this.parentClient) {
-				// Parent failed, we failed
-				self.context.setFailed({ status: 404, reason: 'not found' });
-				resolvePromise.reject(this.context.getError());
-				return resolvePromise;
-			}
-
+		if (this.context.isRelative() && this.parentClient) {
 			// Up the chain we go
 			resolvePromise = this.parentClient.resolve(options)
 				.succeed(function() {
@@ -2190,10 +2183,10 @@ function joinUri() {
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
 // - eg http://foo.com, //foo.com, #bar.app, foo.com/test.js#bar
-var hasSchemeRegex = /^(#)|((http(s|l)?:)?\/\/)|((nav:)?\|\|)|(data:)/;
+var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)|(data:)/;
 function isAbsUri(url) {
 	// Has a scheme?
-	return hasSchemeRegex.test(url) || url.indexOf('#') !== -1;
+	return hasSchemeRegex.test(url);
 }
 
 // EXPORTED
@@ -2217,16 +2210,15 @@ function joinRelPath(urld, relpath) {
 			protocol = '//';
 		} else if (urld.source.indexOf('||') === 0) {
 			protocol = '||';
-		} else if (urld.authority && urld.authority.indexOf('.') !== -1) {
+		} else if (urld.authority) {
             protocol = 'http://';
         }
 	}
 	if (relpath.charAt(0) == '/') {
-		// "absolute" relative, easy stuff
+		// "absolute" path, easy stuff
 		return protocol + urld.authority + relpath;
 	}
-	// totally relative, oh god
-	// (thanks to geoff parker for this)
+	// totally relative, run as a set of instruction
 	var hostpath = urld.path;
 	var hostpathParts = hostpath.split('/');
 	var relpathParts = relpath.split('/');
@@ -2555,26 +2547,38 @@ schemes.register('#', function (oreq, ires) {
 	}
 	oreq.headers.path = '#' + urld2.path.slice(1);
 
-	// Get the handler
-	var handler;
-    // Are we in a worker?
-    if (typeof self.document == 'undefined' && self.pageBridge) {
-        handler = self.pageBridge.onRequest.bind(self.pageBridge);
-	// Is a host URL given?
-	} else if (oreq.urld.path) {
-		// Try to get/load the VM
-		handler = workers.getWorker(oreq.urld);
-    } else {
-		// Match the route in the current page
-		var pathd;
+    // Helper to lookup the handler from the current env's routes
+    var lookupRoute = function() {
+        var pathd;
 		for (var i=0; i < _routes.length; i++) {
 			pathd = _routes[i].path.exec(oreq.headers.path);
 			if (pathd) {
-				handler = _routes[i].handler;
-				break;
+                oreq.headers.pathd = pathd; // update request headers to include the path match
+				return _routes[i].handler;
 			}
 		}
-		oreq.headers.pathd = pathd;
+    };
+
+	// Get the handler
+	var handler;
+    var isInWorker = (typeof self.document == 'undefined');
+	// Is a host URL given?
+	if (oreq.urld.authority || oreq.urld.path) {
+        if (oreq.urld.authority == 'page') {
+            if (isInWorker) {
+                // Use the page
+                handler = self.pageBridge.onRequest.bind(self.pageBridge); 
+            } else {
+		        // Match the route in the current page
+                handler = lookupRoute();
+            }
+        } else {
+		    // Try to get/load the VM
+		    handler = workers.getWorker(oreq.urld);
+        }
+    } else {
+		// Match the route in the current page
+        handler = lookupRoute();		
 	}
 
 	// Create incoming request / outgoing response
@@ -2766,18 +2770,17 @@ IncomingResponse.prototype.processHeaders = function(baseUrl, headers) {
 		delete this.link;
 		this.links.forEach(function(link) {
 			// Convert relative paths to absolute uris
-			if (!helpers.isAbsUri(link.href)) {
-				if (baseUrl) {
+			if (!helpers.isAbsUri(link.href) && baseUrl) {
+                if (link.href.charAt(0) == '#') {
+                    if (baseUrl.source) {
+                        // strip any hash or query param
+                        baseUrl = ((baseUrl.protocol) ? baseUrl.protocol + '://' : '') + baseUrl.authority + baseUrl.path;
+                    }
+                    link.href = helpers.joinUri(baseUrl, link.href);
+                } else {
                     link.href = helpers.joinRelPath(baseUrl, link.href);
-				} else {
-					link.href = '#'+link.href;
 				}
-			} else if (baseUrl && link.href.charAt(0) == '#') {
-                if (baseUrl.source) {
-                    baseUrl = ((baseUrl.protocol) ? baseUrl.protocol + '://' : '') + baseUrl.authority + baseUrl.path;
-                }
-                link.href = helpers.joinUri(baseUrl, link.href);
-            }
+			}
 
             // Add `is` helper
             if (link.is && typeof link.is != 'function') link._is = link.is;
@@ -4731,7 +4734,7 @@ function get(urld) {
 
 	// Send back a failure responder
 	return function(req, res) {
-		res.status(0, 'request to '+url.source+' expects '+urld.path+' to be a .js file');
+		res.status(0, 'request to '+urld.source+' expects '+urld.path+' to be a .js file');
 		res.end();
 	};
 }

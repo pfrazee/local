@@ -312,6 +312,28 @@ success
 {_buffer: "", body: "", links: [], reason: undefined, status: 204}
 */
 
+// page alias
+
+done = false;
+startTime = Date.now();
+GET('page#pound-sign-optional')
+  .then(printSuccess, printError)
+  .always(function() { return GET('http://page#pound-sign-optional'); })
+  .then(printSuccess, printError)
+  .always(function() { return GET('https://page#pound-sign-optional'); })
+  .then(printSuccess, printError)
+  .always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{_buffer: "", body: "", links: [], reason: undefined, status: 204}
+success
+{_buffer: "", body: "", links: [], reason: undefined, status: 204}
+success
+{_buffer: "", body: "", links: [], reason: undefined, status: 204}
+*/
+
 // virtual body parsing
 
 done = false;
@@ -547,26 +569,14 @@ done = false;
 startTime = Date.now();
 GET('dev.grimwire.com/test/web/_worker.js#')
   .setVirtual(false)
-  .then(function(res) { print('success'); delete res.Date; delete res.body; delete res._buffer; print(res); }, printError)
+  .then(function(res) { print('success'); print(res.status); print(res.ContentType); }, printError)
   .always(finishTest);
 wait(function () { return done; });
 
 /* =>
 success
-{
-  AcceptRanges: "bytes",
-  AccessControlAllowOrigin: "*",
-  ContentEncoding: "gzip",
-  ContentLength: "929",
-  ContentType: "application/javascript",
-  ETag: "\"259b43-a27-4f862a6fe26c0\"",
-  LastModified: "Fri, 02 May 2014 03:48:19 GMT",
-  Server: "Apache/2.2.14 (Ubuntu)",
-  Vary: "Accept-Encoding",
-  links: [],
-  reason: "OK",
-  status: 200
-}
+200
+application/javascript
 */
 
 // set-virtual

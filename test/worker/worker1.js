@@ -15,7 +15,7 @@ local.at('#', function(req, res) {
 		return;
 	}
     if (req.BOUNCE) {
-        return GET('#hello?foo=alice', { bar: 'bazz' }).pipe(res);
+        return GET('page#hello?foo=alice', { bar: 'bazz' }).pipe(res);
 	}
     if (req.IMPORT) {
 		try {

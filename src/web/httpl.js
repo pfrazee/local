@@ -34,26 +34,38 @@ schemes.register('#', function (oreq, ires) {
 	}
 	oreq.headers.path = '#' + urld2.path.slice(1);
 
-	// Get the handler
-	var handler;
-    // Are we in a worker?
-    if (typeof self.document == 'undefined' && self.pageBridge) {
-        handler = self.pageBridge.onRequest.bind(self.pageBridge);
-	// Is a host URL given?
-	} else if (oreq.urld.path) {
-		// Try to get/load the VM
-		handler = workers.getWorker(oreq.urld);
-    } else {
-		// Match the route in the current page
-		var pathd;
+    // Helper to lookup the handler from the current env's routes
+    var lookupRoute = function() {
+        var pathd;
 		for (var i=0; i < _routes.length; i++) {
 			pathd = _routes[i].path.exec(oreq.headers.path);
 			if (pathd) {
-				handler = _routes[i].handler;
-				break;
+                oreq.headers.pathd = pathd; // update request headers to include the path match
+				return _routes[i].handler;
 			}
 		}
-		oreq.headers.pathd = pathd;
+    };
+
+	// Get the handler
+	var handler;
+    var isInWorker = (typeof self.document == 'undefined');
+	// Is a host URL given?
+	if (oreq.urld.authority || oreq.urld.path) {
+        if (oreq.urld.authority == 'page') {
+            if (isInWorker) {
+                // Use the page
+                handler = self.pageBridge.onRequest.bind(self.pageBridge); 
+            } else {
+		        // Match the route in the current page
+                handler = lookupRoute();
+            }
+        } else {
+		    // Try to get/load the VM
+		    handler = workers.getWorker(oreq.urld);
+        }
+    } else {
+		// Match the route in the current page
+        handler = lookupRoute();		
 	}
 
 	// Create incoming request / outgoing response

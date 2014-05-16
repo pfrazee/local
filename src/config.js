@@ -69,7 +69,7 @@ module.exports = {
     logTraffic: true,
 	logAllExceptions: false,
     maxActiveWorkers: 10,
-    virtualOnly: (typeof self.window == 'undefined') ? true : false,
-    localOnly: (typeof self.window == 'undefined') ? true : false,
+    virtualOnly: false,
+    localOnly: false,
 	workerBootstrapScript: whitelistAPIs_src+importScriptsPatch_src
 };

@@ -263,10 +263,10 @@ function joinUri() {
 // tests to see if a URL is absolute
 // - "absolute" means that the URL can reach something without additional context
 // - eg http://foo.com, //foo.com, #bar.app, foo.com/test.js#bar
-var hasSchemeRegex = /^(#)|((http(s|l)?:)?\/\/)|((nav:)?\|\|)|(data:)/;
+var hasSchemeRegex = /^((http(s|l)?:)?\/\/)|((nav:)?\|\|)|(data:)/;
 function isAbsUri(url) {
 	// Has a scheme?
-	return hasSchemeRegex.test(url) || url.indexOf('#') !== -1;
+	return hasSchemeRegex.test(url);
 }
 
 // EXPORTED
@@ -290,16 +290,15 @@ function joinRelPath(urld, relpath) {
 			protocol = '//';
 		} else if (urld.source.indexOf('||') === 0) {
 			protocol = '||';
-		} else if (urld.authority && urld.authority.indexOf('.') !== -1) {
+		} else if (urld.authority) {
             protocol = 'http://';
         }
 	}
 	if (relpath.charAt(0) == '/') {
-		// "absolute" relative, easy stuff
+		// "absolute" path, easy stuff
 		return protocol + urld.authority + relpath;
 	}
-	// totally relative, oh god
-	// (thanks to geoff parker for this)
+	// totally relative, run as a set of instruction
 	var hostpath = urld.path;
 	var hostpathParts = hostpath.split('/');
 	var relpathParts = relpath.split('/');

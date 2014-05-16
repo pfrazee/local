@@ -15,7 +15,7 @@ local.at('#', function(req, res) {
 		return;
 	}
 	if (req.BOUNCE) {
-        return GET('#hello?foo=bob', { bar: 'buzz' }).pipe(res);
+        return GET('http://page#hello?foo=bob', { bar: 'buzz' }).pipe(res);
 	}
     res.s405().end();
 });

@@ -51,18 +51,17 @@ IncomingResponse.prototype.processHeaders = function(baseUrl, headers) {
 		delete this.link;
 		this.links.forEach(function(link) {
 			// Convert relative paths to absolute uris
-			if (!helpers.isAbsUri(link.href)) {
-				if (baseUrl) {
+			if (!helpers.isAbsUri(link.href) && baseUrl) {
+                if (link.href.charAt(0) == '#') {
+                    if (baseUrl.source) {
+                        // strip any hash or query param
+                        baseUrl = ((baseUrl.protocol) ? baseUrl.protocol + '://' : '') + baseUrl.authority + baseUrl.path;
+                    }
+                    link.href = helpers.joinUri(baseUrl, link.href);
+                } else {
                     link.href = helpers.joinRelPath(baseUrl, link.href);
-				} else {
-					link.href = '#'+link.href;
 				}
-			} else if (baseUrl && link.href.charAt(0) == '#') {
-                if (baseUrl.source) {
-                    baseUrl = ((baseUrl.protocol) ? baseUrl.protocol + '://' : '') + baseUrl.authority + baseUrl.path;
-                }
-                link.href = helpers.joinUri(baseUrl, link.href);
-            }
+			}
 
             // Add `is` helper
             if (link.is && typeof link.is != 'function') link._is = link.is;
