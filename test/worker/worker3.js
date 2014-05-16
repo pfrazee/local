@@ -1,5 +1,3 @@
-importScripts('../../local.js');
-
 local.at('#', function(req, res) {
     if (req.GET) {
         res.s204().end();

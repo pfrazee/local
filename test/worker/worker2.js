@@ -1,4 +1,3 @@
-importScripts('../../local.js');
 var counter = 100;
 local.at('#', function(req, res) {
 	if (req.GET) {

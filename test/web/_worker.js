@@ -1,5 +1,3 @@
-importScripts('../../local.js');
-
 var foos = ['bar', 'bazzzz', 'blah'];
 
 local.at('#', function(req, res) {

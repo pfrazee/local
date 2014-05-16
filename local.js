@@ -1,11 +1,26 @@
 ;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 // Worker API whitelisting code
 // ============================
+var localjsUrl = '';
+if (typeof self.document !== 'undefined') { // in the page
+    try { localjsUrl = document.querySelector('script[src$="local.js"]').src; }
+    catch (e) {
+        try { localjsUrl = document.querySelector('script[src$="local.min.js"]').src; }
+        catch (e) {
+            console.error('Unable to find local.js or local.min.js script tags; unable to setup worker scripts');
+        }
+    }
+}
+var localjsImport_src = 'importScripts("'+localjsUrl+'");\n';
 var whitelist = [ // a list of global objects which are allowed in the worker
+    // defined by local.js
+    'local', 'pageBridge',
+    'HEAD', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'SUBSCRIBE', 'NOTIFY', 'from',
+
 	'null', 'self', 'console', 'atob', 'btoa',
 	'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
 	'Proxy',
-	'importScripts', 'navigator',
+	'navigator',
 	'postMessage', 'addEventListener', 'removeEventListener',
 	'onmessage', 'onerror', 'onclose',
 	'dispatchEvent'
@@ -13,7 +28,7 @@ var whitelist = [ // a list of global objects which are allowed in the worker
 var blacklist = [ // a list of global objects which are not allowed in the worker, and which dont enumerate on `self` for some reason
 	'XMLHttpRequest', 'WebSocket', 'EventSource',
     'FileReaderSync',
-	'Worker'
+	'Worker', 'importScripts'
 ];
 var whitelistAPIs_src = [ // nullifies all toplevel variables except those listed above in `whitelist`
 	'(function() {',
@@ -32,47 +47,14 @@ var whitelistAPIs_src = [ // nullifies all toplevel variables except those liste
 		'});',
 		'if (typeof console != "undefined") { console.log("Nullified: "+nulleds.join(", ")); }',
 	'})();\n'
-].join('');
-var importScriptsPatch_src = [ // patches importScripts() to allow relative paths despite the use of blob uris
-	'(function() {',
-		'var orgImportScripts = importScripts;',
-		'function joinRelPath(base, relpath) {',
-			'if (relpath.charAt(0) == \'/\') {',
-				'return "<HOST>" + relpath;',
-			'}',
-			'// totally relative, oh god',
-			'// (thanks to geoff parker for this)',
-			'var hostpath = "<HOST_DIR_PATH>";',
-			'var hostpathParts = hostpath.split(\'/\');',
-			'var relpathParts = relpath.split(\'/\');',
-			'for (var i=0, ii=relpathParts.length; i < ii; i++) {',
-				'if (relpathParts[i] == \'.\')',
-					'continue; // noop',
-				'if (relpathParts[i] == \'..\')',
-					'hostpathParts.pop();',
-				'else',
-					'hostpathParts.push(relpathParts[i]);',
-			'}',
-			'return "<HOST>/" + hostpathParts.join(\'/\');',
-		'}',
-		'var isImportingAllowed = true;',
-		'setTimeout(function() { isImportingAllowed = false; },0);', // disable after initial run
-		'importScripts = function() {',
-			'if (!isImportingAllowed) { throw "Local.js - Imports disabled after initial load to prevent data-leaking"; }',
-			'return orgImportScripts.apply(null, Array.prototype.map.call(arguments, function(v, i) {',
-				'return (v.indexOf(\'/\') < v.indexOf(/[.:]/) || v.charAt(0) == \'/\' || v.charAt(0) == \'.\') ? joinRelPath(\'<HOST_DIR_URL>\',v) : v;',
-			'}));',
-		'};',
-	'})();\n'
 ].join('\n');
-
 module.exports = {
     logTraffic: true,
 	logAllExceptions: false,
     maxActiveWorkers: 10,
     virtualOnly: false,
     localOnly: false,
-	workerBootstrapScript: whitelistAPIs_src+importScriptsPatch_src
+	workerBootstrapScript: localjsImport_src+whitelistAPIs_src
 };
 },{}],2:[function(require,module,exports){
 module.exports = {

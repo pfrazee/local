@@ -143,7 +143,7 @@ local.dispatch({ method: 'IMPORT', url: '/test/worker/worker1.js#' })
 wait(function () { return done; });
 
 /* =>
-200 Local.js - Imports disabled after initial load to prevent data-leaking
+200 TypeError: object is not a function
 */
 
 // public-web endpoint test
