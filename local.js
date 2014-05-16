@@ -2197,10 +2197,14 @@ function joinRelPath(urld, relpath) {
         }
 	}
 	if (relpath.charAt(0) == '/') {
-		// "absolute" path, easy stuff
+		// absolute path
 		return protocol + urld.authority + relpath;
 	}
-	// totally relative, run as a set of instruction
+    if (relpath.charAt(0) == '#') {
+        // absolute hash-path
+		return protocol + urld.authority + urld.path + relpath;
+    }
+	// relative path, run as a set of instruction
 	var hostpath = urld.path;
 	var hostpathParts = hostpath.split('/');
 	var relpathParts = relpath.split('/');
@@ -2213,7 +2217,6 @@ function joinRelPath(urld, relpath) {
 			hostpathParts.push(relpathParts[i]);
 	}
     var path = hostpathParts.join('/');
-    if (relpath.charAt(0) == '#') path = '#' + path.slice(1);
 	return joinUri(protocol + urld.authority, path);
 }
 
