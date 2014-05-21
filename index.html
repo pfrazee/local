@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 	<head>
-		<title>Local.js 0.7 - An Ajax library that combines XHR and Worker postMessage.</title>
+		<title>Local.js 0.7 - An Ajax library that combines XHR and postMessage.</title>
 
 		<!-- styling -->
 		<style>
@@ -61,7 +61,7 @@
 		<div id="footer-wrapper-helper">
 			<div id="hero">
 				<h1>Local.js</h1>
-				<h4>An Ajax library that combines XHR and Worker postMessage.</h4>
+				<h4>An Ajax library that combines XHR and postMessage.</h4>
 			</div>
 			<div id="nav">
 				<div id="logo">Local.js</div>
@@ -72,7 +72,7 @@
 				<div class="intro">
 					<img src="assets/icon-network.png">
 					<p><strong>Simple Ajax</strong><br><small>Promises-based, with streaming, piping, and automatic body-parsing.</small></p>
-					<pre><code class="language-javascript">GET('https://myhost.com')
+					<pre><code class="language-javascript">GET('https://myhost.com', { query: 'params' })
   .Accept('json')
   .then(function(res) {
   	res.status; // => 200
@@ -82,7 +82,7 @@
   });</code></pre>
 				</div>
 				<div class="intro">
-					<img src="assets/icon-document.png">
+					<img src="assets/icon-link.png">
 					<p><strong>Virtual servers on the page</strong><br><small>An emulation of HTTP lets you answer requests from client-side javascript.</small></p>
 					<pre><code class="language-javascript">local.at('#hi', function(req, res) {
   res.status(200, 'OK');
@@ -90,26 +90,20 @@
   res.Link({ href: '#hi', rel: 'self service', title: 'Hello Service' });
   res.end('&lt;h1&gt;Hello, '+req.params.who+'&lt;/h1&gt;');
 });
-GET('#hi?who=World').then(...);</code></pre>
+GET('#hi', { who: 'World' }).then(...);</code></pre>
+					<ul>
+						<li>The hash-path <code>#hi</code> is like a traditional single-page-app URL, but it handles Ajax requests instead of just page-navigations.</li>
+					</ul>
 				</div>
 				<div class="intro">
 					<img src="assets/icon-download.png">
-					<p><strong>Virtual servers in Web workers</strong><br><small>Workers are loaded on-demand to answer requests to their hash-uris, then destroyed to preserve resources.</small></p>
-					<pre><code class="language-javascript">local.spawnWorker('/my-worker.js'); // optional
-GET('/my-worker.js#hi?who=World').then(function(res) {
+					<p><strong>Virtual servers in Web workers</strong><br><small>Workers run in parallel threads with sandboxed VMs, allowing you to load programs from other domains.</small></p>
+					<pre><code class="language-javascript">local.spawnWorker('/my-worker.js');
+GET('/my-worker.js', { who: 'Worker' }).then(function(res) {
   	res.status; // => 200
   	res.reason; // => 'OK'
     res.ContentType; // => 'text/html'
-    res.body; // => &lt;h1&gt;Hello, World&lt;/ht&gt;
-});</code></pre>
-				</div>
-				<div class="intro">
-					<img src="assets/icon-link.png">
-					<p><strong>HATEOAS-driven</strong><br><small>Entries from the Link header are searched and navigated by a programmatic user-agent.</small></p>
-					<pre><code class="language-javascript">var host = local.client('/');
-GET(host.collection('users').item('bob')).then(function(res) {
-  res.links.first('self');
-  // => { rel: 'self item', href: 'https://myhost.com/users/bob', id: 'bob' }
+    res.body; // => &lt;h1&gt;Hello, Worker&lt;/ht&gt;
 });</code></pre>
 				</div>
 			</div>
