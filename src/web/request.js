@@ -210,6 +210,10 @@ Request.prototype.start = function() {
         this.headers.url = '#' + this.headers.url;
         this.isVirtual = true;
     }
+    if (this.headers.url.charAt(0) == '/' && typeof window.location != 'undefined') {
+		var origin = window.location.protocol + '//' + window.location.hostname + ((window.location.port) ? (':' + window.location.port) : '');
+		this.headers.url = helpers.joinUri(origin, this.headers.url);
+    }
 	this.urld = helpers.parseUri(this.headers.url);
 
 	// Setup response object
