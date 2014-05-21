@@ -45,40 +45,10 @@ IncomingResponse.prototype.processHeaders = function(baseUrl, headers) {
 		}
 	}
 
-	// Update the link headers
-	if (this.link) {
-		this.links = Array.isArray(this.link) ? this.link : [this.link];
-		delete this.link;
-		this.links.forEach(function(link) {
-			// Convert relative paths to absolute uris
-			if (!helpers.isAbsUri(link.href) && baseUrl) {
-                if (link.href.charAt(0) == '#') {
-                    if (baseUrl.source) {
-                        // strip any hash or query param
-                        baseUrl = ((baseUrl.protocol) ? baseUrl.protocol + '://' : '') + baseUrl.authority + baseUrl.path;
-                    }
-                    link.href = helpers.joinUri(baseUrl, link.href);
-                } else {
-                    link.href = helpers.joinRelPath(baseUrl, link.href);
-				}
-			}
-
-            // Add `is` helper
-            if (link.is && typeof link.is != 'function') link._is = link.is;
-            noEnumDesc.value = helpers.queryLink.bind(null, link);
-            Object.defineProperty(link, 'is', noEnumDesc);
-		});
-	} else {
-		this.links = [];
-	}
-    noEnumDesc.value = helpers.queryLinks.bind(null, this.links);
-    Object.defineProperty(this.links, 'query', noEnumDesc);
-    noEnumDesc.value = function(query) { return this.query(query)[0]; };
-    Object.defineProperty(this.links, 'get', noEnumDesc);
-    noEnumDesc.value = helpers.searchLinks.bind(null, this.links);
-    Object.defineProperty(this.links, 'search', noEnumDesc);
+	// Process links
+	this.links = require('./links').processLinks(this.link || [], baseUrl);
+	delete this.link;
 };
-var noEnumDesc = { value: null, enumerable: false, configurable: true, writable: true };
 
 
 // Stream buffering
