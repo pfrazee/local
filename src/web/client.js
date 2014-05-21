@@ -142,26 +142,28 @@ Client.prototype.dispatch = function(req) {
 	if (!req) req = {};
 	var self = this;
 
-	// If given a request, streaming may occur. Suspend events on the request until resolved, as the dispatcher wont wire up until after resolution.
-	//if (req instanceof Request) {
-	//req.suspendEvents();
-	//}:TODO: ?
+	var isAutoEnding = (req.isAutoEnding !== void 0) ? req.isAutoEnding : true;
+	if (!(req instanceof Request)) {
+		req = new Request(req);
+	}
+	req.autoEnd(false); // suspend for a moment
 
 	// Resolve our target URL
-	return ((req.url) ? promise(req.url) : this.resolve({ noretry: req.noretry, nohead: true }))
+	((req.url) ? promise(req.url) : this.resolve({ noretry: req.noretry, nohead: true }))
 		.succeed(function(url) {
-			req.url = url;
-			req = local.dispatch(req);
+			req.headers.url = url;
+			if (isAutoEnding) req.autoEnd(); // resume autoend
+			req.start();
 
+			// After every successful request, update our links and mark our context as good (in case it had been bad)
 			req.succeed(function(res) {
-				// After every successful request, update our links and mark our context as good (in case it had been bad)
 				self.context.setResolved();
 				if (res.links) self.links = res.links;
 				else self.links = self.links || []; // cache an empty link list so we dont keep trying during resolution
 				return res;
-			})
-			.fail(function(res) {
-				console.debug('fail',req.url,res.status);
+			});
+			// On fail, mark context bad
+			req.fail(function(res) {
 				// Let a 1 or 404 indicate a bad context (as opposed to some non-navigational error like a bad request body)
 				if (res.status === constants.LINK_NOT_FOUND || res.status === 404)
 					self.context.setFailed(res);
@@ -169,7 +171,12 @@ Client.prototype.dispatch = function(req) {
 			});
 
 			return req;
+		})
+		.fail(function(res) {
+			req.reject(res);
 		});
+
+	return req;
 };
 
 // Executes a GET text/event-stream request to our context

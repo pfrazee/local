@@ -37,6 +37,7 @@ function Request(headers, originChannel) {
 }
 Request.prototype = Object.create(util.EventEmitter.prototype);
 util.mixin.call(Request.prototype, promises.Promise.prototype);
+Request.fulfillResponsePromise = fulfillResponsePromise;
 module.exports = Request;
 
 // Header setter
