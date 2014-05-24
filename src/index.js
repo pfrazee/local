@@ -65,5 +65,20 @@ if (global) {
     global.from      = local.client;
 }
 
+// Patch arrays to handle promises
+Array.prototype.thenEach = function(a, b) {
+	var callA = function(i, v) { return a(v, i); };
+	var callB = function(i, v) { return b(v, i); };
+	return this.map(function(v, i) {
+		return local.promise(v).then(callA.bind(null, i), callB.bind(null, i));
+	});
+};
+Array.prototype.always = function(a) {
+	return local.promise.bundle(this).always(a);
+};
+Array.prototype.then = function(a, b) {
+	return local.promise.all(this).then(a, b);
+};
+
 // Run worker setup (does nothing outside of a worker)
 require('./worker');

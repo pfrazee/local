@@ -277,3 +277,27 @@ print(local.renderUri('http://foo.com/{baz}{?bar}', { baz: 'BAZ', bar: 'BAZAR' }
 // escape
 print(local.escape('<foo bar="baz">'));
 // => &lt;foo bar=&quot;baz&quot;&gt;
+
+
+// promise arrays
+var pa = local.promise();
+var pb = local.promise();
+var pc = local.promise();
+[pa, pb, pc].thenEach(
+  function(v) { print('fulfill', v); return v; },
+  function(v) { print('reject', v); throw v; }
+).always(function(vs) { print('always', vs); });
+[pa, pb, pc].then(
+  function(vs) { print('fulfill', vs); },
+  function(vs) { print('reject', vs); }
+);
+pa.fulfill(1);
+pb.fulfill(2);
+pc.reject(3);
+/* =>
+fulfill 1
+fulfill 2
+reject 3
+always [1, 2, 3]
+reject [1, 2, 3]
+*/
