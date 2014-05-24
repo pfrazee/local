@@ -666,7 +666,7 @@ wait(function () { return done; });
 
 /* =>
 error
-{_buffer: "", body: "", links: [], reason: "not found", status: 404}
+{_buffer: "", body: "", links: [], reason: undefined, status: 404}
 */
 
 // query params

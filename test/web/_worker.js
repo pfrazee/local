@@ -1,12 +1,12 @@
 var foos = ['bar', 'bazzzz', 'blah'];
 
-local.at('#', function(req, res) {
+if ($req.path == '#') {
 	var payload = null, linkHeader;
-	if (req.method === 'GET') {
+	if ($req.GET) {
 		payload = 'service resource';
 	}
-	if (Object.keys(req.params).length > 0) {
-		payload += ' '+JSON.stringify(req.params);
+	if (Object.keys($req.params).length > 0) {
+		payload += ' '+JSON.stringify($req.params);
 	}
 	linkHeader = [
 		{ rel:'self current', href:'#' },
@@ -14,12 +14,12 @@ local.at('#', function(req, res) {
 		{ rel:'collection', href:'#foo', id:'foo' },
 		{ rel:'collection', href:'#{id}' }
 	];
-	res.s200().ContentType('plain').Link(linkHeader).end(payload);
-});
+	return $res.s200().ContentType('plain').Link(linkHeader).end(payload);
+}
 
-local.at('#foo', function(req, res) {
+if ($req.path == '#foo') {
 	var payload = null, linkHeader;
-	if (req.method === 'GET') {
+	if ($req.GET) {
 		payload = foos;
 	}
 	linkHeader = [
@@ -27,25 +27,25 @@ local.at('#foo', function(req, res) {
 		{ rel:'self current', href:'#foo' },
 		{ rel:'item', href:'#foo/{id}' }
 	];
-	res.s200().ContentType('json').Link(linkHeader);
-	// so we can experiment with streaming, write the json in bits:
+	$res.s200().ContentType('json').Link(linkHeader);
+	// so we can experiment with streaming, write the json $req bits:
 	if (payload) {
-		res.write('[');
-		payload.forEach(function(p, i) { res.write((i!==0?',':'')+'"'+p+'"'); });
-		res.write(']');
+		$res.write('[');
+		payload.forEach(function(p, i) { $res.write((i!==0?',':'')+'"'+p+'"'); });
+		$res.write(']');
 	}
-	res.end();
-});
+	return $res.end();
+}
 
-local.at('#foo/([A-z]*)$', function(req, res) {
+var pathd = /#foo\/([A-z]*)$/.exec($req.path);
+if (pathd) {
 	var payload = null, linkHeader;
-	var itemName = req.pathd[1];
-    console.log(req.pathd);
+	var itemName = pathd[1];
 	var itemIndex = foos.indexOf(itemName);
 	if (itemIndex === -1) {
-		return res.s404().end();
+		return $res.s404().end();
 	}
-	if (req.method === 'GET') {
+	if ($req.method === 'GET') {
 		payload = itemName;
 	}
 	linkHeader = [
@@ -61,23 +61,24 @@ local.at('#foo/([A-z]*)$', function(req, res) {
 	if (itemIndex !== foos.length - 1) {
 		linkHeader.push({ rel:'next', href:'#foo/'+foos[itemIndex + 1] });
 	}
-	res.s200().ContentType('json').Link(linkHeader);
-	res.end('"'+payload+'"');
-});
+	$res.s200().ContentType('json').Link(linkHeader);
+	return $res.end('"'+payload+'"');
+}
 
-local.at('#events', function(req, res) {
-	res.s200().ContentType('event-stream');
-	res.write({ event:'foo', data:{ c:1 }});
-	res.write({ event:'foo', data:{ c:2 }});
-	res.write({ event:'bar', data:{ c:3 }});
-	res.write('event: foo\r\n');
+if ($req.path == '#events') {
+	$res.s200().ContentType('event-stream');
+	$res.write({ event:'foo', data:{ c:1 }});
+	$res.write({ event:'foo', data:{ c:2 }});
+	$res.write({ event:'bar', data:{ c:3 }});
+	$res.write('event: foo\r\n');
 	setTimeout(function() { // break up the event to make sure the client waits for the whole thing
-		res.write('data: { "c": 4 }\r\n\r\n');
-		res.end({ event:'foo', data:{ c:5 }});
+		$res.write('data: { "c": 4 }\r\n\r\n');
+		$res.end({ event:'foo', data:{ c:5 }});
 	}, 50);
-});
+	return;
+}
 
-local.at('#pipe', function(req, res) {
+if ($req.path == '#pipe') {
 	var headerUpdate = function(k, v) {
 		if (k == 'ContentType') { return 'text/piped+plain'; }
 		return v;
@@ -85,5 +86,7 @@ local.at('#pipe', function(req, res) {
 	var bodyUpdate = function(body) {
 		return body.toUpperCase();
 	};
-	res.pipe(GET('#').end(), headerUpdate, bodyUpdate);
-});
+	return $res.pipe(GET('#').end(), headerUpdate, bodyUpdate);
+}
+
+$res.s404().end();

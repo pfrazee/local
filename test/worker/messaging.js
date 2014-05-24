@@ -43,7 +43,7 @@ local.promise.bundle(responses_)
 wait(function () { return done; });
 
 /* =>
-[{href: "/test/worker/worker1.js#"}]
+[{href: "http://dev.grimwire.com/test/worker/worker1.js#"}]
 200 0
 200 100
 200 1

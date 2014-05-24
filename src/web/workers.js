@@ -100,7 +100,7 @@ function closeWorker(url) {
 	if (!urld.authority || urld.authority == '.' || urld.authority.indexOf('.') === -1) {
 		var dir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
 		var dirurl = window.location.protocol + '//' + window.location.hostname + dir;
-		var url = helpers.joinRelPath(dirurl, urld.source);
+		url = helpers.joinRelPath(dirurl, urld.source);
 		urld = local.parseUri(url);
 	}
 
@@ -161,16 +161,12 @@ WorkerWrapper.prototype.load = function(urld) {
 		.then(function(res) {
 			this2.source_url = full_url;
 
-			// Setup the bootstrap source to import scripts relative to the origin
+			// Construct final script
 			var bootstrap_src = require('../config.js').workerBootstrapScript;
-			var hosturld = local.parseUri((urld.protocol != 'data') ? full_url : (window.location.protocol+'//'+window.location.hostname));
-			var hostroot = hosturld.protocol + '://' + hosturld.authority;
-			bootstrap_src = bootstrap_src.replace(/<HOST>/g, hostroot);
-			bootstrap_src = bootstrap_src.replace(/<HOST_DIR_PATH>/g, (hosturld.directory||'').slice(0,-1));
-			bootstrap_src = bootstrap_src.replace(/<HOST_DIR_URL>/g, hostroot + (hosturld.directory||'').slice(0,-1));
+			var src = bootstrap_src+'local.at(\'(.*)\', function($req, $res){'+res.body+'});';
 
 			// Create worker
-			this2.script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'})();'], { type: "text/javascript" });
+			this2.script_blob = new Blob([src], { type: "text/javascript" });
 			this2.script_objurl = window.URL.createObjectURL(this2.script_blob);
 			this2.worker = new Worker(this2.script_objurl);
 			this2.setup();

@@ -42,10 +42,10 @@ Bridge.prototype.send = function(msg) {
 		// Buffer messages if not ready
 		this.msgBuffer.push(msg);
 	} else {
-	    if (debugLog) { this.log('debug', 'SEND', msg); }
-        if (true || !!self.window) {
-		    this.channel.postMessage(msg);
-        }
+		if (debugLog) { this.log('debug', 'SEND', msg); }
+		if (true || !!self.window) {
+			this.channel.postMessage(msg);
+		}
 	}
 };
 
@@ -54,20 +54,20 @@ Bridge.prototype.terminate = function(status, reason) {
 	status = status || 503;
 	reason = reason || 'Service Unavailable';
 	for (var sid in this.incomingStreams) {
-        var s = this.incomingStreams[sid];
+		var s = this.incomingStreams[sid];
 		if ((s instanceof Response) && !s.headers.status) {
 			s.status(status, reason);
 		}
-        if (s.end) { s.end(); }
-        else { s.clearEvents(); }
+		if (s.end) { s.end(); }
+		else { s.clearEvents(); }
 	}
 	for (sid in this.outgoingStreams) {
-        var s = this.outgoingStreams[sid];
+		var s = this.outgoingStreams[sid];
 		if ((s instanceof Response) && !s.headers.status) {
 			s.status(status, reason);
 		}
-        if (s.end) { s.end(); }
-        else { s.clearEvents(); }
+		if (s.end) { s.end(); }
+		else { s.clearEvents(); }
 	}
 	this.incomingStreams = {};
 	this.outgoingStreams = {};
@@ -138,9 +138,9 @@ Bridge.prototype.onMessage = function(msg) {
 		// Is a new request - validate URL
 		if (!msg.path) { return this.log('warn', 'Dropping HTTPL request with no path', msg); }
 
-	    // Get the handler
-        var httpl = require('./httpl.js');
-	    var handler, pathd, routes = httpl.getRoutes();
+		// Get the handler
+		var httpl = require('./httpl.js');
+		var handler, pathd, routes = httpl.getRoutes();
 		for (var i=0; i < routes.length; i++) {
 			pathd = routes[i].path.exec(msg.path);
 			if (pathd) {
@@ -149,29 +149,29 @@ Bridge.prototype.onMessage = function(msg) {
 			}
 		}
 		msg.pathd = pathd;
-        if (!handler) { handler = function(req, res) { res.s404('not found').end(); }; };
+		if (!handler) { handler = function(req, res) { res.s404('not found').end(); }; };
 
-	    // Create incoming request, incoming response and outgoing response
-	    var ireq = new IncomingRequest(msg);
-        var ires = new IncomingResponse();
-	    var ores = new Response();
-        stream = this.incomingStreams[msg.sid] = ireq;
-        this.outgoingStreams[resSid] = ires;
+		// Create incoming request, incoming response and outgoing response
+		var ireq = new IncomingRequest(msg);
+		var ires = new IncomingResponse();
+		var ores = new Response();
+		stream = this.incomingStreams[msg.sid] = ireq;
+		this.outgoingStreams[resSid] = ires;
 
-	    // Wire up events
-	    ores.wireUp(ires);
-        ireq.memoEventsTillNextTick();
-        ires.memoEventsTillNextTick();
+		// Wire up events
+		ores.wireUp(ires);
+		ireq.memoEventsTillNextTick();
+		ires.memoEventsTillNextTick();
 
-        // Wire response into the channel
+		// Wire response into the channel
 		var this2 = this;
 		var resSid = -(msg.sid);
-        ires.on('headers', function(headers) {
+		ires.on('headers', function(headers) {
 			var msg = { sid: resSid, status: headers.status, reason: headers.reason };
 			for (var k in headers) { if (helpers.isHeaderKey(k)) { msg[k] = headers[k]; } }
-            ires.processHeaders(this2.channel.source_url, headers);
+			ires.processHeaders(this2.channel.source_url, headers);
 			this2.send(msg);
-        });		
+		});
 		ires.on('data', function(data) {
 			this2.send({ sid: resSid, body: data });
 		});
@@ -183,35 +183,35 @@ Bridge.prototype.onMessage = function(msg) {
 			delete this2.outgoingStreams[resSid];
 		});
 
-        // Fire handler
-        handler(ireq, ores, this.channel);
+		// Fire handler
+		handler(ireq, ores, this.channel);
 	}
 
 	// Pipe received data into stream
 	if (msg.sid < 0 && (stream instanceof Response)) {
-        if (typeof msg.status != 'undefined') {
-		    stream.status(msg.status, msg.reason);
-		    for (var k in msg) {
-			    if (helpers.isHeaderKey(k)) {
-				    stream.header(k, msg[k]);
-			    }
-		    }
-		    stream.start();
-	    }
-	    if (msg.body) { stream.write(msg.body); }
-	    if (msg.end) { stream.end(); }
-	    if (msg.close) {
-		    stream.close();
-		    delete this.incomingStreams[msg.sid];
-	    }
-    } else if (msg.sid > 0 && (stream instanceof IncomingRequest)) {
-        if (msg.body) { stream.emit('data', msg.body); }
-        if (msg.end) { stream.emit('end'); }
-        if (msg.close) {
-            stream.emit('close');
-            delete this.incomingStreams[msg.sid];
-        }
-    }
+		if (typeof msg.status != 'undefined') {
+			stream.status(msg.status, msg.reason);
+			for (var k in msg) {
+				if (helpers.isHeaderKey(k)) {
+					stream.header(k, msg[k]);
+				}
+			}
+			stream.start();
+		}
+		if (msg.body) { stream.write(msg.body); }
+		if (msg.end) { stream.end(); }
+		if (msg.close) {
+			stream.close();
+			delete this.incomingStreams[msg.sid];
+		}
+	} else if (msg.sid > 0 && (stream instanceof IncomingRequest)) {
+		if (msg.body) { stream.emit('data', msg.body); }
+		if (msg.end) { stream.emit('end'); }
+		if (msg.close) {
+			stream.emit('close');
+			delete this.incomingStreams[msg.sid];
+		}
+	}
 };
 
 // helper used to decide if a temp worker can be ejected
@@ -226,7 +226,7 @@ Bridge.prototype.isInTransaction = function() {
 			}
 		}
 	}
-    return false;
+	return false;
 };
 
 // This validator is faster than doing a try/catch block
