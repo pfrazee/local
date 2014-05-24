@@ -496,6 +496,33 @@ error
 {_buffer: "", body: null, reason: undefined, status: 0}
 */
 
+// request links
+
+done = false;
+startTime = Date.now();
+GET('#req-links')
+  .link('http://foo.com/bar', 'item', { title: 'An Item' })
+  .link(
+    ['href',               'rel'],
+    'http://asdf.com',     'service',
+    'http://asdf.com/fda', 'item'
+  )
+  .then(printSuccess, printError)
+  .always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  ContentType: "application/json",
+  _buffer: {href: "http://foo.com/bar", rel: "item", title: "An Item"},
+  body: {href: "http://foo.com/bar", rel: "item", title: "An Item"},
+  links: [],
+  reason: undefined,
+  status: 200
+}
+*/
+
 // == SECTION core - worker virtual requests
 
 // successful virtual requests

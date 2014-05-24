@@ -99,6 +99,7 @@ Response.prototype.link = function(link) {
 		// {rel:,href:} form
 		this.headers.Link.push(link);
 	}
+	return this;
 };
 
 // helper to convert a given header value to our standard format - camel case, no dashes

@@ -31,6 +31,10 @@ function IncomingRequest(headers) {
 		}
 	}
 
+	// Process links
+	this.links = require('./links').processLinks(this.link || []);
+	delete this.link;
+
 	// Stream state
 	hidden('isConnOpen', true);
 	hidden('isStarted', true);

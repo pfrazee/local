@@ -52,7 +52,7 @@ Request.prototype.header = function(k, v) {
 };
 
 // Header sugars
-[ 'Accept', 'Authorization', 'ContentType', 'Expect', 'From', 'Pragma' ].forEach(function(k) {
+[ 'Accept', 'Authorization', 'ContentType', 'Expect', 'From', 'Link', 'Pragma' ].forEach(function(k) {
 	Request.prototype[k] = function(v) {
 		return this.header(k, v);
 	};
@@ -78,6 +78,37 @@ function formatHeaderKey(str) {
         return this;
     };
 });
+
+// Link-header construction helper
+Request.prototype.link = function(link) {
+	if (!this.headers.Link) { this.headers.Link = []; }
+	if (arguments.length > 1) {
+		if (Array.isArray(arguments[0])) {
+			// table form
+			this.link(util.table.apply(null, arguments));
+		} else {
+			// (href, rel, opts) form
+			var href = arguments[0];
+			var rel = arguments[1];
+			var opts = arguments[2];
+			if (rel && typeof rel == 'object') {
+				opts = rel;
+				rel = false;
+			}
+			if (!opts) opts = {};
+			opts.href = href;
+			if (rel) { opts.rel = (opts.rel) ? (opts.rel+' '+rel) : rel; }
+			this.link(opts);
+		}
+	} else if (Array.isArray(link)) {
+		// [{rel:,href:}...] form
+		this.headers.Link = this.headers.Link.concat(link);
+	} else {
+		// {rel:,href:} form
+		this.headers.Link.push(link);
+	}
+	return this;
+};
 
 // Param setter
 // - `k` may be an object of keys to add

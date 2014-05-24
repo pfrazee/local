@@ -139,3 +139,8 @@ local.at('#pipe', function(req, res) {
 	else if (req.method == 'POST')
 		req.pipe(res.s200(), headerUpdate, bodyUpdate);
 });
+
+// request links
+local.at('#req-links', function(req, res) {
+	res.s200().json(req.links.get('item')).end();
+});
