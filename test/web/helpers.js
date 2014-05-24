@@ -109,7 +109,7 @@ print(local.httpHeaders.serialize('accept', [
 finishTest();
 
 
-// queryLink(s) and searchLink(s)
+// queryLink(s)
 
 startTime = Date.now();
 var links = [
@@ -131,17 +131,6 @@ print(local.queryLink(links[0], { rel: 'foo', id: 'bar' }));
 print(local.queryLink(links[0], { rel: 'foo', title: 'Whatever' }));
 // => true
 print(local.queryLink(links[3], { rel: 'item other.com/-item', id: 'foobar', user: 'bob' }));
-// => true
-
-print(local.searchLink(links[0], 'foo'));
-// => true
-print(local.searchLink(links[0], 'foobar'));
-// => false
-print(local.searchLink(links[0], 'foo bar'));
-// => false
-print(local.searchLink(links[0], 'foo Whatever'));
-// => true
-print(local.searchLink(links[3], 'item other.com/-item bob'));
 // => true
 
 print(local.queryLinks(links, { rel: 'foo' }).length);
@@ -179,22 +168,6 @@ print(local.queryLinks(links, { rel: /foo/, id: /^whatever$/ }).length);
 print(local.queryLinks(document, { rel: 'stylesheet' }).length);
 // => 2
 
-print(local.searchLinks(links, 'foo').length);
-// => 4
-print(local.searchLinks(links, 'foo service').length);
-// => 1
-print(local.searchLinks(links, 'whatever.com/rel/collection').length);
-// => 1
-print(local.searchLinks(links, 'http://whatever.com/rel/collection').length);
-// => 0
-print(local.searchLinks(links, 'foo whatever').length);
-// => 4
-print(local.searchLinks(links, 'other.com/-item').length);
-// => 2
-print(local.searchLinks(links, 'other.com/-item bob').length);
-// => 1
-print(local.searchLinks(document, 'stylesheet').length);
-// => 2
 finishTest();
 
 

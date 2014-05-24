@@ -27,8 +27,6 @@ module.exports.processLinks = function(links, baseUrl) {
     Object.defineProperty(links, 'query', noEnumDesc);
     noEnumDesc.value = function(query) { return this.query(query)[0]; };
     Object.defineProperty(links, 'get', noEnumDesc);
-    noEnumDesc.value = helpers.searchLinks.bind(null, links);
-    Object.defineProperty(links, 'search', noEnumDesc);
 
     return links;
 };

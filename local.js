@@ -133,6 +133,21 @@ if (global) {
     global.from      = local.client;
 }
 
+// Patch arrays to handle promises
+Array.prototype.thenEach = function(a, b) {
+	var callA = function(i, v) { return a(v, i); };
+	var callB = function(i, v) { return b(v, i); };
+	return this.map(function(v, i) {
+		return local.promise(v).then(callA.bind(null, i), callB.bind(null, i));
+	});
+};
+Array.prototype.always = function(a) {
+	return local.promise.bundle(this).always(a);
+};
+Array.prototype.then = function(a, b) {
+	return local.promise.all(this).then(a, b);
+};
+
 // Run worker setup (does nothing outside of a worker)
 require('./worker');
 },{"./config.js":1,"./constants.js":2,"./promises.js":4,"./request-event.js":5,"./util":8,"./web/bridge.js":9,"./web/client.js":10,"./web/content-types.js":11,"./web/helpers.js":12,"./web/http-headers.js":13,"./web/httpl.js":14,"./web/incoming-request.js":15,"./web/incoming-response.js":16,"./web/links.js":17,"./web/request.js":18,"./web/response.js":19,"./web/schemes.js":20,"./web/subscribe.js":21,"./web/uri-template.js":22,"./web/workers.js":23,"./worker":24}],4:[function(require,module,exports){
@@ -1091,10 +1106,10 @@ Bridge.prototype.send = function(msg) {
 		// Buffer messages if not ready
 		this.msgBuffer.push(msg);
 	} else {
-	    if (debugLog) { this.log('debug', 'SEND', msg); }
-        if (true || !!self.window) {
-		    this.channel.postMessage(msg);
-        }
+		if (debugLog) { this.log('debug', 'SEND', msg); }
+		if (true || !!self.window) {
+			this.channel.postMessage(msg);
+		}
 	}
 };
 
@@ -1103,20 +1118,20 @@ Bridge.prototype.terminate = function(status, reason) {
 	status = status || 503;
 	reason = reason || 'Service Unavailable';
 	for (var sid in this.incomingStreams) {
-        var s = this.incomingStreams[sid];
+		var s = this.incomingStreams[sid];
 		if ((s instanceof Response) && !s.headers.status) {
 			s.status(status, reason);
 		}
-        if (s.end) { s.end(); }
-        else { s.clearEvents(); }
+		if (s.end) { s.end(); }
+		else { s.clearEvents(); }
 	}
 	for (sid in this.outgoingStreams) {
-        var s = this.outgoingStreams[sid];
+		var s = this.outgoingStreams[sid];
 		if ((s instanceof Response) && !s.headers.status) {
 			s.status(status, reason);
 		}
-        if (s.end) { s.end(); }
-        else { s.clearEvents(); }
+		if (s.end) { s.end(); }
+		else { s.clearEvents(); }
 	}
 	this.incomingStreams = {};
 	this.outgoingStreams = {};
@@ -1187,9 +1202,9 @@ Bridge.prototype.onMessage = function(msg) {
 		// Is a new request - validate URL
 		if (!msg.path) { return this.log('warn', 'Dropping HTTPL request with no path', msg); }
 
-	    // Get the handler
-        var httpl = require('./httpl.js');
-	    var handler, pathd, routes = httpl.getRoutes();
+		// Get the handler
+		var httpl = require('./httpl.js');
+		var handler, pathd, routes = httpl.getRoutes();
 		for (var i=0; i < routes.length; i++) {
 			pathd = routes[i].path.exec(msg.path);
 			if (pathd) {
@@ -1198,29 +1213,29 @@ Bridge.prototype.onMessage = function(msg) {
 			}
 		}
 		msg.pathd = pathd;
-        if (!handler) { handler = function(req, res) { res.s404('not found').end(); }; };
+		if (!handler) { handler = function(req, res) { res.s404('not found').end(); }; };
 
-	    // Create incoming request, incoming response and outgoing response
-	    var ireq = new IncomingRequest(msg);
-        var ires = new IncomingResponse();
-	    var ores = new Response();
-        stream = this.incomingStreams[msg.sid] = ireq;
-        this.outgoingStreams[resSid] = ires;
+		// Create incoming request, incoming response and outgoing response
+		var ireq = new IncomingRequest(msg);
+		var ires = new IncomingResponse();
+		var ores = new Response();
+		stream = this.incomingStreams[msg.sid] = ireq;
+		this.outgoingStreams[resSid] = ires;
 
-	    // Wire up events
-	    ores.wireUp(ires);
-        ireq.memoEventsTillNextTick();
-        ires.memoEventsTillNextTick();
+		// Wire up events
+		ores.wireUp(ires);
+		ireq.memoEventsTillNextTick();
+		ires.memoEventsTillNextTick();
 
-        // Wire response into the channel
+		// Wire response into the channel
 		var this2 = this;
 		var resSid = -(msg.sid);
-        ires.on('headers', function(headers) {
+		ires.on('headers', function(headers) {
 			var msg = { sid: resSid, status: headers.status, reason: headers.reason };
 			for (var k in headers) { if (helpers.isHeaderKey(k)) { msg[k] = headers[k]; } }
-            ires.processHeaders(this2.channel.source_url, headers);
+			ires.processHeaders(this2.channel.source_url, headers);
 			this2.send(msg);
-        });		
+		});
 		ires.on('data', function(data) {
 			this2.send({ sid: resSid, body: data });
 		});
@@ -1232,35 +1247,35 @@ Bridge.prototype.onMessage = function(msg) {
 			delete this2.outgoingStreams[resSid];
 		});
 
-        // Fire handler
-        handler(ireq, ores, this.channel);
+		// Fire handler
+		handler(ireq, ores, this.channel);
 	}
 
 	// Pipe received data into stream
 	if (msg.sid < 0 && (stream instanceof Response)) {
-        if (typeof msg.status != 'undefined') {
-		    stream.status(msg.status, msg.reason);
-		    for (var k in msg) {
-			    if (helpers.isHeaderKey(k)) {
-				    stream.header(k, msg[k]);
-			    }
-		    }
-		    stream.start();
-	    }
-	    if (msg.body) { stream.write(msg.body); }
-	    if (msg.end) { stream.end(); }
-	    if (msg.close) {
-		    stream.close();
-		    delete this.incomingStreams[msg.sid];
-	    }
-    } else if (msg.sid > 0 && (stream instanceof IncomingRequest)) {
-        if (msg.body) { stream.emit('data', msg.body); }
-        if (msg.end) { stream.emit('end'); }
-        if (msg.close) {
-            stream.emit('close');
-            delete this.incomingStreams[msg.sid];
-        }
-    }
+		if (typeof msg.status != 'undefined') {
+			stream.status(msg.status, msg.reason);
+			for (var k in msg) {
+				if (helpers.isHeaderKey(k)) {
+					stream.header(k, msg[k]);
+				}
+			}
+			stream.start();
+		}
+		if (msg.body) { stream.write(msg.body); }
+		if (msg.end) { stream.end(); }
+		if (msg.close) {
+			stream.close();
+			delete this.incomingStreams[msg.sid];
+		}
+	} else if (msg.sid > 0 && (stream instanceof IncomingRequest)) {
+		if (msg.body) { stream.emit('data', msg.body); }
+		if (msg.end) { stream.emit('end'); }
+		if (msg.close) {
+			stream.emit('close');
+			delete this.incomingStreams[msg.sid];
+		}
+	}
 };
 
 // helper used to decide if a temp worker can be ejected
@@ -1275,7 +1290,7 @@ Bridge.prototype.isInTransaction = function() {
 			}
 		}
 	}
-    return false;
+	return false;
 };
 
 // This validator is faster than doing a try/catch block
@@ -2012,43 +2027,6 @@ function queryLink(link, query) {
 	return true;
 }
 
-// EXPORTED
-// takes set of links and a search string, does a per-term filter
-// - `links`: [object]/object/Document, either the parsed array of links, the request/response object, or a Document
-// - `searchTerms`: [string]/string, an array or space-separated string of search terms
-function searchLinks(links, searchTerms) {
-	if (!links || !searchTerms) return [];
-	if (__docexists && links instanceof Document) links = extractDocumentLinks(links); // actually the document
-	if (links.parsedHeaders) links = links.parsedHeaders.link; // actually a request or response object
-	if (!Array.isArray(links)) return [];
-	if (!Array.isArray(searchTerms)) searchTerms = searchTerms.split(' ');
-	return links.filter(function(link) { return searchLink(link, searchTerms); });
-}
-
-// EXPORTED
-// takes parsed link and string of search terms, produces boolean `isMatch`
-function searchLink(link, searchTerms) {
-	// Combine link att values into a single string
-	var linkText = '';
-	if (typeof link == 'string') {
-		linkText = link;
-	} else {
-		for (var k in link) {
-			linkText += link[k] + ' ';
-		}
-	}
-
-	// Break the search into individual terms
-	if (!Array.isArray(searchTerms)) searchTerms = searchTerms.split(' ');
-
-	// Search for each term
-	for (var i=0; i < searchTerms.length; i++) {
-		if (linkText.indexOf(searchTerms[i]) === -1)
-			return false;
-	}
-	return true;
-}
-
 // <https://github.com/federomero/negotiator>
 // thanks to ^ for the content negotation helpers below
 // INTERNAL
@@ -2355,8 +2333,6 @@ module.exports = {
 	extractDocumentLinks: extractDocumentLinks,
 	queryLinks: queryLinks,
 	queryLink: queryLink,
-	searchLinks: searchLinks,
-	searchLink: searchLink,
 
 	preferredTypes: preferredTypes,
 	preferredType: preferredType,
@@ -2548,38 +2524,38 @@ schemes.register('#', function (oreq, ires) {
 	}
 	oreq.headers.path = '#' + urld2.path.slice(1);
 
-    // Helper to lookup the handler from the current env's routes
-    var lookupRoute = function() {
-        var pathd;
+	// Helper to lookup the handler from the current env's routes
+	var lookupRoute = function() {
+		var pathd;
 		for (var i=0; i < _routes.length; i++) {
 			pathd = _routes[i].path.exec(oreq.headers.path);
 			if (pathd) {
-                oreq.headers.pathd = pathd; // update request headers to include the path match
+				oreq.headers.pathd = pathd; // update request headers to include the path match
 				return _routes[i].handler;
 			}
 		}
-    };
+	};
 
 	// Get the handler
 	var handler;
-    var isInWorker = (typeof self.document == 'undefined');
+	var isInWorker = (typeof self.document == 'undefined');
 	// Is a host URL given?
 	if (oreq.urld.authority || oreq.urld.path) {
-        if (oreq.urld.authority == 'page') {
-            if (isInWorker) {
-                // Use the page
-                handler = self.pageBridge.onRequest.bind(self.pageBridge); 
-            } else {
-		        // Match the route in the current page
-                handler = lookupRoute();
-            }
-        } else {
-		    // Try to get/load the VM
-		    handler = workers.getWorker(oreq.urld);
-        }
-    } else {
+		if (oreq.urld.authority == 'page') {
+			if (isInWorker) {
+				// Use the page
+				handler = self.pageBridge.onRequest.bind(self.pageBridge);
+			} else {
+				// Match the route in the current page
+				handler = lookupRoute();
+			}
+		} else {
+			// Try to get/load the VM
+			handler = workers.getWorker(oreq.urld);
+		}
+	} else {
 		// Match the route in the current page
-        handler = lookupRoute();		
+		handler = lookupRoute();
 	}
 
 	// Create incoming request / outgoing response
@@ -2589,8 +2565,8 @@ schemes.register('#', function (oreq, ires) {
 	// Wire up events
 	oreq.wireUp(ireq);
 	ores.wireUp(ires);
-    ireq.memoEventsTillNextTick();
-    ires.memoEventsTillNextTick();
+	ireq.memoEventsTillNextTick();
+	ires.memoEventsTillNextTick();
 	oreq.on('close', function() { ores.close(); });
 
 	// Support warnings
@@ -2642,6 +2618,10 @@ function IncomingRequest(headers) {
 			}
 		}
 	}
+
+	// Process links
+	this.links = require('./links').processLinks(this.link || []);
+	delete this.link;
 
 	// Stream state
 	hidden('isConnOpen', true);
@@ -2717,7 +2697,7 @@ IncomingRequest.prototype.pipe = function(target, headersCB, bodyCb) {
 	}
 	return target;
 };
-},{"../util":8,"./content-types.js":11,"./helpers.js":12,"./http-headers.js":13,"./request":18,"./response":19}],16:[function(require,module,exports){
+},{"../util":8,"./content-types.js":11,"./helpers.js":12,"./http-headers.js":13,"./links":17,"./request":18,"./response":19}],16:[function(require,module,exports){
 var util = require('../util');
 var helpers = require('./helpers.js');
 var httpHeaders = require('./http-headers.js');
@@ -2746,6 +2726,10 @@ function IncomingResponse() {
 IncomingResponse.prototype = Object.create(util.EventEmitter.prototype);
 module.exports = IncomingResponse;
 
+// Simple response-summary helper
+IncomingResponse.prototype.summary = function() {
+	return helpers.escape(this.status + ((this.reason) ? ' '+this.reason : ''));
+};
 
 // Parses headers, makes sure response header links are absolute
 IncomingResponse.prototype.processHeaders = function(baseUrl, headers) {
@@ -2869,8 +2853,6 @@ module.exports.processLinks = function(links, baseUrl) {
     Object.defineProperty(links, 'query', noEnumDesc);
     noEnumDesc.value = function(query) { return this.query(query)[0]; };
     Object.defineProperty(links, 'get', noEnumDesc);
-    noEnumDesc.value = helpers.searchLinks.bind(null, links);
-    Object.defineProperty(links, 'search', noEnumDesc);
 
     return links;
 };
@@ -2930,7 +2912,7 @@ Request.prototype.header = function(k, v) {
 };
 
 // Header sugars
-[ 'Accept', 'Authorization', 'ContentType', 'Expect', 'From', 'Pragma' ].forEach(function(k) {
+[ 'Accept', 'Authorization', 'ContentType', 'Expect', 'From', 'Link', 'Pragma' ].forEach(function(k) {
 	Request.prototype[k] = function(v) {
 		return this.header(k, v);
 	};
@@ -2956,6 +2938,37 @@ function formatHeaderKey(str) {
         return this;
     };
 });
+
+// Link-header construction helper
+Request.prototype.link = function(link) {
+	if (!this.headers.Link) { this.headers.Link = []; }
+	if (arguments.length > 1) {
+		if (Array.isArray(arguments[0])) {
+			// table form
+			this.link(util.table.apply(null, arguments));
+		} else {
+			// (href, rel, opts) form
+			var href = arguments[0];
+			var rel = arguments[1];
+			var opts = arguments[2];
+			if (rel && typeof rel == 'object') {
+				opts = rel;
+				rel = false;
+			}
+			if (!opts) opts = {};
+			opts.href = href;
+			if (rel) { opts.rel = (opts.rel) ? (opts.rel+' '+rel) : rel; }
+			this.link(opts);
+		}
+	} else if (Array.isArray(link)) {
+		// [{rel:,href:}...] form
+		this.headers.Link = this.headers.Link.concat(link);
+	} else {
+		// {rel:,href:} form
+		this.headers.Link.push(link);
+	}
+	return this;
+};
 
 // Param setter
 // - `k` may be an object of keys to add
@@ -3304,6 +3317,7 @@ Response.prototype.link = function(link) {
 		// {rel:,href:} form
 		this.headers.Link.push(link);
 	}
+	return this;
 };
 
 // helper to convert a given header value to our standard format - camel case, no dashes
@@ -4801,7 +4815,7 @@ function closeWorker(url) {
 	if (!urld.authority || urld.authority == '.' || urld.authority.indexOf('.') === -1) {
 		var dir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
 		var dirurl = window.location.protocol + '//' + window.location.hostname + dir;
-		var url = helpers.joinRelPath(dirurl, urld.source);
+		url = helpers.joinRelPath(dirurl, urld.source);
 		urld = local.parseUri(url);
 	}
 
@@ -4862,16 +4876,12 @@ WorkerWrapper.prototype.load = function(urld) {
 		.then(function(res) {
 			this2.source_url = full_url;
 
-			// Setup the bootstrap source to import scripts relative to the origin
+			// Construct final script
 			var bootstrap_src = require('../config.js').workerBootstrapScript;
-			var hosturld = local.parseUri((urld.protocol != 'data') ? full_url : (window.location.protocol+'//'+window.location.hostname));
-			var hostroot = hosturld.protocol + '://' + hosturld.authority;
-			bootstrap_src = bootstrap_src.replace(/<HOST>/g, hostroot);
-			bootstrap_src = bootstrap_src.replace(/<HOST_DIR_PATH>/g, (hosturld.directory||'').slice(0,-1));
-			bootstrap_src = bootstrap_src.replace(/<HOST_DIR_URL>/g, hostroot + (hosturld.directory||'').slice(0,-1));
+			var src = bootstrap_src+'local.at(\'(.*)\', function($req, $res){'+res.body+'});';
 
 			// Create worker
-			this2.script_blob = new Blob([bootstrap_src+'(function(){'+res.body+'})();'], { type: "text/javascript" });
+			this2.script_blob = new Blob([src], { type: "text/javascript" });
 			this2.script_objurl = window.URL.createObjectURL(this2.script_blob);
 			this2.worker = new Worker(this2.script_objurl);
 			this2.setup();

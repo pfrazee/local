@@ -31,15 +31,14 @@ for (var i = 0; i < 10; i++) {
     responses_.push(GET('/test/worker/worker2.js#').end());
 }
 
-local.promise.bundle(responses_)
-	.always(function(responses) {
-		responses.forEach(function(res, i) {
-            if (i==0) print(res.links);
-			print(res.status + ' ' + res.body);
-			console.log(res.latency+' ms');
-		});
-		finishTest();
+responses_.always(function(responses) {
+	responses.forEach(function(res, i) {
+        if (i==0) print(res.links);
+		print(res.status + ' ' + res.body);
+		console.log(res.latency+' ms');
 	});
+	finishTest();
+});
 wait(function () { return done; });
 
 /* =>
