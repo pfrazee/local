@@ -272,3 +272,8 @@ finishTest();
 // renderUri
 print(local.renderUri('http://foo.com/{baz}{?bar}', { baz: 'BAZ', bar: 'BAZAR' }));
 // => http://foo.com/BAZ?bar=BAZAR
+
+
+// escape
+print(local.escape('<foo bar="baz">'));
+// => &lt;foo bar=&quot;baz&quot;&gt;

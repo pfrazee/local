@@ -435,6 +435,12 @@ function isHeaderKey(k) {
 	return ucRegEx.test(k);
 }
 
+// EXPORTED
+// escapes HTML tokens
+function escape(str) {
+	return (''+str).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 module.exports = {
 	extractDocumentLinks: extractDocumentLinks,
 	queryLinks: queryLinks,
@@ -458,4 +464,6 @@ module.exports = {
 	parseNavUri: parseNavUri, parseNavUrl: parseNavUri,
 	makeProxyUri: makeProxyUri, makeProxyUrl: makeProxyUri,
 	renderUri: renderUri, renderUrl: renderUri,
+
+	escape: escape
 };

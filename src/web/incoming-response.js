@@ -26,6 +26,7 @@ function IncomingResponse() {
 IncomingResponse.prototype = Object.create(util.EventEmitter.prototype);
 module.exports = IncomingResponse;
 
+
 // Parses headers, makes sure response header links are absolute
 IncomingResponse.prototype.processHeaders = function(baseUrl, headers) {
 	this.status = headers.status;

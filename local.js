@@ -2345,6 +2345,12 @@ function isHeaderKey(k) {
 	return ucRegEx.test(k);
 }
 
+// EXPORTED
+// escapes HTML tokens
+function escape(str) {
+	return (''+str).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 module.exports = {
 	extractDocumentLinks: extractDocumentLinks,
 	queryLinks: queryLinks,
@@ -2368,6 +2374,8 @@ module.exports = {
 	parseNavUri: parseNavUri, parseNavUrl: parseNavUri,
 	makeProxyUri: makeProxyUri, makeProxyUrl: makeProxyUri,
 	renderUri: renderUri, renderUrl: renderUri,
+
+	escape: escape
 };
 },{"../promises.js":4,"./content-types.js":11,"./uri-template.js":22}],13:[function(require,module,exports){
 var helpers = require('./helpers.js');
@@ -2737,6 +2745,7 @@ function IncomingResponse() {
 }
 IncomingResponse.prototype = Object.create(util.EventEmitter.prototype);
 module.exports = IncomingResponse;
+
 
 // Parses headers, makes sure response header links are absolute
 IncomingResponse.prototype.processHeaders = function(baseUrl, headers) {

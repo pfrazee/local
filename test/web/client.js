@@ -164,16 +164,28 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "/test/web/_worker.js#", rel: "up via service"},
-    {href: "/test/web/_worker.js#foo", rel: "self current"},
-    {href: "/test/web/_worker.js#foo/{id}", rel: "item"}
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#",
+      rel: "up via service"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      rel: "self current"
+    },
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}", rel: "item"}
   ],
   _buffer: "[\"bar\",\"bazzzz\",\"blah\"]",
   body: ["bar", "bazzzz", "blah"],
   links: [
-    {href: "/test/web/_worker.js#", rel: "up via service"},
-    {href: "/test/web/_worker.js#foo", rel: "self current"},
-    {href: "/test/web/_worker.js#foo/{id}", rel: "item"}
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#",
+      rel: "up via service"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      rel: "self current"
+    },
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}", rel: "item"}
   ],
   reason: undefined,
   status: 200
@@ -182,24 +194,36 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "/test/web/_worker.js#", rel: "via service"},
-    {href: "/test/web/_worker.js#foo", rel: "up collection index"},
-    {href: "/test/web/_worker.js#foo/bazzzz", rel: "self current"},
-    {href: "/test/web/_worker.js#foo/bar", rel: "first"},
-    {href: "/test/web/_worker.js#foo/blah", rel: "last"},
-    {href: "/test/web/_worker.js#foo/bar", rel: "prev"},
-    {href: "/test/web/_worker.js#foo/blah", rel: "next"}
+    {href: "http://dev.grimwire.com/test/web/_worker.js#", rel: "via service"},
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      rel: "up collection index"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/bazzzz",
+      rel: "self current"
+    },
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "first"},
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "last"},
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "prev"},
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "next"}
   ],
   _buffer: "\"bazzzz\"",
   body: "bazzzz",
   links: [
-    {href: "/test/web/_worker.js#", rel: "via service"},
-    {href: "/test/web/_worker.js#foo", rel: "up collection index"},
-    {href: "/test/web/_worker.js#foo/bazzzz", rel: "self current"},
-    {href: "/test/web/_worker.js#foo/bar", rel: "first"},
-    {href: "/test/web/_worker.js#foo/blah", rel: "last"},
-    {href: "/test/web/_worker.js#foo/bar", rel: "prev"},
-    {href: "/test/web/_worker.js#foo/blah", rel: "next"}
+    {href: "http://dev.grimwire.com/test/web/_worker.js#", rel: "via service"},
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      rel: "up collection index"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/bazzzz",
+      rel: "self current"
+    },
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "first"},
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "last"},
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "prev"},
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "next"}
   ],
   reason: undefined,
   status: 200
@@ -254,16 +278,28 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "/test/web/_worker.js#", rel: "up via service"},
-    {href: "/test/web/_worker.js#foo", rel: "self current"},
-    {href: "/test/web/_worker.js#foo/{id}", rel: "item"}
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#",
+      rel: "up via service"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      rel: "self current"
+    },
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}", rel: "item"}
   ],
   _buffer: "[\"bar\",\"bazzzz\",\"blah\"]",
   body: ["bar", "bazzzz", "blah"],
   links: [
-    {href: "/test/web/_worker.js#", rel: "up via service"},
-    {href: "/test/web/_worker.js#foo", rel: "self current"},
-    {href: "/test/web/_worker.js#foo/{id}", rel: "item"}
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#",
+      rel: "up via service"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      rel: "self current"
+    },
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}", rel: "item"}
   ],
   reason: undefined,
   status: 200
@@ -272,24 +308,36 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "/test/web/_worker.js#", rel: "via service"},
-    {href: "/test/web/_worker.js#foo", rel: "up collection index"},
-    {href: "/test/web/_worker.js#foo/bazzzz", rel: "self current"},
-    {href: "/test/web/_worker.js#foo/bar", rel: "first"},
-    {href: "/test/web/_worker.js#foo/blah", rel: "last"},
-    {href: "/test/web/_worker.js#foo/bar", rel: "prev"},
-    {href: "/test/web/_worker.js#foo/blah", rel: "next"}
+    {href: "http://dev.grimwire.com/test/web/_worker.js#", rel: "via service"},
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      rel: "up collection index"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/bazzzz",
+      rel: "self current"
+    },
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "first"},
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "last"},
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "prev"},
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "next"}
   ],
   _buffer: "\"bazzzz\"",
   body: "bazzzz",
   links: [
-    {href: "/test/web/_worker.js#", rel: "via service"},
-    {href: "/test/web/_worker.js#foo", rel: "up collection index"},
-    {href: "/test/web/_worker.js#foo/bazzzz", rel: "self current"},
-    {href: "/test/web/_worker.js#foo/bar", rel: "first"},
-    {href: "/test/web/_worker.js#foo/blah", rel: "last"},
-    {href: "/test/web/_worker.js#foo/bar", rel: "prev"},
-    {href: "/test/web/_worker.js#foo/blah", rel: "next"}
+    {href: "http://dev.grimwire.com/test/web/_worker.js#", rel: "via service"},
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      rel: "up collection index"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/bazzzz",
+      rel: "self current"
+    },
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "first"},
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "last"},
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "prev"},
+    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "next"}
   ],
   reason: undefined,
   status: 200
