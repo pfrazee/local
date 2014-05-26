@@ -31,27 +31,28 @@ var blacklist = [ // a list of global objects which are not allowed in the worke
 ];
 var whitelistAPIs_src = [ // nullifies all toplevel variables except those listed above in `whitelist`
 	'(function() {',
-		'var nulleds=[];',
-		'var whitelist = ["'+whitelist.join('", "')+'"];',
-		'for (var k in self) {',
-			'if (whitelist.indexOf(k) === -1) {',
-				'Object.defineProperty(self, k, { value: null, configurable: false, writable: false });',
-				'nulleds.push(k);',
-			'}',
-		'}',
-		'var blacklist = ["'+blacklist.join('", "')+'"];',
-		'blacklist.forEach(function(k) {',
-			'Object.defineProperty(self, k, { value: null, configurable: false, writable: false });',
-			'nulleds.push(k);',
-		'});',
-		'if (typeof console != "undefined") { console.log("Nullified: "+nulleds.join(", ")); }',
+	'   var nulleds=[];',
+	'	var whitelist = ["'+whitelist.join('", "')+'"];',
+	'	for (var k in self) {',
+	'		if (whitelist.indexOf(k) === -1) {',
+	'			Object.defineProperty(self, k, { value: null, configurable: false, writable: false });',
+	'			nulleds.push(k);',
+	'		}',
+	'	}',
+	'	var blacklist = ["'+blacklist.join('", "')+'"];',
+	'	blacklist.forEach(function(k) {',
+	'		Object.defineProperty(self, k, { value: null, configurable: false, writable: false });',
+	'		nulleds.push(k);',
+	'	});',
+	'	if (typeof console != "undefined") { console.log("Nullified: "+nulleds.join(", ")); }',
 	'})();\n'
 ].join('\n');
+var isInWorker = (typeof self.document == 'undefined');
 module.exports = {
     logTraffic: true,
 	logAllExceptions: false,
     maxActiveWorkers: 10,
-    virtualOnly: false,
-    localOnly: false,
+    virtualOnly: isInWorker ? true : false,
+    localOnly: isInWorker ? true : false,
 	workerBootstrapScript: localjsImport_src+whitelistAPIs_src
 };

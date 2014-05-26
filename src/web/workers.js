@@ -163,7 +163,7 @@ WorkerWrapper.prototype.load = function(urld) {
 
 			// Construct final script
 			var bootstrap_src = require('../config.js').workerBootstrapScript;
-			var src = bootstrap_src+'local.at(\'(.*)\', function($req, $res){'+res.body+'});';
+			var src = bootstrap_src+'local.at(\'(.*)\', function($req, $res){\n'+res.body+'\n});';
 
 			// Create worker
 			this2.script_blob = new Blob([src], { type: "text/javascript" });

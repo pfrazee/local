@@ -50,16 +50,22 @@ schemes.register('#', function (oreq, ires) {
 	var handler;
 	var isInWorker = (typeof self.document == 'undefined');
 	// Is a host URL given?
-	if (oreq.urld.authority || oreq.urld.path) {
-		if (oreq.urld.authority == 'page') {
-			if (isInWorker) {
-				// Use the page
-				handler = self.pageBridge.onRequest.bind(self.pageBridge);
-			} else {
-				// Match the route in the current page
-				handler = lookupRoute();
-			}
+	if (isInWorker) {
+		if (oreq.urld.authority == 'self') {
+			// http://self#foo
+			// Match the route in the current worker
+			handler = lookupRoute();
 		} else {
+			// Use the page
+			handler = self.pageBridge.onRequest.bind(self.pageBridge);
+		}
+	} else if (oreq.urld.authority || oreq.urld.path) {
+		if (oreq.urld.authority == 'page') {
+			// http://page#foo
+			// Match the route in the current page
+			handler = lookupRoute();
+		} else {
+			// http://bar.com/foo.js#
 			// Try to get/load the VM
 			handler = workers.getWorker(oreq.urld);
 		}

@@ -15,6 +15,6 @@ if ($req.POST) {
 	return;
 }
 if ($req.BOUNCE) {
-    return GET('http://page#hello?foo=bob', { bar: 'buzz' }).pipe($res);
+    return GET('#hello?foo=bob', { bar: 'buzz' }).pipe($res);
 }
 $res.s405().end();

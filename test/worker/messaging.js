@@ -9,7 +9,6 @@ local.at('#hello', function(req, res, worker) {
 });
 
 local.at('#worker1.js/?(.*)', function(req, res, worker) {
-    console.log(worker, req);
     var req2 = local.dispatch({ method: req.method, url: '/test/worker/worker1.js#'+req.pathd[1] });
     req.pipe(req2);
     req2.pipe(res);
@@ -20,6 +19,13 @@ local.at('#worker2.js/?(.*)', function(req, res, worker) {
     var req2 = local.dispatch({ method: req.method, url: '/test/worker/worker2.js#'+req.pathd[1] });
     req.pipe(req2);
     req2.pipe(res);
+});
+
+local.at('https://(.*)', function(req, res, worker) {
+	if (worker) {
+		return res.s403('https is forbidden (even for '+req.pathd[1]+' !)').end();
+	}
+	res.s204('I would let you, but I don\'t know you.').end();
 });
 
 // GET tests
@@ -156,5 +162,5 @@ local.dispatch({ method: 'USEWEB', url: '/test/worker/worker1.js#' })
 wait(function () { return done; });
 
 /* =>
-0 public web requests are not allowed from workers
+403 https is forbidden (even for layer1.io !)
 */

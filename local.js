@@ -32,28 +32,29 @@ var blacklist = [ // a list of global objects which are not allowed in the worke
 ];
 var whitelistAPIs_src = [ // nullifies all toplevel variables except those listed above in `whitelist`
 	'(function() {',
-		'var nulleds=[];',
-		'var whitelist = ["'+whitelist.join('", "')+'"];',
-		'for (var k in self) {',
-			'if (whitelist.indexOf(k) === -1) {',
-				'Object.defineProperty(self, k, { value: null, configurable: false, writable: false });',
-				'nulleds.push(k);',
-			'}',
-		'}',
-		'var blacklist = ["'+blacklist.join('", "')+'"];',
-		'blacklist.forEach(function(k) {',
-			'Object.defineProperty(self, k, { value: null, configurable: false, writable: false });',
-			'nulleds.push(k);',
-		'});',
-		'if (typeof console != "undefined") { console.log("Nullified: "+nulleds.join(", ")); }',
+	'   var nulleds=[];',
+	'	var whitelist = ["'+whitelist.join('", "')+'"];',
+	'	for (var k in self) {',
+	'		if (whitelist.indexOf(k) === -1) {',
+	'			Object.defineProperty(self, k, { value: null, configurable: false, writable: false });',
+	'			nulleds.push(k);',
+	'		}',
+	'	}',
+	'	var blacklist = ["'+blacklist.join('", "')+'"];',
+	'	blacklist.forEach(function(k) {',
+	'		Object.defineProperty(self, k, { value: null, configurable: false, writable: false });',
+	'		nulleds.push(k);',
+	'	});',
+	'	if (typeof console != "undefined") { console.log("Nullified: "+nulleds.join(", ")); }',
 	'})();\n'
 ].join('\n');
+var isInWorker = (typeof self.document == 'undefined');
 module.exports = {
     logTraffic: true,
 	logAllExceptions: false,
     maxActiveWorkers: 10,
-    virtualOnly: false,
-    localOnly: false,
+    virtualOnly: isInWorker ? true : false,
+    localOnly: isInWorker ? true : false,
 	workerBootstrapScript: localjsImport_src+whitelistAPIs_src
 };
 },{}],2:[function(require,module,exports){
@@ -2540,16 +2541,22 @@ schemes.register('#', function (oreq, ires) {
 	var handler;
 	var isInWorker = (typeof self.document == 'undefined');
 	// Is a host URL given?
-	if (oreq.urld.authority || oreq.urld.path) {
-		if (oreq.urld.authority == 'page') {
-			if (isInWorker) {
-				// Use the page
-				handler = self.pageBridge.onRequest.bind(self.pageBridge);
-			} else {
-				// Match the route in the current page
-				handler = lookupRoute();
-			}
+	if (isInWorker) {
+		if (oreq.urld.authority == 'self') {
+			// http://self#foo
+			// Match the route in the current worker
+			handler = lookupRoute();
 		} else {
+			// Use the page
+			handler = self.pageBridge.onRequest.bind(self.pageBridge);
+		}
+	} else if (oreq.urld.authority || oreq.urld.path) {
+		if (oreq.urld.authority == 'page') {
+			// http://page#foo
+			// Match the route in the current page
+			handler = lookupRoute();
+		} else {
+			// http://bar.com/foo.js#
 			// Try to get/load the VM
 			handler = workers.getWorker(oreq.urld);
 		}
@@ -4878,7 +4885,7 @@ WorkerWrapper.prototype.load = function(urld) {
 
 			// Construct final script
 			var bootstrap_src = require('../config.js').workerBootstrapScript;
-			var src = bootstrap_src+'local.at(\'(.*)\', function($req, $res){'+res.body+'});';
+			var src = bootstrap_src+'local.at(\'(.*)\', function($req, $res){\n'+res.body+'\n});';
 
 			// Create worker
 			this2.script_blob = new Blob([src], { type: "text/javascript" });
