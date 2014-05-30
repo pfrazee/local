@@ -26,10 +26,10 @@ function getRoutes() {
 // Virtual request handler
 schemes.register('#', function (oreq, ires) {
 	// Parse the virtual path
-	var urld2 = local.parseUri('/' + (oreq.urld.anchor || ''));
+	var urld2 = helpers.parseUri('/' + (oreq.urld.anchor || ''));
 	if (urld2.query) {
 		// mix query params into request
-		var queryParams = local.contentTypes.deserialize('application/x-www-form-urlencoded', urld2.query);
+		var queryParams = contentTypes.deserialize('application/x-www-form-urlencoded', urld2.query);
 		oreq.param(queryParams);
 	}
 	oreq.headers.path = '#' + urld2.path.slice(1);
@@ -93,7 +93,7 @@ schemes.register('#', function (oreq, ires) {
 	if (handler) {
 		handler(ireq, ores, oreq.originChannel);
 	} else {
-		ores.s404().end();
+		ores.status(404, 'Not Found').end();
 	}
 });
 

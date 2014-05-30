@@ -1,6 +1,6 @@
 // setup
 var mainDiv = document.getElementById('testarea');
-local.bindRequestEvents(mainDiv);
+web.bindRequestEvents(mainDiv);
 
 // test: basic anchor tag
 var done = false;
@@ -177,4 +177,4 @@ wait(function () { return done; });
 */
 
 
-local.unbindRequestEvents(mainDiv);
+web.unbindRequestEvents(mainDiv);

@@ -68,9 +68,9 @@ Context.prototype.setFailed = function(error) {
 // EXAMPLE 1. Get Bob from Foobar.com
 // - basic navigation
 // - requests
-var foobarService = local.client('https://foobar.com');
+var foobarService = web.client('https://foobar.com');
 var bob = foobarService.follow('|collection=users|item=bob');
-// ^ or local.client('nav:||https://foobar.com|collection=users|item=bob')
+// ^ or web.client('nav:||https://foobar.com|collection=users|item=bob')
 // ^ or foobarService.follow([{ rel: 'collection', id: 'users' }, { rel: 'item', id:'bob' }]);
 // ^ or foobarService.follow({ rel: 'collection', id: 'users' }).follow({ rel: 'item', id:'bob' });
 // ^ or foobarService.collection('users').item('bob')
@@ -104,7 +104,7 @@ pageCursor.get()
 	})
 	.fail(function(response, request) {
 		// Not finding a 'rel=next' link means the server didn't give us one.
-		if (response.status == local.LINK_NOT_FOUND) { // 001 Local: Link not found - termination condition
+		if (response.status == web.LINK_NOT_FOUND) { // 001 Local: Link not found - termination condition
 			// Tell Bob his greeting was sent
 			bob.service({ rel: 'foo.com/rel/inbox' }).POST({
 				title: '2013 Welcome Emails Sent',
@@ -195,7 +195,7 @@ Client.prototype.subscribe = function(req) {
 
 // Follows a link relation from our context, generating a new agent
 // - `query` may be:
-//   - an object in the same form of a `local.queryLink()` parameter
+//   - an object in the same form of a `web.queryLink()` parameter
 //   - an array of link query objects (to be followed sequentially)
 //   - a URI string
 //     - if using the 'nav:' scheme, will convert the URI into a link query object

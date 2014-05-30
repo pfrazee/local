@@ -1,6 +1,6 @@
 // == SECTION client
 
-var testRemote = new local.client('http://grimwire.com:8080');
+var testRemote = new web.client('http://grimwire.com:8080');
 
 // remote server navigation
 
@@ -84,7 +84,7 @@ success
 */
 
 
-var testLocal = new local.client('#');
+var testLocal = new web.client('#');
 
 // document local server navigation
 
@@ -93,7 +93,7 @@ startTime = Date.now();
 testLocal.follow({ rel: 'collection', id: 'foo' }).GET()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
-    testLocal.follow({ rel: 'collection', id: 'foo'})
+    testLocal.follow({ rel: 'collection', id: 'foo' })
       .follow({ rel: 'item', id: 'baz' })
       .GET().then(printSuccessAndFinish, printErrorAndFinish);
   });
@@ -104,44 +104,48 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "#", rel: "up via service"},
-    {href: "#foo", rel: "self current"},
+    {href: "#foo", id: "foo", rel: "self collection"},
+    {
+      href: "#",
+      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
+    },
     {href: "#foo/{id}", rel: "item"}
   ],
   _buffer: "[\"bar\",\"baz\",\"blah\"]",
   body: ["bar", "baz", "blah"],
   links: [
-    {href: "#", rel: "up via service"},
-    {href: "#foo", rel: "self current"},
+    {href: "#foo", id: "foo", rel: "self collection"},
+    {
+      href: "#",
+      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
+    },
     {href: "#foo/{id}", rel: "item"}
   ],
-  reason: undefined,
+  reason: "Ok",
   status: 200
 }
 success
 {
   ContentType: "application/json",
   Link: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
+    {href: "#foo/baz", rel: "self item"},
+    {href: "#foo", id: "foo", rel: "up collection"},
     {href: "#foo/bar", rel: "first"},
     {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
+    {href: "#foo/#foo/bar", rel: "prev"},
+    {href: "#foo/#foo/blah", rel: "next"}
   ],
   _buffer: "\"baz\"",
   body: "baz",
   links: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
+    {href: "#foo/baz", rel: "self item"},
+    {href: "#foo", id: "foo", rel: "up collection"},
     {href: "#foo/bar", rel: "first"},
     {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
+    {href: "#foo/#foo/bar", rel: "prev"},
+    {href: "#foo/#foo/blah", rel: "next"}
   ],
-  reason: undefined,
+  reason: "Ok",
   status: 200
 }
 */
@@ -150,10 +154,10 @@ success
 
 done = false;
 startTime = Date.now();
-local.client('/test/web/_worker.js#').follow({ rel: 'collection', id: 'foo' }).GET()
+web.client('/test/web/_worker.js#').follow({ rel: 'collection', id: 'foo' }).GET()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
-     local.client('/test/web/_worker.js#').follow({ rel: 'collection', id: 'foo'})
+     web.client('/test/web/_worker.js#').follow({ rel: 'collection', id: 'foo'})
       .follow({ rel: 'item', id: 'bazzzz' })
       .GET().then(printSuccessAndFinish, printErrorAndFinish);
   });
@@ -165,12 +169,13 @@ success
   ContentType: "application/json",
   Link: [
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js#",
-      rel: "up via service"
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      id: "foo",
+      rel: "self collection"
     },
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
-      rel: "self current"
+      href: "http://dev.grimwire.com/test/web/_worker.js#",
+      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
     {href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}", rel: "item"}
   ],
@@ -178,61 +183,74 @@ success
   body: ["bar", "bazzzz", "blah"],
   links: [
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js#",
-      rel: "up via service"
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      id: "foo",
+      rel: "self collection"
     },
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
-      rel: "self current"
+      href: "http://dev.grimwire.com/test/web/_worker.js#",
+      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
     {href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}", rel: "item"}
   ],
-  reason: undefined,
+  reason: "Ok",
   status: 200
 }
 success
 {
   ContentType: "application/json",
   Link: [
-    {href: "http://dev.grimwire.com/test/web/_worker.js#", rel: "via service"},
-    {
-      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
-      rel: "up collection index"
-    },
     {
       href: "http://dev.grimwire.com/test/web/_worker.js#foo/bazzzz",
-      rel: "self current"
+      rel: "self item"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      id: "foo",
+      rel: "up collection"
     },
     {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "first"},
     {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "last"},
-    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "prev"},
-    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "next"}
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/#foo/bar",
+      rel: "prev"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/#foo/blah",
+      rel: "next"
+    }
   ],
   _buffer: "\"bazzzz\"",
   body: "bazzzz",
   links: [
-    {href: "http://dev.grimwire.com/test/web/_worker.js#", rel: "via service"},
-    {
-      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
-      rel: "up collection index"
-    },
     {
       href: "http://dev.grimwire.com/test/web/_worker.js#foo/bazzzz",
-      rel: "self current"
+      rel: "self item"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      id: "foo",
+      rel: "up collection"
     },
     {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "first"},
     {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "last"},
-    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "prev"},
-    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "next"}
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/#foo/bar",
+      rel: "prev"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/#foo/blah",
+      rel: "next"
+    }
   ],
-  reason: undefined,
+  reason: "Ok",
   status: 200
 }
 */
 
 // rebase() and unresolve()
 
-var testRebase = new local.client('#');
+var testRebase = new web.client('#');
 var testRebaseCollection = testRebase.follow({ rel: 'collection', id: 'foo' });
 var testRebaseItem = testRebaseCollection.follow({ rel: 'item', id: 'bazzzz' });
 
@@ -258,33 +276,54 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "#", rel: "up via service"},
-    {href: "#foo", rel: "self current"},
+    {href: "#foo", id: "foo", rel: "self collection"},
+    {
+      href: "#",
+      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
+    },
     {href: "#foo/{id}", rel: "item"}
   ],
   _buffer: "[\"bar\",\"baz\",\"blah\"]",
   body: ["bar", "baz", "blah"],
   links: [
-    {href: "#", rel: "up via service"},
-    {href: "#foo", rel: "self current"},
+    {href: "#foo", id: "foo", rel: "self collection"},
+    {
+      href: "#",
+      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
+    },
     {href: "#foo/{id}", rel: "item"}
   ],
-  reason: undefined,
+  reason: "Ok",
   status: 200
 }
 error
-{_buffer: "", body: "", links: [], reason: undefined, status: 404}
+{
+  ContentType: "application/json",
+  Link: [
+    {href: "#foo/bazzzz", rel: "self item"},
+    {href: "#foo", id: "foo", rel: "up collection"}
+  ],
+  _buffer: "",
+  body: "",
+  links: [
+    {href: "#foo/bazzzz", rel: "self item"},
+    {href: "#foo", id: "foo", rel: "up collection"}
+  ],
+  reason: "Not Found",
+  status: 404
+}
 success
 {
   ContentType: "application/json",
   Link: [
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js#",
-      rel: "up via service"
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      id: "foo",
+      rel: "self collection"
     },
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
-      rel: "self current"
+      href: "http://dev.grimwire.com/test/web/_worker.js#",
+      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
     {href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}", rel: "item"}
   ],
@@ -292,54 +331,67 @@ success
   body: ["bar", "bazzzz", "blah"],
   links: [
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js#",
-      rel: "up via service"
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      id: "foo",
+      rel: "self collection"
     },
     {
-      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
-      rel: "self current"
+      href: "http://dev.grimwire.com/test/web/_worker.js#",
+      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
     {href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}", rel: "item"}
   ],
-  reason: undefined,
+  reason: "Ok",
   status: 200
 }
 success
 {
   ContentType: "application/json",
   Link: [
-    {href: "http://dev.grimwire.com/test/web/_worker.js#", rel: "via service"},
-    {
-      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
-      rel: "up collection index"
-    },
     {
       href: "http://dev.grimwire.com/test/web/_worker.js#foo/bazzzz",
-      rel: "self current"
+      rel: "self item"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      id: "foo",
+      rel: "up collection"
     },
     {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "first"},
     {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "last"},
-    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "prev"},
-    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "next"}
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/#foo/bar",
+      rel: "prev"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/#foo/blah",
+      rel: "next"
+    }
   ],
   _buffer: "\"bazzzz\"",
   body: "bazzzz",
   links: [
-    {href: "http://dev.grimwire.com/test/web/_worker.js#", rel: "via service"},
-    {
-      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
-      rel: "up collection index"
-    },
     {
       href: "http://dev.grimwire.com/test/web/_worker.js#foo/bazzzz",
-      rel: "self current"
+      rel: "self item"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo",
+      id: "foo",
+      rel: "up collection"
     },
     {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "first"},
     {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "last"},
-    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/bar", rel: "prev"},
-    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/blah", rel: "next"}
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/#foo/bar",
+      rel: "prev"
+    },
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/#foo/blah",
+      rel: "next"
+    }
   ],
-  reason: undefined,
+  reason: "Ok",
   status: 200
 }
 */
@@ -349,7 +401,7 @@ success
 
 done = false;
 startTime = Date.now();
-local.client([
+web.client([
   '#',
   { rel: 'collection', id: 'foo' },
   { rel: 'item', id: 'baz' }
@@ -368,52 +420,48 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
+    {href: "#foo/baz", rel: "self item"},
+    {href: "#foo", id: "foo", rel: "up collection"},
     {href: "#foo/bar", rel: "first"},
     {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
+    {href: "#foo/#foo/bar", rel: "prev"},
+    {href: "#foo/#foo/blah", rel: "next"}
   ],
   _buffer: "\"baz\"",
   body: "baz",
   links: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
+    {href: "#foo/baz", rel: "self item"},
+    {href: "#foo", id: "foo", rel: "up collection"},
     {href: "#foo/bar", rel: "first"},
     {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
+    {href: "#foo/#foo/bar", rel: "prev"},
+    {href: "#foo/#foo/blah", rel: "next"}
   ],
-  reason: undefined,
+  reason: "Ok",
   status: 200
 }
 success
 {
   ContentType: "application/json",
   Link: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
+    {href: "#foo/baz", rel: "self item"},
+    {href: "#foo", id: "foo", rel: "up collection"},
     {href: "#foo/bar", rel: "first"},
     {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
+    {href: "#foo/#foo/bar", rel: "prev"},
+    {href: "#foo/#foo/blah", rel: "next"}
   ],
   _buffer: "\"baz\"",
   body: "baz",
   links: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
+    {href: "#foo/baz", rel: "self item"},
+    {href: "#foo", id: "foo", rel: "up collection"},
     {href: "#foo/bar", rel: "first"},
     {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
+    {href: "#foo/#foo/bar", rel: "prev"},
+    {href: "#foo/#foo/blah", rel: "next"}
   ],
-  reason: undefined,
+  reason: "Ok",
   status: 200
 }
 */
@@ -422,7 +470,7 @@ success
 
 done = false;
 startTime = Date.now();
-local.client('nav:||#|collection=foo|item=baz').GET()
+web.client('nav:||#|collection=foo|item=baz').GET()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
     testLocal.follow('|collection=foo|item=baz').GET().then(printSuccessAndFinish, printErrorAndFinish);
@@ -434,52 +482,48 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
+    {href: "#foo/baz", rel: "self item"},
+    {href: "#foo", id: "foo", rel: "up collection"},
     {href: "#foo/bar", rel: "first"},
     {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
+    {href: "#foo/#foo/bar", rel: "prev"},
+    {href: "#foo/#foo/blah", rel: "next"}
   ],
   _buffer: "\"baz\"",
   body: "baz",
   links: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
+    {href: "#foo/baz", rel: "self item"},
+    {href: "#foo", id: "foo", rel: "up collection"},
     {href: "#foo/bar", rel: "first"},
     {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
+    {href: "#foo/#foo/bar", rel: "prev"},
+    {href: "#foo/#foo/blah", rel: "next"}
   ],
-  reason: undefined,
+  reason: "Ok",
   status: 200
 }
 success
 {
   ContentType: "application/json",
   Link: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
+    {href: "#foo/baz", rel: "self item"},
+    {href: "#foo", id: "foo", rel: "up collection"},
     {href: "#foo/bar", rel: "first"},
     {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
+    {href: "#foo/#foo/bar", rel: "prev"},
+    {href: "#foo/#foo/blah", rel: "next"}
   ],
   _buffer: "\"baz\"",
   body: "baz",
   links: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
+    {href: "#foo/baz", rel: "self item"},
+    {href: "#foo", id: "foo", rel: "up collection"},
     {href: "#foo/bar", rel: "first"},
     {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
+    {href: "#foo/#foo/bar", rel: "prev"},
+    {href: "#foo/#foo/blah", rel: "next"}
   ],
-  reason: undefined,
+  reason: "Ok",
   status: 200
 }
 */
@@ -512,18 +556,24 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "#", rel: "up via service"},
-    {href: "#foo", rel: "self current"},
+    {href: "#foo", id: "foo", rel: "self collection"},
+    {
+      href: "#",
+      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
+    },
     {href: "#foo/{id}", rel: "item"}
   ],
   _buffer: "[\"bar\",\"baz\",\"blah\"]",
   body: ["bar", "baz", "blah"],
   links: [
-    {href: "#", rel: "up via service"},
-    {href: "#foo", rel: "self current"},
+    {href: "#foo", id: "foo", rel: "self collection"},
+    {
+      href: "#",
+      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
+    },
     {href: "#foo/{id}", rel: "item"}
   ],
-  reason: undefined,
+  reason: "Ok",
   status: 200
 }
 ---
@@ -572,10 +622,12 @@ foo {c: 5}
 close
 */
 
+// dispatch to a client
+
 done = false;
 startTime = Date.now();
-GET(from('#').collection('foo').item('baz'))
-  .then(printSuccessAndFinish, printErrorAndFinish)
+web.GET(web.client('#').collection('foo').item('baz'))
+  .then(printSuccessAndFinish, printErrorAndFinish);
 wait(function () { return done; });
 
 /* =>
@@ -583,26 +635,24 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
+    {href: "#foo/baz", rel: "self item"},
+    {href: "#foo", id: "foo", rel: "up collection"},
     {href: "#foo/bar", rel: "first"},
     {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
+    {href: "#foo/#foo/bar", rel: "prev"},
+    {href: "#foo/#foo/blah", rel: "next"}
   ],
   _buffer: "\"baz\"",
   body: "baz",
   links: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
+    {href: "#foo/baz", rel: "self item"},
+    {href: "#foo", id: "foo", rel: "up collection"},
     {href: "#foo/bar", rel: "first"},
     {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
+    {href: "#foo/#foo/bar", rel: "prev"},
+    {href: "#foo/#foo/blah", rel: "next"}
   ],
-  reason: undefined,
+  reason: "Ok",
   status: 200
 }
 */

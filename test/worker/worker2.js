@@ -1,20 +1,21 @@
-if (!self.counter)
-	self.counter = 100;
+web.export(main);
 
-if ($req.GET) {
-    $res.s200().ContentType('plain');
-    $res.Link({ href: '#' });
-	$res.end(self.counter--);
-	return;
+var counter = 100;
+
+main.ContentType('text');
+main.link(main);
+function main() {
+	return ''+counter--;
 }
-if ($req.POST) {
-    $req.buffer(function() {
-        $res.s200().ContentType('plain');
-		$res.end($req.body.toLowerCase());
-	});
-	return;
+
+main.method(POST);
+POST.Accept('text');
+POST.ContentType('text');
+function POST(req) {
+	return req.body.toLowerCase();
 }
-if ($req.BOUNCE) {
-    return GET('#hello?foo=bob', { bar: 'buzz' }).pipe($res);
+
+main.method(BOUNCE);
+function BOUNCE() {
+	return web.GET('#hello?foo=bob', { bar: 'buzz' });
 }
-$res.s405().end();

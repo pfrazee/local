@@ -30,20 +30,11 @@ Response.prototype.status = function(code, reason) {
 	return this;
 };
 
-// Status sugars
-for (var i=200; i <= 599; i++) {
-	(function(i) {
-		Response.prototype['s'+i] = function(reason) {
-			return this.status(i, reason);
-		};
-	})(i);
-}
-
 // Header setter
 Response.prototype.header = function(k, v) {
-	k = formatHeaderKey(k);
+	k = helpers.formatHeaderKey(k);
 	// Convert mime if needed
-	if (k == 'ContentType') {
+	if (k == 'Accept' || k == 'ContentType') {
 		v = contentTypes.lookup(v);
 	}
 	this.headers[k] = v;
@@ -51,66 +42,22 @@ Response.prototype.header = function(k, v) {
 };
 
 // Header sugars
-[ 'Allow', 'ContentType', 'Link', 'Location', 'Pragma' ].forEach(function(k) {
+[ 'Accept', 'Allow', 'ContentType', 'Location', 'Pragma' ].forEach(function(k) {
 	Response.prototype[k] = function(v) {
 		return this.header(k, v);
 	};
 });
 
-// Content-type sugars
-[ 'json', 'text', 'html', 'csv' ].forEach(function(k) {
-	Response.prototype[k] = function (v) {
-		this.ContentType(k);
-		this.write(v);
-		return this;
-	};
-});
-Response.prototype.event = function(event, data) {
-	this.ContentType('event-stream');
-	this.write({ event: event, data: data });
-	return this;
-};
-
 // Link-header construction helper
-Response.prototype.link = function(link) {
+// - `href`: string/{.path}, the target of the link
+// - `attrs`: optional object, the attributes of the link
+Response.prototype.link = function(href, attrs) {
 	if (!this.headers.Link) { this.headers.Link = []; }
-	if (arguments.length > 1) {
-		if (Array.isArray(arguments[0])) {
-			// table form
-			this.link(util.table.apply(null, arguments));
-		} else {
-			// (href, rel, opts) form
-			var href = arguments[0];
-			var rel = arguments[1];
-			var opts = arguments[2];
-			if (rel && typeof rel == 'object') {
-				opts = rel;
-				rel = false;
-			}
-			if (!opts) opts = {};
-			opts.href = href;
-			if (rel) { opts.rel = (opts.rel) ? (opts.rel+' '+rel) : rel; }
-			this.link(opts);
-		}
-	} else if (Array.isArray(link)) {
-		// [{rel:,href:}...] form
-		this.headers.Link = this.headers.Link.concat(link);
-	} else {
-		// {rel:,href:} form
-		this.headers.Link.push(link);
-	}
+	if (!attrs) attrs = {};
+	attrs.href = (href.path) ? href.path : href;
+	this.headers.Link.push(attrs);
 	return this;
 };
-
-// helper to convert a given header value to our standard format - camel case, no dashes
-var headerKeyRegex = /(^|-)(.)/g;
-function formatHeaderKey(str) {
-	// strip any dashes, convert to camelcase
-	// eg 'foo-bar' -> 'FooBar'
-	return str.replace(headerKeyRegex, function(_0,_1,_2) { return _2.toUpperCase(); });
-}
-
-//
 
 // Event connection helper
 // connects events from this stream to the target (event proxying)

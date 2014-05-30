@@ -5,7 +5,7 @@
 
 done = false;
 startTime = Date.now();
-var stream = local.subscribe('#events');
+var stream = web.subscribe('#events');
 stream.on('foo', function(m) { print('foo', m.data); });
 stream.on('bar', function(m) { print('bar', m.data); });
 stream.on('close', function(e) {
@@ -28,7 +28,7 @@ close
 
 done = false;
 startTime = Date.now();
-var stream = local.subscribe('dev.grimwire.com/test/web/_worker.js#events');
+var stream = web.subscribe('dev.grimwire.com/test/web/_worker.js#events');
 stream.on('foo', function(m) { print('foo', m.data); });
 stream.on('bar', function(m) { print('bar', m.data); });
 stream.on('close', function(e) {
@@ -51,7 +51,7 @@ close
 
 done = false;
 startTime = Date.now();
-var stream2 = local.subscribe('http://grimwire.com:8080/events');
+var stream2 = web.subscribe('http://grimwire.com:8080/events');
 stream2.on('foo', function(m) { print('foo', m.data); });
 stream2.on('bar', function(m) { print('bar', m.data); });
 stream2.on('close', function(e) {

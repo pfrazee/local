@@ -14,7 +14,6 @@ function IncomingRequest(headers) {
 
 	// Set attributes
 	this.method = (headers.method) ? headers.method.toUpperCase() : 'GET';
-	this[this.method] = true;
 	this.path = headers.path || '#';
     this.pathd = headers.pathd || [this.path];
 	this.params = (headers.params) || {};

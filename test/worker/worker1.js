@@ -1,32 +1,37 @@
-if (!self.counter)
-	self.counter = 0;
+web.export(main);
 
-if ($req.GET) {
-    $res.s200().ContentType('text');
-    $res.Link({ href: '#' });
-	$res.end(''+self.counter++);
-	return;
+var counter = 0;
+
+main.ContentType('text');
+main.link(main);
+function main() {
+	return ''+counter++;
 }
-if ($req.POST) {
-    $req.buffer(function() {
-        $res.s200().ContentType('text');
-		$res.end($req.body.toUpperCase());
-	});
-	return;
+
+main.method(POST);
+POST.Accept('text');
+POST.ContentType('text');
+function POST(req) {
+	return req.body.toUpperCase();
 }
-if ($req.BOUNCE) {
-    return GET('#hello?foo=alice', { bar: 'bazz' }).pipe($res);
+
+main.method(BOUNCE);
+function BOUNCE() {
+	return web.GET('#hello?foo=alice', { bar: 'bazz' });
 }
-if ($req.IMPORT) {
+
+main.method(IMPORT);
+IMPORT.ContentType('text');
+function IMPORT() {
 	try {
 		importScripts('../../local.js');
-        $res.s500('lib error').end('Error: import was allowed');
-	} catch(e) {
-        $res.s200().end(e.toString());
+		throw 'Error: import was allowed';
+	} catch (e) {
+		return e.toString();
 	}
-	return;
 }
-if ($req.USEWEB) {
-    return GET('https://layer1.io').pipe($res);
+
+main.method(USEWEB);
+function USEWEB() {
+    return web.GET('https://layer1.io');
 }
-$res.s405().end();

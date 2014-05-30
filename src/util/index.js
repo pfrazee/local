@@ -20,6 +20,13 @@ function deepClone(obj) {
 	return JSON.parse(JSON.stringify(obj));
 }
 
+function getFnName(fn) {
+  if (typeof fn !== 'function') return '';
+  if (fn.name) return fn.name;
+  var match = fn.toString().match(/function ([^\(]+)/);
+  return (match) ? match[1] : '';
+}
+
 // helper to make an array of objects
 // - takes an array of keys (the table "header")
 // - consumes the remaining arguments as table values
@@ -65,6 +72,7 @@ module.exports = {
 	mixin: mixin,
 	mixinEventEmitter: mixinEventEmitter,
 	deepClone: deepClone,
+	getFnName: getFnName,
     table: table,
 	nextTick: nextTick
 };

@@ -13,7 +13,7 @@ if (typeof self.document !== 'undefined') { // in the page
 var localjsImport_src = 'importScripts("'+localjsUrl+'");\n';
 var whitelist = [ // a list of global objects which are allowed in the worker
     // defined by local.js
-    'local', 'pageBridge',
+    'web', 'pageBridge',
     'HEAD', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'SUBSCRIBE', 'NOTIFY', 'from',
 
 	'null', 'self', 'console', 'atob', 'btoa',

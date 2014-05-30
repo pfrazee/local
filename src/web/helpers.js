@@ -371,8 +371,8 @@ function parseNavUri(str) {
 
 // EXPORTED
 // builds a proxy URI out of an array of templates
-// eg ('local://my_worker.js/', ['local://0.env/{uri}', 'local://foo/{?uri}'])
-// -> "local://0.env/local%3A%2F%2Ffoo%2F%3Furi%3Dhttpl%253A%252F%252Fmy_worker.js%252F"
+// eg ('http://my_worker.js/', ['http://0.env/{uri}', 'http://foo/{?uri}'])
+// -> "http://0.env/http%3A%2F%2Ffoo%2F%3Furi%3Dhttp%253A%252F%252Fmy_worker.js%252F"
 function makeProxyUri(uri, templates) {
 	if (!Array.isArray(templates)) templates = [templates];
 	for (var i=templates.length-1; i >= 0; i--) {
@@ -399,6 +399,15 @@ function isHeaderKey(k) {
 }
 
 // EXPORTED
+// converts a given header value to our standard format - camel case, no dashes
+var headerKeyRegex = /(^|-)(.)/g;
+function formatHeaderKey(str) {
+	// strip any dashes, convert to camelcase
+	// eg 'foo-bar' -> 'FooBar'
+	return str.replace(headerKeyRegex, function(_0,_1,_2) { return _2.toUpperCase(); });
+}
+
+// EXPORTED
 // escapes HTML tokens
 function escape(str) {
 	return (''+str).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -419,7 +428,9 @@ module.exports = {
 
 	isAbsUri: isAbsUri, isAbsUrl: isAbsUri,
 	isNavSchemeUri: isNavSchemeUri, isNavSchemeUrl: isNavSchemeUri,
+
 	isHeaderKey: isHeaderKey,
+	formatHeaderKey: formatHeaderKey,
 
 	parseUri: parseUri, parseUrl: parseUri,
 	parseNavUri: parseNavUri, parseNavUrl: parseNavUri,

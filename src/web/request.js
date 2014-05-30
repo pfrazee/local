@@ -1,3 +1,4 @@
+var localConfig = require('../config.js');
 var util = require('../util');
 var promises = require('../promises.js');
 var helpers = require('./helpers.js');
@@ -23,10 +24,10 @@ function Request(headers, originChannel) {
 	this.headers.params = (this.headers.params) || {};
 	this.originChannel = originChannel;
 	this.isBinary = false; // stream is binary?
-	this.isVirtual = local.virtualOnly || undefined; // request going to virtual host?
+	this.isVirtual = localConfig.virtualOnly || undefined; // request going to virtual host?
 
 	// Behavior flags
-    this.isForcedLocal = local.localOnly; // forcing request to be local
+    this.isForcedLocal = localConfig.localOnly; // forcing request to be local
 	this.isBufferingResponse = true; // auto-buffering the response?
 	this.isAutoEnding = false; // auto-ending the request on next tick?
 
@@ -42,7 +43,7 @@ module.exports = Request;
 
 // Header setter
 Request.prototype.header = function(k, v) {
-	k = formatHeaderKey(k);
+	k = helpers.formatHeaderKey(k);
 	// Convert mime if needed
 	if (k == 'Accept' || k == 'ContentType') {
 		v = contentTypes.lookup(v);
@@ -58,55 +59,14 @@ Request.prototype.header = function(k, v) {
 	};
 });
 
-// helper to convert a given header value to our standard format - camel case, no dashes
-var headerKeyRegex = /(^|-)(.)/g;
-function formatHeaderKey(str) {
-	// strip any dashes, convert to camelcase
-	// eg 'foo-bar' -> 'FooBar'
-	return str.replace(headerKeyRegex, function(_0,_1,_2) { return _2.toUpperCase(); });
-}
-
-// Content-type sugars
-[ 'json', 'text', 'html', 'csv' ].forEach(function(k) {
-    Request.prototype[k] = function (v) {
-        this.ContentType(k);
-        this.write(v);
-        return this;
-    };
-    Request.prototype['to'+k] = function (v) {
-        this.Accept(k);
-        return this;
-    };
-});
-
 // Link-header construction helper
-Request.prototype.link = function(link) {
+// - `href`: string/{.path}, the target of the link
+// - `attrs`: optional object, the attributes of the link
+Request.prototype.link = function(href, attrs) {
 	if (!this.headers.Link) { this.headers.Link = []; }
-	if (arguments.length > 1) {
-		if (Array.isArray(arguments[0])) {
-			// table form
-			this.link(util.table.apply(null, arguments));
-		} else {
-			// (href, rel, opts) form
-			var href = arguments[0];
-			var rel = arguments[1];
-			var opts = arguments[2];
-			if (rel && typeof rel == 'object') {
-				opts = rel;
-				rel = false;
-			}
-			if (!opts) opts = {};
-			opts.href = href;
-			if (rel) { opts.rel = (opts.rel) ? (opts.rel+' '+rel) : rel; }
-			this.link(opts);
-		}
-	} else if (Array.isArray(link)) {
-		// [{rel:,href:}...] form
-		this.headers.Link = this.headers.Link.concat(link);
-	} else {
-		// {rel:,href:} form
-		this.headers.Link.push(link);
-	}
+	if (!attrs) attrs = {};
+	attrs.href = (href.path) ? href.path : href;
+	this.headers.Link.push(attrs);
 	return this;
 };
 
@@ -337,7 +297,7 @@ function fulfillResponsePromise(req, res) {
         return;
 
     // log if logging
-    if (local.logTraffic) {
+    if (localConfig.logTraffic) {
         console.log(req.headers, res);
     }
 

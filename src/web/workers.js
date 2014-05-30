@@ -1,5 +1,7 @@
+var localConfig = require('../config.js');
 var helpers = require('./helpers.js');
 var promise = require('../promises.js').promise;
+var Request = require('./request');
 var Bridge = require('./bridge.js');
 
 module.exports = {
@@ -26,11 +28,11 @@ function get(urld) {
 		var dir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
 		var dirurl = window.location.origin + dir;
 		var url = helpers.joinRelPath(dirurl, urld.source);
-		urld = local.parseUri(url);
+		urld = helpers.parseUri(url);
 	}
 
 	// Lookup from existing children
-    var id = urld.authority+urld.path;
+	var id = urld.authority+urld.path;
 	var bridge = _bridges[id];
 	if (bridge) {
 		return bridge.onRequest.bind(bridge);
@@ -40,7 +42,7 @@ function get(urld) {
 	if (urld.path.slice(-3) == '.js') {
 		// Try to autoload temp worker
 		spawnTempWorker(urld);
-        var bridge = _bridges[id];
+		var bridge = _bridges[id];
 		return bridge.onRequest.bind(bridge);
 	}
 
@@ -67,50 +69,52 @@ function spawnWorker(urld) {
 		var dir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
 		var dirurl = window.location.protocol + '//' + window.location.hostname + dir;
 		var url = helpers.joinRelPath(dirurl, urld.source);
-		urld = local.parseUri(url);
+		urld = helpers.parseUri(url);
 	}
 
 	// Eject a temp server if needed
-	if (Object.keys(_workers).length >= local.maxActiveWorkers) {
-        var eject = null;
-	    for (var d in _workers) {
-		    if ( _workers[d].isTemp && !_bridges[d].isInTransaction()) {
-                eject = d;
-                break;
-            }
-	    }
-		console.log('Closing temporary worker', eject);
-		_workers[eject].terminate();
-        delete _workers[eject];
-        delete _bridges[eject];
+	if (Object.keys(_workers).length >= localConfig.maxActiveWorkers) {
+		var eject = null;
+		for (var d in _workers) {
+			if ( _workers[d].isTemp && !_bridges[d].isInTransaction()) {
+				eject = d;
+				break;
+			}
+		}
+		if (eject && (eject in _workers)) {
+			console.log('Closing temporary worker', eject);
+			_workers[eject].terminate();
+			delete _workers[eject];
+			delete _bridges[eject];
+		}
 	}
 
-    var id = urld.authority+urld.path;
+	var id = urld.authority+urld.path;
 	var worker = new WorkerWrapper(id);
 	_workers[id] = worker;
-    _bridges[id] = new Bridge(worker);
+	_bridges[id] = new Bridge(worker);
 	worker.load(urld);
 	return worker;
 }
 
 function closeWorker(url) {
-	var urld = local.parseUri(url);
+	var urld = helpers.parseUri(url);
 
 	// Relative to current host? Construct full URL
 	if (!urld.authority || urld.authority == '.' || urld.authority.indexOf('.') === -1) {
 		var dir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
 		var dirurl = window.location.protocol + '//' + window.location.hostname + dir;
 		url = helpers.joinRelPath(dirurl, urld.source);
-		urld = local.parseUri(url);
+		urld = helpers.parseUri(url);
 	}
 
 	// Find and terminate
 	var id = urld.authority + urld.path;
 	if (id in _workers) {
 		_workers[id].terminate();
-        delete _workers[id];
-        delete _bridges[id];
-        return true;
+		delete _workers[id];
+		delete _bridges[id];
+		return true;
 	}
 	return false;
 }
@@ -119,7 +123,7 @@ function WorkerWrapper(id) {
 	this.isReady = false;
 	this.isTemp = false;
 
-    this.id = id;
+	this.id = id;
 	this.worker = null;
 
 	this.script_blob = null;
@@ -138,22 +142,22 @@ WorkerWrapper.prototype.load = function(urld) {
 
 	// If no scheme was given, check our cache to see if we can save ourselves some trouble
 	var full_url = url;
-    if (!urld.protocol) {
-        var scheme = _domainSchemes[urld.authority];
-        if (!scheme) {
-            scheme = _domainSchemes[urld.authority] = 'https://';
-        }
-        full_url = scheme + url;
-    }
+	if (!urld.protocol) {
+		var scheme = _domainSchemes[urld.authority];
+		if (!scheme) {
+			scheme = _domainSchemes[urld.authority] = 'https://';
+		}
+		full_url = scheme + url;
+	}
 
-    // Try to fetch the script
-	GET(full_url)
-		.Accept('application/javascript, text/javascript, text/plain, */*')
+	// Try to fetch the script
+	var req = new Request({ method: 'GET', url: full_url });
+	req.Accept('application/javascript, text/javascript, text/plain, */*').end()
 		.fail(function(res) {
 			if (!urld.protocol && res.status === 0) {
 				// Domain error? Try again without ssl
-                full_url = 'http://'+url;
-                _domainSchemes[urld.authority] = 'http://'; // we know it isn't https at least
+				full_url = 'http://'+url;
+				_domainSchemes[urld.authority] = 'http://'; // we know it isn't https at least
 				return GET(full_url);
 			}
 			throw res;
@@ -163,7 +167,7 @@ WorkerWrapper.prototype.load = function(urld) {
 
 			// Construct final script
 			var bootstrap_src = require('../config.js').workerBootstrapScript;
-			var src = bootstrap_src+'local.at(\'(.*)\', function($req, $res){\n'+res.body+'\n});';
+			var src = bootstrap_src+'\n(function(){\n\n'+res.body+'\n\n})();';
 
 			// Create worker
 			this2.script_blob = new Blob([src], { type: "text/javascript" });
@@ -203,6 +207,8 @@ WorkerWrapper.prototype.setup = function() {
 				break;
 		}
 	});
+
+	// this.worker.onerror = function() { console.error('Worker Error!', arguments); };
 
 	// :TOOD: set terminate timeout for if no ready received
 };

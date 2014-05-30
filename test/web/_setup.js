@@ -1,132 +1,120 @@
-// worker local scaffold server
-local.spawnWorker('/test/web/_worker.js');
+// worker scaffold server
+web.spawnWorker('/test/web/_worker.js');
 
-// document local scaffold server
+web.export(main);
+web.export(foo);
+web.export(foo$);
+web.export(events);
+
+main.link(main, { rel: 'http://layer1.io/rel/test layer1.io/rel/test layer1.io' });
+main.link(events, { rel: 'collection', id: 'events' });
+main.link(foo, { rel: 'collection', id: 'foo' });
+foo.link(foo$, { rel: 'item' });
+
+main.ContentType('plain');
+function main(req, res) {
+    return 'service resource' + (((Object.keys(req.params).length > 0)) ? ' '+JSON.stringify(req.params) : '');
+}
+
 var foos = ['bar', 'baz', 'blah'];
-local.at('#', function(req, res) {
-	var payload = null, linkHeader;
-	if (req.method === 'GET') {
-		payload = 'service resource';
-	}
-    res.link({ rel:'self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com', href:'#' });
-    res.link(
-        ['rel',       'href',    'id'],
-		'collection', '#events', 'events',
-        'collection', '#foo',    'foo',
-		'collection', '#{id}',   undefined
-    );
-	res.s200().ContentType('plain').end(payload);
-});
-
-local.at('#foo', function(req, res) {
-	var payload = null, linkHeader;
-	if (req.method != 'HEAD') {
-		payload = foos;
-	}
-	if (req.method == 'POST') {
-		// pipe back
-		return req.pipe(res.s200());
-	}
-	linkHeader = [
-		{ rel:'up via service', href:'#' },
-		{ rel:'self current', href:'#foo' },
-		{ rel:'item', href:'#foo/{id}' }
-	];
-	res.s200().link(linkHeader);
+foo.ContentType('json');
+foo.opts({ stream: true });
+function foo(req, res) {
 	// so we can experiment with streaming, write the json in bits:
-	if (payload) {
-		res.json('[');
-		payload.forEach(function(p, i) { res.json((i!==0?',':'')+'"'+p+'"'); });
-		res.json(']');
-	}
+	res.status(200, 'Ok');
+	res.write('[');
+	foos.forEach(function(p, i) { res.write((i!==0?',':'')+'"'+p+'"'); });
+	res.write(']');
 	res.end();
-});
+}
 
-local.at('#foo/([A-z]*)', function(req, res) {
-	var payload = null, linkHeader;
-	var itemName = req.pathd[1];
+foo.method(POST_foo);
+POST_foo.opts({ stream: true });
+function POST_foo(req, res) {
+	// pipe back
+	req.pipe(res.status(200));
+}
+
+foo$.ContentType('json');
+function foo$(itemName, req, res) {
 	var itemIndex = foos.indexOf(itemName);
 	if (itemIndex === -1) {
-		return res.s404().end();
+		throw web.NotFound();
 	}
-	if (req.method === 'GET') {
-		payload = itemName;
-	}
-    res.link('#', 'via service');
-    res.link('#foo', 'up collection index');
-    res.link('#foo/'+itemName, 'self current');
-    res.link('#foo/'+foos[0], 'first');
-    res.link('#foo/'+foos[foos.length - 1], 'last');
+
+    res.link(foo$.atId(foos[0]), { rel: 'first' });
+    res.link(foo$.atId(foos[foos.length - 1]), { rel: 'last' });
 	if (itemIndex !== 0) {
-        res.link('#foo/'+foos[itemIndex - 1], 'prev');
+        res.link(foo$.atId('#foo/'+foos[itemIndex - 1]), { rel: 'prev' });
 	}
 	if (itemIndex !== foos.length - 1) {
-		res.link('#foo/'+foos[itemIndex + 1], 'next');
+		res.link(foo$.atId('#foo/'+foos[itemIndex + 1]), { rel: 'next' });
 	}
-	res.s200().ContentType('json');
-	res.end('"'+payload+'"');
-});
+	return  '"'+itemName+'"';
+}
 
-local.at('#headers-echo', function(req, res) {
-	res.s204()
-		.header('content-type', req.ContentType)
-		.header('fooBar', req.FooBar)
-		.header('Asdf-fdsa', req.AsdfFdsa)
-		.header('contentMD5', req.ContentMD5)
-		.end();
-});
-
-local.at('#mimetype-alises-echo', function(req, res) {
-	if (req.ContentType !== 'text/csv') {
-		return res.s415('only understands text/csv').end();
-	}
-	if (!local.preferredType(req.Accept, 'html')) {
-		return res.s406('can only provide html').end();
-	}
-	req.buffer(function() {
-		res.s200().html('<strong>'+req.body+'</strong>').end();
-	});
-});
-
-// pound-sign optional
-local.at('pound-sign-optional', function(req, res) {
-	res.s204().end();
-});
-
-// body parsing
-local.at('#parse-body', function(req, res) {
-	if (req.ContentType !== 'application/json' && req.ContentType != local.contentTypes.lookup('form')) {
-		return res.s415('only understands json and form-urlencoded').end();
-	}
-	req.buffer(function() {
-		res.s200().end(req.body);
-	});
-});
-
-// query params
-local.at('#query-params', function(req, res) {
-	res.s200().json(req.params).end();
-});
-
-local.at('#events', function(req, res) {
-	res.s200()
-		.event('foo', { c: 1 })
-		.event('foo', { c: 2 })
-		.event('bar', { c: 3 });
+events.opts({ stream: true });
+events.ContentType('events');
+function events(req, res) {
+	res.status(200);
+	res.write({ event: 'foo', data: { c: 1 }});
+	res.write({ event: 'foo', data: { c: 2 }});
+	res.write({ event: 'bar', data: { c: 3 }});
 	res.write('event: foo\r\n');
 	setTimeout(function() { // break up the event to make sure the client waits for the whole thing
 		res.write('data: { "c": 4 }\r\n\r\n');
 		res.end({ event:'foo', data:{ c:5 }});
 	}, 50);
-});
+}
 
-local.at('#timeout', function(req, res) {
+web.export(headers_echo);
+function headers_echo(req, res) {
+	res.status(204)
+		.header('content-type', req.ContentType)
+		.header('fooBar', req.FooBar)
+		.header('Asdf-fdsa', req.AsdfFdsa)
+		.header('contentMD5', req.ContentMD5)
+		.end();
+}
+
+web.export(mimetype_aliases_echo);
+function mimetype_aliases_echo() {}
+mimetype_aliases_echo.method(POST_mimetype_aliases_echo);
+POST_mimetype_aliases_echo.Accept('text/csv');
+POST_mimetype_aliases_echo.ContentType('html');
+function POST_mimetype_aliases_echo(req, res) {
+	return '<strong>'+req.body+'</strong>';
+}
+
+// body parsing
+web.export(parse_body);
+function parse_body() {}
+parse_body.method(POST_parse_body);
+function POST_parse_body(req, res) {
+	if (req.ContentType !== 'application/json' && req.ContentType != web.contentTypes.lookup('form')) {
+		throw web.UnsupportedMediaTypeError({ reason: 'only understands json and form-urlencoded' });
+	}
+	return req.body;
+}
+
+// query params
+web.export(query_params);
+query_params.ContentType('json');
+function query_params(req, res) {
+	return req.params;
+}
+
+web.export(timeout);
+timeout.opts({ stream: true });
+function timeout(req, res) {
 	setTimeout(function() {
-		res.s204().end();
+		res.status(204).end();
 	}, 3000);
-});
+}
 
-local.at('#pipe', function(req, res) {
+web.export(pipe);
+pipe.opts({ stream: true });
+function pipe(req, res) {
 	var headerUpdate = function(k, v) {
 		if (k == 'ContentType') { return 'text/piped+plain'; }
 		return v;
@@ -135,12 +123,25 @@ local.at('#pipe', function(req, res) {
 		return (req.params.toLower) ? body.toLowerCase() : body.toUpperCase();
 	};
 	if (req.method == 'GET')
-		GET(req.params.src).pipe(res, headerUpdate, bodyUpdate);
-	else if (req.method == 'POST')
-		req.pipe(res.s200(), headerUpdate, bodyUpdate);
-});
+		web.GET(req.params.src).pipe(res, headerUpdate, bodyUpdate);
+}
+
+pipe.method(POST_pipe);
+pipe.opts({ stream: true });
+function POST_pipe(req, res) {
+	var headerUpdate = function(k, v) {
+		if (k == 'ContentType') { return 'text/piped+plain'; }
+		return v;
+	};
+	var bodyUpdate = function(body) {
+		return (req.params.toLower) ? body.toLowerCase() : body.toUpperCase();
+	};
+	req.pipe(res.status(200, 'Ok'), headerUpdate, bodyUpdate);
+}
 
 // request links
-local.at('#req-links', function(req, res) {
-	res.s200().json(req.links.get('item')).end();
-});
+web.export(req_links);
+req_links.ContentType('json');
+function req_links(req, res) {
+	return req.links.get('item');
+}

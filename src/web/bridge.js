@@ -43,9 +43,7 @@ Bridge.prototype.send = function(msg) {
 		this.msgBuffer.push(msg);
 	} else {
 		if (debugLog) { this.log('debug', 'SEND', msg); }
-		if (true || !!self.window) {
-			this.channel.postMessage(msg);
-		}
+		this.channel.postMessage(msg);
 	}
 };
 
@@ -149,7 +147,7 @@ Bridge.prototype.onMessage = function(msg) {
 			}
 		}
 		msg.pathd = pathd;
-		if (!handler) { handler = function(req, res) { res.s404('not found').end(); }; };
+		if (!handler) { handler = function(req, res) { res.status(404, 'Not Found').end(); }; }
 
 		// Create incoming request, incoming response and outgoing response
 		var ireq = new IncomingRequest(msg);
