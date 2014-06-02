@@ -164,7 +164,7 @@ success
       href: "#",
       rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
-    {href: "#foo/{id}", rel: "item"}
+    {href: "#foo/{id}", rel: "item", templated: true}
   ],
   _buffer: "echo this, please",
   body: "echo this, please",
@@ -174,7 +174,7 @@ success
       href: "#",
       rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
-    {href: "#foo/{id}", rel: "item"}
+    {href: "#foo/{id}", rel: "item", templated: true}
   ],
   reason: undefined,
   status: 200

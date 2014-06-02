@@ -87,6 +87,9 @@ function handler_link(href, attrs) {
 	if (typeof href == 'function') {
 		if (href == this) {
 			this.__self_link__ = attrs;
+			if (this.__is_dynamic__) {
+				this.__self_link__.templated = true;
+			}
 		} else if (href != this.__parent_handler__) {
 			href.__parent_handler__ = this;
 			href.link(href, attrs); // link to itself
@@ -166,6 +169,7 @@ function runHandler(handler) {
 				attrs.rel = 'self ' + (attrs.rel||'');
 				if (handler.__is_dynamic__) {
 					href = req.path;
+					delete attrs.templated;
 				}
 			} else if (href == handler.__parent_handler__) {
 				// Up link

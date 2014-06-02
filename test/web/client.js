@@ -109,7 +109,7 @@ success
       href: "#",
       rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
-    {href: "#foo/{id}", rel: "item"}
+    {href: "#foo/{id}", rel: "item", templated: true}
   ],
   _buffer: "[\"bar\",\"baz\",\"blah\"]",
   body: ["bar", "baz", "blah"],
@@ -119,7 +119,7 @@ success
       href: "#",
       rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
-    {href: "#foo/{id}", rel: "item"}
+    {href: "#foo/{id}", rel: "item", templated: true}
   ],
   reason: "Ok",
   status: 200
@@ -177,7 +177,11 @@ success
       href: "http://dev.grimwire.com/test/web/_worker.js#",
       rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
-    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}", rel: "item"}
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}",
+      rel: "item",
+      templated: true
+    }
   ],
   _buffer: "[\"bar\",\"bazzzz\",\"blah\"]",
   body: ["bar", "bazzzz", "blah"],
@@ -191,7 +195,11 @@ success
       href: "http://dev.grimwire.com/test/web/_worker.js#",
       rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
-    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}", rel: "item"}
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}",
+      rel: "item",
+      templated: true
+    }
   ],
   reason: "Ok",
   status: 200
@@ -281,7 +289,7 @@ success
       href: "#",
       rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
-    {href: "#foo/{id}", rel: "item"}
+    {href: "#foo/{id}", rel: "item", templated: true}
   ],
   _buffer: "[\"bar\",\"baz\",\"blah\"]",
   body: ["bar", "baz", "blah"],
@@ -291,7 +299,7 @@ success
       href: "#",
       rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
-    {href: "#foo/{id}", rel: "item"}
+    {href: "#foo/{id}", rel: "item", templated: true}
   ],
   reason: "Ok",
   status: 200
@@ -325,7 +333,11 @@ success
       href: "http://dev.grimwire.com/test/web/_worker.js#",
       rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
-    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}", rel: "item"}
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}",
+      rel: "item",
+      templated: true
+    }
   ],
   _buffer: "[\"bar\",\"bazzzz\",\"blah\"]",
   body: ["bar", "bazzzz", "blah"],
@@ -339,7 +351,11 @@ success
       href: "http://dev.grimwire.com/test/web/_worker.js#",
       rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
-    {href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}", rel: "item"}
+    {
+      href: "http://dev.grimwire.com/test/web/_worker.js#foo/{id}",
+      rel: "item",
+      templated: true
+    }
   ],
   reason: "Ok",
   status: 200
@@ -561,7 +577,7 @@ success
       href: "#",
       rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
-    {href: "#foo/{id}", rel: "item"}
+    {href: "#foo/{id}", rel: "item", templated: true}
   ],
   _buffer: "[\"bar\",\"baz\",\"blah\"]",
   body: ["bar", "baz", "blah"],
@@ -571,7 +587,7 @@ success
       href: "#",
       rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
     },
-    {href: "#foo/{id}", rel: "item"}
+    {href: "#foo/{id}", rel: "item", templated: true}
   ],
   reason: "Ok",
   status: 200
