@@ -74,7 +74,7 @@ schemes.register('#', function (oreq, ires) {
 						(oreq.urld.authority||'') +
 						oreq.urld.path +
 						((queryParams) ? '?' + queryParams : '') +
-						((oreq.urld.anchor) ? '#' + oreq.urld.anchor : '')
+						((oreq.headers.url.indexOf('#') !== -1) ? '#' + oreq.urld.anchor : '')
 				};
 			}
 		}
