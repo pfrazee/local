@@ -9,10 +9,10 @@ function hello(req, res, worker) {
 	return 'yes, hello '+req.params.foo+' '+req.params.bar;
 }
 
-web.export(http, '(http.*)');
-function http(req, res, worker) {
+web.export(pubweb_proxy);
+function pubweb_proxy(req, res, worker) {
 	if (worker) {
-		throw web.Forbidden({ reason: 'https is forbidden (even for '+req.pathd[1]+' !)' });
+		throw web.Forbidden({ reason: 'https is forbidden (even for '+req.params.url+' !)' });
 	}
 	return 'I would let you, but I don\'t know you.';
 }
@@ -151,5 +151,5 @@ web.dispatch({ method: 'USEWEB', url: '/test/worker/worker1.js#' })
 wait(function () { return done; });
 
 /* =>
-403 https is forbidden (even for https://layer1.io !)
+403 https is forbidden (even for https://layer1.io?yes=no&foo=bar#baz !)
 */

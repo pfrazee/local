@@ -14,8 +14,8 @@ var localjsImport_src = 'importScripts("'+localjsUrl+'");\n';
 var whitelist = [ // a list of global objects which are allowed in the worker
     // defined by local.js
     'web', 'pageBridge',
-    'HEAD', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'SUBSCRIBE', 'NOTIFY', 'from',
 
+    // defaults
 	'null', 'self', 'console', 'atob', 'btoa',
 	'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
 	'Proxy',
@@ -53,6 +53,6 @@ module.exports = {
 	logAllExceptions: false,
     maxActiveWorkers: 10,
     virtualOnly: isInWorker ? true : false,
-    localOnly: isInWorker ? true : false,
+    localOnly: false,
 	workerBootstrapScript: localjsImport_src+whitelistAPIs_src
 };

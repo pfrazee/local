@@ -33,5 +33,5 @@ function IMPORT() {
 
 main.method(USEWEB);
 function USEWEB() {
-    return web.GET('https://layer1.io');
+    return web.GET('https://layer1.io?foo=bar#baz', { yes: 'no' });
 }

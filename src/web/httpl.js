@@ -49,6 +49,7 @@ schemes.register('#', function (oreq, ires) {
 	// Get the handler
 	var handler;
 	var isInWorker = (typeof self.document == 'undefined');
+	var isNonLocal = (oreq.urld.authority || oreq.urld.path);
 	// Is a host URL given?
 	if (isInWorker) {
 		if (oreq.urld.authority == 'self') {
@@ -58,8 +59,26 @@ schemes.register('#', function (oreq, ires) {
 		} else {
 			// Use the page
 			handler = self.pageBridge.onRequest.bind(self.pageBridge);
+
+			// Use the special #pubweb_proxy handler for non-local requests
+			if (isNonLocal) {
+				// build new combined query params
+				var queryParams = contentTypes.serialize('application/x-www-form-urlencoded', oreq.headers.params);
+				if (queryParams && oreq.urld.query) { queryParams += '&'; }
+				queryParams += oreq.urld.query;
+
+				// prep new request
+				oreq.headers.path = '#pubweb_proxy';
+				oreq.headers.params = {
+					url: ((oreq.urld.protocol) ? oreq.urld.protocol + '://' : '') +
+						(oreq.urld.authority||'') +
+						oreq.urld.path +
+						((queryParams) ? '?' + queryParams : '') +
+						((oreq.urld.anchor) ? '#' + oreq.urld.anchor : '')
+				};
+			}
 		}
-	} else if (oreq.urld.authority || oreq.urld.path) {
+	} else if (isNonLocal) {
 		if (oreq.urld.authority == 'page') {
 			// http://page#foo
 			// Match the route in the current page
