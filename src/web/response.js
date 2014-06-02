@@ -51,10 +51,19 @@ Response.prototype.header = function(k, v) {
 // Link-header construction helper
 // - `href`: string/{.path}, the target of the link
 // - `attrs`: optional object, the attributes of the link
+// - alternatively, can pass a full link object, or an array of link objects
 Response.prototype.link = function(href, attrs) {
+	if (Array.isArray(href)) {
+		href.forEach(function(link) { this.link(link); }.bind(this));
+		return this;
+	}
 	if (!this.headers.Link) { this.headers.Link = []; }
-	if (!attrs) attrs = {};
-	attrs.href = (href.path) ? href.path : href;
+	if (href && typeof href == 'object') {
+		attrs = href;
+	} else {
+		if (!attrs) attrs = {};
+		attrs.href = (href.path) ? href.path : href;
+	}
 	this.headers.Link.push(attrs);
 	return this;
 };

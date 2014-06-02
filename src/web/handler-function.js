@@ -81,7 +81,7 @@ function handler_opts(opts) {
 // adds a link to the response
 // - params are same as req/res.link()
 function handler_link(href, attrs) {
-	this.__links__.push([href, attrs || {}]);
+	this.__links__.push([href, attrs]);
 
 	// establish relationships for auto-creation of related links
 	if (typeof href == 'function') {

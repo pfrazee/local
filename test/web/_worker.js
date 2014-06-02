@@ -10,7 +10,7 @@ foo.link(foo$, { rel: 'item' });
 
 main.ContentType('plain');
 function main(req, res) {
-    return 'service resource' + (((Object.keys(req.params).length > 0)) ? ' '+JSON.stringify(req.params) : '');
+	return 'service resource' + (((Object.keys(req.params).length > 0)) ? ' '+JSON.stringify(req.params) : '');
 }
 
 var foos = ['bar', 'bazzzz', 'blah'];
@@ -39,10 +39,12 @@ function foo$(itemName, req, res) {
 		throw web.NotFound();
 	}
 
-    res.link(foo$.atId(foos[0]), { rel: 'first' });
-    res.link(foo$.atId(foos[foos.length - 1]), { rel: 'last' });
+	res.link([
+		{ href: foo$.atId(foos[0]), rel: 'first' },
+		{ href: foo$.atId(foos[foos.length - 1]), rel: 'last' }
+	]);
 	if (itemIndex !== 0) {
-        res.link(foo$.atId('#foo/'+foos[itemIndex - 1]), { rel: 'prev' });
+		res.link(foo$.atId('#foo/'+foos[itemIndex - 1]), { rel: 'prev' });
 	}
 	if (itemIndex !== foos.length - 1) {
 		res.link(foo$.atId('#foo/'+foos[itemIndex + 1]), { rel: 'next' });
