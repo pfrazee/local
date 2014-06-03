@@ -66,7 +66,7 @@ function handler_export(fn, path) {
 // sets up a handler function, used in .export() and .method()
 function decorateHandler(fn) {
 	util.mixin.call(fn, handlerDef);
-	fn.__handler_opts__ = {};
+	fn.__opts__ = {};
 	fn.__headers__ = {};
 }
 
@@ -74,7 +74,7 @@ function decorateHandler(fn) {
 // - `opts.stream`: bool, if true will not buffer the request body and will ignore the function response
 function handler_opts(opts) {
 	for (var k in opts) {
-		this.__handler_opts__[k] = opts[k];
+		this.__opts__[k] = opts[k];
 	}
 }
 
@@ -139,7 +139,7 @@ function runHandler(handler) {
 	return function(req, res, worker) {
 		// Find handler by method
 		var fn;
-		if (req.method == 'HEAD' || req.method == 'GET')
+		if (handler.__opts__.allmethods || req.method == 'HEAD' || req.method == 'GET')
 			fn = handler;
 		else {
 			fn = handler.__methods__[req.method];
@@ -194,7 +194,7 @@ function runHandler(handler) {
 		}
 
 		// Run by options
-		if (fn.__handler_opts__.stream) {
+		if (fn.__opts__.stream) {
 			// No special handling
 			if (handler.__is_dynamic__) fn(req.pathd[1], req, res, worker);
 			else                        fn(req, res, worker);

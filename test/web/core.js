@@ -634,6 +634,60 @@ error
 {_buffer: "", body: "", links: [], reason: "Not Found", status: 404}
 */
 
+// successful virtual posts
+
+done = false;
+startTime = Date.now();
+web.POST('dev.grimwire.com/test/web/_worker.js#foo')
+  .ContentType('plain')
+  .end('echo this, please')
+  .then(printSuccess, printError)
+  .always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  ContentType: "text/plain",
+  Link: [
+    {
+      href: "dev.grimwire.com/test/web/_worker.js#foo",
+      id: "foo",
+      rel: "self collection"
+    },
+    {
+      href: "dev.grimwire.com/test/web/_worker.js#",
+      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
+    },
+    {
+      href: "dev.grimwire.com/test/web/_worker.js#foo/{id}",
+      rel: "item",
+      templated: true
+    }
+  ],
+  _buffer: "echo this, please",
+  body: "echo this, please",
+  links: [
+    {
+      href: "dev.grimwire.com/test/web/_worker.js#foo",
+      id: "foo",
+      rel: "self collection"
+    },
+    {
+      href: "dev.grimwire.com/test/web/_worker.js#",
+      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
+    },
+    {
+      href: "dev.grimwire.com/test/web/_worker.js#foo/{id}",
+      rel: "item",
+      templated: true
+    }
+  ],
+  reason: undefined,
+  status: 200
+}
+*/
+
 // query params
 
 done = false;

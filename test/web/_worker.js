@@ -14,22 +14,20 @@ function main(req, res) {
 }
 
 var foos = ['bar', 'bazzzz', 'blah'];
-foo.ContentType('json');
-foo.opts({ stream: true });
+foo.opts({ stream: true, allmethods: true });
 function foo(req, res) {
-	// so we can experiment with streaming, write the json in bits:
-	res.status(200, 'Ok');
-	res.write('[');
-	foos.forEach(function(p, i) { res.write((i!==0?',':'')+'"'+p+'"'); });
-	res.write(']');
-	res.end();
-}
-
-foo.method(POST_foo);
-POST_foo.opts({ stream: true });
-function POST_foo(req, res) {
-	// pipe back
-	req.pipe(res.status(200));
+	if (req.method == 'POST') {
+		// pipe back
+		req.pipe(res.status(200));
+	} else {
+		// so we can experiment with streaming, write the json in bits:
+		res.ContentType('json');
+		res.status(200, 'Ok');
+		res.write('[');
+		foos.forEach(function(p, i) { res.write((i!==0?',':'')+'"'+p+'"'); });
+		res.write(']');
+		res.end();
+	}
 }
 
 foo$.ContentType('json');
