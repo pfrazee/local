@@ -223,7 +223,11 @@ function buildRes(req, res, ret) {
 	} else if (ret.pipe) {
 		return ret.pipe(res);
 	} else if (!(ret instanceof restmpls.ResponseTemplate)) {
-		ret = restmpls.Ok({ body: ret });
+		if (req.method == 'HEAD') {
+			ret = restmpls.NoContent();
+		} else {
+			ret = restmpls.Ok({ body: ret });
+		}
 	}
 	ret.writeout(req, res);
 }
