@@ -202,8 +202,9 @@ Request.prototype.start = function() {
 
 	// Prep request
 	if (typeof this.isVirtual == 'undefined') {
-		// decide on whether this is virtual based on the presence of a hash
-		this.isVirtual = (this.headers.url.indexOf('#') !== -1);
+		// decide on whether this is virtual based on the presence of a .js and hash (outside the query params) or hash-prefix
+		var jshashIndex = this.headers.url.indexOf('.js#');
+		this.isVirtual = (this.headers.url.indexOf('#') === 0 || (jshashIndex !== -1 && this.headers.url.slice(0, jshashIndex).indexOf('?') === -1));
 	}
     if (this.isForcedLocal && this.headers.url.charAt(0) !== '#') {
         // if local only, force
