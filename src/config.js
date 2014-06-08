@@ -2,13 +2,16 @@
 // ============================
 var localjsUrl = '';
 if (typeof self.document !== 'undefined') { // in the page
-    try { localjsUrl = document.querySelector('script[src$="local.js"]').src; }
-    catch (e) {
-        try { localjsUrl = document.querySelector('script[src$="local.min.js"]').src; }
-        catch (e) {
-            console.error('Unable to find local.js or local.min.js script tags; unable to setup worker scripts');
-        }
-    }
+	try { localjsUrl = document.querySelector('script[src$="local.js"]').src; }
+	catch (e) {
+		try { localjsUrl = document.querySelector('script[src$="local.min.js"]').src; }
+		catch (e2) {
+			try { localjsUrl = chrome.runtime.getURL('local.js'); }
+			catch (e3) {
+				console.error('Unable to find local.js or local.min.js script tags; unable to setup worker scripts');
+			}
+		}
+	}
 }
 var localjsImport_src = 'importScripts("'+localjsUrl+'");\n';
 var whitelist = [ // a list of global objects which are allowed in the worker
