@@ -158,7 +158,8 @@ WorkerWrapper.prototype.load = function(urld) {
 				// Domain error? Try again without ssl
 				full_url = 'http://'+url;
 				_domainSchemes[urld.authority] = 'http://'; // we know it isn't https at least
-				return GET(full_url);
+				var req = new Request({ method: 'GET', url: full_url });
+				return req.Accept('application/javascript, text/javascript, text/plain, */*').end();
 			}
 			throw res;
 		})

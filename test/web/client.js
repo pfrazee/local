@@ -154,10 +154,10 @@ success
 
 done = false;
 startTime = Date.now();
-web.client('/test/web/_worker.js#').follow({ rel: 'collection', id: 'foo' }).GET()
+web.client('http://dev.grimwire.com/test/web/_worker.js#').follow({ rel: 'collection', id: 'foo' }).GET()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
-     web.client('/test/web/_worker.js#').follow({ rel: 'collection', id: 'foo'})
+     web.client('http://dev.grimwire.com/test/web/_worker.js#').follow({ rel: 'collection', id: 'foo'})
       .follow({ rel: 'item', id: 'bazzzz' })
       .GET().then(printSuccessAndFinish, printErrorAndFinish);
   });
@@ -269,7 +269,7 @@ testRebaseCollection.GET()
   .then(function() { return testRebaseItem.GET(); })
   .then(printSuccess, printErrorAndFinish)
   .then(function() {
-    testRebase.rebase('/test/web/_worker.js#');
+    testRebase.rebase('http://dev.grimwire.com/test/web/_worker.js#');
     testRebaseCollection.unresolve();
     testRebaseItem.unresolve();
     return testRebaseCollection.GET();
