@@ -2,6 +2,7 @@ var localConfig = require('../config.js');
 var util = require('../util');
 var promises = require('../promises.js');
 var helpers = require('./helpers.js');
+var UriTemplate = require('./uri-template.js');
 var schemes = require('./schemes.js');
 var contentTypes = require('./content-types.js');
 var Response = require('./response.js');
@@ -30,6 +31,10 @@ function Request(headers, originChannel) {
     this.isForcedLocal = localConfig.localOnly; // forcing request to be local
 	this.isBufferingResponse = true; // auto-buffering the response?
 	this.isAutoEnding = false; // auto-ending the request on next tick?
+
+	// Stream suspension
+	this.suspensions = 0;
+	this.suspendBuffer = [];
 
 	// Stream state
 	this.isConnOpen = true;
@@ -181,6 +186,79 @@ Request.prototype.autoEnd = function(v) {
 	this.isAutoEnding = v;
 };
 
+// Suspension
+// pauses and queues messaging (stacks, so 2 suspend() calls must be followed by two suspend(false) calls)
+Request.prototype.suspend = function(v) {
+	v = (typeof v != 'undefined') ? v : true;
+	if (v) {
+		this.suspensions++;
+	} else {
+		this.suspensions--;
+		if (this.suspensions <= 0) {
+			this.suspendBuffer.forEach(function(call) {
+				this[call.method].apply(this, call.arguments);
+			}.bind(this));
+			this.suspendBuffer.length = 0;
+		}
+	}
+};
+
+// Dispatcher
+// searches links from the response and dispatches to that target
+Request.prototype.dispatch = function(req) {
+	if (!req) req = {};
+	var self = this;
+
+	if (!(req instanceof Request)) {
+		req = new Request(req);
+		req.autoEnd();
+	}
+
+	// Suspend until our request finishes
+	req.suspend();
+
+	// Finish our request
+	this.always(function(res) {
+		// Try to find a link that matches
+		if (!req.headers.params.rel) req.headers.params.rel = 'self';
+		var link = res.links.get(req.headers.params);
+		if (!link) {
+			// Fulfill with link not found response
+			var ires = new IncomingResponse();
+			var ores = new Response();
+			ires.on('headers', ires.processHeaders.bind(ires, false));
+			ores.wireUp(ires);
+			ores.status(1, 'link not found').end();
+			fulfillResponsePromise(req, ires);
+
+			// Resume
+			req.suspend(false);
+			return;
+		}
+
+		// Update with discovered URL
+		req.headers.url = UriTemplate.parse(link.href).expand(req.headers.params);
+		req.headers.params = {}; // valid params are now in the url thanks to the template
+
+		// Resume
+		req.suspend(false);
+	});
+
+	return req;
+};
+
+function makeRequestSugar(method) {
+	return function(params) {
+		return this.dispatch({ method: method, params: params });
+	};
+}
+Request.prototype.head =   makeRequestSugar('HEAD');
+Request.prototype.get =    makeRequestSugar('GET');
+Request.prototype.post =   makeRequestSugar('POST');
+Request.prototype.put =    makeRequestSugar('PUT');
+Request.prototype.patch =  makeRequestSugar('PATCH');
+Request.prototype.delete = makeRequestSugar('DELETE');
+
 // Pipe helper
 // passes through to its incoming response
 Request.prototype.pipe = function(target, headersCb, bodyCb) {
@@ -211,9 +289,15 @@ Request.prototype.start = function() {
 	var this2 = this;
 	if (!this.isConnOpen) return this;
 	if (this.isStarted) return this;
-	if (!this.headers || !this.headers.url) throw "No URL on request";
+
+	// Suspend queue
+	if (this.suspensions > 0) {
+		this.suspendBuffer.push({ method: 'start', arguments: arguments });
+		return this;
+	}
 
 	// Prep request
+	if (!this.headers || !this.headers.url) throw "No URL on request";
 	if (typeof this.isVirtual == 'undefined') {
 		// decide on whether this is virtual based on the presence of a .js and hash (outside the query params) or hash-prefix
 		var jshashIndex = this.headers.url.indexOf('.js#');
@@ -272,6 +356,10 @@ Request.prototype.write = function(data) {
 	if (!this.isConnOpen) return this;
 	if (!this.isStarted) this.start();
 	if (this.isEnded) return this;
+	if (this.suspensions > 0) {
+		this.suspendBuffer.push({ method: 'write', arguments: arguments });
+		return this;
+	}
 	this.emit('data', data);
 	return this;
 };
@@ -283,6 +371,10 @@ Request.prototype.end = function(data) {
 	if (!this.isConnOpen) return this;
 	if (this.isEnded) return this;
 	if (!this.isStarted) this.start();
+	if (this.suspensions > 0) {
+		this.suspendBuffer.push({ method: 'end', arguments: arguments });
+		return this;
+	}
 	if (typeof data != 'undefined') {
 		this.write(data);
 	}

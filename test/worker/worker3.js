@@ -6,7 +6,3 @@ web.at('#', function(req, res) {
     }
 });
 
-// web.export(main);
-// function main() {
-// 	return web.NoContent();
-// }

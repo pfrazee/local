@@ -1,16 +1,16 @@
 // == SECTION client
 
-var testRemote = new web.client('http://grimwire.com:8080');
+var testRemote = web.head('http://grimwire.com:8080');
 
 // remote server navigation
 
 done = false;
 startTime = Date.now();
-var fooCollection = testRemote.follow({ rel: 'collection', id: 'foo' });
-fooCollection.get()
+var fooCollection = testRemote.get({ rel: 'collection', id: 'foo' });
+fooCollection
   .then(printSuccess, printErrorAndFinish)
   .succeed(function(res) {
-    fooCollection.follow({ rel: 'item', id: 'baz' }).get().then(printSuccessAndFinish, printErrorAndFinish);
+    fooCollection.get({ rel: 'item', id: 'baz' }).then(printSuccessAndFinish, printErrorAndFinish);
   });
 wait(function () { return done; });
 
@@ -56,13 +56,13 @@ success
 done = false;
 startTime = Date.now();
 testRemote
-  .follow({ rel: 'collection', id: 'foo' })
-  .follow({ rel: 'item', id: 'bar' })
-  .follow({ rel: 'up' })
-  .follow('via')
-  .self()
-  .collection('foo')
-  .get().then(printSuccessAndFinish, printErrorAndFinish);
+  .head({ rel: 'collection', id: 'foo' })
+  .head({ rel: 'item', id: 'bar' })
+  .head({ rel: 'up' })
+  .head({ rel: 'via' })
+  .head({ rel: 'self' })
+  .get({ rel: 'collection', id: 'foo' })
+  .then(printSuccessAndFinish, printErrorAndFinish);
 wait(function () { return done; });
 
 /* =>
@@ -84,18 +84,18 @@ success
 */
 
 
-var testLocal = new web.client('#');
+var testLocal = web.head('#');
 
 // document local server navigation
 
 done = false;
 startTime = Date.now();
-testLocal.follow({ rel: 'collection', id: 'foo' }).get()
+testLocal.head({ rel: 'collection', id: 'foo' }).get()
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
-    testLocal.follow({ rel: 'collection', id: 'foo' })
-      .follow({ rel: 'item', id: 'baz' })
-      .get().then(printSuccessAndFinish, printErrorAndFinish);
+    testLocal.head({ rel: 'collection', id: 'foo' })
+      .get({ rel: 'item', id: 'baz' })
+      .then(printSuccessAndFinish, printErrorAndFinish);
   });
 wait(function () { return done; });
 
@@ -150,12 +150,13 @@ success
 
 done = false;
 startTime = Date.now();
-web.client('http://localhost:8000/test/web/_worker.js#').follow({ rel: 'collection', id: 'foo' }).get()
+web.head('http://localhost:8000/test/web/_worker.js#').get({ rel: 'collection', id: 'foo' })
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
-     web.client('http://localhost:8000/test/web/_worker.js#').follow({ rel: 'collection', id: 'foo'})
-      .follow({ rel: 'item', id: 'bazzzz' })
-      .get().then(printSuccessAndFinish, printErrorAndFinish);
+     web.head('http://localhost:8000/test/web/_worker.js#')
+      .head({ rel: 'collection', id: 'foo'})
+      .get({ rel: 'item', id: 'bazzzz' })
+      .then(printSuccessAndFinish, printErrorAndFinish);
   });
 wait(function () { return done; });
 
@@ -217,372 +218,4 @@ success
   status: 200
 }
 
-*/
-
-// rebase() and unresolve()
-
-var testRebase = new web.client('#');
-var testRebaseCollection = testRebase.follow({ rel: 'collection', id: 'foo' });
-var testRebaseItem = testRebaseCollection.follow({ rel: 'item', id: 'bazzzz' });
-
-done = false;
-startTime = Date.now();
-testRebaseCollection.get()
-  .then(printSuccess, printErrorAndFinish)
-  .then(function() { return testRebaseItem.get(); })
-  .then(printSuccess, printErrorAndFinish)
-  .then(function() {
-    testRebase.rebase('http://localhost:8000/test/web/_worker.js#');
-    testRebaseCollection.unresolve();
-    testRebaseItem.unresolve();
-    return testRebaseCollection.get();
-  })
-  .then(printSuccess, printErrorAndFinish)
-  .then(function() { return testRebaseItem.get(); })
-  .then(printSuccessAndFinish, printErrorAndFinish);
-wait(function () { return done; });
-
-/* =>
-success
-{
-  ContentType: "application/json",
-  Link: [
-    {href: "#", rel: "up via service"},
-    {href: "#foo", rel: "self current"},
-    {href: "#foo/{id}", rel: "item"}
-  ],
-  _buffer: "[\"bar\",\"baz\",\"blah\"]",
-  body: ["bar", "baz", "blah"],
-  links: [
-    {href: "#", rel: "up via service"},
-    {href: "#foo", rel: "self current"},
-    {href: "#foo/{id}", rel: "item"}
-  ],
-  reason: undefined,
-  status: 200
-}
-error
-{_buffer: "", body: "", links: [], reason: undefined, status: 404}
-success
-{
-  ContentType: "application/json",
-  Link: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "up via service"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo", rel: "self current"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/{id}", rel: "item"}
-  ],
-  _buffer: "[\"bar\",\"bazzzz\",\"blah\"]",
-  body: ["bar", "bazzzz", "blah"],
-  links: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "up via service"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo", rel: "self current"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/{id}", rel: "item"}
-  ],
-  reason: undefined,
-  status: 200
-}
-success
-{
-  ContentType: "application/json",
-  Link: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "via service"},
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo",
-      rel: "up collection index"
-    },
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo/bazzzz",
-      rel: "self current"
-    },
-    {href: "http://localhost:8000/test/web/_worker.js#foo/bar", rel: "first"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/blah", rel: "last"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/bar", rel: "prev"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/blah", rel: "next"}
-  ],
-  _buffer: "\"bazzzz\"",
-  body: "bazzzz",
-  links: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "via service"},
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo",
-      rel: "up collection index"
-    },
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo/bazzzz",
-      rel: "self current"
-    },
-    {href: "http://localhost:8000/test/web/_worker.js#foo/bar", rel: "first"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/blah", rel: "last"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/bar", rel: "prev"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/blah", rel: "next"}
-  ],
-  reason: undefined,
-  status: 200
-}
-*/
-
-
-// array of queries navigation
-
-done = false;
-startTime = Date.now();
-web.client([
-  '#',
-  { rel: 'collection', id: 'foo' },
-  { rel: 'item', id: 'baz' }
-]).get()
-  .then(printSuccess, printErrorAndFinish)
-  .then(function(res) {
-    testLocal.follow([
-      { rel: 'collection', id: 'foo'},
-      { rel: 'item', id: 'baz' }
-    ]).get().then(printSuccessAndFinish, printErrorAndFinish);
-  });
-wait(function () { return done; });
-
-/* =>
-success
-{
-  ContentType: "application/json",
-  Link: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
-    {href: "#foo/bar", rel: "first"},
-    {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
-  ],
-  _buffer: "\"baz\"",
-  body: "baz",
-  links: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
-    {href: "#foo/bar", rel: "first"},
-    {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
-  ],
-  reason: undefined,
-  status: 200
-}
-success
-{
-  ContentType: "application/json",
-  Link: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
-    {href: "#foo/bar", rel: "first"},
-    {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
-  ],
-  _buffer: "\"baz\"",
-  body: "baz",
-  links: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
-    {href: "#foo/bar", rel: "first"},
-    {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
-  ],
-  reason: undefined,
-  status: 200
-}
-
-*/
-
-// nav:|| navigation
-
-done = false;
-startTime = Date.now();
-web.client('nav:||#|collection=foo|item=baz').get()
-  .then(printSuccess, printErrorAndFinish)
-  .then(function(res) {
-    testLocal.follow('|collection=foo|item=baz').get().then(printSuccessAndFinish, printErrorAndFinish);
-  });
-wait(function () { return done; });
-
-/* =>
-success
-{
-  ContentType: "application/json",
-  Link: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
-    {href: "#foo/bar", rel: "first"},
-    {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
-  ],
-  _buffer: "\"baz\"",
-  body: "baz",
-  links: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
-    {href: "#foo/bar", rel: "first"},
-    {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
-  ],
-  reason: undefined,
-  status: 200
-}
-success
-{
-  ContentType: "application/json",
-  Link: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
-    {href: "#foo/bar", rel: "first"},
-    {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
-  ],
-  _buffer: "\"baz\"",
-  body: "baz",
-  links: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
-    {href: "#foo/bar", rel: "first"},
-    {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
-  ],
-  reason: undefined,
-  status: 200
-}
-*/
-
-// local streaming
-
-done = false;
-startTime = Date.now();
-testLocal.follow({ rel: 'collection', id: 'foo' }).get()
-  .succeed(printSuccess)
-  .succeed(function(res) {
-    print('---');
-    res.on('data', function(payload) {
-      print(payload);
-      print(typeof payload);
-    });
-    res.on('end', function() {
-      print('end conn');
-    });
-    res.on('close', function() {
-      print('close conn');
-      finishTest();
-    });
-  })
-  .fail(printErrorAndFinish);
-wait(function () { return done; });
-
-/* =>
-success
-{
-  ContentType: "application/json",
-  Link: [
-    {href: "#", rel: "up via service"},
-    {href: "#foo", rel: "self current"},
-    {href: "#foo/{id}", rel: "item"}
-  ],
-  _buffer: "[\"bar\",\"baz\",\"blah\"]",
-  body: ["bar", "baz", "blah"],
-  links: [
-    {href: "#", rel: "up via service"},
-    {href: "#foo", rel: "self current"},
-    {href: "#foo/{id}", rel: "item"}
-  ],
-  reason: undefined,
-  status: 200
-}
----
-[
-string
-"bar"
-string
-,"baz"
-string
-,"blah"
-string
-]
-string
-end conn
-close conn
-*/
-
-// event stream subscribe
-
-done = false;
-startTime = Date.now();
-testLocal.follow({ rel: 'collection', id: 'events' }).subscribe().then(
-  function(stream) {
-    stream.on('message', function(m) { print(m); });
-    stream.on('foo', function(m) { print('foo', m.data); });
-    stream.on('bar', function(m) { print('bar', m.data); });
-    stream.on('close', function(e) {
-      print('close');
-      console.log(Date.now() - startTime, 'ms');
-      done = true;
-    });
-  }, printErrorAndFinish);
-wait(function () { return done; });
-
-/* =>
-{data: {c: 1}, event: "foo"}
-{data: {c: 2}, event: "foo"}
-{data: {c: 3}, event: "bar"}
-foo {c: 1}
-foo {c: 2}
-bar {c: 3}
-{data: {c: 4}, event: "foo"}
-foo {c: 4}
-{data: {c: 5}, event: "foo"}
-foo {c: 5}
-close
-*/
-
-// dispatch to a client
-
-done = false;
-startTime = Date.now();
-web.get(web.client('#').collection('foo').item('baz'))
-  .then(printSuccessAndFinish, printErrorAndFinish);
-wait(function () { return done; });
-
-/* =>
-success
-{
-  ContentType: "application/json",
-  Link: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
-    {href: "#foo/bar", rel: "first"},
-    {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
-  ],
-  _buffer: "\"baz\"",
-  body: "baz",
-  links: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
-    {href: "#foo/bar", rel: "first"},
-    {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
-  ],
-  reason: undefined,
-  status: 200
-}
 */
