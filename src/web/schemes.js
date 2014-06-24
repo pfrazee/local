@@ -236,6 +236,6 @@ schemes.register('data', function(oreq, ires) {
 	// respond
 	var ores = new Response();
 	ores.wireUp(ires);
-	ores.status(200, 'OK').ContentType(contentType);
+	ores.status(200, 'OK').contentType(contentType);
 	ores.end(data);
 });

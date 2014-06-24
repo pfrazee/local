@@ -21,8 +21,6 @@ util.mixin.call(module.exports, require('./request-event.js'));
 util.mixin.call(module.exports, require('./web/helpers.js'));
 util.mixin.call(module.exports, require('./web/links.js'));
 util.mixin.call(module.exports, require('./web/httpl.js'));
-util.mixin.call(module.exports, require('./web/response-templates.js'));
-util.mixin.call(module.exports, require('./web/handler-function.js'));
 util.mixin.call(module.exports, require('./web/workers.js'));
 util.mixin.call(module.exports, require('./web/subscribe.js'));
 util.mixin.call(module.exports, require('./web/client.js'));
@@ -36,20 +34,18 @@ function dispatch(headers) {
 function makeRequestSugar(method) {
 	return function(url, params) {
         if (url instanceof module.exports.Client) {
-            return url[method]();
+            return url[method.toLowerCase()]();
         }
 		return dispatch({ method: method, url: url, params: params });
 	};
 }
 module.exports.dispatch =  dispatch;
-module.exports.HEAD =      makeRequestSugar('HEAD');
-module.exports.GET =       makeRequestSugar('GET');
-module.exports.POST =      makeRequestSugar('POST');
-module.exports.PUT =       makeRequestSugar('PUT');
-module.exports.PATCH =     makeRequestSugar('PATCH');
-module.exports.DELETE =    makeRequestSugar('DELETE');
-module.exports.SUBSCRIBE = makeRequestSugar('SUBSCRIBE');
-module.exports.NOTIFY =    makeRequestSugar('NOTIFY');
+module.exports.head =      makeRequestSugar('HEAD');
+module.exports.get =       makeRequestSugar('GET');
+module.exports.post =      makeRequestSugar('POST');
+module.exports.put =       makeRequestSugar('PUT');
+module.exports.patch =     makeRequestSugar('PATCH');
+module.exports.delete =    makeRequestSugar('DELETE');
 
 // Create globals
 var global, web = module.exports;

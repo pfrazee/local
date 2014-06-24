@@ -13,12 +13,12 @@ var contentTypes = require('./content-types.js');
 // - `request`: request object, formed as in `dispatch()`
 // - returns a `EventStream` object
 function subscribe(request) {
-    if (!(request instanceof Request)) {
-        request = new Request(request);
-    }
+	if (!(request instanceof Request)) {
+		request = new Request(request);
+	}
 	if (!request.headers.method) request.headers.method = 'SUBSCRIBE';
-    if (!request.headers.Accept) request.Accept('events');
-    request.bufferResponse(false);
+	if (!request.headers.Accept) request.accept('events');
+	request.bufferResponse(false);
 
 	return new EventStream(request);
 }
@@ -35,51 +35,51 @@ function EventStream(stream) {
 	this.lastEventId = -1;
 	this.isConnOpen = true;
 
-    if (this.request) {
-        this.thenConnect(this.request);
-        if (!this.request.isStarted) { this.request.end(); }
-    } else if (this.response) {
-        this.connect(this.response);
-    }
+	if (this.request) {
+		this.thenConnect(this.request);
+		if (!this.request.isStarted) { this.request.end(); }
+	} else if (this.response) {
+		this.connect(this.response);
+	}
 }
 EventStream.prototype = Object.create(util.EventEmitter.prototype);
 EventStream.prototype.getUrl = function() { return (this.request) ? this.request.headers.url : null; };
 EventStream.prototype.thenConnect = function(request) {
-    var this2 = this;
-    return request.then(this.connect.bind(this), function(res) {
-        this2.response = res;
+	var this2 = this;
+	return request.then(this.connect.bind(this), function(res) {
+		this2.response = res;
 		emitError.call(this2, { event: 'error', data: res });
 		this2.close();
 		throw response;
-    });
+	});
 };
 EventStream.prototype.connect = function(response) {
 	var this2 = this;
 	var buffer = '', eventDelimIndex;
-    this2.response = response;
+	this2.response = response;
 	this2.isConnOpen = true;
-    this.memoEventsTillNextTick(); // give our listeners time to connect
+	this.memoEventsTillNextTick(); // give our listeners time to connect
 	response.on('data', function(payload) {
-        if (typeof payload == 'string') {
-		    // Add any data we've buffered from past events
-		    payload = buffer + payload;
-		    // Step through each event, as its been given
-		    while ((eventDelimIndex = payload.indexOf('\r\n\r\n')) !== -1) {
-			    var event = payload.slice(0, eventDelimIndex);
-			    emitEvent.call(this2, event);
-			    payload = payload.slice(eventDelimIndex+4);
-		    }
-		    // Hold onto any lefovers
-		    buffer = payload;
-        } else if (payload && typeof payload == 'object') {
-            if (Array.isArray(payload)) {
-                payload.forEach(emitEvent.bind(this2));
-            } else {
-                emitEvent.call(this2, payload);
-            }
-        }
+		if (typeof payload == 'string') {
+			// Add any data we've buffered from past events
+			payload = buffer + payload;
+			// Step through each event, as its been given
+			while ((eventDelimIndex = payload.indexOf('\r\n\r\n')) !== -1) {
+				var event = payload.slice(0, eventDelimIndex);
+				emitEvent.call(this2, event);
+				payload = payload.slice(eventDelimIndex+4);
+			}
+			// Hold onto any lefovers
+			buffer = payload;
+		} else if (payload && typeof payload == 'object') {
+			if (Array.isArray(payload)) {
+				payload.forEach(emitEvent.bind(this2));
+			} else {
+				emitEvent.call(this2, payload);
+			}
+		}
 		// Clear the response' buffer
-  		response._buffer = '';
+		response._buffer = '';
 	});
 	response.on('end', function() { this2.close(); });
 	response.on('close', function() { if (this2.isConnOpen) { this2.reconnect(); } });
@@ -91,7 +91,7 @@ EventStream.prototype.reconnect = function() {
 	// Shut down anything old
 	if (this.isConnOpen) {
 		this.isConnOpen = false;
-        if (this.request) this.request.close();
+		if (this.request) this.request.close();
 	}
 
 	// Hold off if the app is tearing down (Firefox will succeed in the request and then hold onto the stream)
@@ -99,21 +99,21 @@ EventStream.prototype.reconnect = function() {
 		return;
 	}
 
-    if (!this.request) {
+	if (!this.request) {
 		emitError.call(this2, { event: 'error', data: 'Unable to reconnect - no request supplied' });
-        return;
-    }
+		return;
+	}
 
 	// Re-establish the connection
 	this.request = new Request(this.request.headers);
-    if (this.lastEventId) this.request.header('LastEventID', this.lastEventId);
+	if (this.lastEventId) this.request.header('LastEventID', this.lastEventId);
 	this.thenConnect(this.request);
 	this.request.end();
 };
 EventStream.prototype.close = function() {
 	if (this.isConnOpen) {
 		this.isConnOpen = false;
-        if (this.request) this.request.close();
+		if (this.request) this.request.close();
 		this.emit('close');
 	}
 };

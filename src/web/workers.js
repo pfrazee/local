@@ -152,14 +152,14 @@ WorkerWrapper.prototype.load = function(urld) {
 
 	// Try to fetch the script
 	var req = new Request({ method: 'GET', url: full_url });
-	req.Accept('application/javascript, text/javascript, text/plain, */*').end()
+	req.accept('application/javascript, text/javascript, text/plain, */*').end()
 		.fail(function(res) {
 			if (!urld.protocol && res.status === 0) {
 				// Domain error? Try again without ssl
 				full_url = 'http://'+url;
 				_domainSchemes[urld.authority] = 'http://'; // we know it isn't https at least
 				var req = new Request({ method: 'GET', url: full_url });
-				return req.Accept('application/javascript, text/javascript, text/plain, */*').end();
+				return req.accept('application/javascript, text/javascript, text/plain, */*').end();
 			}
 			throw res;
 		})

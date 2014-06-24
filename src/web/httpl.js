@@ -60,7 +60,7 @@ schemes.register('#', function (oreq, ires) {
 			// Use the page
 			handler = self.pageBridge.onRequest.bind(self.pageBridge);
 
-			// Use the special #pubweb_proxy handler for non-local requests
+			// Use the special #pubweb-proxy handler for non-local requests
 			if (isNonLocal) {
 				// build new combined query params
 				var queryParams = contentTypes.serialize('application/x-www-form-urlencoded', oreq.headers.params);
@@ -68,7 +68,7 @@ schemes.register('#', function (oreq, ires) {
 				queryParams += oreq.urld.query;
 
 				// prep new request
-				oreq.headers.path = '#pubweb_proxy';
+				oreq.headers.path = '#pubweb-proxy';
 				oreq.headers.params = {
 					url: ((oreq.urld.protocol) ? oreq.urld.protocol + '://' : '') +
 						(oreq.urld.authority||'') +

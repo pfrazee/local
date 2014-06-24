@@ -340,14 +340,12 @@ function makeDispSugar(method) {
 		return this.dispatch({ method: method, params: params });
 	};
 }
-Client.prototype.HEAD      = makeDispSugar('HEAD');
-Client.prototype.GET       = makeDispSugar('GET');
-Client.prototype.DELETE    = makeDispSugar('DELETE');
-Client.prototype.POST      = makeDispSugar('POST');
-Client.prototype.PUT       = makeDispSugar('PUT');
-Client.prototype.PATCH     = makeDispSugar('PATCH');
-Client.prototype.SUBSCRIBE = makeDispSugar('SUBSCRIBE');
-Client.prototype.NOTIFY    = makeDispSugar('NOTIFY');
+Client.prototype.head      = makeDispSugar('HEAD');
+Client.prototype.get       = makeDispSugar('GET');
+Client.prototype.delete    = makeDispSugar('DELETE');
+Client.prototype.post      = makeDispSugar('POST');
+Client.prototype.put       = makeDispSugar('PUT');
+Client.prototype.patch     = makeDispSugar('PATCH');
 
 // Follow sugars
 function makeFollowSugar(rel) {

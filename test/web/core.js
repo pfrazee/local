@@ -4,8 +4,8 @@
 
 done = false;
 startTime = Date.now();
-web.GET('http://grimwire.com:8080')
-  .Accept('json')
+web.get('http://grimwire.com:8080')
+  .accept('json')
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -32,7 +32,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.GET('http://grimwire.com:8080/bad/url').then(printSuccess, printError).always(finishTest);
+web.get('http://grimwire.com:8080/bad/url').then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -51,7 +51,7 @@ error
 
 done = false;
 startTime = Date.now();
-var request = web.GET('http://grimwire.com:8080').Accept('json').start();
+var request = web.get('http://grimwire.com:8080').accept('json').start();
 request.then(printSuccess, printError).always(finishTest);
 request.close();
 wait(function () { return done; });
@@ -66,7 +66,7 @@ error
 
 done = false;
 startTime = Date.now();
-web.GET('#').then(printSuccess, printError).always(finishTest);
+web.get('#').then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -76,22 +76,24 @@ success
   Link: [
     {
       href: "#",
-      rel: "self http://layer1.io/rel/test layer1.io/rel/test layer1.io"
+      rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
     },
     {href: "#events", id: "events", rel: "collection"},
-    {href: "#foo", id: "foo", rel: "collection"}
+    {href: "#foo", id: "foo", rel: "collection"},
+    {href: "#{id}", rel: "collection"}
   ],
   _buffer: "service resource",
   body: "service resource",
   links: [
     {
       href: "#",
-      rel: "self http://layer1.io/rel/test layer1.io/rel/test layer1.io"
+      rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
     },
     {href: "#events", id: "events", rel: "collection"},
-    {href: "#foo", id: "foo", rel: "collection"}
+    {href: "#foo", id: "foo", rel: "collection"},
+    {href: "#{id}", rel: "collection"}
   ],
-  reason: "Ok",
+  reason: undefined,
   status: 200
 }
 */
@@ -100,15 +102,15 @@ success
 
 done = false;
 startTime = Date.now();
-web.GET('#').end().always(finishTest);
+web.get('#').end().always(finishTest);
 wait(function () { return done; });
 done = false;
 startTime = Date.now();
-web.GET('#').end().always(finishTest);
+web.get('#').end().always(finishTest);
 wait(function () { return done; });
 done = false;
 startTime = Date.now();
-web.GET('#').bufferResponse(false).end().always(finishTest);
+web.get('#').bufferResponse(false).end().always(finishTest);
 wait(function () { return done; });
 print('done');
 // => done
@@ -117,7 +119,7 @@ print('done');
 
 done = false;
 startTime = Date.now();
-web.GET('#')
+web.get('#')
   .bufferResponse(false)
   .then(function(res) {
     print('success');
@@ -135,7 +137,7 @@ service resource
 
 done = false;
 startTime = Date.now();
-web.GET('#bad/url').then(printSuccess, printError).always(finishTest);
+web.get('#bad/url').then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -147,8 +149,8 @@ error
 
 done = false;
 startTime = Date.now();
-web.POST('#foo')
-  .ContentType('plain')
+web.post('#foo')
+  .contentType('plain')
   .end('echo this, please')
   .then(printSuccess, printError)
   .always(finishTest);
@@ -158,24 +160,9 @@ wait(function () { return done; });
 success
 {
   ContentType: "text/plain",
-  Link: [
-    {href: "#foo", id: "foo", rel: "self collection"},
-    {
-      href: "#",
-      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
-    },
-    {href: "#foo/{id}", rel: "item", templated: true}
-  ],
   _buffer: "echo this, please",
   body: "echo this, please",
-  links: [
-    {href: "#foo", id: "foo", rel: "self collection"},
-    {
-      href: "#",
-      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
-    },
-    {href: "#foo/{id}", rel: "item", templated: true}
-  ],
+  links: [],
   reason: undefined,
   status: 200
 }
@@ -206,7 +193,7 @@ echo this,
 
 done = false;
 startTime = Date.now();
-web.GET('#headers_echo')
+web.get('#headers-echo')
   .header('content-type', 'ContentType')
   .header('fooBar', 'FooBar')
   .header('Asdf-fdsa', 'AsdfFdsa')
@@ -234,9 +221,9 @@ success
 
 done = false;
 startTime = Date.now();
-web.POST('#mimetype_aliases_echo')
-  .Accept('html')
-  .ContentType('csv')
+web.post('#mimetype-aliases-echo')
+  .accept('html')
+  .contentType('csv')
   .end('foo,bar')
   .then(printSuccess, printError)
   .always(finishTest);
@@ -245,13 +232,11 @@ wait(function () { return done; });
 /* =>
 success
 {
-  Accept: "text/csv",
   ContentType: "text/html",
   _buffer: "<strong>foo,bar</strong>",
-  accept: [{full: "text/csv", params: {}, q: 1, subtype: "csv", type: "text"}],
   body: "<strong>foo,bar</strong>",
   links: [],
-  reason: "Ok",
+  reason: undefined,
   status: 200
 }
 */
@@ -260,15 +245,15 @@ success
 
 done = false;
 startTime = Date.now();
-web.POST('#mimetype_aliases_echo')
-  .Accept('json')
-  .ContentType('csv')
+web.post('#mimetype-aliases-echo')
+  .accept('json')
+  .contentType('csv')
   .end('foo,bar')
   .then(printSuccess, printError)
   .always(function() {
-    return web.POST('#mimetype_aliases_echo')
-      .Accept('html')
-      .ContentType('text/plain');
+    return web.post('#mimetype-aliases-echo')
+      .accept('html')
+      .contentType('text/plain');
   })
   .then(printSuccess, printError)
   .always(finishTest);
@@ -276,25 +261,13 @@ wait(function () { return done; });
 
 /* =>
 error
-{
-  Accept: "text/csv",
-  ContentType: "text/html",
-  _buffer: "",
-  accept: [{full: "text/csv", params: {}, q: 1, subtype: "csv", type: "text"}],
-  body: "",
-  links: [],
-  reason: "Not Acceptable",
-  status: 406
-}
+{_buffer: "", body: "", links: [], reason: "can only provide html", status: 406}
 error
 {
-  Accept: "text/csv",
-  ContentType: "text/html",
   _buffer: "",
-  accept: [{full: "text/csv", params: {}, q: 1, subtype: "csv", type: "text"}],
   body: "",
   links: [],
-  reason: "Unsupported Media Type",
+  reason: "only understands text/csv",
   status: 415
 }
 */
@@ -303,13 +276,13 @@ error
 
 done = false;
 startTime = Date.now();
-web.POST('#parse_body')
-  .ContentType('json')
+web.post('#parse-body')
+  .contentType('json')
   .end(JSON.stringify({foo:"bar"}))
   .then(printSuccess, printError)
   .always(function() {
-    return web.POST('#parse_body')
-      .ContentType('urlencoded')
+    return web.post('#parse-body')
+      .contentType('urlencoded')
       .end('foo2=bar2');
   })
   .then(printSuccess, printError)
@@ -322,7 +295,7 @@ success
   _buffer: {foo: "bar"},
   body: {foo: "bar"},
   links: [],
-  reason: "Ok",
+  reason: undefined,
   status: 200
 }
 success
@@ -330,17 +303,16 @@ success
   _buffer: {foo2: "bar2"},
   body: {foo2: "bar2"},
   links: [],
-  reason: "Ok",
+  reason: undefined,
   status: 200
 }
-
 */
 
 // virtual query parameters
 
 done = false;
 startTime = Date.now();
-web.GET('#query_params', { thunder: 'flash' })
+web.get('#query-params', { thunder: 'flash' })
   .param('yeah', 'buddy')
   .param({ itsa: 'me', number: 5 })
   .then(printSuccess, printError)
@@ -354,7 +326,7 @@ success
   _buffer: {itsa: "me", number: 5, thunder: "flash", yeah: "buddy"},
   body: {itsa: "me", number: 5, thunder: "flash", yeah: "buddy"},
   links: [],
-  reason: "Ok",
+  reason: undefined,
   status: 200
 }
 */
@@ -363,10 +335,10 @@ success
 
 done = false;
 startTime = Date.now();
-web.GET('#pipe', { src: '#' })
+web.get('#pipe', { src: '#' })
   .then(printSuccess, printError)
   .always(function() {
-    return web.POST('#pipe')
+    return web.post('#pipe')
       .end('and also pipe this');
   })
   .then(printSuccess, printError)
@@ -379,22 +351,24 @@ success
   Link: [
     {
       href: "#",
-      rel: "self http://layer1.io/rel/test layer1.io/rel/test layer1.io"
+      rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
     },
     {href: "#events", id: "events", rel: "collection"},
-    {href: "#foo", id: "foo", rel: "collection"}
+    {href: "#foo", id: "foo", rel: "collection"},
+    {href: "#{id}", rel: "collection"}
   ],
   _buffer: "SERVICE RESOURCE",
   body: "SERVICE RESOURCE",
   links: [
     {
       href: "#",
-      rel: "self http://layer1.io/rel/test layer1.io/rel/test layer1.io"
+      rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
     },
     {href: "#events", id: "events", rel: "collection"},
-    {href: "#foo", id: "foo", rel: "collection"}
+    {href: "#foo", id: "foo", rel: "collection"},
+    {href: "#{id}", rel: "collection"}
   ],
-  reason: "Ok",
+  reason: undefined,
   status: 200
 }
 success
@@ -402,7 +376,7 @@ success
   _buffer: "AND ALSO PIPE THIS",
   body: "AND ALSO PIPE THIS",
   links: [],
-  reason: "Ok",
+  reason: undefined,
   status: 200
 }
 */
@@ -411,20 +385,19 @@ success
 
 done = false;
 startTime = Date.now();
-web.GET('#pipe', { src: '#' })
-  .pipe(web.POST('#pipe', { toLower: true }))
+web.get('#pipe', { src: '#' })
+  .pipe(web.post('#pipe', { toLower: true }))
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
 /* =>
-
 success
 {
   ContentType: "text/piped+plain",
   _buffer: "service resource",
   body: "service resource",
   links: [],
-  reason: "Ok",
+  reason: undefined,
   status: 200
 }
 */
@@ -433,8 +406,8 @@ success
 
 done = false;
 startTime = Date.now();
-web.GET('#not_gonna_find_anything_here')
-  .pipe(web.POST('#pipe'))
+web.get('#not_gonna_find_anything_here')
+  .pipe(web.post('#pipe'))
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -447,7 +420,7 @@ error
 
 done = false;
 startTime = Date.now();
-web.GET('#timeout')
+web.get('#timeout')
   .setTimeout(1000)
   .then(printSuccess, printError)
   .always(finishTest);
@@ -462,7 +435,7 @@ error
 
 done = false;
 startTime = Date.now();
-web.GET('#req_links')
+web.get('#req-links')
   .link('http://foo.com/bar', { rel: 'item', title: 'An Item' })
   .then(printSuccess, printError)
   .always(finishTest);
@@ -475,7 +448,7 @@ success
   _buffer: {href: "http://foo.com/bar", rel: "item", title: "An Item"},
   body: {href: "http://foo.com/bar", rel: "item", title: "An Item"},
   links: [],
-  reason: "Ok",
+  reason: undefined,
   status: 200
 }
 */
@@ -486,7 +459,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.GET('dev.grimwire.com/test/web/_worker.js#')
+web.get('http://localhost:8000/test/web/_worker.js#')
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -496,40 +469,36 @@ success
 {
   ContentType: "text/plain",
   Link: [
+    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
     {
-      href: "dev.grimwire.com/test/web/_worker.js#",
-      rel: "self http://layer1.io/rel/test layer1.io/rel/test layer1.io"
-    },
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#events",
+      href: "http://localhost:8000/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "dev.grimwire.com/test/web/_worker.js#foo",
+      href: "http://localhost:8000/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
-    }
+    },
+    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
   ],
   _buffer: "service resource",
   body: "service resource",
   links: [
+    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
     {
-      href: "dev.grimwire.com/test/web/_worker.js#",
-      rel: "self http://layer1.io/rel/test layer1.io/rel/test layer1.io"
-    },
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#events",
+      href: "http://localhost:8000/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "dev.grimwire.com/test/web/_worker.js#foo",
+      href: "http://localhost:8000/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
-    }
+    },
+    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
   ],
-  reason: "Ok",
+  reason: undefined,
   status: 200
 }
 */
@@ -538,15 +507,15 @@ success
 
 done = false;
 startTime = Date.now();
-web.GET('dev.grimwire.com/test/web/_worker.js#').end().always(finishTest);
+web.get('http://localhost:8000/test/web/_worker.js#').end().always(finishTest);
 wait(function () { return done; });
 done = false;
 startTime = Date.now();
-web.GET('dev.grimwire.com/test/web/_worker.js#').end().always(finishTest);
+web.get('http://localhost:8000/test/web/_worker.js#').end().always(finishTest);
 wait(function () { return done; });
 done = false;
 startTime = Date.now();
-web.GET('dev.grimwire.com/test/web/_worker.js#').bufferResponse(false).end().always(finishTest);
+web.get('http://localhost:8000/test/web/_worker.js#').bufferResponse(false).end().always(finishTest);
 wait(function () { return done; });
 print('done');
 // => done
@@ -555,7 +524,7 @@ print('done');
 
 done = false;
 startTime = Date.now();
-web.GET('dev.grimwire.com/test/web/_worker.js#')
+web.get('http://localhost:8000/test/web/_worker.js#')
   .setVirtual(false)
   .then(function(res) { print('success'); print(res.status); print(res.ContentType); }, printError)
   .always(finishTest);
@@ -564,14 +533,14 @@ wait(function () { return done; });
 /* =>
 success
 200
-application/javascript
+application/x-javascript
 */
 
 // set-virtual
 
 done = false;
 startTime = Date.now();
-web.GET('dev.grimwire.com/test/web/_worker.js')
+web.get('http://localhost:8000/test/web/_worker.js')
   .setVirtual()
   .then(printSuccess, printError)
   .always(finishTest);
@@ -582,49 +551,46 @@ success
 {
   ContentType: "text/plain",
   Link: [
+    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
     {
-      href: "dev.grimwire.com/test/web/_worker.js#",
-      rel: "self http://layer1.io/rel/test layer1.io/rel/test layer1.io"
-    },
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#events",
+      href: "http://localhost:8000/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "dev.grimwire.com/test/web/_worker.js#foo",
+      href: "http://localhost:8000/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
-    }
+    },
+    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
   ],
   _buffer: "service resource",
   body: "service resource",
   links: [
+    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
     {
-      href: "dev.grimwire.com/test/web/_worker.js#",
-      rel: "self http://layer1.io/rel/test layer1.io/rel/test layer1.io"
-    },
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#events",
+      href: "http://localhost:8000/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "dev.grimwire.com/test/web/_worker.js#foo",
+      href: "http://localhost:8000/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
-    }
+    },
+    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
   ],
-  reason: "Ok",
+  reason: undefined,
   status: 200
 }
+
 */
 
 // unsuccessful virtual requests
 
 done = false;
 startTime = Date.now();
-web.GET('dev.grimwire.com/test/web/_worker.js#/bad/url')
+web.get('http://localhost:8000/test/web/_worker.js#/bad/url')
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -638,8 +604,8 @@ error
 
 done = false;
 startTime = Date.now();
-web.POST('dev.grimwire.com/test/web/_worker.js#foo')
-  .ContentType('plain')
+web.post('http://localhost:8000/test/web/_worker.js#foo')
+  .contentType('plain')
   .end('echo this, please')
   .then(printSuccess, printError)
   .always(finishTest);
@@ -650,38 +616,16 @@ success
 {
   ContentType: "text/plain",
   Link: [
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#foo",
-      id: "foo",
-      rel: "self collection"
-    },
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#",
-      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
-    },
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#foo/{id}",
-      rel: "item",
-      templated: true
-    }
+    {href: "http://localhost:8000/test/web/_worker.js#", rel: "up via service"},
+    {href: "http://localhost:8000/test/web/_worker.js#foo", rel: "self current"},
+    {href: "http://localhost:8000/test/web/_worker.js#foo/{id}", rel: "item"}
   ],
   _buffer: "echo this, please",
   body: "echo this, please",
   links: [
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#foo",
-      id: "foo",
-      rel: "self collection"
-    },
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#",
-      rel: "up http://layer1.io/rel/test layer1.io/rel/test layer1.io"
-    },
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#foo/{id}",
-      rel: "item",
-      templated: true
-    }
+    {href: "http://localhost:8000/test/web/_worker.js#", rel: "up via service"},
+    {href: "http://localhost:8000/test/web/_worker.js#foo", rel: "self current"},
+    {href: "http://localhost:8000/test/web/_worker.js#foo/{id}", rel: "item"}
   ],
   reason: undefined,
   status: 200
@@ -692,7 +636,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.GET('dev.grimwire.com/test/web/_worker.js#', { foo: 'bar' })
+web.get('http://localhost:8000/test/web/_worker.js#', { foo: 'bar' })
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -702,40 +646,36 @@ success
 {
   ContentType: "text/plain",
   Link: [
+    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
     {
-      href: "dev.grimwire.com/test/web/_worker.js#",
-      rel: "self http://layer1.io/rel/test layer1.io/rel/test layer1.io"
-    },
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#events",
+      href: "http://localhost:8000/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "dev.grimwire.com/test/web/_worker.js#foo",
+      href: "http://localhost:8000/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
-    }
+    },
+    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
   ],
   _buffer: "service resource {\"foo\":\"bar\"}",
   body: "service resource {\"foo\":\"bar\"}",
   links: [
+    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
     {
-      href: "dev.grimwire.com/test/web/_worker.js#",
-      rel: "self http://layer1.io/rel/test layer1.io/rel/test layer1.io"
-    },
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#events",
+      href: "http://localhost:8000/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "dev.grimwire.com/test/web/_worker.js#foo",
+      href: "http://localhost:8000/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
-    }
+    },
+    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
   ],
-  reason: "Ok",
+  reason: undefined,
   status: 200
 }
 */
@@ -744,7 +684,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.GET('dev.grimwire.com/test/web/_worker.js#?foo=bar')
+web.get('http://localhost:8000/test/web/_worker.js#?foo=bar')
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -754,40 +694,36 @@ success
 {
   ContentType: "text/plain",
   Link: [
+    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
     {
-      href: "dev.grimwire.com/test/web/_worker.js#",
-      rel: "self http://layer1.io/rel/test layer1.io/rel/test layer1.io"
-    },
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#events",
+      href: "http://localhost:8000/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "dev.grimwire.com/test/web/_worker.js#foo",
+      href: "http://localhost:8000/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
-    }
+    },
+    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
   ],
   _buffer: "service resource {\"foo\":\"bar\"}",
   body: "service resource {\"foo\":\"bar\"}",
   links: [
+    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
     {
-      href: "dev.grimwire.com/test/web/_worker.js#",
-      rel: "self http://layer1.io/rel/test layer1.io/rel/test layer1.io"
-    },
-    {
-      href: "dev.grimwire.com/test/web/_worker.js#events",
+      href: "http://localhost:8000/test/web/_worker.js#events",
       id: "events",
       rel: "collection"
     },
     {
-      href: "dev.grimwire.com/test/web/_worker.js#foo",
+      href: "http://localhost:8000/test/web/_worker.js#foo",
       id: "foo",
       rel: "collection"
-    }
+    },
+    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
   ],
-  reason: "Ok",
+  reason: undefined,
   status: 200
 }
 */
@@ -798,7 +734,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.GET('data:text/html;charset=utf-8,%3Ch1%3EHello%20World%21%3C%2Fh1%3E')
+web.get('data:text/html;charset=utf-8,%3Ch1%3EHello%20World%21%3C%2Fh1%3E')
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -819,7 +755,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.GET('data:text/html;charset=utf-8;base64,PGgxPkhlbGxvIFdvcmxkITwvaDE+')
+web.get('data:text/html;charset=utf-8;base64,PGgxPkhlbGxvIFdvcmxkITwvaDE+')
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -840,7 +776,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.GET('data:text/html;charset=utf-8,')
+web.get('data:text/html;charset=utf-8,')
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -861,7 +797,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.GET('data:text/html;charset=utf-8;base64,')
+web.get('data:text/html;charset=utf-8;base64,')
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });

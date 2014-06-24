@@ -53,14 +53,27 @@ Request.prototype.header = function(k, v) {
 };
 
 // Header sugars
-[ 'Accept', 'Authorization', 'ContentType', 'Expect', 'From', 'Link', 'Pragma' ].forEach(function(k) {
+[ 'accept', 'authorization', 'contentType', 'expect', 'from', 'pragma' ].forEach(function(k) {
 	Request.prototype[k] = function(v) {
 		return this.header(k, v);
 	};
 });
 
+// Content-type sugars
+[ 'json', 'text', 'html', 'csv' ].forEach(function(k) {
+    Request.prototype[k] = function (v) {
+        this.contentType(k);
+        this.write(v);
+        return this;
+    };
+    Request.prototype['to'+k] = function (v) {
+        this.accept(k);
+        return this;
+    };
+});
+
 // Link-header construction helper
-// - `href`: string/{.path}, the target of the link
+// - `href`: string, the target of the link
 // - `attrs`: optional object, the attributes of the link
 // - alternatively, can pass a full link object, or an array of link objects
 Request.prototype.link = function(href, attrs) {
@@ -73,7 +86,7 @@ Request.prototype.link = function(href, attrs) {
 		attrs = href;
 	} else {
 		if (!attrs) attrs = {};
-		attrs.href = (href.path) ? href.path : href;
+		attrs.href = href;
 	}
 	this.headers.Link.push(attrs);
 	return this;

@@ -110,7 +110,7 @@ IncomingResponse.prototype.pipe = function(target, headersCB, bodyCb) {
 			return target;
 		}
 		if (!target.headers.ContentType && this.ContentType) {
-			target.ContentType(this.ContentType);
+			target.contentType(this.ContentType);
 		}
 	}
 	if (this.isEnded) {

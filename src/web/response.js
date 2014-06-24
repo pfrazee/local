@@ -30,6 +30,15 @@ Response.prototype.status = function(code, reason) {
 	return this;
 };
 
+// Status sugars
+for (var i=200; i <= 599; i++) {
+	(function(i) {
+		Response.prototype['s'+i] = function(reason) {
+			return this.status(i, reason);
+		};
+	})(i);
+}
+
 // Header setter
 Response.prototype.header = function(k, v) {
 	k = helpers.formatHeaderKey(k);
@@ -42,14 +51,28 @@ Response.prototype.header = function(k, v) {
 };
 
 // Header sugars
-[ 'Accept', 'Allow', 'ContentType', 'Location', 'Pragma' ].forEach(function(k) {
+[ 'accept', 'allow', 'contentType', 'location', 'pragma' ].forEach(function(k) {
 	Response.prototype[k] = function(v) {
 		return this.header(k, v);
 	};
 });
 
+// Content-type sugars
+[ 'json', 'text', 'html', 'csv' ].forEach(function(k) {
+	Response.prototype[k] = function (v) {
+		this.contentType(k);
+		this.write(v);
+		return this;
+	};
+});
+Response.prototype.event = function(event, data) {
+	this.contentType('event-stream');
+	this.write({ event: event, data: data });
+	return this;
+};
+
 // Link-header construction helper
-// - `href`: string/{.path}, the target of the link
+// - `href`: string, the target of the link
 // - `attrs`: optional object, the attributes of the link
 // - alternatively, can pass a full link object, or an array of link objects
 Response.prototype.link = function(href, attrs) {
@@ -62,7 +85,7 @@ Response.prototype.link = function(href, attrs) {
 		attrs = href;
 	} else {
 		if (!attrs) attrs = {};
-		attrs.href = (href.path) ? href.path : href;
+		attrs.href = href;
 	}
 	this.headers.Link.push(attrs);
 	return this;

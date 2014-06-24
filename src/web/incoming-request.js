@@ -95,7 +95,7 @@ IncomingRequest.prototype.pipe = function(target, headersCB, bodyCb) {
 		}
 	} else if (target instanceof require('./response')) {
 		if (!target.headers.ContentType && this.ContentType) {
-			target.ContentType(this.ContentType);
+			target.contentType(this.ContentType);
 		}
 	}
 	if (this.isEnded) {

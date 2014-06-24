@@ -1,78 +1,94 @@
-web.export(main);
-web.export(foo);
-web.export(foo$);
-web.export(events);
-
-main.link(main, { rel: 'http://layer1.io/rel/test layer1.io/rel/test layer1.io' });
-main.link(events, { rel: 'collection', id: 'events' });
-main.link(foo, { rel: 'collection', id: 'foo' });
-foo.link(foo$, { rel: 'item' });
-
-main.ContentType('plain');
-function main(req, res) {
-	return 'service resource' + (((Object.keys(req.params).length > 0)) ? ' '+JSON.stringify(req.params) : '');
-}
-
 var foos = ['bar', 'bazzzz', 'blah'];
-foo.opts({ stream: true, allmethods: true });
-function foo(req, res) {
-	if (req.method == 'POST') {
-		// pipe back
-		req.pipe(res.status(200));
-	} else {
-		// so we can experiment with streaming, write the json in bits:
-		res.ContentType('json');
-		res.status(200, 'Ok');
-		res.write('[');
-		foos.forEach(function(p, i) { res.write((i!==0?',':'')+'"'+p+'"'); });
-		res.write(']');
-		res.end();
-	}
-}
 
-foo$.ContentType('json');
-function foo$(itemName, req, res) {
+web.at('#', function(req, res) {
+	var payload = null, linkHeader;
+	if (req.method === 'GET') {
+		payload = 'service resource';
+	}
+	if (Object.keys(req.params).length > 0) {
+		payload += ' '+JSON.stringify(req.params);
+	}
+	linkHeader = [
+		{ rel:'self current', href:'#' },
+		{ rel:'collection', href:'#events', id:'events' },
+		{ rel:'collection', href:'#foo', id:'foo' },
+		{ rel:'collection', href:'#{id}' }
+	];
+	res.s200().contentType('plain').link(linkHeader).end(payload);
+});
+
+web.at('#foo', function(req, res) {
+	linkHeader = [
+		{ rel:'up via service', href:'#' },
+		{ rel:'self current', href:'#foo' },
+		{ rel:'item', href:'#foo/{id}' }
+	];
+	if (req.method == 'POST') {
+		// Echo back
+		res.link(linkHeader);
+		return req.pipe(res.s200());
+	}
+	var payload = null, linkHeader;
+	if (req.method === 'GET') {
+		payload = foos;
+	}
+	res.s200().contentType('json').link(linkHeader);
+	// so we can experiment with streaming, write the json in bits:
+	if (payload) {
+		res.write('[');
+		payload.forEach(function(p, i) { res.write((i!==0?',':'')+'"'+p+'"'); });
+		res.write(']');
+	}
+	res.end();
+});
+
+web.at('#foo/([A-z]*)$', function(req, res) {
+	var payload = null, linkHeader;
+	var itemName = req.pathd[1];
+
 	var itemIndex = foos.indexOf(itemName);
 	if (itemIndex === -1) {
-		throw web.NotFound();
+		return res.s404().end();
 	}
-
-	res.link([
-		{ href: foo$.atId(foos[0]), rel: 'first' },
-		{ href: foo$.atId(foos[foos.length - 1]), rel: 'last' }
-	]);
+	if (req.method === 'GET') {
+		payload = itemName;
+	}
+	linkHeader = [
+		{ rel:'via service', href:'#' },
+		{ rel:'up collection index', href:'#foo' },
+		{ rel:'self current', href:'#foo/'+itemName },
+		{ rel:'first', href:'#foo/'+foos[0] },
+		{ rel:'last', href:'#foo/'+foos[foos.length - 1] }
+	];
 	if (itemIndex !== 0) {
-		res.link(foo$.atId('#foo/'+foos[itemIndex - 1]), { rel: 'prev' });
+		linkHeader.push({ rel:'prev', href:'#foo/'+foos[itemIndex - 1] });
 	}
 	if (itemIndex !== foos.length - 1) {
-		res.link(foo$.atId('#foo/'+foos[itemIndex + 1]), { rel: 'next' });
+		linkHeader.push({ rel:'next', href:'#foo/'+foos[itemIndex + 1] });
 	}
-	return  '"'+itemName+'"';
-}
+	res.s200().contentType('json').link(linkHeader);
+	res.end('"'+payload+'"');
+});
 
-events.opts({ stream: true });
-events.ContentType('events');
-function events(req, res) {
-	res.status(200);
-	res.write({ event: 'foo', data: { c: 1 }});
-	res.write({ event: 'foo', data: { c: 2 }});
-	res.write({ event: 'bar', data: { c: 3 }});
+web.at('#events', function(req, res) {
+	res.s200().contentType('event-stream');
+	res.write({ event:'foo', data:{ c:1 }});
+	res.write({ event:'foo', data:{ c:2 }});
+	res.write({ event:'bar', data:{ c:3 }});
 	res.write('event: foo\r\n');
 	setTimeout(function() { // break up the event to make sure the client waits for the whole thing
 		res.write('data: { "c": 4 }\r\n\r\n');
 		res.end({ event:'foo', data:{ c:5 }});
 	}, 50);
-}
+});
 
-web.export(pipe);
-pipe.opts({ stream: true });
-function pipe(req, res) {
+web.at('#pipe', function(req, res) {
 	var headerUpdate = function(k, v) {
 		if (k == 'ContentType') { return 'text/piped+plain'; }
 		return v;
 	};
 	var bodyUpdate = function(body) {
-		return (req.params.toLower) ? body.toLowerCase() : body.toUpperCase();
+		return body.toUpperCase();
 	};
-	web.GET('#').pipe(res, headerUpdate, bodyUpdate);
-}
+	res.pipe(web.get('#'), headerUpdate, bodyUpdate);
+});
