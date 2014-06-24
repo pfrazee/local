@@ -35,12 +35,42 @@ function makeRequestSugar(method) {
 		return dispatch({ method: method, url: url, params: params });
 	};
 }
+function makeRequestAcceptSugar(method, type) {
+	return function(url, params) {
+		return dispatch({ method: method, url: url, params: params }).accept(type);
+	};
+}
+function makeRequestBodySugar(method, type) {
+	return function(url, params, body) {
+		if (body === void 0 && params) {
+			body = params;
+			params = undefined;
+		}
+		return dispatch({ method: method, url: url, params: params }).contentType(type).write(body);
+	};
+}
 module.exports.dispatch =  dispatch;
 module.exports.head =      makeRequestSugar('HEAD');
 module.exports.get =       makeRequestSugar('GET');
+module.exports.getText =   makeRequestAcceptSugar('GET', 'text');
+module.exports.getHtml =   makeRequestAcceptSugar('GET', 'html');
+module.exports.getJson =   makeRequestAcceptSugar('GET', 'json');
+module.exports.getCsv =    makeRequestAcceptSugar('GET', 'csv');
 module.exports.post =      makeRequestSugar('POST');
+module.exports.postText =  makeRequestBodySugar('POST', 'text');
+module.exports.postHtml =  makeRequestBodySugar('POST', 'html');
+module.exports.postJson =  makeRequestBodySugar('POST', 'json');
+module.exports.postCsv =   makeRequestBodySugar('POST', 'csv');
 module.exports.put =       makeRequestSugar('PUT');
+module.exports.putText =   makeRequestBodySugar('PUT', 'text');
+module.exports.putHtml =   makeRequestBodySugar('PUT', 'html');
+module.exports.putJson =   makeRequestBodySugar('PUT', 'json');
+module.exports.putCsv =    makeRequestBodySugar('PUT', 'csv');
 module.exports.patch =     makeRequestSugar('PATCH');
+module.exports.patchText = makeRequestBodySugar('PATCH', 'text');
+module.exports.patchHtml = makeRequestBodySugar('PATCH', 'html');
+module.exports.patchJson = makeRequestBodySugar('PATCH', 'json');
+module.exports.patchCsv =  makeRequestBodySugar('PATCH', 'csv');
 module.exports.delete =    makeRequestSugar('DELETE');
 
 // Create globals

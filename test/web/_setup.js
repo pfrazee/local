@@ -85,6 +85,13 @@ web.at('#mimetype-aliases-echo', function(req, res) {
 	});
 });
 
+web.at('#accept-type', function(req, res) {
+	if (web.preferredType(req.Accept, 'json')) {
+		return res.s200().json({ hello: 'yo' }).end();
+	}
+	return res.s200().text('hello yo').end();
+});
+
 // pound-sign optional
 web.at('pound-sign-optional', function(req, res) {
 	res.s204().end();

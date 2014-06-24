@@ -252,12 +252,42 @@ function makeRequestSugar(method) {
 		return this.dispatch({ method: method, params: params });
 	};
 }
-Request.prototype.head =   makeRequestSugar('HEAD');
-Request.prototype.get =    makeRequestSugar('GET');
-Request.prototype.post =   makeRequestSugar('POST');
-Request.prototype.put =    makeRequestSugar('PUT');
-Request.prototype.patch =  makeRequestSugar('PATCH');
-Request.prototype.delete = makeRequestSugar('DELETE');
+function makeRequestAcceptSugar(method, type) {
+	return function(params) {
+		return this.dispatch({ method: method, params: params }).accept(type);
+	};
+}
+function makeRequestBodySugar(method, type) {
+	return function(params, body) {
+		if (body === void 0 && params) {
+			body = params;
+			params = undefined;
+		}
+		return this.dispatch({ method: method, params: params }).contentType(type).write(body);
+	};
+}
+Request.prototype.head =      makeRequestSugar('HEAD');
+Request.prototype.get =       makeRequestSugar('GET');
+Request.prototype.getText =   makeRequestAcceptSugar('GET', 'text');
+Request.prototype.getHtml =   makeRequestAcceptSugar('GET', 'html');
+Request.prototype.getJson =   makeRequestAcceptSugar('GET', 'json');
+Request.prototype.getCsv =    makeRequestAcceptSugar('GET', 'csv');
+Request.prototype.post =      makeRequestSugar('POST');
+Request.prototype.postText =  makeRequestBodySugar('POST', 'text');
+Request.prototype.postHtml =  makeRequestBodySugar('POST', 'html');
+Request.prototype.postJson =  makeRequestBodySugar('POST', 'json');
+Request.prototype.postCsv =   makeRequestBodySugar('POST', 'csv');
+Request.prototype.put =       makeRequestSugar('PUT');
+Request.prototype.putText =   makeRequestBodySugar('PUT', 'text');
+Request.prototype.putHtml =   makeRequestBodySugar('PUT', 'html');
+Request.prototype.putJson =   makeRequestBodySugar('PUT', 'json');
+Request.prototype.putCsv =    makeRequestBodySugar('PUT', 'csv');
+Request.prototype.patch =     makeRequestSugar('PATCH');
+Request.prototype.patchText = makeRequestBodySugar('PATCH', 'text');
+Request.prototype.patchHtml = makeRequestBodySugar('PATCH', 'html');
+Request.prototype.patchJson = makeRequestBodySugar('PATCH', 'json');
+Request.prototype.patchCsv =  makeRequestBodySugar('PATCH', 'csv');
+Request.prototype.delete =    makeRequestSugar('DELETE');
 
 // Pipe helper
 // passes through to its incoming response

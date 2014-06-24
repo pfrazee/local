@@ -217,5 +217,38 @@ success
   reason: undefined,
   status: 200
 }
+*/
 
+// mimetype dispatchers
+
+done = false;
+startTime = Date.now();
+web.head('#').postJson({ rel: 'collection', id: 'foo' }, {foo: 'bar'})
+  .then(printSuccess, printError)
+  .always(function() {
+    return web.head('#').head({ rel: 'collection', id: 'foo' }).postJson({ foo: 'bar' });
+  })
+  .then(printSuccess, printError)
+  .always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  ContentType: "application/json",
+  _buffer: {foo: "bar"},
+  body: {foo: "bar"},
+  links: [],
+  reason: undefined,
+  status: 200
+}
+success
+{
+  ContentType: "application/json",
+  _buffer: {foo: "bar"},
+  body: {foo: "bar"},
+  links: [],
+  reason: undefined,
+  status: 200
+}
 */

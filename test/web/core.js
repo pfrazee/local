@@ -241,6 +241,53 @@ success
 }
 */
 
+// mimetype dispatchers
+
+done = false;
+startTime = Date.now();
+web.postJson('#foo', {}, {foo: 'bar'})
+  .then(printSuccess, printError)
+  .always(function() {
+    return web.postJson('#foo', {foo: 'bar'});
+  })
+  .then(printSuccess, printError)
+  .always(function() {
+    return web.getJson('#accept-type');
+  })
+  .then(printSuccess, printError)
+  .always(finishTest);
+wait(function () { return done; });
+
+/* =>
+success
+{
+  ContentType: "application/json",
+  _buffer: {foo: "bar"},
+  body: {foo: "bar"},
+  links: [],
+  reason: undefined,
+  status: 200
+}
+success
+{
+  ContentType: "application/json",
+  _buffer: {foo: "bar"},
+  body: {foo: "bar"},
+  links: [],
+  reason: undefined,
+  status: 200
+}
+success
+{
+  ContentType: "application/json",
+  _buffer: {hello: "yo"},
+  body: {hello: "yo"},
+  links: [],
+  reason: undefined,
+  status: 200
+}
+*/
+
 // mimetype enforcement
 
 done = false;
