@@ -23,7 +23,7 @@ for (var i = 0; i < 10; i++) {
     responses_.push(web.get('/test/worker/worker2.js#').end());
 }
 
-responses_.always(function(responses) {
+web.promise.bundle(responses_).always(function(responses) {
 	responses.forEach(function(res, i) {
         if (i==0) print(res.links);
 		print(res.status + ' ' + res.body);

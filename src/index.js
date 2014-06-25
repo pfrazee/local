@@ -1,5 +1,6 @@
+// Components
+// ==========
 var util = require('./util');
-
 module.exports = {
 	cfg: require('./config.js'),
 
@@ -24,24 +25,45 @@ util.mixin.call(module.exports, require('./web/httpl.js'));
 util.mixin.call(module.exports, require('./web/workers.js'));
 util.mixin.call(module.exports, require('./web/subscribe.js'));
 
+// Environment
+// ===========
+require('./page-servers');
+
 // Request sugars
+// ==============
 function dispatch(headers) {
 	var req = new module.exports.Request(headers);
 	req.autoEnd();
 	return req;
 }
+function searchDispatch(headers) {
+	return web.head('#localjs/env').dispatch(headers);
+}
 function makeRequestSugar(method) {
 	return function(url, params) {
+		if (url && typeof url == 'object') {
+			params = url;
+			return searchDispatch({ method: method, params: params });
+		}
 		return dispatch({ method: method, url: url, params: params });
 	};
 }
 function makeRequestAcceptSugar(method, type) {
 	return function(url, params) {
+		if (url && typeof url == 'object') {
+			params = url;
+			return searchDispatch({ method: method, params: params }).accept(type);
+		}
 		return dispatch({ method: method, url: url, params: params }).accept(type);
 	};
 }
 function makeRequestBodySugar(method, type) {
 	return function(url, params, body) {
+		if (url && typeof url == 'object') {
+			body = params;
+			params = url;
+			return searchDispatch({ method: method, params: params }).contentType(type).write(body);
+		}
 		if (body === void 0 && params) {
 			body = params;
 			params = undefined;
@@ -74,6 +96,7 @@ module.exports.patchCsv =  makeRequestBodySugar('PATCH', 'csv');
 module.exports.delete =    makeRequestSugar('DELETE');
 
 // Create globals
+// ==============
 var global, web = module.exports;
 if (typeof window != 'undefined') global = window;
 else if (typeof self != 'undefined') global = self;
@@ -81,26 +104,6 @@ if (global) {
 	global.web = web;
 }
 
-// Patch arrays to handle promises
-Object.defineProperty(Array.prototype, 'thenEach', {
-	value: function(a, b) {
-		var callA = function(i, v) { return a(v, i); };
-		var callB = function(i, v) { return b(v, i); };
-		return this.map(function(v, i) {
-			return web.promise(v).then(callA.bind(null, i), callB.bind(null, i));
-		});
-	}
-});
-Object.defineProperty(Array.prototype, 'always', {
-	value: function(a) {
-		return web.promise.bundle(this).always(a);
-	}
-});
-Object.defineProperty(Array.prototype, 'then', {
-	value: function(a, b) {
-		return web.promise.all(this).then(a, b);
-	}
-});
-
-// Run worker setup (does nothing outside of a worker)
+// Worker-only setup
+// =================
 require('./worker');

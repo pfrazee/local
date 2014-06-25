@@ -20,15 +20,21 @@ module.exports.processLinks = function(links, baseUrl) {
 
 			// Add `is` helper
 			if (link.is && typeof link.is != 'function') link._is = link.is;
-			noEnumDesc.value = helpers.queryLink.bind(null, link);
-			Object.defineProperty(link, 'is', noEnumDesc);
+			if (!link.is) {
+				noEnumDesc.value = helpers.queryLink.bind(null, link);
+				Object.defineProperty(link, 'is', noEnumDesc);
+			}
 		});
 
 	// Add helpers
-	noEnumDesc.value = helpers.queryLinks.bind(null, links);
-	Object.defineProperty(links, 'query', noEnumDesc);
-	noEnumDesc.value = function(query) { return this.query(query)[0]; };
-	Object.defineProperty(links, 'get', noEnumDesc);
+	if (!links.query) {
+		noEnumDesc.value = helpers.queryLinks.bind(null, links);
+		Object.defineProperty(links, 'query', noEnumDesc);
+	}
+	if (!links.get) {
+		noEnumDesc.value = function(query) { return this.query(query)[0]; };
+		Object.defineProperty(links, 'get', noEnumDesc);
+	}
 
 	return links;
 };
