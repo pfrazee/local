@@ -77,7 +77,7 @@ if (typeof self != 'undefined' && typeof self.window !== 'undefined') {
 				web.head('#localjs/window.parent'), // highest importance
 				web.head('#localjs/window.opener'),
 				web.head('#localjs/window.location.origin'),
-				web.head('#localjs/document') // lowest importance
+				web.head('#') // lowest importance
 			]).always(function(ress) {
 				// Combine links from all 4 origins, maintaining order
 				return ress[0].links.concat(ress[1].links, ress[2].links, ress[3].links);

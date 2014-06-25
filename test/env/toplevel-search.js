@@ -9,9 +9,10 @@ wait(function () { return done; });
 success
 {
   ContentType: "text/plain",
+  Link: [{href: "#", rel: "self service foo.com/bar", title: "Page Root"}],
   _buffer: "Iframe server",
   body: "Iframe server",
-  links: [],
+  links: [{href: "#", rel: "self service foo.com/bar", title: "Page Root"}],
   reason: undefined,
   status: 200
 }
@@ -28,9 +29,10 @@ wait(function () { return done; });
 success
 {
   ContentType: "text/plain",
+  Link: [{href: "#", rel: "self service foo.com/bar", title: "Page Root"}],
   _buffer: "ECHO PLZ",
   body: "ECHO PLZ",
-  links: [],
+  links: [{href: "#", rel: "self service foo.com/bar", title: "Page Root"}],
   reason: undefined,
   status: 200
 }

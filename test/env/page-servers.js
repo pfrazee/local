@@ -10,15 +10,13 @@ success
 {
   Link: [
     {href: "../doctest/.resources/doc.css", rel: "stylesheet", type: "text/css"},
-    {href: "../doctest/doctest.css", rel: "stylesheet", type: "text/css"},
-    {href: "#", rel: "service foo.com/bar", title: "Page Root"}
+    {href: "../doctest/doctest.css", rel: "stylesheet", type: "text/css"}
   ],
   _buffer: "",
   body: "",
   links: [
     {href: "../doctest/.resources/doc.css", rel: "stylesheet", type: "text/css"},
-    {href: "../doctest/doctest.css", rel: "stylesheet", type: "text/css"},
-    {href: "#", rel: "service foo.com/bar", title: "Page Root"}
+    {href: "../doctest/doctest.css", rel: "stylesheet", type: "text/css"}
   ],
   reason: "Ok, no content",
   status: 204
@@ -94,18 +92,10 @@ wait(function () { return done; });
 /* =>
 success
 {
-  Link: [
-    {href: "../doctest/.resources/doc.css", rel: "stylesheet", type: "text/css"},
-    {href: "../doctest/doctest.css", rel: "stylesheet", type: "text/css"},
-    {href: "#", rel: "service foo.com/bar", title: "Page Root"}
-  ],
+  Link: [{href: "#", rel: "self service foo.com/bar", title: "Page Root"}],
   _buffer: "",
   body: "",
-  links: [
-    {href: "../doctest/.resources/doc.css", rel: "stylesheet", type: "text/css"},
-    {href: "../doctest/doctest.css", rel: "stylesheet", type: "text/css"},
-    {href: "#", rel: "service foo.com/bar", title: "Page Root"}
-  ],
+  links: [{href: "#", rel: "self service foo.com/bar", title: "Page Root"}],
   reason: "Ok, no content",
   status: 204
 }
