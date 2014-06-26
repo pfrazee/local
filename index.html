@@ -73,8 +73,7 @@
 					<img src="assets/icon-network.png">
 					<p><strong>Simple Ajax to services and functions</strong><br><small>Promises-based, with streaming, piping, and automatic body-parsing.</small></p>
 					<pre><code class="language-javascript">// Standard Ajax
-web.get('https://myhost.com', { query: 'params' })
-  .accept('json')
+web.getJson('https://myhost.com', { query: 'params' })
   .then(function(res) {
     res.status; // => 200
     res.reason; // => 'OK'
@@ -89,7 +88,9 @@ web.at('#hi', function(req, res) {
   res.link({ href: '#hi', rel: 'self service foo.com/hello', title: 'Hello Service' });
   res.end('&lt;h1&gt;Hello, '+req.params.who+'&lt;/h1&gt;');
 });
-web.get('#hi', { who: 'World' }).then(...);</code></pre>
+
+// Works just like XHR
+web.getHtml('#hi', { who: 'World' }).then(...);</code></pre>
 				</div>
 				<div class="intro">
 					<img src="assets/icon-download.png">
@@ -97,11 +98,14 @@ web.get('#hi', { who: 'World' }).then(...);</code></pre>
 					<pre><code class="language-javascript">// Workers
 var myWorker = new Worker('/my-worker.js');
 web.at('#my-worker.js', myWorker);
-web.get('#my-worker.js', { who: 'Worker' }).then(...);
 	
 // Frames
 web.at('#parent', window.parent);
 web.at('#my-iframe', document.querySelector('iframe#my-iframe'));
+
+// Emulated HTTP for cross-local
+web.getJson('#my-worker.js').then(...);
+web.postJson('#my-iframe', { some: 'json' }).then(...);
 </code></pre>
 				</div>
 				<div class="intro">
@@ -114,12 +118,17 @@ web.addLinks(window.location.origin); // add links from host
 web.addLinks(document);               // add document links
 
 // Search all links for a foo.com/hello service
-web.get({ rel: 'foo.com/hello', who: 'Consumer' }).then(function(res) {
+web.getHtml({ rel: 'foo.com/hello', who: 'Consumer' }).then(function(res) {
     res.body; // => &lt;h1&gt;Hello, Consumer&lt;/ht&gt;
 });
 	
 // Chain searches across navigations
-web.head({ rel: 'foo.com/crud', id: 'users' }).get({ rel: 'item', id: 'bob' })
+web.head({ rel: 'foo.com/crud', id: 'users' }).getJson({ rel: 'item', id: 'bob' })
+
+// Store navigations as cursors
+var users = web.head({ rel: 'foo.com/crud', id: 'users' });
+users.postJson({ username: 'jim', pass: 'banana' });
+users.head({ rel: 'item', id: 'jim' }).putJson({ pass: 'more-secret-banana' });
 </code></pre>
 				</div>
 			</div>
