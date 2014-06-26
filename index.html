@@ -71,7 +71,7 @@
 			<div class="container">
 				<div class="intro">
 					<img src="assets/icon-network.png">
-					<p><strong>Simple Ajax to services and functions</strong><br><small>Promises-based, with streaming, piping, and automatic body-parsing.</small></p>
+					<p><strong>Simple Ajax to services and functions</strong><br><small>Target JS functions and remote services with the same API.</small></p>
 					<pre><code class="language-javascript">// Simple Ajax with promises
 web.get('https://myhost.com', { who: 'World' }).then(function(res) {
   res.status; // => 200
@@ -86,7 +86,7 @@ web.get('#hi', { who: 'Local' }).then(function(res) {
   res.body; // => { hello: 'Local' }
 });
 
-// Server functions
+// Local server functions
 web.at('#hi', function(req, res) {
   res.link({ href: '#hi', rel: 'self foo.com/hello', title: 'Hello Service' });
   res.status(200, 'OK').json({ hello: req.params.who }).end();
@@ -128,6 +128,7 @@ web.head({ rel: 'foo.com/crud', id: 'users' }).get({ rel: 'item', id: 'bob' })
 
 // Store navigations as cursors
 var users = web.head({ rel: 'foo.com/crud', id: 'users' });
+users.postJson({ username: 'alice', pass: 'super-secret' });
 users.postJson({ username: 'jim', pass: 'banana' });
 </code></pre>
 				</div>
