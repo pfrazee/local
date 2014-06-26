@@ -75,22 +75,19 @@
 					<pre><code class="language-javascript">// Standard Ajax
 web.get('https://myhost.com', { who: 'World' }).then(function(res) {
   res.status; // => 200
-  res.reason; // => 'OK'
   res.ContentType; // => 'application/json'
   res.body; // => { hello: 'World' }
 });
 
 // Emulated HTTP for local requests
 web.at('#hi', function(req, res) {
-  res.status(200, 'OK');
   res.link({ href: '#hi', rel: 'self service foo.com/hello', title: 'Hello Service' });
-  res.json({ hello: req.params.who }).end();
+  res.status(200, 'OK').json({ hello: req.params.who }).end();
 });
 
 // Works just like XHR
 web.get('#hi', { who: 'Local' }).then(function(res) {
   res.status; // => 200
-  res.reason; // => 'OK'
   res.ContentType; // => 'application/json'
   res.body; // => { hello: 'Local' }
 });</code></pre>
@@ -113,12 +110,12 @@ web.postJson('#my-iframe', { some: 'json' }).then(...);
 				</div>
 				<div class="intro">
 					<img src="assets/icon-link.png">
-					<p><strong>Standardize and Simplify with Search</strong><br><small>Link headers and document <code>&lt;link&gt;</code> elements construct URLs for you.</code></small></p>
+					<p><strong>Simplify with Search</strong><br><small>Link headers and document <code>&lt;link&gt;</code> elements construct URLs for you.</code></small></p>
 					<pre><code class="language-javascript">// Build a set of links to search
 web.addLinks('#parent');              // add links from parent frame
 web.addLinks('#my-worker.js');        // add links from worker
 web.addLinks(window.location.origin); // add links from host
-web.addLinks(document);               // add document links
+web.addLinks(document);               // add document &lt;link&gt; elements
 
 // Search all links for a foo.com/hello service
 web.get({ rel: 'foo.com/hello', who: 'Consumer' }).then(function(res) {
