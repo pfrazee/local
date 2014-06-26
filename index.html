@@ -72,21 +72,21 @@
 				<div class="intro">
 					<img src="assets/icon-network.png">
 					<p><strong>Simple Ajax to services and functions</strong><br><small>Target JS functions and remote services with the same API.</small></p>
-					<pre><code class="language-javascript">// Simple Ajax with promises
+					<pre><code class="language-javascript">// This Ajax API:
 web.get('https://myhost.com', { who: 'World' }).then(function(res) {
   res.status; // => 200
   res.ContentType; // => 'application/json'
   res.body; // => { hello: 'World' }
 });
 
-// Emulated HTTP for local requests
+// Works for server functions
 web.get('#hi', { who: 'Local' }).then(function(res) {
   res.status; // => 200
   res.ContentType; // => 'application/json'
   res.body; // => { hello: 'Local' }
 });
 
-// Local server functions
+// Defined like this
 web.at('#hi', function(req, res) {
   res.link({ href: '#hi', rel: 'self foo.com/hello', title: 'Hello Service' });
   res.status(200, 'OK').json({ hello: req.params.who }).end();
@@ -100,11 +100,11 @@ web.at('#hi', function(req, res) {
 var myWorker = new Worker('/my-worker.js');
 web.at('#my-worker.js', myWorker);
 	
-// Frames
+// And iframes
 web.at('#parent', window.parent);
 web.at('#my-iframe', document.querySelector('iframe#my-iframe'));
 
-// Emulated HTTP for cross-local
+// Can now handle requests:
 web.get('#my-worker.js').then(...);
 web.postJson('#my-iframe', { some: 'json' }).then(...);
 </code></pre>
@@ -112,21 +112,21 @@ web.postJson('#my-iframe', { some: 'json' }).then(...);
 				<div class="intro">
 					<img src="assets/icon-link.png">
 					<p><strong>Simplify with Search</strong><br><small>Link headers and document <code>&lt;link&gt;</code> elements construct URLs for you.</code></small></p>
-					<pre><code class="language-javascript">// Build a set of links to search
+					<pre><code class="language-javascript">// A set of links
 web.addLinks('#parent');              // add links from parent frame
 web.addLinks('#my-worker.js');        // add links from worker
 web.addLinks(window.location.origin); // add links from host
 web.addLinks(document);               // add document &lt;link&gt; elements
 
-// Search all links for a foo.com/hello service
+// Can be searched by attributes
 web.get({ rel: 'foo.com/hello', who: 'Consumer' }).then(function(res) {
     res.body; // => { hello: 'Consumer' }
 });
 	
-// Chain searches across navigations
+// Chainable across navigations
 web.head({ rel: 'foo.com/crud', id: 'users' }).get({ rel: 'item', id: 'bob' })
 
-// Store navigations as cursors
+// Storable as cursors
 var users = web.head({ rel: 'foo.com/crud', id: 'users' });
 users.postJson({ username: 'alice', pass: 'super-secret' });
 users.postJson({ username: 'jim', pass: 'banana' });
