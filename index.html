@@ -81,14 +81,11 @@ web.get('https://myhost.com', { who: 'World' }).then(function(res) {
 
 // Works for server functions
 web.get('#hi', { who: 'Local' }).then(function(res) {
-  res.status; // => 200
-  res.ContentType; // => 'application/json'
   res.body; // => { hello: 'Local' }
 });
 
 // Defined like this
 web.at('#hi', function(req, res) {
-  res.link({ href: '#hi', rel: 'self foo.com/hello', title: 'Hello Service' });
   res.status(200, 'OK').json({ hello: req.params.who }).end();
 });
 </code></pre>
