@@ -50,7 +50,7 @@ EventStream.prototype.thenConnect = function(request) {
 		this2.response = res;
 		emitError.call(this2, { event: 'error', data: res });
 		this2.close();
-		throw response;
+		throw res;
 	});
 };
 EventStream.prototype.connect = function(response) {

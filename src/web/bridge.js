@@ -4,14 +4,17 @@ var Response = require('./response.js');
 var IncomingRequest = require('./incoming-request.js');
 var IncomingResponse = require('./incoming-response.js');
 
-var debugLog = false;
+var debugLog = true;
 
 // Bridge
 // ======
 // EXPORTED
 // wraps a reliable, ordered messaging channel to carry messages
-function Bridge(channel) {
+function Bridge(path, channel) {
+	this.path = path;
 	this.channel = channel;
+
+	channel.addEventListener('message', this.onMessage.bind(this));
 
 	this.sidCounter = 1;
 	this.incomingStreams = {}; // maps sid -> request/response stream
@@ -24,12 +27,13 @@ module.exports = Bridge;
 // logging helper
 Bridge.prototype.log = function(type) {
 	var args = Array.prototype.slice.call(arguments, 1);
+	args[0] = ((typeof self.window == 'undefined') ? '(worker) ' : '(page) ') + args[0];
 	console[type].apply(console, args);
 };
 
 // Sends messages that were buffered while waiting for the channel to setup
 Bridge.prototype.flushBufferedMessages = function() {
-	if (debugLog) { this.log('debug', 'FLUSHING MESSAGES', JSON.stringify(this.msgBuffer)); }
+	if (debugLog) { this.log('debug', 'FLUSHING MESSAGES ' + JSON.stringify(this.msgBuffer)); }
 	this.msgBuffer.forEach(function(msg) {
 		this.channel.postMessage(msg);
 	}, this);
@@ -42,7 +46,7 @@ Bridge.prototype.send = function(msg) {
 		// Buffer messages if not ready
 		this.msgBuffer.push(msg);
 	} else {
-		if (debugLog) { this.log('debug', 'SEND', msg); }
+		if (debugLog) { this.log('debug', 'SEND ' + JSON.stringify(msg)); }
 		this.channel.postMessage(msg);
 	}
 };
@@ -70,6 +74,9 @@ Bridge.prototype.terminate = function(status, reason) {
 	this.incomingStreams = {};
 	this.outgoingStreams = {};
 	this.msgBuffer.length = 0;
+	if (this.channel.bridge) {
+		this.channel.bridge = null;
+	}
 	this.channel = null;
 };
 
@@ -85,7 +92,7 @@ Bridge.prototype.onRequest = function(ireq, ores) {
 	var msg = {
 		sid: sid,
 		method: ireq.method,
-		path: ireq.path,
+		path: '#' + ((ireq.pathd[1]) ? ireq.pathd[1].slice(1) : ''),
 		params: ireq.params
 	};
 	for (var k in ireq) {
@@ -106,19 +113,24 @@ Bridge.prototype.onRequest = function(ireq, ores) {
 };
 
 // HTTPL implementation for incoming messages
-Bridge.prototype.onMessage = function(msg) {
-	if (debugLog) { this.log('debug', 'RECV', msg); }
+Bridge.prototype.onMessage = function(event) {
+	var msg = event.data;
+	if (!msg) {
+		return console.error('Invalid message from channel: Payload missing ' + JSON.stringify(event));
+	}
+
+	if (debugLog) { this.log('debug', 'RECV ' + JSON.stringify(msg)); }
 
 	// Validate and parse JSON
 	if (typeof msg == 'string') {
 		if (!validateJson(msg)) {
-			this.log('warn', 'Dropping malformed JSON message', msg);
+			this.log('warn', 'Dropping malformed JSON message ' + JSON.stringify(msg));
 			return;
 		}
 		msg = JSON.parse(msg);
 	}
 	if (!validateHttplMessage(msg)) {
-		this.log('warn', 'Dropping malformed HTTPL message', msg);
+		this.log('warn', 'Dropping malformed HTTPL message ' + JSON.stringify(msg));
 		return;
 	}
 
@@ -129,12 +141,12 @@ Bridge.prototype.onMessage = function(msg) {
 		if (msg.sid < 0) {
 			// There should have been an incoming stream
 			// (incoming response streams are created in onRequest)
-			this.log('warn', 'Dropping unexpected HTTPL response message', msg);
+			this.log('warn', 'Dropping unexpected HTTPL response message ' + JSON.stringify(msg));
 			return;
 		}
 
 		// Is a new request - validate URL
-		if (!msg.path) { return this.log('warn', 'Dropping HTTPL request with no path', msg); }
+		if (!msg.path) { return this.log('warn', 'Dropping HTTPL request with no path ' + JSON.stringify(msg)); }
 
 		// Get the handler
 		var httpl = require('./httpl.js');
@@ -167,7 +179,7 @@ Bridge.prototype.onMessage = function(msg) {
 		ires.on('headers', function(headers) {
 			var msg = { sid: resSid, status: headers.status, reason: headers.reason };
 			for (var k in headers) { if (helpers.isHeaderKey(k)) { msg[k] = headers[k]; } }
-			ires.processHeaders(this2.channel.source_url, headers);
+			ires.processHeaders(false, headers);
 			this2.send(msg);
 		});
 		ires.on('data', function(data) {
@@ -192,6 +204,15 @@ Bridge.prototype.onMessage = function(msg) {
 			for (var k in msg) {
 				if (helpers.isHeaderKey(k)) {
 					stream.header(k, msg[k]);
+				}
+			}
+			// correct link header entries, if given, to be relative to bridge path
+			if (stream.headers.Link && Array.isArray(stream.headers.Link)) {
+				for (var i=0; i < stream.headers.Link.length; i++) {
+					if (typeof stream.headers.Link[i].href == 'string' && stream.headers.Link[i].href.charAt(0) == '#') {
+						var subpath = stream.headers.Link[i].href.slice(1);
+						stream.headers.Link[i].href = this.path + ((subpath.length) ? '/' + subpath : '');
+					}
 				}
 			}
 			stream.start();

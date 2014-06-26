@@ -1,45 +1,5 @@
 if (typeof self != 'undefined' && typeof self.window == 'undefined') { (function() {
 	// GLOBAL
-	// custom console.*
-	self.console = {
-		log: function() {
-			var args = Array.prototype.slice.call(arguments);
-			doLog('log', args);
-		},
-		dir: function() {
-			var args = Array.prototype.slice.call(arguments);
-			doLog('dir', args);
-		},
-		debug: function() {
-			var args = Array.prototype.slice.call(arguments);
-			doLog('debug', args);
-		},
-		warn: function() {
-			var args = Array.prototype.slice.call(arguments);
-			doLog('warn', args);
-		},
-		error: function() {
-			var args = Array.prototype.slice.call(arguments);
-			doLog('error', args);
-		}
-	};
-	function doLog(type, args) {
-		try { self.postMessage({ op: 'log', body: [type].concat(args) }); }
-		catch (e) {
-			// this is usually caused by trying to log information that cant be serialized
-			self.postMessage({ op: 'log', body: [type].concat(args.map(JSONifyMessage)) });
-		}
-	}
-	// helper to try to get a failed log message through
-	function JSONifyMessage(data) {
-		if (Array.isArray(data))
-			return data.map(JSONifyMessage);
-		if (data && typeof data == 'object')
-			return JSON.stringify(data);
-		return data;
-	}
-
-	// GLOBAL
 	// btoa polyfill
 	// - from https://github.com/lydonchandra/base64encoder
 	//   (thanks to Lydon Chandra)
@@ -86,15 +46,4 @@ if (typeof self != 'undefined' && typeof self.window == 'undefined') { (function
 			return x.join('');
 		};
 	}
-
-	// Setup page connection
-	var Bridge = require('../web/bridge.js');
-    self.pageBridge = new Bridge(self);
-	self.addEventListener('message', function(event) {
-		var message = event.data;
-		if (!message)
-			return console.error('Invalid message from page: Payload missing', event);
-		pageBridge.onMessage(message);
-	});
-	self.postMessage({ op: 'ready' });
 })(); }

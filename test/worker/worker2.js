@@ -1,3 +1,6 @@
+importScripts('/local.js');
+web.at('#parent', self);
+
 var counter = 100;
 web.at('#', function(req, res) {
 	if (req.method == 'GET') {
@@ -14,7 +17,7 @@ web.at('#', function(req, res) {
 		return;
 	}
 	if (req.method == 'BOUNCE') {
-        return web.get('#hello?foo=bob', { bar: 'buzz' }).pipe(res);
+        return web.get('#parent/hello?foo=bob', { bar: 'buzz' }).pipe(res);
 	}
     res.s405().end();
 });

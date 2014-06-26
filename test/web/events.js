@@ -28,7 +28,7 @@ close
 
 done = false;
 startTime = Date.now();
-var stream = web.subscribe('http://localhost:8000/test/web/_worker.js#events');
+var stream = web.subscribe('#worker/events');
 stream.on('foo', function(m) { print('foo', m.data); });
 stream.on('bar', function(m) { print('bar', m.data); });
 stream.on('close', function(e) {

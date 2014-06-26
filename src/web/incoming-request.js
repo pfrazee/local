@@ -15,7 +15,7 @@ function IncomingRequest(headers) {
 	// Set attributes
 	this.method = (headers.method) ? headers.method.toUpperCase() : 'GET';
 	this.path = headers.path || '#';
-    this.pathd = headers.pathd || [this.path];
+	this.pathd = headers.pathd || [this.path];
 	this.params = (headers.params) || {};
 	for (var k in headers) {
 		if (helpers.isHeaderKey(k)) { // starts uppercase?

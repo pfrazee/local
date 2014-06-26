@@ -1,3 +1,6 @@
+importScripts('/local.js');
+web.at('#parent', self);
+
 var foos = ['bar', 'bazzzz', 'blah'];
 
 web.at('#', function(req, res) {

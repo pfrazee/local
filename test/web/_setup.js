@@ -1,5 +1,6 @@
 // worker scaffold server
-web.spawnWorker('/test/web/_worker.js');
+var worker = new Worker('/test/web/_worker.js');
+web.at('#worker', worker);
 
 // document web scaffold server
 var foos = ['bar', 'baz', 'blah'];

@@ -1,17 +1,10 @@
 // load worker
-web.spawnWorker('/test/worker/worker1.js');
-// web.spawnWorker('/test/worker/worker2.js');
+web.at('#worker1', new Worker('/test/worker/worker1.js'));
+web.at('#worker2', new Worker('/test/worker/worker2.js'));
 
 web.at('#hello', function(req, res, worker) {
     res.link({ href: '#' });
     res.s200().contentType('text').end('yes, hello '+req.params.foo+' '+req.params.bar);
-});
-
-web.at('pubweb-proxy', function(req, res, worker) {
-	if (worker) {
-		return res.s403('https is forbidden (even for '+req.params.url+' !)').end();
-	}
-	res.s204('I would let you, but I don\'t know you.').end();
 });
 
 // GET tests
@@ -19,8 +12,8 @@ done = false;
 startTime = Date.now();
 var responses_ = [];
 for (var i = 0; i < 10; i++) {
-	responses_.push(web.get('/test/worker/worker1.js#').end());
-    responses_.push(web.get('/test/worker/worker2.js#').end());
+	responses_.push(web.get('#worker1').end());
+    responses_.push(web.get('#worker2').end());
 }
 
 web.promise.bundle(responses_).always(function(responses) {
@@ -34,7 +27,7 @@ web.promise.bundle(responses_).always(function(responses) {
 wait(function () { return done; });
 
 /* =>
-[{href: "http://localhost:8000/test/worker/worker1.js#"}]
+[{href: "#worker1"}]
 200 0
 200 100
 200 1
@@ -61,8 +54,8 @@ done = false;
 startTime = Date.now();
 var responses_ = [];
 for (var i = 0; i < 10; i++) {
-	responses_.push(web.post('/test/worker/worker1.js#').end('FooBar'));
-    responses_.push(web.post('/test/worker/worker2.js#').end('FooBar'));
+	responses_.push(web.post('#worker1').end('FooBar'));
+    responses_.push(web.post('#worker2').end('FooBar'));
 }
 
 web.promise.bundle(responses_)
@@ -101,8 +94,8 @@ wait(function () { return done; });
 done = false;
 startTime = Date.now();
 var responses_ = [
-    web.dispatch({ method: 'BOUNCE', url: '/test/worker/worker1.js#' }),
-    web.dispatch({ method: 'BOUNCE', url: '/test/worker/worker2.js#' })
+    web.dispatch({ method: 'BOUNCE', url: '#worker1' }),
+    web.dispatch({ method: 'BOUNCE', url: '#worker2' })
 ];
 
 web.promise.bundle(responses_)
@@ -118,35 +111,7 @@ wait(function () { return done; });
 
 /* =>
 200 yes, hello alice bazz
-[{href: "http://localhost:8000/test/worker/worker1.js#"}]
+[{href: "#worker1/parent"}]
 200 yes, hello bob buzz
-[{href: "http://localhost:8000/test/worker/worker2.js#"}]
-*/
-
-// importScripts() disabling test
-done = false;
-startTime = Date.now();
-web.dispatch({ method: 'IMPORT', url: '/test/worker/worker1.js#' })
-	.always(function(res) {
-		print(res.status + ' ' + res.body);
-		finishTest();
-	});
-wait(function () { return done; });
-
-/* =>
-200 TypeError: object is not a function
-*/
-
-// public-web endpoint test
-done = false;
-startTime = Date.now();
-web.dispatch({ method: 'USEWEB', url: '/test/worker/worker1.js#' })
-	.always(function(res) {
-		print(res.status + ' ' + res.reason);
-		finishTest();
-	});
-wait(function () { return done; });
-
-/* =>
-403 https is forbidden (even for https://grimwire.com?yes=no&foo=bar#baz !)
+[{href: "#worker2/parent"}]
 */

@@ -150,10 +150,10 @@ success
 
 done = false;
 startTime = Date.now();
-web.head('http://localhost:8000/test/web/_worker.js#').get({ rel: 'collection', id: 'foo' })
+web.head('#worker').get({ rel: 'collection', id: 'foo' })
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
-     web.head('http://localhost:8000/test/web/_worker.js#')
+     web.head('#worker')
       .head({ rel: 'collection', id: 'foo'})
       .get({ rel: 'item', id: 'bazzzz' })
       .then(printSuccessAndFinish, printErrorAndFinish);
@@ -165,16 +165,16 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "up via service"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo", rel: "self current"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/{id}", rel: "item"}
+    {href: "#worker", rel: "up via service"},
+    {href: "#worker/foo", rel: "self current"},
+    {href: "#worker/foo/{id}", rel: "item"}
   ],
   _buffer: "[\"bar\",\"bazzzz\",\"blah\"]",
   body: ["bar", "bazzzz", "blah"],
   links: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "up via service"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo", rel: "self current"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/{id}", rel: "item"}
+    {href: "#worker", rel: "up via service"},
+    {href: "#worker/foo", rel: "self current"},
+    {href: "#worker/foo/{id}", rel: "item"}
   ],
   reason: undefined,
   status: 200
@@ -183,36 +183,24 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "via service"},
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo",
-      rel: "up collection index"
-    },
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo/bazzzz",
-      rel: "self current"
-    },
-    {href: "http://localhost:8000/test/web/_worker.js#foo/bar", rel: "first"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/blah", rel: "last"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/bar", rel: "prev"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/blah", rel: "next"}
+    {href: "#worker", rel: "via service"},
+    {href: "#worker/foo", rel: "up collection index"},
+    {href: "#worker/foo/bazzzz", rel: "self current"},
+    {href: "#worker/foo/bar", rel: "first"},
+    {href: "#worker/foo/blah", rel: "last"},
+    {href: "#worker/foo/bar", rel: "prev"},
+    {href: "#worker/foo/blah", rel: "next"}
   ],
   _buffer: "\"bazzzz\"",
   body: "bazzzz",
   links: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "via service"},
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo",
-      rel: "up collection index"
-    },
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo/bazzzz",
-      rel: "self current"
-    },
-    {href: "http://localhost:8000/test/web/_worker.js#foo/bar", rel: "first"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/blah", rel: "last"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/bar", rel: "prev"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/blah", rel: "next"}
+    {href: "#worker", rel: "via service"},
+    {href: "#worker/foo", rel: "up collection index"},
+    {href: "#worker/foo/bazzzz", rel: "self current"},
+    {href: "#worker/foo/bar", rel: "first"},
+    {href: "#worker/foo/blah", rel: "last"},
+    {href: "#worker/foo/bar", rel: "prev"},
+    {href: "#worker/foo/blah", rel: "next"}
   ],
   reason: undefined,
   status: 200

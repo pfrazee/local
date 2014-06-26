@@ -35,17 +35,9 @@ function schemes__get(scheme) {
 
 // HTTP
 // ====
-var inWorker = (typeof self != 'undefined' && typeof self.window == 'undefined');
 schemes.register(['http', 'https'], function(oreq, ires) {
 	var ores = new Response();
 	ores.wireUp(ires);
-
-	// No XHR in workers
-	if (inWorker) {
-		ores.status(0, 'public web requests are not allowed from workers');
-		ores.end();
-		return;
-	}
 
 	// parse URL
 	var urld = helpers.parseUri(oreq.headers.url);

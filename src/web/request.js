@@ -25,10 +25,8 @@ function Request(headers, originChannel) {
 	this.headers.params = (this.headers.params) || {};
 	this.originChannel = originChannel;
 	this.isBinary = false; // stream is binary?
-	this.isVirtual = localConfig.virtualOnly || undefined; // request going to virtual host?
 
 	// Behavior flags
-    this.isForcedLocal = localConfig.localOnly; // forcing request to be local
 	this.isBufferingResponse = true; // auto-buffering the response?
 	this.isAutoEnding = false; // auto-ending the request on next tick?
 
@@ -133,28 +131,6 @@ Request.prototype.setBinary = function(v) {
 		this.isBinary = v;
 	} else {
 		this.isBinary = true;
-	}
-	return this;
-};
-
-
-// Virtual mode
-// overrides the automatic decision as to whether to route to virtual or remote endpoints
-// - (true) -> will route to local or worker endpoints
-// - (false) -> will route to remote endpoints
-// - if no bool is given, sets to true
-Request.prototype.setVirtual = function(v) {
-	this.isVirtual = (v !== void 0) ? v : true;
-	return this;
-};
-
-// Forced local
-// instructs the request to only route to endpoints in the current page
-Request.prototype.forceLocal = function(v) {
-	if (typeof v == 'boolean') {
-		this.isForcedLocal = v;
-	} else {
-		this.isForcedLocal = true;
 	}
 	return this;
 };
@@ -328,16 +304,7 @@ Request.prototype.start = function() {
 
 	// Prep request
 	if (!this.headers || !this.headers.url) throw "No URL on request";
-	if (typeof this.isVirtual == 'undefined') {
-		// decide on whether this is virtual based on the presence of a .js and hash (outside the query params) or hash-prefix
-		var jshashIndex = this.headers.url.indexOf('.js#');
-		this.isVirtual = (this.headers.url.indexOf('#') === 0 || (jshashIndex !== -1 && this.headers.url.slice(0, jshashIndex).indexOf('?') === -1));
-	}
-    if (this.isForcedLocal && this.headers.url.charAt(0) !== '#') {
-        // if local only, force
-        this.headers.url = '#' + this.headers.url;
-        this.isVirtual = true;
-    }
+	var isVirtual = (this.headers.url.indexOf('#') === 0);
     if (this.headers.url.charAt(0) == '/' && typeof window.location != 'undefined') {
 		var origin = window.location.protocol + '//' + window.location.hostname + ((window.location.port) ? (':' + window.location.port) : '');
 		this.headers.url = helpers.joinUri(origin, this.headers.url);
@@ -347,7 +314,7 @@ Request.prototype.start = function() {
 	// Setup response object
 	var requestStartTime = Date.now();
 	var ires = new IncomingResponse();
-	ires.on('headers', ires.processHeaders.bind(ires, (this.isVirtual && !this.urld.authority && !this.urld.path) ? false : this.urld));
+	ires.on('headers', ires.processHeaders.bind(ires, (isVirtual) ? false : this.urld));
 	ires.on('end', function() {
 		// Track latency
 		ires.latency = Date.now() - requestStartTime;
@@ -366,7 +333,7 @@ Request.prototype.start = function() {
 	ires.on('close', fulfill); // will have no effect if already called
 
 	// Execute by scheme
-	var scheme = (this.isVirtual) ? '#' : parseScheme(this.headers.url);
+	var scheme = (isVirtual) ? '#' : parseScheme(this.headers.url);
 	var schemeHandler = schemes.get(scheme);
 	if (schemeHandler) { schemeHandler(this, ires); }
 	else {
@@ -426,7 +393,7 @@ Request.prototype.close = function() {
 	if (!this.isStarted) {
 		// Fulfill with abort response
 		var ires = new IncomingResponse();
-		ires.on('headers', ires.processHeaders.bind(ires, (this.isVirtual && !this.urld.authority && !this.urld.path) ? false : this.urld));
+		ires.on('headers', ires.processHeaders.bind(ires, false));
 		var ores = new Response();
 		ores.wireUp(ires);
 		ores.status(0, 'aborted by client').end();

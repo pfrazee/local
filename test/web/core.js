@@ -506,7 +506,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.get('http://localhost:8000/test/web/_worker.js#')
+web.get('#worker')
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -516,34 +516,18 @@ success
 {
   ContentType: "text/plain",
   Link: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
-    {
-      href: "http://localhost:8000/test/web/_worker.js#events",
-      id: "events",
-      rel: "collection"
-    },
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo",
-      id: "foo",
-      rel: "collection"
-    },
-    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
+    {href: "#worker", rel: "self current"},
+    {href: "#worker/events", id: "events", rel: "collection"},
+    {href: "#worker/foo", id: "foo", rel: "collection"},
+    {href: "#worker/{id}", rel: "collection"}
   ],
   _buffer: "service resource",
   body: "service resource",
   links: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
-    {
-      href: "http://localhost:8000/test/web/_worker.js#events",
-      id: "events",
-      rel: "collection"
-    },
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo",
-      id: "foo",
-      rel: "collection"
-    },
-    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
+    {href: "#worker", rel: "self current"},
+    {href: "#worker/events", id: "events", rel: "collection"},
+    {href: "#worker/foo", id: "foo", rel: "collection"},
+    {href: "#worker/{id}", rel: "collection"}
   ],
   reason: undefined,
   status: 200
@@ -554,90 +538,24 @@ success
 
 done = false;
 startTime = Date.now();
-web.get('http://localhost:8000/test/web/_worker.js#').end().always(finishTest);
+web.get('#worker').end().always(finishTest);
 wait(function () { return done; });
 done = false;
 startTime = Date.now();
-web.get('http://localhost:8000/test/web/_worker.js#').end().always(finishTest);
+web.get('#worker').end().always(finishTest);
 wait(function () { return done; });
 done = false;
 startTime = Date.now();
-web.get('http://localhost:8000/test/web/_worker.js#').bufferResponse(false).end().always(finishTest);
+web.get('#worker').bufferResponse(false).end().always(finishTest);
 wait(function () { return done; });
 print('done');
 // => done
-
-// set-unvirtual
-
-done = false;
-startTime = Date.now();
-web.get('http://localhost:8000/test/web/_worker.js#')
-  .setVirtual(false)
-  .then(function(res) { print('success'); print(res.status); print(res.ContentType); }, printError)
-  .always(finishTest);
-wait(function () { return done; });
-
-/* =>
-success
-200
-application/x-javascript
-*/
-
-// set-virtual
-
-done = false;
-startTime = Date.now();
-web.get('http://localhost:8000/test/web/_worker.js')
-  .setVirtual()
-  .then(printSuccess, printError)
-  .always(finishTest);
-wait(function () { return done; });
-
-/* =>
-success
-{
-  ContentType: "text/plain",
-  Link: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
-    {
-      href: "http://localhost:8000/test/web/_worker.js#events",
-      id: "events",
-      rel: "collection"
-    },
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo",
-      id: "foo",
-      rel: "collection"
-    },
-    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
-  ],
-  _buffer: "service resource",
-  body: "service resource",
-  links: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
-    {
-      href: "http://localhost:8000/test/web/_worker.js#events",
-      id: "events",
-      rel: "collection"
-    },
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo",
-      id: "foo",
-      rel: "collection"
-    },
-    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
-  ],
-  reason: undefined,
-  status: 200
-}
-
-*/
 
 // unsuccessful virtual requests
 
 done = false;
 startTime = Date.now();
-web.get('http://localhost:8000/test/web/_worker.js#/bad/url')
+web.get('#worker/bad/url')
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -651,7 +569,7 @@ error
 
 done = false;
 startTime = Date.now();
-web.post('http://localhost:8000/test/web/_worker.js#foo')
+web.post('#worker/foo')
   .contentType('plain')
   .end('echo this, please')
   .then(printSuccess, printError)
@@ -663,16 +581,16 @@ success
 {
   ContentType: "text/plain",
   Link: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "up via service"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo", rel: "self current"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/{id}", rel: "item"}
+    {href: "#worker", rel: "up via service"},
+    {href: "#worker/foo", rel: "self current"},
+    {href: "#worker/foo/{id}", rel: "item"}
   ],
   _buffer: "echo this, please",
   body: "echo this, please",
   links: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "up via service"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo", rel: "self current"},
-    {href: "http://localhost:8000/test/web/_worker.js#foo/{id}", rel: "item"}
+    {href: "#worker", rel: "up via service"},
+    {href: "#worker/foo", rel: "self current"},
+    {href: "#worker/foo/{id}", rel: "item"}
   ],
   reason: undefined,
   status: 200
@@ -683,7 +601,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.get('http://localhost:8000/test/web/_worker.js#', { foo: 'bar' })
+web.get('#worker', { foo: 'bar' })
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -693,34 +611,18 @@ success
 {
   ContentType: "text/plain",
   Link: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
-    {
-      href: "http://localhost:8000/test/web/_worker.js#events",
-      id: "events",
-      rel: "collection"
-    },
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo",
-      id: "foo",
-      rel: "collection"
-    },
-    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
+    {href: "#worker", rel: "self current"},
+    {href: "#worker/events", id: "events", rel: "collection"},
+    {href: "#worker/foo", id: "foo", rel: "collection"},
+    {href: "#worker/{id}", rel: "collection"}
   ],
   _buffer: "service resource {\"foo\":\"bar\"}",
   body: "service resource {\"foo\":\"bar\"}",
   links: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
-    {
-      href: "http://localhost:8000/test/web/_worker.js#events",
-      id: "events",
-      rel: "collection"
-    },
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo",
-      id: "foo",
-      rel: "collection"
-    },
-    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
+    {href: "#worker", rel: "self current"},
+    {href: "#worker/events", id: "events", rel: "collection"},
+    {href: "#worker/foo", id: "foo", rel: "collection"},
+    {href: "#worker/{id}", rel: "collection"}
   ],
   reason: undefined,
   status: 200
@@ -731,7 +633,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.get('http://localhost:8000/test/web/_worker.js#?foo=bar')
+web.get('#worker?foo=bar')
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -741,34 +643,18 @@ success
 {
   ContentType: "text/plain",
   Link: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
-    {
-      href: "http://localhost:8000/test/web/_worker.js#events",
-      id: "events",
-      rel: "collection"
-    },
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo",
-      id: "foo",
-      rel: "collection"
-    },
-    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
+    {href: "#worker", rel: "self current"},
+    {href: "#worker/events", id: "events", rel: "collection"},
+    {href: "#worker/foo", id: "foo", rel: "collection"},
+    {href: "#worker/{id}", rel: "collection"}
   ],
   _buffer: "service resource {\"foo\":\"bar\"}",
   body: "service resource {\"foo\":\"bar\"}",
   links: [
-    {href: "http://localhost:8000/test/web/_worker.js#", rel: "self current"},
-    {
-      href: "http://localhost:8000/test/web/_worker.js#events",
-      id: "events",
-      rel: "collection"
-    },
-    {
-      href: "http://localhost:8000/test/web/_worker.js#foo",
-      id: "foo",
-      rel: "collection"
-    },
-    {href: "http://localhost:8000/test/web/_worker.js#{id}", rel: "collection"}
+    {href: "#worker", rel: "self current"},
+    {href: "#worker/events", id: "events", rel: "collection"},
+    {href: "#worker/foo", id: "foo", rel: "collection"},
+    {href: "#worker/{id}", rel: "collection"}
   ],
   reason: undefined,
   status: 200

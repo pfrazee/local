@@ -1,9 +1,9 @@
-var helpers = require('./helpers.js');
-var schemes = require('./schemes.js');
-var contentTypes = require('./content-types.js');
-var IncomingRequest = require('./incoming-request.js');
-var Response = require('./response.js');
-var workers = require('./workers.js');
+var helpers = require('./helpers');
+var schemes = require('./schemes');
+var contentTypes = require('./content-types');
+var IncomingRequest = require('./incoming-request');
+var Response = require('./response');
+var Bridge = require('./bridge');
 
 // Local Routes Registry
 // =====================
@@ -11,6 +11,15 @@ var _routes = [];
 
 // EXPORTED
 function at(path, handler) {
+	// Bridge as needed
+	if (typeof handler != 'function' && !handler.bridge) {
+		var channel = handler;
+		channel.bridge = new Bridge(path, channel);
+		path += '(/.*)?';
+		handler = channel.bridge;
+	}
+
+	// Add route
 	if (path.charAt(0) != '#') {
 		path = '#' + path;
 	}
@@ -34,63 +43,14 @@ schemes.register('#', function (oreq, ires) {
 	}
 	oreq.headers.path = '#' + urld2.path.slice(1);
 
-	// Helper to lookup the handler from the current env's routes
-	var lookupRoute = function() {
-		var pathd;
-		for (var i=0; i < _routes.length; i++) {
-			pathd = _routes[i].path.exec(oreq.headers.path);
-			if (pathd) {
-				oreq.headers.pathd = pathd; // update request headers to include the path match
-				return _routes[i].handler;
-			}
-		}
-	};
-
 	// Get the handler
-	var handler;
-	var isInWorker = (typeof self.document == 'undefined');
-	var isNonLocal = (oreq.urld.authority || oreq.urld.path);
-	// Is a host URL given?
-	if (isInWorker) {
-		if (oreq.urld.authority == 'self') {
-			// http://self#foo
-			// Match the route in the current worker
-			handler = lookupRoute();
-		} else {
-			// Use the page
-			handler = self.pageBridge.onRequest.bind(self.pageBridge);
-
-			// Use the special #pubweb-proxy handler for non-local requests
-			if (isNonLocal) {
-				// build new combined query params
-				var queryParams = contentTypes.serialize('application/x-www-form-urlencoded', oreq.headers.params);
-				if (queryParams && oreq.urld.query) { queryParams += '&'; }
-				queryParams += oreq.urld.query;
-
-				// prep new request
-				oreq.headers.path = '#pubweb-proxy';
-				oreq.headers.params = {
-					url: ((oreq.urld.protocol) ? oreq.urld.protocol + '://' : '') +
-						(oreq.urld.authority||'') +
-						oreq.urld.path +
-						((queryParams) ? '?' + queryParams : '') +
-						((oreq.headers.url.indexOf('#') !== -1) ? '#' + oreq.urld.anchor : '')
-				};
-			}
+	var pathd, handler;
+	for (var i=0; i < _routes.length; i++) {
+		pathd = _routes[i].path.exec(oreq.headers.path);
+		if (pathd) {
+			oreq.headers.pathd = pathd; // update request headers to include the path match
+			handler = _routes[i].handler;
 		}
-	} else if (isNonLocal) {
-		if (oreq.urld.authority == 'page') {
-			// http://page#foo
-			// Match the route in the current page
-			handler = lookupRoute();
-		} else {
-			// http://bar.com/foo.js#
-			// Try to get/load the VM
-			handler = workers.getWorker(oreq.urld);
-		}
-	} else {
-		// Match the route in the current page
-		handler = lookupRoute();
 	}
 
 	// Create incoming request / outgoing response
@@ -110,7 +70,11 @@ schemes.register('#', function (oreq, ires) {
 
 	// Pass on to the handler
 	if (handler) {
-		handler(ireq, ores, oreq.originChannel);
+		if (handler instanceof Bridge) {
+			handler.onRequest(ireq, ores, oreq.originChannel);
+		} else {
+			handler(ireq, ores, oreq.originChannel);
+		}
 	} else {
 		ores.status(404, 'Not Found').end();
 	}
