@@ -8,7 +8,7 @@
 			#hero {
 				width: 100%;
 				height: 450px;
-				background: url(/assets/hero-bg.jpg) left -640px no-repeat;
+				background: url(assets/hero-bg.jpg) left -640px no-repeat;
 			}
 			@media (min-width: 1500px) {
 				/* hero background is now too small, so lets autosize it to cover */
@@ -71,20 +71,19 @@
 			<div class="container">
 				<div class="intro">
 					<img src="assets/icon-network.png">
-					<p><strong>Simple Ajax</strong><br><small>Promises-based, with streaming, piping, and automatic body-parsing.</small></p>
-					<pre><code class="language-javascript">web.get('https://myhost.com', { query: 'params' })
+					<p><strong>Simple Ajax to services and functions</strong><br><small>Promises-based, with streaming, piping, and automatic body-parsing.</small></p>
+					<pre><code class="language-javascript">// Standard Ajax
+web.get('https://myhost.com', { query: 'params' })
   .accept('json')
   .then(function(res) {
     res.status; // => 200
     res.reason; // => 'OK'
     res.ContentType; // => 'application/json'
     res.body; // => { hello: 'world' }
-  });</code></pre>
-				</div>
-				<div class="intro">
-					<img src="assets/icon-link.png">
-					<p><strong>Servers on the page</strong><br><small>An emulation of HTTP lets you field requests from client-side javascript.</small></p>
-					<pre><code class="language-javascript">web.at('#hi', function(req, res) {
+  });
+
+// Emulated HTTP for local requests
+web.at('#hi', function(req, res) {
   res.status(200, 'OK');
   res.contentType('html');
   res.link({ href: '#hi', rel: 'self service foo.com/hello', title: 'Hello Service' });
@@ -95,23 +94,24 @@ web.get('#hi', { who: 'World' }).then(...);</code></pre>
 				<div class="intro">
 					<img src="assets/icon-download.png">
 					<p><strong>Communicate across postMessage</strong><br><small>Iframes, workers, and other postMessage() channels carry client-side requests.</small></p>
-					<pre><code class="language-javascript">var myWorker = new Worker('/my-worker.js');
+					<pre><code class="language-javascript">// Workers
+var myWorker = new Worker('/my-worker.js');
 web.at('#my-worker.js', myWorker);
-web.get('#my-worker.js', { who: 'Worker' }).then(function(res) {
-    res.status; // => 200
-    res.reason; // => 'OK'
-    res.ContentType; // => 'text/html'
-    res.body; // => &lt;h1&gt;Hello, Worker&lt;/ht&gt;
-});</code></pre>
+web.get('#my-worker.js', { who: 'Worker' }).then(...);
+	
+// Frames
+web.at('#parent', window.parent);
+web.at('#my-iframe', document.querySelector('iframe#my-iframe'));
+</code></pre>
 				</div>
 				<div class="intro">
-					<img src="assets/icon-download.png">
+					<img src="assets/icon-link.png">
 					<p><strong>Standardize and Simplify with Search</strong><br><small>Link headers and document <code>&lt;link&gt;</code> elements construct URLs for you.</code></small></p>
-					<pre><code class="language-javascript">web.at('#parent', window.parent); // parent frame
-web.addLinks('#parent'); // add links from parent frame
-web.addLinks('#my-worker.js'); // add links from worker
+					<pre><code class="language-javascript">// Build a set of links to search
+web.addLinks('#parent');              // add links from parent frame
+web.addLinks('#my-worker.js');        // add links from worker
 web.addLinks(window.location.origin); // add links from host
-web.addLinks(document); // add document links
+web.addLinks(document);               // add document links
 
 // Search all links for a foo.com/hello service
 web.get({ rel: 'foo.com/hello', who: 'Consumer' }).then(function(res) {
