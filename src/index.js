@@ -32,7 +32,7 @@ function dispatch(headers) {
 	return req;
 }
 function searchDispatch(headers) {
-	return web.head('#localjs/env').dispatch(headers);
+	return web.head('#localjs/links').dispatch(headers);
 }
 function makeRequestSugar(method) {
 	return function(url, params) {
