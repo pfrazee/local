@@ -1,4 +1,4 @@
-web.at('#iframe', document.getElementById('test-iframe'), '*');
+web.at('#iframe', document.getElementById('test-iframe'));
 
 web.at('#', function(req, res) {
 	res.link('#', { rel: "self service foo.com/baz", title: "Parent Frame" });

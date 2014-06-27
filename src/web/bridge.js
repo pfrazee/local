@@ -17,7 +17,7 @@ function Bridge(path, channel, targetOrigin) {
 
 	this.path = path;
 	this.channel = channel;
-	this.targetOrigin = targetOrigin;
+	this.targetOrigin = targetOrigin || '*';
 	this.isWorker = (this.channel instanceof Worker);
 
 	if (this.isWorker) {
@@ -45,7 +45,7 @@ Bridge.prototype.log = function(type) {
 Bridge.prototype.flushBufferedMessages = function() {
 	if (debugLog) { this.log('debug', 'FLUSHING MESSAGES ' + JSON.stringify(this.msgBuffer)); }
 	this.msgBuffer.forEach(function(msg) {
-		this.channel.postMessage(msg, this.targetOrigin || '*');
+		this.channel.postMessage(msg, this.targetOrigin);
 	}, this);
 	this.msgBuffer.length = 0;
 };
@@ -57,7 +57,7 @@ Bridge.prototype.send = function(msg) {
 		this.msgBuffer.push(msg);
 	} else {
 		if (debugLog) { this.log('debug', 'SEND ' + JSON.stringify(msg)); }
-		this.channel.postMessage(msg, this.targetOrigin || '*');
+		this.channel.postMessage(msg, this.targetOrigin);
 	}
 };
 

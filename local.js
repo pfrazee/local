@@ -1,61 +1,7 @@
-;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-// Worker API whitelisting code
-// ============================
-var localjsUrl = '';
-if (typeof self.document !== 'undefined') { // in the page
-    try { localjsUrl = document.querySelector('script[src$="local.js"]').src; }
-    catch (e) {
-        try { localjsUrl = document.querySelector('script[src$="local.min.js"]').src; }
-        catch (e) {
-            console.error('Unable to find local.js or local.min.js script tags; unable to setup worker scripts');
-        }
-    }
-}
-var localjsImport_src = 'importScripts("'+localjsUrl+'");\n';
-var whitelist = [ // a list of global objects which are allowed in the worker
-    // defined by local.js
-    'local', 'pageBridge',
-    'HEAD', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'SUBSCRIBE', 'NOTIFY', 'from',
-
-	'null', 'self', 'console', 'atob', 'btoa',
-	'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
-	'Proxy',
-	'navigator',
-	'postMessage', 'addEventListener', 'removeEventListener',
-	'onmessage', 'onerror', 'onclose',
-	'dispatchEvent'
-];
-var blacklist = [ // a list of global objects which are not allowed in the worker, and which dont enumerate on `self` for some reason
-	'XMLHttpRequest', 'WebSocket', 'EventSource',
-    'FileReaderSync',
-	'Worker', 'importScripts'
-];
-var whitelistAPIs_src = [ // nullifies all toplevel variables except those listed above in `whitelist`
-	'(function() {',
-	'   var nulleds=[];',
-	'	var whitelist = ["'+whitelist.join('", "')+'"];',
-	'	for (var k in self) {',
-	'		if (whitelist.indexOf(k) === -1) {',
-	'			Object.defineProperty(self, k, { value: null, configurable: false, writable: false });',
-	'			nulleds.push(k);',
-	'		}',
-	'	}',
-	'	var blacklist = ["'+blacklist.join('", "')+'"];',
-	'	blacklist.forEach(function(k) {',
-	'		Object.defineProperty(self, k, { value: null, configurable: false, writable: false });',
-	'		nulleds.push(k);',
-	'	});',
-	'	if (typeof console != "undefined") { console.log("Nullified: "+nulleds.join(", ")); }',
-	'})();\n'
-].join('\n');
-var isInWorker = (typeof self.document == 'undefined');
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 module.exports = {
-    logTraffic: true,
-	logAllExceptions: false,
-    maxActiveWorkers: 10,
-    virtualOnly: isInWorker ? true : false,
-    localOnly: isInWorker ? true : false,
-	workerBootstrapScript: localjsImport_src+whitelistAPIs_src
+	logTraffic: true,
+	logAllExceptions: false
 };
 },{}],2:[function(require,module,exports){
 module.exports = {
@@ -67,9 +13,12 @@ module.exports = {
 	LINK_NOT_FOUND: 1
 };
 },{}],3:[function(require,module,exports){
+// Components
+// ==========
 var util = require('./util');
-
 module.exports = {
+	cfg: require('./config.js'),
+
 	Request: require('./web/request.js'),
 	Response: require('./web/response.js'),
 	IncomingRequest: require('./web/incoming-request.js'),
@@ -83,75 +32,92 @@ module.exports = {
 	contentTypes: require('./web/content-types.js')
 };
 util.mixin.call(module.exports, require('./constants.js'));
-util.mixin.call(module.exports, require('./config.js'));
 util.mixin.call(module.exports, require('./promises.js'));
 util.mixin.call(module.exports, require('./request-event.js'));
 util.mixin.call(module.exports, require('./web/helpers.js'));
 util.mixin.call(module.exports, require('./web/links.js'));
 util.mixin.call(module.exports, require('./web/httpl.js'));
-util.mixin.call(module.exports, require('./web/workers.js'));
 util.mixin.call(module.exports, require('./web/subscribe.js'));
-util.mixin.call(module.exports, require('./web/client.js'));
 
 // Request sugars
+// ==============
 function dispatch(headers) {
 	var req = new module.exports.Request(headers);
 	req.autoEnd();
 	return req;
 }
+function searchDispatch(headers) {
+	return web.head('#localjs/env').dispatch(headers);
+}
 function makeRequestSugar(method) {
 	return function(url, params) {
-        if (url instanceof module.exports.Client) {
-            return url[method]();
-        }
+		if (url && typeof url == 'object') {
+			params = url;
+			return searchDispatch({ method: method, params: params });
+		}
 		return dispatch({ method: method, url: url, params: params });
 	};
 }
+function makeRequestAcceptSugar(method, type) {
+	return function(url, params) {
+		if (url && typeof url == 'object') {
+			params = url;
+			return searchDispatch({ method: method, params: params }).accept(type);
+		}
+		return dispatch({ method: method, url: url, params: params }).accept(type);
+	};
+}
+function makeRequestBodySugar(method, type) {
+	return function(url, params, body) {
+		if (url && typeof url == 'object') {
+			body = params;
+			params = url;
+			return searchDispatch({ method: method, params: params }).contentType(type).write(body);
+		}
+		if (body === void 0 && params) {
+			body = params;
+			params = undefined;
+		}
+		return dispatch({ method: method, url: url, params: params }).contentType(type).write(body);
+	};
+}
 module.exports.dispatch =  dispatch;
-module.exports.HEAD =      makeRequestSugar('HEAD');
-module.exports.GET =       makeRequestSugar('GET');
-module.exports.POST =      makeRequestSugar('POST');
-module.exports.PUT =       makeRequestSugar('PUT');
-module.exports.PATCH =     makeRequestSugar('PATCH');
-module.exports.DELETE =    makeRequestSugar('DELETE');
-module.exports.SUBSCRIBE = makeRequestSugar('SUBSCRIBE');
-module.exports.NOTIFY =    makeRequestSugar('NOTIFY');
+module.exports.head =      makeRequestSugar('HEAD');
+module.exports.get =       makeRequestSugar('GET');
+module.exports.getText =   makeRequestAcceptSugar('GET', 'text');
+module.exports.getHtml =   makeRequestAcceptSugar('GET', 'html');
+module.exports.getJson =   makeRequestAcceptSugar('GET', 'json');
+module.exports.getCsv =    makeRequestAcceptSugar('GET', 'csv');
+module.exports.post =      makeRequestSugar('POST');
+module.exports.postText =  makeRequestBodySugar('POST', 'text');
+module.exports.postHtml =  makeRequestBodySugar('POST', 'html');
+module.exports.postJson =  makeRequestBodySugar('POST', 'json');
+module.exports.postCsv =   makeRequestBodySugar('POST', 'csv');
+module.exports.put =       makeRequestSugar('PUT');
+module.exports.putText =   makeRequestBodySugar('PUT', 'text');
+module.exports.putHtml =   makeRequestBodySugar('PUT', 'html');
+module.exports.putJson =   makeRequestBodySugar('PUT', 'json');
+module.exports.putCsv =    makeRequestBodySugar('PUT', 'csv');
+module.exports.patch =     makeRequestSugar('PATCH');
+module.exports.patchText = makeRequestBodySugar('PATCH', 'text');
+module.exports.patchHtml = makeRequestBodySugar('PATCH', 'html');
+module.exports.patchJson = makeRequestBodySugar('PATCH', 'json');
+module.exports.patchCsv =  makeRequestBodySugar('PATCH', 'csv');
+module.exports.delete =    makeRequestSugar('DELETE');
 
 // Create globals
-var global, local = module.exports;
+// ==============
+var global, web = module.exports;
 if (typeof window != 'undefined') global = window;
 else if (typeof self != 'undefined') global = self;
 if (global) {
-	global.local     = local;
-	global.HEAD      = local.HEAD;
-	global.GET       = local.GET;
-	global.POST      = local.POST;
-	global.PUT       = local.PUT;
-	global.PATCH     = local.PATCH;
-	global.DELETE    = local.DELETE;
-	global.SUBSCRIBE = local.SUBSCRIBE;
-	global.NOTIFY    = local.NOTIFY;
-    global.from      = local.client;
+	global.web = web;
 }
 
-// Patch arrays to handle promises
-Array.prototype.thenEach = function(a, b) {
-	var callA = function(i, v) { return a(v, i); };
-	var callB = function(i, v) { return b(v, i); };
-	return this.map(function(v, i) {
-		return local.promise(v).then(callA.bind(null, i), callB.bind(null, i));
-	});
-};
-Array.prototype.always = function(a) {
-	return local.promise.bundle(this).always(a);
-};
-Array.prototype.then = function(a, b) {
-	return local.promise.all(this).then(a, b);
-};
-
-// Run worker setup (does nothing outside of a worker)
+// Worker-only setup
+// =================
 require('./worker');
-},{"./config.js":1,"./constants.js":2,"./promises.js":4,"./request-event.js":5,"./util":8,"./web/bridge.js":9,"./web/client.js":10,"./web/content-types.js":11,"./web/helpers.js":12,"./web/http-headers.js":13,"./web/httpl.js":14,"./web/incoming-request.js":15,"./web/incoming-response.js":16,"./web/links.js":17,"./web/request.js":18,"./web/response.js":19,"./web/schemes.js":20,"./web/subscribe.js":21,"./web/uri-template.js":22,"./web/workers.js":23,"./worker":24}],4:[function(require,module,exports){
+},{"./config.js":1,"./constants.js":2,"./promises.js":4,"./request-event.js":5,"./util":8,"./web/bridge.js":9,"./web/content-types.js":10,"./web/helpers.js":11,"./web/http-headers.js":12,"./web/httpl.js":13,"./web/incoming-request.js":14,"./web/incoming-response.js":15,"./web/links.js":16,"./web/request.js":17,"./web/response.js":18,"./web/schemes.js":19,"./web/subscribe.js":20,"./web/uri-template.js":21,"./worker":22}],4:[function(require,module,exports){
 var localConfig = require('./config.js');
 var util = require('./util');
 
@@ -1013,6 +979,13 @@ function deepClone(obj) {
 	return JSON.parse(JSON.stringify(obj));
 }
 
+function getFnName(fn) {
+  if (typeof fn !== 'function') return '';
+  if (fn.name) return fn.name;
+  var match = fn.toString().match(/function ([^\(]+)/);
+  return (match) ? match[1] : '';
+}
+
 // helper to make an array of objects
 // - takes an array of keys (the table "header")
 // - consumes the remaining arguments as table values
@@ -1058,6 +1031,7 @@ module.exports = {
 	mixin: mixin,
 	mixinEventEmitter: mixinEventEmitter,
 	deepClone: deepClone,
+	getFnName: getFnName,
     table: table,
 	nextTick: nextTick
 };
@@ -1069,14 +1043,27 @@ var Response = require('./response.js');
 var IncomingRequest = require('./incoming-request.js');
 var IncomingResponse = require('./incoming-response.js');
 
-var debugLog = false;
+var debugLog = true;
 
 // Bridge
 // ======
 // EXPORTED
 // wraps a reliable, ordered messaging channel to carry messages
-function Bridge(channel) {
+function Bridge(path, channel, targetOrigin) {
+	if (channel instanceof HTMLIFrameElement) {
+		channel = channel.contentWindow;
+	}
+
+	this.path = path;
 	this.channel = channel;
+	this.targetOrigin = targetOrigin || '*';
+	this.isWorker = (this.channel instanceof Worker);
+
+	if (this.isWorker) {
+		channel.addEventListener('message', this.onMessage.bind(this));
+	} else {
+		window.addEventListener('message', this.onMessage.bind(this));
+	}
 
 	this.sidCounter = 1;
 	this.incomingStreams = {}; // maps sid -> request/response stream
@@ -1089,14 +1076,15 @@ module.exports = Bridge;
 // logging helper
 Bridge.prototype.log = function(type) {
 	var args = Array.prototype.slice.call(arguments, 1);
+	args[0] = ((typeof self.window == 'undefined') ? '(worker) ' : '(page) ') + args[0];
 	console[type].apply(console, args);
 };
 
 // Sends messages that were buffered while waiting for the channel to setup
 Bridge.prototype.flushBufferedMessages = function() {
-	if (debugLog) { this.log('debug', 'FLUSHING MESSAGES', JSON.stringify(this.msgBuffer)); }
+	if (debugLog) { this.log('debug', 'FLUSHING MESSAGES ' + JSON.stringify(this.msgBuffer)); }
 	this.msgBuffer.forEach(function(msg) {
-		this.channel.postMessage(msg);
+		this.channel.postMessage(msg, this.targetOrigin);
 	}, this);
 	this.msgBuffer.length = 0;
 };
@@ -1107,10 +1095,8 @@ Bridge.prototype.send = function(msg) {
 		// Buffer messages if not ready
 		this.msgBuffer.push(msg);
 	} else {
-		if (debugLog) { this.log('debug', 'SEND', msg); }
-		if (true || !!self.window) {
-			this.channel.postMessage(msg);
-		}
+		if (debugLog) { this.log('debug', 'SEND ' + JSON.stringify(msg)); }
+		this.channel.postMessage(msg, this.targetOrigin);
 	}
 };
 
@@ -1137,6 +1123,9 @@ Bridge.prototype.terminate = function(status, reason) {
 	this.incomingStreams = {};
 	this.outgoingStreams = {};
 	this.msgBuffer.length = 0;
+	if (this.channel.bridge) {
+		this.channel.bridge = null;
+	}
 	this.channel = null;
 };
 
@@ -1152,7 +1141,7 @@ Bridge.prototype.onRequest = function(ireq, ores) {
 	var msg = {
 		sid: sid,
 		method: ireq.method,
-		path: ireq.path,
+		path: '#' + ((ireq.pathd[1]) ? ireq.pathd[1].slice(1) : ''),
 		params: ireq.params
 	};
 	for (var k in ireq) {
@@ -1173,19 +1162,33 @@ Bridge.prototype.onRequest = function(ireq, ores) {
 };
 
 // HTTPL implementation for incoming messages
-Bridge.prototype.onMessage = function(msg) {
-	if (debugLog) { this.log('debug', 'RECV', msg); }
+Bridge.prototype.onMessage = function(event) {
+	if (!this.isWorker) {
+		if (event.source != this.channel) {
+			return; // not from our channel
+		}
+		if (this.targetOrigin != '*' && event.origin !== this.targetOrigin) {
+			return console.error('Message from untrusted origin', this.targetOrigin, event);
+		}
+	}
+
+	var msg = event.data;
+	if (!msg) {
+		return console.error('Invalid message from channel: Payload missing ' + JSON.stringify(event));
+	}
+
+	if (debugLog) { this.log('debug', 'RECV ' + JSON.stringify(msg)); }
 
 	// Validate and parse JSON
 	if (typeof msg == 'string') {
 		if (!validateJson(msg)) {
-			this.log('warn', 'Dropping malformed JSON message', msg);
+			this.log('warn', 'Dropping malformed JSON message ' + JSON.stringify(msg));
 			return;
 		}
 		msg = JSON.parse(msg);
 	}
 	if (!validateHttplMessage(msg)) {
-		this.log('warn', 'Dropping malformed HTTPL message', msg);
+		this.log('warn', 'Dropping malformed HTTPL message ' + JSON.stringify(msg));
 		return;
 	}
 
@@ -1196,12 +1199,12 @@ Bridge.prototype.onMessage = function(msg) {
 		if (msg.sid < 0) {
 			// There should have been an incoming stream
 			// (incoming response streams are created in onRequest)
-			this.log('warn', 'Dropping unexpected HTTPL response message', msg);
+			this.log('warn', 'Dropping unexpected HTTPL response message ' + JSON.stringify(msg));
 			return;
 		}
 
 		// Is a new request - validate URL
-		if (!msg.path) { return this.log('warn', 'Dropping HTTPL request with no path', msg); }
+		if (!msg.path) { return this.log('warn', 'Dropping HTTPL request with no path ' + JSON.stringify(msg)); }
 
 		// Get the handler
 		var httpl = require('./httpl.js');
@@ -1214,7 +1217,7 @@ Bridge.prototype.onMessage = function(msg) {
 			}
 		}
 		msg.pathd = pathd;
-		if (!handler) { handler = function(req, res) { res.s404('not found').end(); }; };
+		if (!handler) { handler = function(req, res) { res.status(404, 'Not Found').end(); }; }
 
 		// Create incoming request, incoming response and outgoing response
 		var ireq = new IncomingRequest(msg);
@@ -1234,7 +1237,7 @@ Bridge.prototype.onMessage = function(msg) {
 		ires.on('headers', function(headers) {
 			var msg = { sid: resSid, status: headers.status, reason: headers.reason };
 			for (var k in headers) { if (helpers.isHeaderKey(k)) { msg[k] = headers[k]; } }
-			ires.processHeaders(this2.channel.source_url, headers);
+			ires.processHeaders(false, headers);
 			this2.send(msg);
 		});
 		ires.on('data', function(data) {
@@ -1259,6 +1262,15 @@ Bridge.prototype.onMessage = function(msg) {
 			for (var k in msg) {
 				if (helpers.isHeaderKey(k)) {
 					stream.header(k, msg[k]);
+				}
+			}
+			// correct link header entries, if given, to be relative to bridge path
+			if (stream.headers.Link && Array.isArray(stream.headers.Link)) {
+				for (var i=0; i < stream.headers.Link.length; i++) {
+					if (typeof stream.headers.Link[i].href == 'string' && stream.headers.Link[i].href.charAt(0) == '#') {
+						var subpath = stream.headers.Link[i].href.slice(1);
+						stream.headers.Link[i].href = this.path + ((subpath.length) ? '/' + subpath : '');
+					}
 				}
 			}
 			stream.start();
@@ -1311,404 +1323,7 @@ function validateHttplMessage(parsedmsg) {
 		return false;
 	return true;
 }
-},{"./helpers.js":12,"./httpl.js":14,"./incoming-request.js":15,"./incoming-response.js":16,"./request.js":18,"./response.js":19}],10:[function(require,module,exports){
-var constants = require('../constants.js');
-var util = require('../util');
-var promise = require('../promises.js').promise;
-var helpers = require('./helpers.js');
-var UriTemplate = require('./uri-template.js');
-var httpl = require('./httpl.js');
-var Request = require('./request.js');
-var Response = require('./response.js');
-var subscribe = require('./subscribe.js').subscribe;
-
-// Context
-// =======
-// INTERNAL
-// information about the resource that a agent targets
-//  - exists in an "unresolved" state until the URI is confirmed by a response from the server
-//  - enters a "bad" state if an attempt to resolve the link failed
-//  - may be "relative" if described by a relation from another context (eg a query)
-//  - may be "absolute" if described by an absolute URI
-// :NOTE: absolute contexts may have a URI without being resolved, so don't take the presence of a URI as a sign that the resource exists
-function Context(query) {
-	this.query = query;
-	this.resolveState = Context.UNRESOLVED;
-	this.error = null;
-	this.queryIsAbsolute = (typeof query == 'string');
-	if (this.queryIsAbsolute) {
-		this.url  = query;
-		this.urld = helpers.parseUri(this.url);
-	} else {
-		this.url  = null;
-		this.urld = null;
-	}
-}
-Context.UNRESOLVED = 0;
-Context.RESOLVED   = 1;
-Context.FAILED     = 2;
-Context.prototype.isResolved = function() { return this.resolveState === Context.RESOLVED; };
-Context.prototype.isBad      = function() { return this.resolveState === Context.FAILED; };
-Context.prototype.isRelative = function() { return (!this.queryIsAbsolute); };
-Context.prototype.isAbsolute = function() { return this.queryIsAbsolute; };
-Context.prototype.getUrl     = function() { return this.url; };
-Context.prototype.getError   = function() { return this.error; };
-Context.prototype.resetResolvedState = function() {
-	this.resolveState = Context.UNRESOLVED;
-	this.error = null;
-};
-Context.prototype.setResolved = function(url) {
-	this.error = null;
-	this.resolveState = Context.RESOLVED;
-	if (url) {
-		this.url  = url;
-		this.urld = helpers.parseUri(this.url);
-	}
-};
-Context.prototype.setFailed = function(error) {
-	this.error = error;
-	this.resolveState = Context.FAILED;
-};
-
-// Client
-// ======
-// EXPORTED
-// API to follow resource links (as specified by the response Link header)
-//  - uses the rel attribute as the primary link label
-//  - uses URI templates to generate URIs
-//  - queues link navigations until a request is made
-/*
-
-// EXAMPLE 1. Get Bob from Foobar.com
-// - basic navigation
-// - requests
-var foobarService = local.client('https://foobar.com');
-var bob = foobarService.follow('|collection=users|item=bob');
-// ^ or local.client('nav:||https://foobar.com|collection=users|item=bob')
-// ^ or foobarService.follow([{ rel: 'collection', id: 'users' }, { rel: 'item', id:'bob' }]);
-// ^ or foobarService.follow({ rel: 'collection', id: 'users' }).follow({ rel: 'item', id:'bob' });
-// ^ or foobarService.collection('users').item('bob')
-bob.GET()
-	// -> HEAD https://foobar.com
-	// -> HEAD https://foobar.com/users
-	// -> GET  https://foobar.com/users/bob (Accept: application/json)
-	.then(function(response) {
-		var bobsProfile = response.body;
-
-		// Update Bob's email
-		bobsProfile.email = 'bob@gmail.com';
-		bob.PUT(bobsProfile);
-		// -> PUT https://foobar.com/users/bob { email:'bob@gmail.com', ...} (Content-Type: application/json)
-	});
-
-// EXAMPLE 2. Get all users who joined after 2013, in pages of 150
-// - additional navigation query parameters
-// - server-driven batching
-var pageCursor = foobarService.collection('users', { since: '2013-01-01', limit: 150 });
-pageCursor.get()
-	// -> GET https://foobar.com/users?since=2013-01-01&limit=150 (Accept: application/json)
-	.then(function readNextPage(response) {
-		// Send the emails
-		emailNewbieGreetings(response.body); // -- emailNewbieGreetings is a fake utility function
-
-		// Go to the 'next page' link, as supplied by the response
-		pageCursor = pageCursor.next();
-		return pageCursor.GET().then(readNextPage);
-		// -> GET https://foobar.com/users?since=2013-01-01&limit=150&offset=150 (Accept: application/json)
-	})
-	.fail(function(response, request) {
-		// Not finding a 'rel=next' link means the server didn't give us one.
-		if (response.status == local.LINK_NOT_FOUND) { // 001 Local: Link not found - termination condition
-			// Tell Bob his greeting was sent
-			bob.service({ rel: 'foo.com/rel/inbox' }).POST({
-				title: '2013 Welcome Emails Sent',
-				body: 'Good work, Bob.'
-			});
-			// -> POST https://foobar.com/mail/users/bob/inbox (Content-Type: application/json)
-		} else {
-			// Tell Bob something went wrong
-			bob.service({ rel: 'foo.com/rel/inbox' }).POST({
-				title: 'ERROR! 2013 Welcome Emails Failed!',
-				body: 'Way to blow it, Bob.',
-				attachments: {
-					'dump.json': {
-						context: pageCursor.getContext(),
-						request: request,
-						response: response
-					}
-				}
-			});
-			// -> POST https://foobar.com/mail/users/bob/inbox (Content-Type: application/json)
-		}
-	});
-*/
-function Client(context, parentClient) {
-	this.context         = context      || null;
-	this.parentClient    = parentClient || null;
-	this.links           = null;
-}
-
-
-// Executes an HTTP request to our context
-//  - uses additional parameters on the request options:
-//    - noretry: bool, should the url resolve fail automatically if it previously failed?
-Client.prototype.dispatch = function(req) {
-	if (!req) req = {};
-	var self = this;
-
-	var isAutoEnding = (req.isAutoEnding !== void 0) ? req.isAutoEnding : true;
-	if (!(req instanceof Request)) {
-		req = new Request(req);
-	}
-	req.autoEnd(false); // suspend for a moment
-
-	// Resolve our target URL
-	((req.url) ? promise(req.url) : this.resolve({ noretry: req.noretry, nohead: true }))
-		.succeed(function(url) {
-			req.headers.url = url;
-			if (isAutoEnding) req.autoEnd(); // resume autoend
-			req.start();
-
-			// After every successful request, update our links and mark our context as good (in case it had been bad)
-			req.succeed(function(res) {
-				self.context.setResolved();
-				if (res.links) self.links = res.links;
-				else self.links = self.links || []; // cache an empty link list so we dont keep trying during resolution
-				return res;
-			});
-			// On fail, mark context bad
-			req.fail(function(res) {
-				// Let a 1 or 404 indicate a bad context (as opposed to some non-navigational error like a bad request body)
-				if (res.status === constants.LINK_NOT_FOUND || res.status === 404)
-					self.context.setFailed(res);
-				throw res;
-			});
-
-			return req;
-		})
-		.fail(function(res) {
-			req.reject(res);
-		});
-
-	return req;
-};
-
-// Executes a GET text/event-stream request to our context
-Client.prototype.subscribe = function(req) {
-	var self = this;
-	var eventStream;
-	if (!req) req = {};
-	return this.resolve({ nohead: true }).succeed(function(url) {
-		req.url = url;
-		eventStream = subscribe(req);
-		//		return eventStream.response_;
-		//:TODO:? }).then(function() {
-		return eventStream;
-	});
-};
-
-// Follows a link relation from our context, generating a new agent
-// - `query` may be:
-//   - an object in the same form of a `local.queryLink()` parameter
-//   - an array of link query objects (to be followed sequentially)
-//   - a URI string
-//     - if using the 'nav:' scheme, will convert the URI into a link query object
-//     - if a relative URI using the HTTP/S/L scheme, will follow the relation relative to the current context
-//     - if an absolute URI using the HTTP/S/L scheme, will go to that URI
-// - uses URI Templates to generate URLs
-// - when querying, only the `rel` and `id` (if specified) attributes must match
-//   - the exception to this is: `rel` matches and the HREF has an {id} token
-//   - all other attributes are used to fill URI Template tokens and are not required to match
-Client.prototype.follow = function(query) {
-	// convert nav: uri to a query array, string to rel query
-	if (typeof query == 'string') {
-		if (helpers.isNavSchemeUri(query)) {
-			query = helpers.parseNavUri(query);
-		} else {
-			query = { rel: query };
-		}
-	}
-
-	// make sure we always have an array
-	if (!Array.isArray(query))
-		query = [query];
-
-	// build a full follow() chain
-	var nav = this;
-	do {
-		nav = new Client(new Context(query.shift()), nav);
-		if (this.requestDefaults)
-			nav.setRequestDefaults(this.requestDefaults);
-	} while (query[0]);
-
-	return nav;
-};
-
-// Resets the agent's resolution state, causing it to reissue HEAD requests (relative to any parent agents)
-Client.prototype.unresolve = function() {
-	this.context.resetResolvedState();
-	this.links = null;
-	return this;
-};
-
-// Reassigns the agent to a new absolute URL
-// - `url`: required string, the URL to rebase the agent to
-// - resets the resolved state
-Client.prototype.rebase = function(url) {
-	this.unresolve();
-	this.context.query = url;
-	this.context.queryIsAbsolute = true;
-	this.context.url  = url;
-	this.context.urld = helpers.parseUri(url);
-	return this;
-};
-
-// Resolves the agent's URL, reporting failure if a link or resource is unfound
-//  - also ensures the links have been retrieved from the context
-//  - may trigger resolution of parent contexts
-//  - options is optional and may include:
-//    - noretry: bool, should the url resolve fail automatically if it previously failed?
-//    - nohead: bool, should we issue a HEAD request once we have a URL? (not favorable if planning to dispatch something else)
-//  - returns a promise which will fulfill with the resolved url
-Client.prototype.resolve = function(options) {
-	var self = this;
-	options = options || {};
-
-	var nohead = options.nohead;
-	delete options.nohead;
-	// ^ pull `nohead` out so that parent resolves are `nohead: false` - we do want them to dispatch HEAD requests to resolve us
-
-	var resolvePromise = promise();
-	if (this.links !== null && (this.context.isResolved() || (this.context.isAbsolute() && this.context.isBad() === false))) {
-		// We have links and we were previously resolved (or we're absolute so there's no need)
-		resolvePromise.fulfill(this.context.getUrl());
-	} else if (this.context.isBad() === false || (this.context.isBad() && !options.noretry)) {
-		// We don't have links, and we haven't previously failed (or we want to try again)
-		this.context.resetResolvedState();
-		if (this.context.isRelative() && this.parentClient) {
-			// Up the chain we go
-			resolvePromise = this.parentClient.resolve(options)
-				.succeed(function() {
-					// Parent resolved, query its links
-					var childUrl = self.parentClient.lookupLink(self.context);
-					if (childUrl) {
-						// We have a link!
-						self.context.setResolved(childUrl);
-
-						// Send a HEAD request to get our links
-						if (nohead) // unless dont
-							return childUrl;
-						return self.dispatch({ method: 'HEAD', url: childUrl }).succeed(function() { return childUrl; }); // fulfill resolvePromise afterward
-					}
-
-					// Error - Link not found
-					var response = new Response();
-					response.status(constants.LINK_NOT_FOUND, 'Link Query Failed to Match').end();
-					throw response;
-				})
-				.fail(function(error) {
-					self.context.setFailed(error);
-					throw error;
-				});
-		} else {
-			// At the top of the chain already
-			if (nohead)
-				resolvePromise.fulfill(self.context.getUrl());
-			else {
-				resolvePromise = self.dispatch({ method: 'HEAD', url: self.context.getUrl() })
-					.succeed(function(res) { return self.context.getUrl(); });
-			}
-		}
-	} else {
-		// We failed in the past and we don't want to try again
-		resolvePromise.reject(this.context.getError());
-	}
-	return resolvePromise;
-};
-
-// Looks up a link in the cache and generates the URI (the follow logic)
-Client.prototype.lookupLink = function(context) {
-	if (context.query) {
-		if (typeof context.query == 'object') {
-			// Try to find a link that matches
-			var link = helpers.queryLinks(this.links, context.query)[0];
-			if (link) {
-				return UriTemplate.parse(link.href).expand(context.query);
-			}
-		}
-		else if (typeof context.query == 'string') {
-			// A URL
-			if (!helpers.isAbsUri(context.query))
-				return helpers.joinRelPath(this.context.urld, context.query);
-			return context.query;
-		}
-	}
-	console.log('Failed to find a link to resolve context. Link query:', context.query, 'Client:', this);
-	return null;
-};
-
-// Dispatch Sugars
-// ===============
-function makeDispSugar(method) {
-	return function(params) {
-		return this.dispatch({ method: method, params: params });
-	};
-}
-Client.prototype.HEAD      = makeDispSugar('HEAD');
-Client.prototype.GET       = makeDispSugar('GET');
-Client.prototype.DELETE    = makeDispSugar('DELETE');
-Client.prototype.POST      = makeDispSugar('POST');
-Client.prototype.PUT       = makeDispSugar('PUT');
-Client.prototype.PATCH     = makeDispSugar('PATCH');
-Client.prototype.SUBSCRIBE = makeDispSugar('SUBSCRIBE');
-Client.prototype.NOTIFY    = makeDispSugar('NOTIFY');
-
-// Follow sugars
-function makeFollowSugar(rel) {
-	return function(id, opts) {
-		if (id && typeof id == 'object') {
-			opts = id;
-		}
-		opts = opts || {};
-		if (opts.rel) { opts.rel = rel + ' ' + opts.rel; }
-		else opts.rel = rel;
-		if (id) opts.id = id;
-		return this.follow(opts);
-	}
-}
-['service', 'collection', 'item', 'via', 'up', 'first', 'prev', 'next', 'last', 'self'].forEach(function(rel) {
-	Client.prototype[rel] = makeFollowSugar(rel);
-});
-
-
-// Builder
-// =======
-var client = function(query) {
-	if (query instanceof Client)
-		return query;
-
-	// convert nav: uri to a query array
-	if (typeof query == 'string' && helpers.isNavSchemeUri(query))
-		query = helpers.parseNavUri(query);
-
-	// make sure we always have an array
-	if (!Array.isArray(query))
-		query = [query];
-
-	// build a full follow() chain
-	var cl = new Client(new Context(query.shift()));
-	while (query[0]) {
-		cl = new Client(new Context(query.shift()), cl);
-	}
-
-	return cl;
-};
-
-module.exports = {
-	Client: Client,
-	client: client
-};
-},{"../constants.js":2,"../promises.js":4,"../util":8,"./helpers.js":12,"./httpl.js":14,"./request.js":18,"./response.js":19,"./subscribe.js":21,"./uri-template.js":22}],11:[function(require,module,exports){
+},{"./helpers.js":11,"./httpl.js":13,"./incoming-request.js":14,"./incoming-response.js":15,"./request.js":17,"./response.js":18}],10:[function(require,module,exports){
 // contentTypes
 // ============
 // EXPORTED
@@ -1923,7 +1538,7 @@ function splitEventstreamKV(kv) {
 	var i = kv.indexOf(':');
 	return [kv.slice(0, i).trim(), kv.slice(i+1).trim()];
 }
-},{}],12:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 // Helpers
 // =======
 
@@ -2297,8 +1912,8 @@ function parseNavUri(str) {
 
 // EXPORTED
 // builds a proxy URI out of an array of templates
-// eg ('local://my_worker.js/', ['local://0.env/{uri}', 'local://foo/{?uri}'])
-// -> "local://0.env/local%3A%2F%2Ffoo%2F%3Furi%3Dhttpl%253A%252F%252Fmy_worker.js%252F"
+// eg ('http://my_worker.js/', ['http://0.env/{uri}', 'http://foo/{?uri}'])
+// -> "http://0.env/http%3A%2F%2Ffoo%2F%3Furi%3Dhttp%253A%252F%252Fmy_worker.js%252F"
 function makeProxyUri(uri, templates) {
 	if (!Array.isArray(templates)) templates = [templates];
 	for (var i=templates.length-1; i >= 0; i--) {
@@ -2325,6 +1940,15 @@ function isHeaderKey(k) {
 }
 
 // EXPORTED
+// converts a given header value to our standard format - camel case, no dashes
+var headerKeyRegex = /(^|-)(.)/g;
+function formatHeaderKey(str) {
+	// strip any dashes, convert to camelcase
+	// eg 'foo-bar' -> 'FooBar'
+	return str.replace(headerKeyRegex, function(_0,_1,_2) { return _2.toUpperCase(); });
+}
+
+// EXPORTED
 // escapes HTML tokens
 function escape(str) {
 	return (''+str).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -2345,7 +1969,9 @@ module.exports = {
 
 	isAbsUri: isAbsUri, isAbsUrl: isAbsUri,
 	isNavSchemeUri: isNavSchemeUri, isNavSchemeUrl: isNavSchemeUri,
+
 	isHeaderKey: isHeaderKey,
+	formatHeaderKey: formatHeaderKey,
 
 	parseUri: parseUri, parseUrl: parseUri,
 	parseNavUri: parseNavUri, parseNavUrl: parseNavUri,
@@ -2354,7 +1980,7 @@ module.exports = {
 
 	escape: escape
 };
-},{"../promises.js":4,"./content-types.js":11,"./uri-template.js":22}],13:[function(require,module,exports){
+},{"../promises.js":4,"./content-types.js":10,"./uri-template.js":21}],12:[function(require,module,exports){
 var helpers = require('./helpers.js');
 
 // headers
@@ -2488,20 +2114,29 @@ httpHeaders.register('accept',
 	},
 	helpers.parseAcceptHeader
 );
-},{"./helpers.js":12}],14:[function(require,module,exports){
-var helpers = require('./helpers.js');
-var schemes = require('./schemes.js');
-var contentTypes = require('./content-types.js');
-var IncomingRequest = require('./incoming-request.js');
-var Response = require('./response.js');
-var workers = require('./workers.js');
+},{"./helpers.js":11}],13:[function(require,module,exports){
+var helpers = require('./helpers');
+var schemes = require('./schemes');
+var contentTypes = require('./content-types');
+var IncomingRequest = require('./incoming-request');
+var Response = require('./response');
+var Bridge = require('./bridge');
 
 // Local Routes Registry
 // =====================
 var _routes = [];
 
 // EXPORTED
-function at(path, handler) {
+function at(path, handler, targetOrigin) {
+	// Bridge as needed
+	if (typeof handler != 'function' && !handler.bridge) {
+		var channel = handler;
+		channel.bridge = new Bridge(path, channel, targetOrigin);
+		path += '(/.*)?';
+		handler = channel.bridge;
+	}
+
+	// Add route
 	if (path.charAt(0) != '#') {
 		path = '#' + path;
 	}
@@ -2517,52 +2152,22 @@ function getRoutes() {
 // Virtual request handler
 schemes.register('#', function (oreq, ires) {
 	// Parse the virtual path
-	var urld2 = local.parseUri('/' + (oreq.urld.anchor || ''));
+	var urld2 = helpers.parseUri('/' + (oreq.urld.anchor || ''));
 	if (urld2.query) {
 		// mix query params into request
-		var queryParams = local.contentTypes.deserialize('application/x-www-form-urlencoded', urld2.query);
+		var queryParams = contentTypes.deserialize('application/x-www-form-urlencoded', urld2.query);
 		oreq.param(queryParams);
 	}
 	oreq.headers.path = '#' + urld2.path.slice(1);
 
-	// Helper to lookup the handler from the current env's routes
-	var lookupRoute = function() {
-		var pathd;
-		for (var i=0; i < _routes.length; i++) {
-			pathd = _routes[i].path.exec(oreq.headers.path);
-			if (pathd) {
-				oreq.headers.pathd = pathd; // update request headers to include the path match
-				return _routes[i].handler;
-			}
-		}
-	};
-
 	// Get the handler
-	var handler;
-	var isInWorker = (typeof self.document == 'undefined');
-	// Is a host URL given?
-	if (isInWorker) {
-		if (oreq.urld.authority == 'self') {
-			// http://self#foo
-			// Match the route in the current worker
-			handler = lookupRoute();
-		} else {
-			// Use the page
-			handler = self.pageBridge.onRequest.bind(self.pageBridge);
+	var pathd, handler;
+	for (var i=0; i < _routes.length; i++) {
+		pathd = _routes[i].path.exec(oreq.headers.path);
+		if (pathd) {
+			oreq.headers.pathd = pathd; // update request headers to include the path match
+			handler = _routes[i].handler;
 		}
-	} else if (oreq.urld.authority || oreq.urld.path) {
-		if (oreq.urld.authority == 'page') {
-			// http://page#foo
-			// Match the route in the current page
-			handler = lookupRoute();
-		} else {
-			// http://bar.com/foo.js#
-			// Try to get/load the VM
-			handler = workers.getWorker(oreq.urld);
-		}
-	} else {
-		// Match the route in the current page
-		handler = lookupRoute();
 	}
 
 	// Create incoming request / outgoing response
@@ -2582,9 +2187,13 @@ schemes.register('#', function (oreq, ires) {
 
 	// Pass on to the handler
 	if (handler) {
-		handler(ireq, ores, oreq.originChannel);
+		if (handler instanceof Bridge) {
+			handler.onRequest(ireq, ores, oreq.originChannel);
+		} else {
+			handler(ireq, ores, oreq.originChannel);
+		}
 	} else {
-		ores.s404().end();
+		ores.status(404, 'Not Found').end();
 	}
 });
 
@@ -2592,7 +2201,7 @@ module.exports = {
 	at: at,
 	getRoutes: getRoutes
 };
-},{"./content-types.js":11,"./helpers.js":12,"./incoming-request.js":15,"./response.js":19,"./schemes.js":20,"./workers.js":23}],15:[function(require,module,exports){
+},{"./bridge":9,"./content-types":10,"./helpers":11,"./incoming-request":14,"./response":18,"./schemes":19}],14:[function(require,module,exports){
 var util = require('../util');
 var helpers = require('./helpers.js');
 var httpHeaders = require('./http-headers.js');
@@ -2609,9 +2218,8 @@ function IncomingRequest(headers) {
 
 	// Set attributes
 	this.method = (headers.method) ? headers.method.toUpperCase() : 'GET';
-	this[this.method] = true;
 	this.path = headers.path || '#';
-    this.pathd = headers.pathd || [this.path];
+	this.pathd = headers.pathd || [this.path];
 	this.params = (headers.params) || {};
 	for (var k in headers) {
 		if (helpers.isHeaderKey(k)) { // starts uppercase?
@@ -2691,7 +2299,7 @@ IncomingRequest.prototype.pipe = function(target, headersCB, bodyCb) {
 		}
 	} else if (target instanceof require('./response')) {
 		if (!target.headers.ContentType && this.ContentType) {
-			target.ContentType(this.ContentType);
+			target.contentType(this.ContentType);
 		}
 	}
 	if (this.isEnded) {
@@ -2704,7 +2312,7 @@ IncomingRequest.prototype.pipe = function(target, headersCB, bodyCb) {
 	}
 	return target;
 };
-},{"../util":8,"./content-types.js":11,"./helpers.js":12,"./http-headers.js":13,"./links":17,"./request":18,"./response":19}],16:[function(require,module,exports){
+},{"../util":8,"./content-types.js":10,"./helpers.js":11,"./http-headers.js":12,"./links":16,"./request":17,"./response":18}],15:[function(require,module,exports){
 var util = require('../util');
 var helpers = require('./helpers.js');
 var httpHeaders = require('./http-headers.js');
@@ -2817,7 +2425,7 @@ IncomingResponse.prototype.pipe = function(target, headersCB, bodyCb) {
 			return target;
 		}
 		if (!target.headers.ContentType && this.ContentType) {
-			target.ContentType(this.ContentType);
+			target.contentType(this.ContentType);
 		}
 	}
 	if (this.isEnded) {
@@ -2830,44 +2438,54 @@ IncomingResponse.prototype.pipe = function(target, headersCB, bodyCb) {
 	}
 	return target;
 };
-},{"../util":8,"./content-types.js":11,"./helpers.js":12,"./http-headers.js":13,"./links":17,"./request":18,"./response":19}],17:[function(require,module,exports){
+},{"../util":8,"./content-types.js":10,"./helpers.js":11,"./http-headers.js":12,"./links":16,"./request":17,"./response":18}],16:[function(require,module,exports){
 var helpers = require('./helpers');
 module.exports.processLinks = function(links, baseUrl) {
-    if (!links) links = [];
-    links = Array.isArray(links) ? links : [links];
-	links.forEach(function(link) {
-		// Convert relative paths to absolute uris
-		if (link.href && !helpers.isAbsUri(link.href) && baseUrl) {
-            if (link.href.charAt(0) == '#') {
-                if (baseUrl.source) {
-                    // strip any hash or query param
-                    baseUrl = ((baseUrl.protocol) ? baseUrl.protocol + '://' : '') + baseUrl.authority + baseUrl.path;
-                }
-                link.href = helpers.joinUri(baseUrl, link.href);
-            } else {
-                link.href = helpers.joinRelPath(baseUrl, link.href);
+	if (!links) links = [];
+	links = Array.isArray(links) ? links : [links];
+	links
+		.filter(function(link) { return !!link; })
+		.forEach(function(link) {
+			// Convert relative paths to absolute uris
+			if (link.href && !helpers.isAbsUri(link.href) && baseUrl) {
+				if (link.href.charAt(0) == '#') {
+					if (baseUrl.source) {
+						// strip any hash or query param
+						baseUrl = ((baseUrl.protocol) ? baseUrl.protocol + '://' : '') + baseUrl.authority + baseUrl.path;
+					}
+					link.href = helpers.joinUri(baseUrl, link.href);
+				} else {
+					link.href = helpers.joinRelPath(baseUrl, link.href);
+				}
 			}
-		}
 
-        // Add `is` helper
-        if (link.is && typeof link.is != 'function') link._is = link.is;
-        noEnumDesc.value = helpers.queryLink.bind(null, link);
-        Object.defineProperty(link, 'is', noEnumDesc);
-	});
+			// Add `is` helper
+			if (link.is && typeof link.is != 'function') link._is = link.is;
+			if (!link.is) {
+				noEnumDesc.value = helpers.queryLink.bind(null, link);
+				Object.defineProperty(link, 'is', noEnumDesc);
+			}
+		});
 
-    // Add helpers
-    noEnumDesc.value = helpers.queryLinks.bind(null, links);
-    Object.defineProperty(links, 'query', noEnumDesc);
-    noEnumDesc.value = function(query) { return this.query(query)[0]; };
-    Object.defineProperty(links, 'get', noEnumDesc);
+	// Add helpers
+	if (!links.query) {
+		noEnumDesc.value = helpers.queryLinks.bind(null, links);
+		Object.defineProperty(links, 'query', noEnumDesc);
+	}
+	if (!links.get) {
+		noEnumDesc.value = function(query) { return this.query(query)[0]; };
+		Object.defineProperty(links, 'get', noEnumDesc);
+	}
 
-    return links;
+	return links;
 };
 var noEnumDesc = { value: null, enumerable: false, configurable: true, writable: true };
-},{"./helpers":12}],18:[function(require,module,exports){
+},{"./helpers":11}],17:[function(require,module,exports){
+var localConfig = require('../config.js');
 var util = require('../util');
 var promises = require('../promises.js');
 var helpers = require('./helpers.js');
+var UriTemplate = require('./uri-template.js');
 var schemes = require('./schemes.js');
 var contentTypes = require('./content-types.js');
 var Response = require('./response.js');
@@ -2890,12 +2508,14 @@ function Request(headers, originChannel) {
 	this.headers.params = (this.headers.params) || {};
 	this.originChannel = originChannel;
 	this.isBinary = false; // stream is binary?
-	this.isVirtual = local.virtualOnly || undefined; // request going to virtual host?
 
 	// Behavior flags
-    this.isForcedLocal = local.localOnly; // forcing request to be local
 	this.isBufferingResponse = true; // auto-buffering the response?
 	this.isAutoEnding = false; // auto-ending the request on next tick?
+
+	// Stream suspension
+	this.suspensions = 0;
+	this.suspendBuffer = [];
 
 	// Stream state
 	this.isConnOpen = true;
@@ -2909,7 +2529,7 @@ module.exports = Request;
 
 // Header setter
 Request.prototype.header = function(k, v) {
-	k = formatHeaderKey(k);
+	k = helpers.formatHeaderKey(k);
 	// Convert mime if needed
 	if (k == 'Accept' || k == 'ContentType') {
 		v = contentTypes.lookup(v);
@@ -2919,61 +2539,42 @@ Request.prototype.header = function(k, v) {
 };
 
 // Header sugars
-[ 'Accept', 'Authorization', 'ContentType', 'Expect', 'From', 'Link', 'Pragma' ].forEach(function(k) {
+[ 'accept', 'authorization', 'contentType', 'expect', 'from', 'pragma' ].forEach(function(k) {
 	Request.prototype[k] = function(v) {
 		return this.header(k, v);
 	};
 });
 
-// helper to convert a given header value to our standard format - camel case, no dashes
-var headerKeyRegex = /(^|-)(.)/g;
-function formatHeaderKey(str) {
-	// strip any dashes, convert to camelcase
-	// eg 'foo-bar' -> 'FooBar'
-	return str.replace(headerKeyRegex, function(_0,_1,_2) { return _2.toUpperCase(); });
-}
-
 // Content-type sugars
 [ 'json', 'text', 'html', 'csv' ].forEach(function(k) {
     Request.prototype[k] = function (v) {
-        this.ContentType(k);
+        this.contentType(k);
         this.write(v);
         return this;
     };
     Request.prototype['to'+k] = function (v) {
-        this.Accept(k);
+        this.accept(k);
         return this;
     };
 });
 
 // Link-header construction helper
-Request.prototype.link = function(link) {
-	if (!this.headers.Link) { this.headers.Link = []; }
-	if (arguments.length > 1) {
-		if (Array.isArray(arguments[0])) {
-			// table form
-			this.link(util.table.apply(null, arguments));
-		} else {
-			// (href, rel, opts) form
-			var href = arguments[0];
-			var rel = arguments[1];
-			var opts = arguments[2];
-			if (rel && typeof rel == 'object') {
-				opts = rel;
-				rel = false;
-			}
-			if (!opts) opts = {};
-			opts.href = href;
-			if (rel) { opts.rel = (opts.rel) ? (opts.rel+' '+rel) : rel; }
-			this.link(opts);
-		}
-	} else if (Array.isArray(link)) {
-		// [{rel:,href:}...] form
-		this.headers.Link = this.headers.Link.concat(link);
-	} else {
-		// {rel:,href:} form
-		this.headers.Link.push(link);
+// - `href`: string, the target of the link
+// - `attrs`: optional object, the attributes of the link
+// - alternatively, can pass a full link object, or an array of link objects
+Request.prototype.link = function(href, attrs) {
+	if (Array.isArray(href)) {
+		href.forEach(function(link) { this.link(link); }.bind(this));
+		return this;
 	}
+	if (!this.headers.Link) { this.headers.Link = []; }
+	if (href && typeof href == 'object') {
+		attrs = href;
+	} else {
+		if (!attrs) attrs = {};
+		attrs.href = href;
+	}
+	this.headers.Link.push(attrs);
 	return this;
 };
 
@@ -3017,28 +2618,6 @@ Request.prototype.setBinary = function(v) {
 	return this;
 };
 
-
-// Virtual mode
-// overrides the automatic decision as to whether to route to virtual or remote endpoints
-// - (true) -> will route to local or worker endpoints
-// - (false) -> will route to remote endpoints
-// - if no bool is given, sets to true
-Request.prototype.setVirtual = function(v) {
-	this.isVirtual = (v !== void 0) ? v : true;
-	return this;
-};
-
-// Forced local
-// instructs the request to only route to endpoints in the current page
-Request.prototype.forceLocal = function(v) {
-	if (typeof v == 'boolean') {
-		this.isForcedLocal = v;
-	} else {
-		this.isForcedLocal = true;
-	}
-	return this;
-};
-
 // Response buffering
 // instructs the request to auto-buffer the response body and set it to `res.body`
 Request.prototype.bufferResponse = function(v) {
@@ -3065,6 +2644,109 @@ Request.prototype.autoEnd = function(v) {
 	}
 	this.isAutoEnding = v;
 };
+
+// Suspension
+// pauses and queues messaging (stacks, so 2 suspend() calls must be followed by two suspend(false) calls)
+Request.prototype.suspend = function(v) {
+	v = (typeof v != 'undefined') ? v : true;
+	if (v) {
+		this.suspensions++;
+	} else {
+		this.suspensions--;
+		if (this.suspensions <= 0) {
+			this.suspendBuffer.forEach(function(call) {
+				this[call.method].apply(this, call.arguments);
+			}.bind(this));
+			this.suspendBuffer.length = 0;
+		}
+	}
+};
+
+// Dispatcher
+// searches links from the response and dispatches to that target
+Request.prototype.dispatch = function(req) {
+	if (!req) req = {};
+	var self = this;
+
+	if (!(req instanceof Request)) {
+		req = new Request(req);
+		req.autoEnd();
+	}
+
+	// Suspend until our request finishes
+	req.suspend();
+
+	// Finish our request
+	this.always(function(res) {
+		// Try to find a link that matches
+		if (!req.headers.params.rel) req.headers.params.rel = 'self';
+		var link = res.links.get(req.headers.params);
+		if (!link) {
+			// Fulfill with link not found response
+			var ires = new IncomingResponse();
+			var ores = new Response();
+			ires.on('headers', ires.processHeaders.bind(ires, false));
+			ores.wireUp(ires);
+			ores.status(1, 'link not found').end();
+			fulfillResponsePromise(req, ires);
+
+			// Resume
+			req.suspend(false);
+			return;
+		}
+
+		// Update with discovered URL
+		req.headers.url = UriTemplate.parse(link.href).expand(req.headers.params);
+		req.headers.params = {}; // valid params are now in the url thanks to the template
+
+		// Resume
+		req.suspend(false);
+	});
+
+	return req;
+};
+
+function makeRequestSugar(method) {
+	return function(params) {
+		return this.dispatch({ method: method, params: params });
+	};
+}
+function makeRequestAcceptSugar(method, type) {
+	return function(params) {
+		return this.dispatch({ method: method, params: params }).accept(type);
+	};
+}
+function makeRequestBodySugar(method, type) {
+	return function(params, body) {
+		if (body === void 0 && params) {
+			body = params;
+			params = undefined;
+		}
+		return this.dispatch({ method: method, params: params }).contentType(type).write(body);
+	};
+}
+Request.prototype.head =      makeRequestSugar('HEAD');
+Request.prototype.get =       makeRequestSugar('GET');
+Request.prototype.getText =   makeRequestAcceptSugar('GET', 'text');
+Request.prototype.getHtml =   makeRequestAcceptSugar('GET', 'html');
+Request.prototype.getJson =   makeRequestAcceptSugar('GET', 'json');
+Request.prototype.getCsv =    makeRequestAcceptSugar('GET', 'csv');
+Request.prototype.post =      makeRequestSugar('POST');
+Request.prototype.postText =  makeRequestBodySugar('POST', 'text');
+Request.prototype.postHtml =  makeRequestBodySugar('POST', 'html');
+Request.prototype.postJson =  makeRequestBodySugar('POST', 'json');
+Request.prototype.postCsv =   makeRequestBodySugar('POST', 'csv');
+Request.prototype.put =       makeRequestSugar('PUT');
+Request.prototype.putText =   makeRequestBodySugar('PUT', 'text');
+Request.prototype.putHtml =   makeRequestBodySugar('PUT', 'html');
+Request.prototype.putJson =   makeRequestBodySugar('PUT', 'json');
+Request.prototype.putCsv =    makeRequestBodySugar('PUT', 'csv');
+Request.prototype.patch =     makeRequestSugar('PATCH');
+Request.prototype.patchText = makeRequestBodySugar('PATCH', 'text');
+Request.prototype.patchHtml = makeRequestBodySugar('PATCH', 'html');
+Request.prototype.patchJson = makeRequestBodySugar('PATCH', 'json');
+Request.prototype.patchCsv =  makeRequestBodySugar('PATCH', 'csv');
+Request.prototype.delete =    makeRequestSugar('DELETE');
 
 // Pipe helper
 // passes through to its incoming response
@@ -3096,18 +2778,16 @@ Request.prototype.start = function() {
 	var this2 = this;
 	if (!this.isConnOpen) return this;
 	if (this.isStarted) return this;
-	if (!this.headers || !this.headers.url) throw "No URL on request";
+
+	// Suspend queue
+	if (this.suspensions > 0) {
+		this.suspendBuffer.push({ method: 'start', arguments: arguments });
+		return this;
+	}
 
 	// Prep request
-	if (typeof this.isVirtual == 'undefined') {
-		// decide on whether this is virtual based on the presence of a hash
-		this.isVirtual = (this.headers.url.indexOf('#') !== -1);
-	}
-    if (this.isForcedLocal && this.headers.url.charAt(0) !== '#') {
-        // if local only, force
-        this.headers.url = '#' + this.headers.url;
-        this.isVirtual = true;
-    }
+	if (!this.headers || !this.headers.url) throw "No URL on request";
+	var isVirtual = (this.headers.url.indexOf('#') === 0);
     if (this.headers.url.charAt(0) == '/' && typeof window.location != 'undefined') {
 		var origin = window.location.protocol + '//' + window.location.hostname + ((window.location.port) ? (':' + window.location.port) : '');
 		this.headers.url = helpers.joinUri(origin, this.headers.url);
@@ -3117,7 +2797,7 @@ Request.prototype.start = function() {
 	// Setup response object
 	var requestStartTime = Date.now();
 	var ires = new IncomingResponse();
-	ires.on('headers', ires.processHeaders.bind(ires, (this.isVirtual && !this.urld.authority && !this.urld.path) ? false : this.urld));
+	ires.on('headers', ires.processHeaders.bind(ires, (isVirtual) ? false : this.urld));
 	ires.on('end', function() {
 		// Track latency
 		ires.latency = Date.now() - requestStartTime;
@@ -3136,7 +2816,7 @@ Request.prototype.start = function() {
 	ires.on('close', fulfill); // will have no effect if already called
 
 	// Execute by scheme
-	var scheme = (this.isVirtual) ? '#' : parseScheme(this.headers.url);
+	var scheme = (isVirtual) ? '#' : parseScheme(this.headers.url);
 	var schemeHandler = schemes.get(scheme);
 	if (schemeHandler) { schemeHandler(this, ires); }
 	else {
@@ -3156,6 +2836,10 @@ Request.prototype.write = function(data) {
 	if (!this.isConnOpen) return this;
 	if (!this.isStarted) this.start();
 	if (this.isEnded) return this;
+	if (this.suspensions > 0) {
+		this.suspendBuffer.push({ method: 'write', arguments: arguments });
+		return this;
+	}
 	this.emit('data', data);
 	return this;
 };
@@ -3167,6 +2851,10 @@ Request.prototype.end = function(data) {
 	if (!this.isConnOpen) return this;
 	if (this.isEnded) return this;
 	if (!this.isStarted) this.start();
+	if (this.suspensions > 0) {
+		this.suspendBuffer.push({ method: 'end', arguments: arguments });
+		return this;
+	}
 	if (typeof data != 'undefined') {
 		this.write(data);
 	}
@@ -3188,7 +2876,7 @@ Request.prototype.close = function() {
 	if (!this.isStarted) {
 		// Fulfill with abort response
 		var ires = new IncomingResponse();
-		ires.on('headers', ires.processHeaders.bind(ires, (this.isVirtual && !this.urld.authority && !this.urld.path) ? false : this.urld));
+		ires.on('headers', ires.processHeaders.bind(ires, false));
 		var ores = new Response();
 		ores.wireUp(ires);
 		ores.status(0, 'aborted by client').end();
@@ -3204,7 +2892,7 @@ function fulfillResponsePromise(req, res) {
         return;
 
     // log if logging
-    if (local.logTraffic) {
+    if (localConfig.logTraffic) {
         console.log(req.headers, res);
     }
 
@@ -3222,7 +2910,7 @@ function parseScheme(url) {
 	var schemeMatch = /^([^.^:]*):/.exec(url);
 	return (schemeMatch) ? schemeMatch[1] : 'http';
 }
-},{"../promises.js":4,"../util":8,"./content-types.js":11,"./helpers.js":12,"./incoming-response.js":16,"./response.js":19,"./schemes.js":20}],19:[function(require,module,exports){
+},{"../config.js":1,"../promises.js":4,"../util":8,"./content-types.js":10,"./helpers.js":11,"./incoming-response.js":15,"./response.js":18,"./schemes.js":19,"./uri-template.js":21}],18:[function(require,module,exports){
 var util = require('../util');
 var promise = require('../promises.js').promise;
 var helpers = require('./helpers.js');
@@ -3266,9 +2954,9 @@ for (var i=200; i <= 599; i++) {
 
 // Header setter
 Response.prototype.header = function(k, v) {
-	k = formatHeaderKey(k);
+	k = helpers.formatHeaderKey(k);
 	// Convert mime if needed
-	if (k == 'ContentType') {
+	if (k == 'Accept' || k == 'ContentType') {
 		v = contentTypes.lookup(v);
 	}
 	this.headers[k] = v;
@@ -3276,7 +2964,7 @@ Response.prototype.header = function(k, v) {
 };
 
 // Header sugars
-[ 'Allow', 'ContentType', 'Link', 'Location', 'Pragma' ].forEach(function(k) {
+[ 'accept', 'allow', 'contentType', 'location', 'pragma' ].forEach(function(k) {
 	Response.prototype[k] = function(v) {
 		return this.header(k, v);
 	};
@@ -3285,57 +2973,36 @@ Response.prototype.header = function(k, v) {
 // Content-type sugars
 [ 'json', 'text', 'html', 'csv' ].forEach(function(k) {
 	Response.prototype[k] = function (v) {
-		this.ContentType(k);
+		this.contentType(k);
 		this.write(v);
 		return this;
 	};
 });
 Response.prototype.event = function(event, data) {
-	this.ContentType('event-stream');
+	this.contentType('event-stream');
 	this.write({ event: event, data: data });
 	return this;
 };
 
 // Link-header construction helper
-Response.prototype.link = function(link) {
-	if (!this.headers.Link) { this.headers.Link = []; }
-	if (arguments.length > 1) {
-		if (Array.isArray(arguments[0])) {
-			// table form
-			this.link(util.table.apply(null, arguments));
-		} else {
-			// (href, rel, opts) form
-			var href = arguments[0];
-			var rel = arguments[1];
-			var opts = arguments[2];
-			if (rel && typeof rel == 'object') {
-				opts = rel;
-				rel = false;
-			}
-			if (!opts) opts = {};
-			opts.href = href;
-			if (rel) { opts.rel = (opts.rel) ? (opts.rel+' '+rel) : rel; }
-			this.link(opts);
-		}
-	} else if (Array.isArray(link)) {
-		// [{rel:,href:}...] form
-		this.headers.Link = this.headers.Link.concat(link);
-	} else {
-		// {rel:,href:} form
-		this.headers.Link.push(link);
+// - `href`: string, the target of the link
+// - `attrs`: optional object, the attributes of the link
+// - alternatively, can pass a full link object, or an array of link objects
+Response.prototype.link = function(href, attrs) {
+	if (Array.isArray(href)) {
+		href.forEach(function(link) { this.link(link); }.bind(this));
+		return this;
 	}
+	if (!this.headers.Link) { this.headers.Link = []; }
+	if (href && typeof href == 'object') {
+		attrs = href;
+	} else {
+		if (!attrs) attrs = {};
+		attrs.href = href;
+	}
+	this.headers.Link.push(attrs);
 	return this;
 };
-
-// helper to convert a given header value to our standard format - camel case, no dashes
-var headerKeyRegex = /(^|-)(.)/g;
-function formatHeaderKey(str) {
-	// strip any dashes, convert to camelcase
-	// eg 'foo-bar' -> 'FooBar'
-	return str.replace(headerKeyRegex, function(_0,_1,_2) { return _2.toUpperCase(); });
-}
-
-//
 
 // Event connection helper
 // connects events from this stream to the target (event proxying)
@@ -3400,7 +3067,7 @@ Response.prototype.close = function() {
 	this.clearEvents();
 	return this;
 };
-},{"../promises.js":4,"../util":8,"./content-types.js":11,"./helpers.js":12}],20:[function(require,module,exports){
+},{"../promises.js":4,"../util":8,"./content-types.js":10,"./helpers.js":11}],19:[function(require,module,exports){
 var util = require('../util');
 var helpers = require('./helpers.js');
 var contentTypes = require('./content-types.js');
@@ -3438,17 +3105,9 @@ function schemes__get(scheme) {
 
 // HTTP
 // ====
-var inWorker = (typeof self != 'undefined' && typeof self.window == 'undefined');
 schemes.register(['http', 'https'], function(oreq, ires) {
 	var ores = new Response();
 	ores.wireUp(ires);
-
-	// No XHR in workers
-	if (inWorker) {
-		ores.status(0, 'public web requests are not allowed from workers');
-		ores.end();
-		return;
-	}
 
 	// parse URL
 	var urld = helpers.parseUri(oreq.headers.url);
@@ -3639,10 +3298,10 @@ schemes.register('data', function(oreq, ires) {
 	// respond
 	var ores = new Response();
 	ores.wireUp(ires);
-	ores.s200().ContentType(contentType);
+	ores.status(200, 'OK').contentType(contentType);
 	ores.end(data);
 });
-},{"../util":8,"./content-types.js":11,"./helpers.js":12,"./http-headers.js":13,"./response.js":19}],21:[function(require,module,exports){
+},{"../util":8,"./content-types.js":10,"./helpers.js":11,"./http-headers.js":12,"./response.js":18}],20:[function(require,module,exports){
 // Events
 // ======
 var util = require('../util');
@@ -3658,12 +3317,12 @@ var contentTypes = require('./content-types.js');
 // - `request`: request object, formed as in `dispatch()`
 // - returns a `EventStream` object
 function subscribe(request) {
-    if (!(request instanceof Request)) {
-        request = new Request(request);
-    }
+	if (!(request instanceof Request)) {
+		request = new Request(request);
+	}
 	if (!request.headers.method) request.headers.method = 'SUBSCRIBE';
-    if (!request.headers.Accept) request.Accept('events');
-    request.bufferResponse(false);
+	if (!request.headers.Accept) request.accept('events');
+	request.bufferResponse(false);
 
 	return new EventStream(request);
 }
@@ -3680,51 +3339,51 @@ function EventStream(stream) {
 	this.lastEventId = -1;
 	this.isConnOpen = true;
 
-    if (this.request) {
-        this.thenConnect(this.request);
-        if (!this.request.isStarted) { this.request.end(); }
-    } else if (this.response) {
-        this.connect(this.response);
-    }
+	if (this.request) {
+		this.thenConnect(this.request);
+		if (!this.request.isStarted) { this.request.end(); }
+	} else if (this.response) {
+		this.connect(this.response);
+	}
 }
 EventStream.prototype = Object.create(util.EventEmitter.prototype);
 EventStream.prototype.getUrl = function() { return (this.request) ? this.request.headers.url : null; };
 EventStream.prototype.thenConnect = function(request) {
-    var this2 = this;
-    return request.then(this.connect.bind(this), function(res) {
-        this2.response = res;
+	var this2 = this;
+	return request.then(this.connect.bind(this), function(res) {
+		this2.response = res;
 		emitError.call(this2, { event: 'error', data: res });
 		this2.close();
-		throw response;
-    });
+		throw res;
+	});
 };
 EventStream.prototype.connect = function(response) {
 	var this2 = this;
 	var buffer = '', eventDelimIndex;
-    this2.response = response;
+	this2.response = response;
 	this2.isConnOpen = true;
-    this.memoEventsTillNextTick(); // give our listeners time to connect
+	this.memoEventsTillNextTick(); // give our listeners time to connect
 	response.on('data', function(payload) {
-        if (typeof payload == 'string') {
-		    // Add any data we've buffered from past events
-		    payload = buffer + payload;
-		    // Step through each event, as its been given
-		    while ((eventDelimIndex = payload.indexOf('\r\n\r\n')) !== -1) {
-			    var event = payload.slice(0, eventDelimIndex);
-			    emitEvent.call(this2, event);
-			    payload = payload.slice(eventDelimIndex+4);
-		    }
-		    // Hold onto any lefovers
-		    buffer = payload;
-        } else if (payload && typeof payload == 'object') {
-            if (Array.isArray(payload)) {
-                payload.forEach(emitEvent.bind(this2));
-            } else {
-                emitEvent.call(this2, payload);
-            }
-        }
+		if (typeof payload == 'string') {
+			// Add any data we've buffered from past events
+			payload = buffer + payload;
+			// Step through each event, as its been given
+			while ((eventDelimIndex = payload.indexOf('\r\n\r\n')) !== -1) {
+				var event = payload.slice(0, eventDelimIndex);
+				emitEvent.call(this2, event);
+				payload = payload.slice(eventDelimIndex+4);
+			}
+			// Hold onto any lefovers
+			buffer = payload;
+		} else if (payload && typeof payload == 'object') {
+			if (Array.isArray(payload)) {
+				payload.forEach(emitEvent.bind(this2));
+			} else {
+				emitEvent.call(this2, payload);
+			}
+		}
 		// Clear the response' buffer
-  		response._buffer = '';
+		response._buffer = '';
 	});
 	response.on('end', function() { this2.close(); });
 	response.on('close', function() { if (this2.isConnOpen) { this2.reconnect(); } });
@@ -3736,7 +3395,7 @@ EventStream.prototype.reconnect = function() {
 	// Shut down anything old
 	if (this.isConnOpen) {
 		this.isConnOpen = false;
-        if (this.request) this.request.close();
+		if (this.request) this.request.close();
 	}
 
 	// Hold off if the app is tearing down (Firefox will succeed in the request and then hold onto the stream)
@@ -3744,21 +3403,21 @@ EventStream.prototype.reconnect = function() {
 		return;
 	}
 
-    if (!this.request) {
+	if (!this.request) {
 		emitError.call(this2, { event: 'error', data: 'Unable to reconnect - no request supplied' });
-        return;
-    }
+		return;
+	}
 
 	// Re-establish the connection
 	this.request = new Request(this.request.headers);
-    if (this.lastEventId) this.request.header('LastEventID', this.lastEventId);
+	if (this.lastEventId) this.request.header('LastEventID', this.lastEventId);
 	this.thenConnect(this.request);
 	this.request.end();
 };
 EventStream.prototype.close = function() {
 	if (this.isConnOpen) {
 		this.isConnOpen = false;
-        if (this.request) this.request.close();
+		if (this.request) this.request.close();
 		this.emit('close');
 	}
 };
@@ -3846,7 +3505,7 @@ module.exports = {
 	EventStream: EventStream,
 	EventHost: EventHost
 };
-},{"../util":8,"./content-types.js":11,"./request.js":18,"./response.js":19}],22:[function(require,module,exports){
+},{"../util":8,"./content-types.js":10,"./request.js":17,"./response.js":18}],21:[function(require,module,exports){
 /*
  UriTemplate Copyright (c) 2012-2013 Franz Antesberger. All Rights Reserved.
  Available via the MIT license.
@@ -4719,297 +4378,8 @@ var UriTemplate = (function () {
 }(function (UriTemplate) {
     module.exports = UriTemplate;
 }));
-},{}],23:[function(require,module,exports){
-var helpers = require('./helpers.js');
-var promise = require('../promises.js').promise;
-var Bridge = require('./bridge.js');
-
-module.exports = {
-	getWorker: get,
-	spawnWorker: spawnWorker,
-	spawnTempWorker: spawnTempWorker,
-	closeWorker: closeWorker
-};
-
-var _workers = {};
-var _bridges = {};
-// a map of known protocols for http/s domains
-// (reduces the frequency of failed HTTPS lookups when loading scripts without a scheme)
-var _domainSchemes = {};
-
-// lookup active worker by urld
-function get(urld) {
-	if (typeof urld == 'string') {
-		urld = helpers.parseUri(urld);
-	}
-
-	// Relative to current host? Construct full URL
-	if (!urld.authority || urld.authority == '.') {
-		var dir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
-		var dirurl = window.location.origin + dir;
-		var url = helpers.joinRelPath(dirurl, urld.source);
-		urld = local.parseUri(url);
-	}
-
-	// Lookup from existing children
-    var id = urld.authority+urld.path;
-	var bridge = _bridges[id];
-	if (bridge) {
-		return bridge.onRequest.bind(bridge);
-	}
-
-	// Nothing exists yet - is it a .js?
-	if (urld.path.slice(-3) == '.js') {
-		// Try to autoload temp worker
-		spawnTempWorker(urld);
-        var bridge = _bridges[id];
-		return bridge.onRequest.bind(bridge);
-	}
-
-	// Send back a failure responder
-	return function(req, res) {
-		res.status(0, 'request to '+urld.source+' expects '+urld.path+' to be a .js file');
-		res.end();
-	};
-}
-
-function spawnTempWorker(urld) {
-	var worker = spawnWorker(urld);
-	worker.setTemporary();
-	return worker;
-}
-
-function spawnWorker(urld) {
-	if (typeof urld == 'string') {
-		urld = helpers.parseUri(urld);
-	}
-
-	// Relative to current host? Construct full URL
-	if (!urld.authority || urld.authority == '.') {
-		var dir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
-		var dirurl = window.location.protocol + '//' + window.location.hostname + dir;
-		var url = helpers.joinRelPath(dirurl, urld.source);
-		urld = local.parseUri(url);
-	}
-
-	// Eject a temp server if needed
-	if (Object.keys(_workers).length >= local.maxActiveWorkers) {
-        var eject = null;
-	    for (var d in _workers) {
-		    if ( _workers[d].isTemp && !_bridges[d].isInTransaction()) {
-                eject = d;
-                break;
-            }
-	    }
-		console.log('Closing temporary worker', eject);
-		_workers[eject].terminate();
-        delete _workers[eject];
-        delete _bridges[eject];
-	}
-
-    var id = urld.authority+urld.path;
-	var worker = new WorkerWrapper(id);
-	_workers[id] = worker;
-    _bridges[id] = new Bridge(worker);
-	worker.load(urld);
-	return worker;
-}
-
-function closeWorker(url) {
-	var urld = local.parseUri(url);
-
-	// Relative to current host? Construct full URL
-	if (!urld.authority || urld.authority == '.' || urld.authority.indexOf('.') === -1) {
-		var dir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
-		var dirurl = window.location.protocol + '//' + window.location.hostname + dir;
-		url = helpers.joinRelPath(dirurl, urld.source);
-		urld = local.parseUri(url);
-	}
-
-	// Find and terminate
-	var id = urld.authority + urld.path;
-	if (id in _workers) {
-		_workers[id].terminate();
-        delete _workers[id];
-        delete _bridges[id];
-        return true;
-	}
-	return false;
-}
-
-function WorkerWrapper(id) {
-	this.isReady = false;
-	this.isTemp = false;
-
-    this.id = id;
-	this.worker = null;
-
-	this.script_blob = null;
-	this.script_objurl = null;
-	this.source_url = null;
-}
-
-WorkerWrapper.prototype.setTemporary = function(v) {
-	if (typeof v == 'undefined') v = true;
-	this.isTemp = v;
-};
-
-WorkerWrapper.prototype.load = function(urld) {
-	var url = ((urld.protocol) ? urld.protocol + '://' : '') + urld.authority + urld.path;
-	var this2 = this;
-
-	// If no scheme was given, check our cache to see if we can save ourselves some trouble
-	var full_url = url;
-    if (!urld.protocol) {
-        var scheme = _domainSchemes[urld.authority];
-        if (!scheme) {
-            scheme = _domainSchemes[urld.authority] = 'https://';
-        }
-        full_url = scheme + url;
-    }
-
-    // Try to fetch the script
-	GET(full_url)
-		.Accept('application/javascript, text/javascript, text/plain, */*')
-		.fail(function(res) {
-			if (!urld.protocol && res.status === 0) {
-				// Domain error? Try again without ssl
-                full_url = 'http://'+url;
-                _domainSchemes[urld.authority] = 'http://'; // we know it isn't https at least
-				return GET(full_url);
-			}
-			throw res;
-		})
-		.then(function(res) {
-			this2.source_url = full_url;
-
-			// Construct final script
-			var bootstrap_src = require('../config.js').workerBootstrapScript;
-			var src = bootstrap_src+'local.at(\'(.*)\', function($req, $res){\n'+res.body+'\n});';
-
-			// Create worker
-			this2.script_blob = new Blob([src], { type: "text/javascript" });
-			this2.script_objurl = window.URL.createObjectURL(this2.script_blob);
-			this2.worker = new Worker(this2.script_objurl);
-			this2.setup();
-		})
-		.fail(function(res) {
-			this2.terminate(404, 'Worker Not Found');
-		});
-};
-
-WorkerWrapper.prototype.setup = function() {
-	var this2 = this;
-
-	// Setup the incoming message handler
-	this.worker.addEventListener('message', function(event) {
-		var message = event.data;
-		if (!message)
-			return console.error('Invalid message from worker: Payload missing', this, event);
-
-		// Handle messages with an `op` field as worker-control packets rather than HTTPL messages
-		switch (message.op) {
-			case 'ready':
-				this2.isReady = true;
-				_bridges[this2.id].flushBufferedMessages();
-				break;
-			case 'log':
-				this2.onWorkerLog(message.body);
-				break;
-			case 'terminate':
-				this2.terminate();
-				break;
-			default:
-				// If no 'op' field is given, treat it as an HTTPL request and pass onto our bridge
-				_bridges[this2.id].onMessage(message);
-				break;
-		}
-	});
-
-	// :TOOD: set terminate timeout for if no ready received
-};
-
-// Wrapper around the worker postMessage
-WorkerWrapper.prototype.postMessage = function(msg) {
-	if (this.worker) this.worker.postMessage(msg);
-};
-
-// Cleanup
-WorkerWrapper.prototype.terminate = function(status, reason) {
-	if (_bridges[this.id]) _bridges[this.id].terminate(status, reason);
-	if (this.worker) this.worker.terminate();
-	if (this.script_objurl) window.URL.revokeObjectURL(this.script_objurl);
-
-	delete _bridges[this.id];
-	this.worker = null;
-	this.script_blob = null;
-	this.script_objurl = null;
-	this.isReady = false;
-};
-
-// Logs message data from the worker
-WorkerWrapper.prototype.onWorkerLog = function(message) {
-	if (!message)
-		return;
-	if (!Array.isArray(message))
-		return console.error('Received invalid "log" operation: Payload must be an array', message);
-
-	var type = message.shift();
-	var args = ['['+this.source_url+']'].concat(message);
-	switch (type) {
-		case 'error':
-			console.error.apply(console, args);
-			break;
-		case 'warn':
-			console.warn.apply(console, args);
-			break;
-		default:
-			console.log.apply(console, args);
-			break;
-	}
-};
-},{"../config.js":1,"../promises.js":4,"./bridge.js":9,"./helpers.js":12}],24:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 if (typeof self != 'undefined' && typeof self.window == 'undefined') { (function() {
-	// GLOBAL
-	// custom console.*
-	self.console = {
-		log: function() {
-			var args = Array.prototype.slice.call(arguments);
-			doLog('log', args);
-		},
-		dir: function() {
-			var args = Array.prototype.slice.call(arguments);
-			doLog('dir', args);
-		},
-		debug: function() {
-			var args = Array.prototype.slice.call(arguments);
-			doLog('debug', args);
-		},
-		warn: function() {
-			var args = Array.prototype.slice.call(arguments);
-			doLog('warn', args);
-		},
-		error: function() {
-			var args = Array.prototype.slice.call(arguments);
-			doLog('error', args);
-		}
-	};
-	function doLog(type, args) {
-		try { self.postMessage({ op: 'log', body: [type].concat(args) }); }
-		catch (e) {
-			// this is usually caused by trying to log information that cant be serialized
-			self.postMessage({ op: 'log', body: [type].concat(args.map(JSONifyMessage)) });
-		}
-	}
-	// helper to try to get a failed log message through
-	function JSONifyMessage(data) {
-		if (Array.isArray(data))
-			return data.map(JSONifyMessage);
-		if (data && typeof data == 'object')
-			return JSON.stringify(data);
-		return data;
-	}
-
 	// GLOBAL
 	// btoa polyfill
 	// - from https://github.com/lydonchandra/base64encoder
@@ -5057,17 +4427,5 @@ if (typeof self != 'undefined' && typeof self.window == 'undefined') { (function
 			return x.join('');
 		};
 	}
-
-	// Setup page connection
-	var Bridge = require('../web/bridge.js');
-    self.pageBridge = new Bridge(self);
-	self.addEventListener('message', function(event) {
-		var message = event.data;
-		if (!message)
-			return console.error('Invalid message from page: Payload missing', event);
-		pageBridge.onMessage(message);
-	});
-	self.postMessage({ op: 'ready' });
 })(); }
-},{"../web/bridge.js":9}]},{},[3])
-;
+},{}]},{},[3])
