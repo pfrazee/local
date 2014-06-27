@@ -10,11 +10,11 @@ var Bridge = require('./bridge');
 var _routes = [];
 
 // EXPORTED
-function at(path, handler) {
+function at(path, handler, targetOrigin) {
 	// Bridge as needed
 	if (typeof handler != 'function' && !handler.bridge) {
 		var channel = handler;
-		channel.bridge = new Bridge(path, channel);
+		channel.bridge = new Bridge(path, channel, targetOrigin);
 		path += '(/.*)?';
 		handler = channel.bridge;
 	}

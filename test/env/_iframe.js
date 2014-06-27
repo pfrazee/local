@@ -1,3 +1,5 @@
+web.at('parent', window.parent, '*');
+
 web.at('#', function(req, res) {
 	res.link('#', { rel: "self service foo.com/bar", title: "Page Root" });
 	if (req.method == 'POST') {

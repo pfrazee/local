@@ -10,11 +10,21 @@ var debugLog = true;
 // ======
 // EXPORTED
 // wraps a reliable, ordered messaging channel to carry messages
-function Bridge(path, channel) {
+function Bridge(path, channel, targetOrigin) {
+	if (channel instanceof HTMLIFrameElement) {
+		channel = channel.contentWindow;
+	}
+
 	this.path = path;
 	this.channel = channel;
+	this.targetOrigin = targetOrigin;
+	this.isWorker = (this.channel instanceof Worker);
 
-	channel.addEventListener('message', this.onMessage.bind(this));
+	if (this.isWorker) {
+		channel.addEventListener('message', this.onMessage.bind(this));
+	} else {
+		window.addEventListener('message', this.onMessage.bind(this));
+	}
 
 	this.sidCounter = 1;
 	this.incomingStreams = {}; // maps sid -> request/response stream
@@ -35,7 +45,7 @@ Bridge.prototype.log = function(type) {
 Bridge.prototype.flushBufferedMessages = function() {
 	if (debugLog) { this.log('debug', 'FLUSHING MESSAGES ' + JSON.stringify(this.msgBuffer)); }
 	this.msgBuffer.forEach(function(msg) {
-		this.channel.postMessage(msg);
+		this.channel.postMessage(msg, this.targetOrigin || '*');
 	}, this);
 	this.msgBuffer.length = 0;
 };
@@ -47,7 +57,7 @@ Bridge.prototype.send = function(msg) {
 		this.msgBuffer.push(msg);
 	} else {
 		if (debugLog) { this.log('debug', 'SEND ' + JSON.stringify(msg)); }
-		this.channel.postMessage(msg);
+		this.channel.postMessage(msg, this.targetOrigin || '*');
 	}
 };
 
@@ -114,6 +124,15 @@ Bridge.prototype.onRequest = function(ireq, ores) {
 
 // HTTPL implementation for incoming messages
 Bridge.prototype.onMessage = function(event) {
+	if (!this.isWorker) {
+		if (event.source != this.channel) {
+			return; // not from our channel
+		}
+		if (this.targetOrigin != '*' && event.origin !== this.targetOrigin) {
+			return console.error('Message from untrusted origin', this.targetOrigin, event);
+		}
+	}
+
 	var msg = event.data;
 	if (!msg) {
 		return console.error('Invalid message from channel: Payload missing ' + JSON.stringify(event));
