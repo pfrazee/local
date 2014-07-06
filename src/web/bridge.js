@@ -5,25 +5,28 @@ var IncomingRequest = require('./incoming-request.js');
 var IncomingResponse = require('./incoming-response.js');
 
 var debugLog = true;
+var envIframeExists = (typeof HTMLIFrameElement != 'undefined');
+var envWorkerExists = (typeof Worker != 'undefined');
+var envIsWorker     = (typeof self.window == 'undefined');
 
 // Bridge
 // ======
 // EXPORTED
 // wraps a reliable, ordered messaging channel to carry messages
 function Bridge(path, channel, targetOrigin) {
-	if (channel instanceof HTMLIFrameElement) {
+	if (envIframeExists && channel instanceof HTMLIFrameElement) {
 		channel = channel.contentWindow;
 	}
 
 	this.path = path;
 	this.channel = channel;
 	this.targetOrigin = targetOrigin || '*';
-	this.isWorker = (this.channel instanceof Worker);
+	this.channelIsWorker = (envWorkerExists && this.channel instanceof Worker);
 
-	if (this.isWorker) {
+	if (this.channelIsWorker) {
 		channel.addEventListener('message', this.onMessage.bind(this));
 	} else {
-		window.addEventListener('message', this.onMessage.bind(this));
+		self.addEventListener('message', this.onMessage.bind(this));
 	}
 
 	this.sidCounter = 1;
@@ -37,7 +40,7 @@ module.exports = Bridge;
 // logging helper
 Bridge.prototype.log = function(type) {
 	var args = Array.prototype.slice.call(arguments, 1);
-	args[0] = ((typeof self.window == 'undefined') ? '(worker) ' : '(page) ') + args[0];
+	args[0] = ((envIsWorker) ? '(worker) ' : '(page) ') + args[0];
 	console[type].apply(console, args);
 };
 
@@ -45,7 +48,7 @@ Bridge.prototype.log = function(type) {
 Bridge.prototype.flushBufferedMessages = function() {
 	if (debugLog) { this.log('debug', 'FLUSHING MESSAGES ' + JSON.stringify(this.msgBuffer)); }
 	this.msgBuffer.forEach(function(msg) {
-		this.channel.postMessage(msg, this.targetOrigin);
+		this.channel.postMessage(msg, (envIsWorker || this.channelIsWorker) ? undefined : this.targetOrigin);
 	}, this);
 	this.msgBuffer.length = 0;
 };
@@ -57,7 +60,7 @@ Bridge.prototype.send = function(msg) {
 		this.msgBuffer.push(msg);
 	} else {
 		if (debugLog) { this.log('debug', 'SEND ' + JSON.stringify(msg)); }
-		this.channel.postMessage(msg, this.targetOrigin);
+		this.channel.postMessage(msg, (envIsWorker || this.channelIsWorker) ? undefined : this.targetOrigin);
 	}
 };
 
@@ -124,7 +127,7 @@ Bridge.prototype.onRequest = function(ireq, ores) {
 
 // HTTPL implementation for incoming messages
 Bridge.prototype.onMessage = function(event) {
-	if (!this.isWorker) {
+	if (!envIsWorker && !this.channelIsWorker) {
 		if (event.source != this.channel) {
 			return; // not from our channel
 		}
