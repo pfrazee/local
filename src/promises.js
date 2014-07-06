@@ -17,7 +17,7 @@ function Promise(value) {
 	this.__hasValue = false;
 	this.__hasFailed = false;
 	this.value = undefined;
-	if (value)
+	if (value !== void 0)
 		this.fulfill(value);
 }
 Promise.prototype.isUnfulfilled = function() { return !this.__hasValue; };
