@@ -73,9 +73,10 @@ Response.prototype.event = function(event, data) {
 
 // Link-header construction helper
 // - `href`: string, the target of the link
+// - `rel`: optional string, the reltype of the link
 // - `attrs`: optional object, the attributes of the link
 // - alternatively, can pass a full link object, or an array of link objects
-Response.prototype.link = function(href, attrs) {
+Response.prototype.link = function(href, rel, attrs) {
 	if (Array.isArray(href)) {
 		href.forEach(function(link) { this.link(link); }.bind(this));
 		return this;
@@ -83,9 +84,13 @@ Response.prototype.link = function(href, attrs) {
 	if (!this.headers.Link) { this.headers.Link = []; }
 	if (href && typeof href == 'object') {
 		attrs = href;
+	} else if (rel && typeof rel == 'object') {
+		attrs = rel;
+		attrs.href = href;
 	} else {
 		if (!attrs) attrs = {};
 		attrs.href = href;
+		attrs.rel = rel;
 	}
 	this.headers.Link.push(attrs);
 	return this;

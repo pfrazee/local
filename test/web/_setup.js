@@ -13,7 +13,7 @@ web.createServer(function(req, res) {
 		if (req.method === 'GET') {
 			payload = 'service resource';
 		}
-		res.link({ rel: 'self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com', href:'/' });
+		res.link('/', 'self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com');
 		res.link({ rel: 'collection', href: 'local://events', id: 'events' });
 		res.link({ rel: 'collection', href: '/foo', id: 'foo' });
 		res.link({ rel: 'collection', href: '/{id}' });
