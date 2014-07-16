@@ -2,6 +2,7 @@ var promise = require('../promises').promise;
 var helpers = require('./helpers');
 var server = require('./server');
 
+var linksSources = {};
 var linksFetches = [];
 server.createServer(function(req, res) {
 	promise.bundle(linksFetches).always(function(linkss) {
@@ -13,7 +14,7 @@ server.createServer(function(req, res) {
 	});
 }).listen({ local: 'links.local.js' });
 
-module.exports.addLinks = function(source) {
+module.exports.appendIndex = function(source) {
 	if (typeof Document != 'undefined' && (source instanceof Document)) {
 		linksFetches.push(helpers.extractDocumentLinks(source, { links: true }));
 	} else if (typeof source == 'string') {
@@ -23,7 +24,17 @@ module.exports.addLinks = function(source) {
 	}
 };
 
-module.exports.clearLinks = function() {
+module.exports.prependIndex = function(source) {
+	if (typeof Document != 'undefined' && (source instanceof Document)) {
+		linksFetches.unshift(helpers.extractDocumentLinks(source, { links: true }));
+	} else if (typeof source == 'string') {
+		linksFetches.unshift(web.head(source).always(function(res) {
+			return res.links;
+		}));
+	}
+};
+
+module.exports.clearIndex = function() {
 	linksFetches.length = 0;
 };
 

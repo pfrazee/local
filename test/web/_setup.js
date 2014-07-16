@@ -15,7 +15,7 @@ web.createServer(function(req, res) {
 		}
 		res.link('/', 'self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com');
 		res.link({ rel: 'collection', href: 'local://events', id: 'events' });
-		res.link({ rel: 'collection', href: '/foo', id: 'foo' });
+		res.link('/foo', 'collection', { id: 'foo' });
 		res.link({ rel: 'collection', href: '/{id}' });
 		return res.s200().contentType('plain').end(payload);
 	}

@@ -1,6 +1,6 @@
-web.addLinks('local://parent');
-web.addLinks('local://main');
-web.addLinks(document);
+web.appendIndex('local://main');
+web.appendIndex(document);
+web.prependIndex('local://parent');
 
 web.createServer(window.parent, mainServer).listen({ local: 'parent' });
 web.createServer(mainServer).listen({ local: 'main' });
