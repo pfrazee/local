@@ -9,10 +9,10 @@ wait(function () { return done; });
 success
 {
   ContentType: "text/plain",
-  Link: [{href: "#", rel: "self service foo.com/bar", title: "Page Root"}],
+  Link: [{href: "local://main/", rel: "self service foo.com/bar", title: "Page Root"}],
   _buffer: "Iframe server",
   body: "Iframe server",
-  links: [{href: "#", rel: "self service foo.com/bar", title: "Page Root"}],
+  links: [{href: "local://main/", rel: "self service foo.com/bar", title: "Page Root"}],
   reason: undefined,
   status: 200
 }
@@ -29,10 +29,10 @@ wait(function () { return done; });
 success
 {
   ContentType: "text/plain",
-  Link: [{href: "#", rel: "self service foo.com/bar", title: "Page Root"}],
+  Link: [{href: "local://main/", rel: "self service foo.com/bar", title: "Page Root"}],
   _buffer: "ECHO PLZ",
   body: "ECHO PLZ",
-  links: [{href: "#", rel: "self service foo.com/bar", title: "Page Root"}],
+  links: [{href: "local://main/", rel: "self service foo.com/bar", title: "Page Root"}],
   reason: undefined,
   status: 200
 }
@@ -49,10 +49,22 @@ wait(function () { return done; });
 success
 {
   ContentType: "text/plain",
-  Link: [{href: "#parent", rel: "self service foo.com/baz", title: "Parent Frame"}],
+  Link: [
+    {
+      href: "local://parent/",
+      rel: "self service foo.com/baz",
+      title: "Parent Frame"
+    }
+  ],
   _buffer: "Top Window",
   body: "Top Window",
-  links: [{href: "#parent", rel: "self service foo.com/baz", title: "Parent Frame"}],
+  links: [
+    {
+      href: "local://parent/",
+      rel: "self service foo.com/baz",
+      title: "Parent Frame"
+    }
+  ],
   reason: undefined,
   status: 200
 }
@@ -69,10 +81,22 @@ wait(function () { return done; });
 success
 {
   ContentType: "text/plain",
-  Link: [{href: "#parent", rel: "self service foo.com/baz", title: "Parent Frame"}],
+  Link: [
+    {
+      href: "local://parent/",
+      rel: "self service foo.com/baz",
+      title: "Parent Frame"
+    }
+  ],
   _buffer: "echo plz",
   body: "echo plz",
-  links: [{href: "#parent", rel: "self service foo.com/baz", title: "Parent Frame"}],
+  links: [
+    {
+      href: "local://parent/",
+      rel: "self service foo.com/baz",
+      title: "Parent Frame"
+    }
+  ],
   reason: undefined,
   status: 200
 }

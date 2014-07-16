@@ -1,11 +1,10 @@
 importScripts('/local.js');
-web.at('#parent', self);
 
 var counter = 100;
-web.at('#', function(req, res) {
+web.createServer(self, function(req, res) {
 	if (req.method == 'GET') {
         res.s200().contentType('plain');
-        res.link({ href: '#' });
+        res.link({ href: '/' });
 		res.end(counter--);
 		return;
 	}
@@ -17,8 +16,8 @@ web.at('#', function(req, res) {
 		return;
 	}
 	if (req.method == 'BOUNCE') {
-        return web.get('#parent/hello?foo=bob', { bar: 'buzz' }).pipe(res);
+        return web.get('local://parent/hello?foo=bob', { bar: 'buzz' }).pipe(res);
 	}
     res.s405().end();
-});
+}).listen({ local: 'parent' });
 

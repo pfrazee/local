@@ -21,7 +21,7 @@ util.mixin.call(module.exports, require('./promises.js'));
 util.mixin.call(module.exports, require('./request-event.js'));
 util.mixin.call(module.exports, require('./web/helpers.js'));
 util.mixin.call(module.exports, require('./web/links.js'));
-util.mixin.call(module.exports, require('./web/httpl.js'));
+util.mixin.call(module.exports, require('./web/server.js'));
 util.mixin.call(module.exports, require('./web/subscribe.js'));
 
 // Request sugars
@@ -32,7 +32,7 @@ function dispatch(headers) {
 	return req;
 }
 function searchDispatch(headers) {
-	return web.head('#localjs/links').dispatch(headers);
+	return web.head('local://links.local.js').dispatch(headers);
 }
 function makeRequestSugar(method) {
 	return function(url, params) {

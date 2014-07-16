@@ -13,13 +13,14 @@ var envIsWorker     = (typeof self.window == 'undefined');
 // ======
 // EXPORTED
 // wraps a reliable, ordered messaging channel to carry messages
-function Bridge(path, channel, targetOrigin) {
+function Bridge(address, channel, remoteRequestHandler, targetOrigin) {
 	if (envIframeExists && channel instanceof HTMLIFrameElement) {
 		channel = channel.contentWindow;
 	}
 
-	this.path = path;
+	this.address = address;
 	this.channel = channel;
+	this.remoteRequestHandler = remoteRequestHandler;
 	this.targetOrigin = targetOrigin || '*';
 	this.channelIsWorker = (envWorkerExists && this.channel instanceof Worker);
 
@@ -94,7 +95,7 @@ Bridge.prototype.terminate = function(status, reason) {
 };
 
 // Virtual request handler
-Bridge.prototype.onRequest = function(ireq, ores) {
+Bridge.prototype.handleLocalRequest = function(ireq, ores) {
 	var sid = this.sidCounter++;
 
 	// Hold onto streams
@@ -105,7 +106,7 @@ Bridge.prototype.onRequest = function(ireq, ores) {
 	var msg = {
 		sid: sid,
 		method: ireq.method,
-		path: '#' + ((ireq.pathd[1]) ? ireq.pathd[1].slice(1) : ''),
+		path: ireq.path,
 		params: ireq.params
 	};
 	for (var k in ireq) {
@@ -171,16 +172,7 @@ Bridge.prototype.onMessage = function(event) {
 		if (!msg.path) { return this.log('warn', 'Dropping HTTPL request with no path ' + JSON.stringify(msg)); }
 
 		// Get the handler
-		var httpl = require('./httpl.js');
-		var handler, pathd, routes = httpl.getRoutes();
-		for (var i=0; i < routes.length; i++) {
-			pathd = routes[i].path.exec(msg.path);
-			if (pathd) {
-				handler = routes[i].handler;
-				break;
-			}
-		}
-		msg.pathd = pathd;
+		var handler = this.remoteRequestHandler;
 		if (!handler) { handler = function(req, res) { res.status(404, 'Not Found').end(); }; }
 
 		// Create incoming request, incoming response and outgoing response
@@ -226,15 +218,6 @@ Bridge.prototype.onMessage = function(event) {
 			for (var k in msg) {
 				if (helpers.isHeaderKey(k)) {
 					stream.header(k, msg[k]);
-				}
-			}
-			// correct link header entries, if given, to be relative to bridge path
-			if (stream.headers.Link && Array.isArray(stream.headers.Link)) {
-				for (var i=0; i < stream.headers.Link.length; i++) {
-					if (typeof stream.headers.Link[i].href == 'string' && stream.headers.Link[i].href.charAt(0) == '#') {
-						var subpath = stream.headers.Link[i].href.slice(1);
-						stream.headers.Link[i].href = this.path + ((subpath.length) ? '/' + subpath : '');
-					}
 				}
 			}
 			stream.start();

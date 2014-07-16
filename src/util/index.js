@@ -52,7 +52,7 @@ if (typeof window == 'undefined' || window.ActiveXObject || !window.postMessage)
     var nextTickItem = 0; // tracked outside the handler in case one of them throws
 	var nextTickQueue = [];
 	nextTick = function(fn) {
-		if (!nextTickQueue.length) window.postMessage('nextTick', '*');
+		if (!nextTickQueue.length || nextTickItem > 0) window.postMessage('nextTick', '*');
 		nextTickQueue.push(fn);
 	};
 	window.addEventListener('message', function(evt){

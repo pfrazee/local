@@ -1,12 +1,9 @@
 var promise = require('../promises').promise;
 var helpers = require('./helpers');
-var httpl = require('./httpl');
+var server = require('./server');
 
 var linksFetches = [];
-httpl.at('#localjs/links', function(req, res, origin) {
-	if (origin) {
-		return res.s403('Only accessible from the document').end();
-	}
+server.createServer(function(req, res) {
 	promise.bundle(linksFetches).always(function(linkss) {
 		// Flatten arrays
 		var links = [];
@@ -14,7 +11,7 @@ httpl.at('#localjs/links', function(req, res, origin) {
 		// Respond with links
 		res.s204('Ok, no content').link(links).end();
 	});
-});
+}).listen({ local: 'links.local.js' });
 
 module.exports.addLinks = function(source) {
 	if (typeof Document != 'undefined' && (source instanceof Document)) {
@@ -38,15 +35,7 @@ module.exports.processLinks = function(links, baseUrl) {
 		.forEach(function(link) {
 			// Convert relative paths to absolute uris
 			if (link.href && !helpers.isAbsUri(link.href) && baseUrl) {
-				if (link.href.charAt(0) == '#') {
-					if (baseUrl.source) {
-						// strip any hash or query param
-						baseUrl = ((baseUrl.protocol) ? baseUrl.protocol + '://' : '') + baseUrl.authority + baseUrl.path;
-					}
-					link.href = helpers.joinUri(baseUrl, link.href);
-				} else {
-					link.href = helpers.joinRelPath(baseUrl, link.href);
-				}
+				link.href = helpers.joinRelPath(baseUrl, link.href);
 			}
 
 			// Add `is` helper

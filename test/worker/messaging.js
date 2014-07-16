@@ -1,24 +1,23 @@
 // load worker
-web.at('#worker1', new Worker('/test/worker/worker1.js'));
-web.at('#worker2', new Worker('/test/worker/worker2.js'));
-
-web.at('#hello', function(req, res, worker) {
-    res.link({ href: '#' });
+web.createServer(new Worker('/test/worker/worker1.js'), workerServer).listen({ local: 'worker1' });
+web.createServer(new Worker('/test/worker/worker2.js'), workerServer).listen({ local: 'worker2' });
+function workerServer(req, res) {
+    res.link({ href: '/' });
     res.s200().contentType('text').end('yes, hello '+req.params.foo+' '+req.params.bar);
-});
+}
 
 // GET tests
 done = false;
 startTime = Date.now();
 var responses_ = [];
 for (var i = 0; i < 10; i++) {
-	responses_.push(web.get('#worker1').end());
-    responses_.push(web.get('#worker2').end());
+	responses_.push(web.get('local://worker1').end());
+    responses_.push(web.get('local://worker2').end());
 }
 
 web.promise.bundle(responses_).always(function(responses) {
 	responses.forEach(function(res, i) {
-        if (i==0) print(res.links);
+        if (i===0) print(res.links);
 		print(res.status + ' ' + res.body);
 		console.log(res.latency+' ms');
 	});
@@ -27,7 +26,7 @@ web.promise.bundle(responses_).always(function(responses) {
 wait(function () { return done; });
 
 /* =>
-[{href: "#worker1"}]
+[{href: "local://worker1/"}]
 200 0
 200 100
 200 1
@@ -54,8 +53,8 @@ done = false;
 startTime = Date.now();
 var responses_ = [];
 for (var i = 0; i < 10; i++) {
-	responses_.push(web.post('#worker1').end('FooBar'));
-    responses_.push(web.post('#worker2').end('FooBar'));
+	responses_.push(web.post('local://worker1').end('FooBar'));
+    responses_.push(web.post('local://worker2').end('FooBar'));
 }
 
 web.promise.bundle(responses_)
@@ -94,8 +93,8 @@ wait(function () { return done; });
 done = false;
 startTime = Date.now();
 var responses_ = [
-    web.dispatch({ method: 'BOUNCE', url: '#worker1' }),
-    web.dispatch({ method: 'BOUNCE', url: '#worker2' })
+    web.dispatch({ method: 'BOUNCE', url: 'local://worker1' }),
+    web.dispatch({ method: 'BOUNCE', url: 'local://worker2' })
 ];
 
 web.promise.bundle(responses_)
@@ -111,7 +110,7 @@ wait(function () { return done; });
 
 /* =>
 200 yes, hello alice bazz
-[{href: "#worker1/parent"}]
+[{href: "local://parent/"}]
 200 yes, hello bob buzz
-[{href: "#worker2/parent"}]
+[{href: "local://parent/"}]
 */

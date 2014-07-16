@@ -5,7 +5,7 @@
 
 done = false;
 startTime = Date.now();
-var stream = web.subscribe('#events');
+var stream = web.subscribe('local://events');
 stream.on('foo', function(m) { print('foo', m.data); });
 stream.on('bar', function(m) { print('bar', m.data); });
 stream.on('close', function(e) {
@@ -28,7 +28,7 @@ close
 
 done = false;
 startTime = Date.now();
-var stream = web.subscribe('#worker/events');
+var stream = web.subscribe('local://worker/events');
 stream.on('foo', function(m) { print('foo', m.data); });
 stream.on('bar', function(m) { print('bar', m.data); });
 stream.on('close', function(e) {

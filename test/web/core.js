@@ -66,7 +66,7 @@ error
 
 done = false;
 startTime = Date.now();
-web.get('#').then(printSuccess, printError).always(finishTest);
+web.get('local://main').then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -75,23 +75,23 @@ success
   ContentType: "text/plain",
   Link: [
     {
-      href: "#",
+      href: "local://main/",
       rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
     },
-    {href: "#events", id: "events", rel: "collection"},
-    {href: "#foo", id: "foo", rel: "collection"},
-    {href: "#{id}", rel: "collection"}
+    {href: "local://events", id: "events", rel: "collection"},
+    {href: "local://main/foo", id: "foo", rel: "collection"},
+    {href: "local://main/{id}", rel: "collection"}
   ],
   _buffer: "service resource",
   body: "service resource",
   links: [
     {
-      href: "#",
+      href: "local://main/",
       rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
     },
-    {href: "#events", id: "events", rel: "collection"},
-    {href: "#foo", id: "foo", rel: "collection"},
-    {href: "#{id}", rel: "collection"}
+    {href: "local://events", id: "events", rel: "collection"},
+    {href: "local://main/foo", id: "foo", rel: "collection"},
+    {href: "local://main/{id}", rel: "collection"}
   ],
   reason: undefined,
   status: 200
@@ -102,15 +102,15 @@ success
 
 done = false;
 startTime = Date.now();
-web.get('#').end().always(finishTest);
+web.get('local://main').end().always(finishTest);
 wait(function () { return done; });
 done = false;
 startTime = Date.now();
-web.get('#').end().always(finishTest);
+web.get('local://main').end().always(finishTest);
 wait(function () { return done; });
 done = false;
 startTime = Date.now();
-web.get('#').bufferResponse(false).end().always(finishTest);
+web.get('local://main').bufferResponse(false).end().always(finishTest);
 wait(function () { return done; });
 print('done');
 // => done
@@ -119,7 +119,7 @@ print('done');
 
 done = false;
 startTime = Date.now();
-web.get('#')
+web.get('local://main')
   .bufferResponse(false)
   .then(function(res) {
     print('success');
@@ -137,7 +137,7 @@ service resource
 
 done = false;
 startTime = Date.now();
-web.get('#bad/url').then(printSuccess, printError).always(finishTest);
+web.get('local://bad/url').then(printSuccess, printError).always(finishTest);
 wait(function () { return done; });
 
 /* =>
@@ -149,7 +149,7 @@ error
 
 done = false;
 startTime = Date.now();
-web.post('#foo')
+web.post('local://main/foo')
   .contentType('plain')
   .end('echo this, please')
   .then(printSuccess, printError)
@@ -172,7 +172,7 @@ success
 
 done = false;
 startTime = Date.now();
-var req = new web.Request({ method: 'POST', url: '#foo', ContentType: 'plain' });
+var req = new web.Request({ method: 'POST', url: 'local://main/foo', ContentType: 'plain' });
 req.write('echo this,');
 req.write(' also');
 req.end();
@@ -193,7 +193,7 @@ echo this,
 
 done = false;
 startTime = Date.now();
-web.get('#headers-echo')
+web.get('local://headers-echo')
   .header('content-type', 'ContentType')
   .header('fooBar', 'FooBar')
   .header('Asdf-fdsa', 'AsdfFdsa')
@@ -221,7 +221,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.post('#mimetype-aliases-echo')
+web.post('local://mimetype-aliases-echo')
   .accept('html')
   .contentType('csv')
   .end('foo,bar')
@@ -245,14 +245,14 @@ success
 
 done = false;
 startTime = Date.now();
-web.postJson('#foo', {}, {foo: 'bar'})
+web.postJson('local://main/foo', {}, {foo: 'bar'})
   .then(printSuccess, printError)
   .always(function() {
-    return web.postJson('#foo', {foo: 'bar'});
+    return web.postJson('local://main/foo', {foo: 'bar'});
   })
   .then(printSuccess, printError)
   .always(function() {
-    return web.getJson('#accept-type');
+    return web.getJson('local://accept-type');
   })
   .then(printSuccess, printError)
   .always(finishTest);
@@ -292,13 +292,13 @@ success
 
 done = false;
 startTime = Date.now();
-web.post('#mimetype-aliases-echo')
+web.post('local://mimetype-aliases-echo')
   .accept('json')
   .contentType('csv')
   .end('foo,bar')
   .then(printSuccess, printError)
   .always(function() {
-    return web.post('#mimetype-aliases-echo')
+    return web.post('local://mimetype-aliases-echo')
       .accept('html')
       .contentType('text/plain');
   })
@@ -323,12 +323,12 @@ error
 
 done = false;
 startTime = Date.now();
-web.post('#parse-body')
+web.post('local://parse-body')
   .contentType('json')
   .end(JSON.stringify({foo:"bar"}))
   .then(printSuccess, printError)
   .always(function() {
-    return web.post('#parse-body')
+    return web.post('local://parse-body')
       .contentType('urlencoded')
       .end('foo2=bar2');
   })
@@ -359,7 +359,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.get('#query-params', { thunder: 'flash' })
+web.get('local://query-params', { thunder: 'flash' })
   .param('yeah', 'buddy')
   .param({ itsa: 'me', number: 5 })
   .then(printSuccess, printError)
@@ -382,10 +382,10 @@ success
 
 done = false;
 startTime = Date.now();
-web.get('#pipe', { src: '#' })
+web.get('local://pipe', { src: 'local://main' })
   .then(printSuccess, printError)
   .always(function() {
-    return web.post('#pipe')
+    return web.post('local://pipe')
       .end('and also pipe this');
   })
   .then(printSuccess, printError)
@@ -397,23 +397,23 @@ success
   ContentType: "text/piped+plain",
   Link: [
     {
-      href: "#",
+      href: "local://main/",
       rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
     },
-    {href: "#events", id: "events", rel: "collection"},
-    {href: "#foo", id: "foo", rel: "collection"},
-    {href: "#{id}", rel: "collection"}
+    {href: "local://events", id: "events", rel: "collection"},
+    {href: "local://main/foo", id: "foo", rel: "collection"},
+    {href: "local://main/{id}", rel: "collection"}
   ],
   _buffer: "SERVICE RESOURCE",
   body: "SERVICE RESOURCE",
   links: [
     {
-      href: "#",
+      href: "local://main/",
       rel: "self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com"
     },
-    {href: "#events", id: "events", rel: "collection"},
-    {href: "#foo", id: "foo", rel: "collection"},
-    {href: "#{id}", rel: "collection"}
+    {href: "local://events", id: "events", rel: "collection"},
+    {href: "local://main/foo", id: "foo", rel: "collection"},
+    {href: "local://main/{id}", rel: "collection"}
   ],
   reason: undefined,
   status: 200
@@ -432,8 +432,8 @@ success
 
 done = false;
 startTime = Date.now();
-web.get('#pipe', { src: '#' })
-  .pipe(web.post('#pipe', { toLower: true }))
+web.get('local://pipe', { src: 'local://main' })
+  .pipe(web.post('local://pipe', { toLower: true }))
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -453,8 +453,8 @@ success
 
 done = false;
 startTime = Date.now();
-web.get('#not_gonna_find_anything_here')
-  .pipe(web.post('#pipe'))
+web.get('local://not_gonna_find_anything_here')
+  .pipe(web.post('local://pipe'))
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -467,7 +467,7 @@ error
 
 done = false;
 startTime = Date.now();
-web.get('#timeout')
+web.get('local://timeout')
   .setTimeout(1000)
   .then(printSuccess, printError)
   .always(finishTest);
@@ -482,7 +482,7 @@ error
 
 done = false;
 startTime = Date.now();
-web.get('#req-links')
+web.get('local://req-links')
   .link('http://foo.com/bar', { rel: 'item', title: 'An Item' })
   .then(printSuccess, printError)
   .always(finishTest);
@@ -506,7 +506,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.get('#worker')
+web.get('local://worker')
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -516,18 +516,18 @@ success
 {
   ContentType: "text/plain",
   Link: [
-    {href: "#worker", rel: "self current"},
-    {href: "#worker/events", id: "events", rel: "collection"},
-    {href: "#worker/foo", id: "foo", rel: "collection"},
-    {href: "#worker/{id}", rel: "collection"}
+    {href: "local://worker/", rel: "self current"},
+    {href: "local://worker/events", id: "events", rel: "collection"},
+    {href: "local://worker/foo", id: "foo", rel: "collection"},
+    {href: "local://worker/{id}", rel: "collection"}
   ],
   _buffer: "service resource",
   body: "service resource",
   links: [
-    {href: "#worker", rel: "self current"},
-    {href: "#worker/events", id: "events", rel: "collection"},
-    {href: "#worker/foo", id: "foo", rel: "collection"},
-    {href: "#worker/{id}", rel: "collection"}
+    {href: "local://worker/", rel: "self current"},
+    {href: "local://worker/events", id: "events", rel: "collection"},
+    {href: "local://worker/foo", id: "foo", rel: "collection"},
+    {href: "local://worker/{id}", rel: "collection"}
   ],
   reason: undefined,
   status: 200
@@ -538,15 +538,15 @@ success
 
 done = false;
 startTime = Date.now();
-web.get('#worker').end().always(finishTest);
+web.get('local://worker').end().always(finishTest);
 wait(function () { return done; });
 done = false;
 startTime = Date.now();
-web.get('#worker').end().always(finishTest);
+web.get('local://worker').end().always(finishTest);
 wait(function () { return done; });
 done = false;
 startTime = Date.now();
-web.get('#worker').bufferResponse(false).end().always(finishTest);
+web.get('local://worker').bufferResponse(false).end().always(finishTest);
 wait(function () { return done; });
 print('done');
 // => done
@@ -555,21 +555,21 @@ print('done');
 
 done = false;
 startTime = Date.now();
-web.get('#worker/bad/url')
+web.get('local://worker/bad/url')
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
 
 /* =>
 error
-{_buffer: "", body: "", links: [], reason: "Not Found", status: 404}
+{_buffer: "", body: "", links: [], reason: undefined, status: 404}
 */
 
 // successful virtual posts
 
 done = false;
 startTime = Date.now();
-web.post('#worker/foo')
+web.post('local://worker/foo')
   .contentType('plain')
   .end('echo this, please')
   .then(printSuccess, printError)
@@ -581,16 +581,16 @@ success
 {
   ContentType: "text/plain",
   Link: [
-    {href: "#worker", rel: "up via service"},
-    {href: "#worker/foo", rel: "self current"},
-    {href: "#worker/foo/{id}", rel: "item"}
+    {href: "local://worker/", rel: "up via service"},
+    {href: "local://worker/foo", rel: "self current"},
+    {href: "local://worker/foo/{id}", rel: "item"}
   ],
   _buffer: "echo this, please",
   body: "echo this, please",
   links: [
-    {href: "#worker", rel: "up via service"},
-    {href: "#worker/foo", rel: "self current"},
-    {href: "#worker/foo/{id}", rel: "item"}
+    {href: "local://worker/", rel: "up via service"},
+    {href: "local://worker/foo", rel: "self current"},
+    {href: "local://worker/foo/{id}", rel: "item"}
   ],
   reason: undefined,
   status: 200
@@ -601,7 +601,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.get('#worker', { foo: 'bar' })
+web.get('local://worker', { foo: 'bar' })
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -611,18 +611,18 @@ success
 {
   ContentType: "text/plain",
   Link: [
-    {href: "#worker", rel: "self current"},
-    {href: "#worker/events", id: "events", rel: "collection"},
-    {href: "#worker/foo", id: "foo", rel: "collection"},
-    {href: "#worker/{id}", rel: "collection"}
+    {href: "local://worker/", rel: "self current"},
+    {href: "local://worker/events", id: "events", rel: "collection"},
+    {href: "local://worker/foo", id: "foo", rel: "collection"},
+    {href: "local://worker/{id}", rel: "collection"}
   ],
   _buffer: "service resource {\"foo\":\"bar\"}",
   body: "service resource {\"foo\":\"bar\"}",
   links: [
-    {href: "#worker", rel: "self current"},
-    {href: "#worker/events", id: "events", rel: "collection"},
-    {href: "#worker/foo", id: "foo", rel: "collection"},
-    {href: "#worker/{id}", rel: "collection"}
+    {href: "local://worker/", rel: "self current"},
+    {href: "local://worker/events", id: "events", rel: "collection"},
+    {href: "local://worker/foo", id: "foo", rel: "collection"},
+    {href: "local://worker/{id}", rel: "collection"}
   ],
   reason: undefined,
   status: 200
@@ -633,7 +633,7 @@ success
 
 done = false;
 startTime = Date.now();
-web.get('#worker?foo=bar')
+web.get('local://worker?foo=bar')
   .then(printSuccess, printError)
   .always(finishTest);
 wait(function () { return done; });
@@ -643,18 +643,18 @@ success
 {
   ContentType: "text/plain",
   Link: [
-    {href: "#worker", rel: "self current"},
-    {href: "#worker/events", id: "events", rel: "collection"},
-    {href: "#worker/foo", id: "foo", rel: "collection"},
-    {href: "#worker/{id}", rel: "collection"}
+    {href: "local://worker/", rel: "self current"},
+    {href: "local://worker/events", id: "events", rel: "collection"},
+    {href: "local://worker/foo", id: "foo", rel: "collection"},
+    {href: "local://worker/{id}", rel: "collection"}
   ],
   _buffer: "service resource {\"foo\":\"bar\"}",
   body: "service resource {\"foo\":\"bar\"}",
   links: [
-    {href: "#worker", rel: "self current"},
-    {href: "#worker/events", id: "events", rel: "collection"},
-    {href: "#worker/foo", id: "foo", rel: "collection"},
-    {href: "#worker/{id}", rel: "collection"}
+    {href: "local://worker/", rel: "self current"},
+    {href: "local://worker/events", id: "events", rel: "collection"},
+    {href: "local://worker/foo", id: "foo", rel: "collection"},
+    {href: "local://worker/{id}", rel: "collection"}
   ],
   reason: undefined,
   status: 200

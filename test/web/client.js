@@ -84,7 +84,7 @@ success
 */
 
 
-var testLocal = web.head('#');
+var testLocal = web.head('local://main');
 
 // document local server navigation
 
@@ -104,16 +104,16 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "#", rel: "up via service"},
-    {href: "#foo", rel: "self current"},
-    {href: "#foo/{id}", rel: "item"}
+    {href: "local://main/", rel: "up via service"},
+    {href: "local://main/foo", rel: "self current"},
+    {href: "local://main/foo/{id}", rel: "item"}
   ],
   _buffer: "[\"bar\",\"baz\",\"blah\"]",
   body: ["bar", "baz", "blah"],
   links: [
-    {href: "#", rel: "up via service"},
-    {href: "#foo", rel: "self current"},
-    {href: "#foo/{id}", rel: "item"}
+    {href: "local://main/", rel: "up via service"},
+    {href: "local://main/foo", rel: "self current"},
+    {href: "local://main/foo/{id}", rel: "item"}
   ],
   reason: undefined,
   status: 200
@@ -122,24 +122,24 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
-    {href: "#foo/bar", rel: "first"},
-    {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
+    {href: "local://main/", rel: "via service"},
+    {href: "local://main/foo", rel: "up collection index"},
+    {href: "local://main/foo/baz", rel: "self current"},
+    {href: "local://main/foo/bar", rel: "first"},
+    {href: "local://main/foo/blah", rel: "last"},
+    {href: "local://main/foo/bar", rel: "prev"},
+    {href: "local://main/foo/blah", rel: "next"}
   ],
   _buffer: "\"baz\"",
   body: "baz",
   links: [
-    {href: "#", rel: "via service"},
-    {href: "#foo", rel: "up collection index"},
-    {href: "#foo/baz", rel: "self current"},
-    {href: "#foo/bar", rel: "first"},
-    {href: "#foo/blah", rel: "last"},
-    {href: "#foo/bar", rel: "prev"},
-    {href: "#foo/blah", rel: "next"}
+    {href: "local://main/", rel: "via service"},
+    {href: "local://main/foo", rel: "up collection index"},
+    {href: "local://main/foo/baz", rel: "self current"},
+    {href: "local://main/foo/bar", rel: "first"},
+    {href: "local://main/foo/blah", rel: "last"},
+    {href: "local://main/foo/bar", rel: "prev"},
+    {href: "local://main/foo/blah", rel: "next"}
   ],
   reason: undefined,
   status: 200
@@ -150,10 +150,10 @@ success
 
 done = false;
 startTime = Date.now();
-web.head('#worker').get({ rel: 'collection', id: 'foo' })
+web.head('local://worker').get({ rel: 'collection', id: 'foo' })
   .then(printSuccess, printErrorAndFinish)
   .then(function(res) {
-     web.head('#worker')
+     web.head('local://worker')
       .head({ rel: 'collection', id: 'foo'})
       .get({ rel: 'item', id: 'bazzzz' })
       .then(printSuccessAndFinish, printErrorAndFinish);
@@ -165,16 +165,16 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "#worker", rel: "up via service"},
-    {href: "#worker/foo", rel: "self current"},
-    {href: "#worker/foo/{id}", rel: "item"}
+    {href: "local://worker/", rel: "up via service"},
+    {href: "local://worker/foo", rel: "self current"},
+    {href: "local://worker/foo/{id}", rel: "item"}
   ],
   _buffer: "[\"bar\",\"bazzzz\",\"blah\"]",
   body: ["bar", "bazzzz", "blah"],
   links: [
-    {href: "#worker", rel: "up via service"},
-    {href: "#worker/foo", rel: "self current"},
-    {href: "#worker/foo/{id}", rel: "item"}
+    {href: "local://worker/", rel: "up via service"},
+    {href: "local://worker/foo", rel: "self current"},
+    {href: "local://worker/foo/{id}", rel: "item"}
   ],
   reason: undefined,
   status: 200
@@ -183,24 +183,24 @@ success
 {
   ContentType: "application/json",
   Link: [
-    {href: "#worker", rel: "via service"},
-    {href: "#worker/foo", rel: "up collection index"},
-    {href: "#worker/foo/bazzzz", rel: "self current"},
-    {href: "#worker/foo/bar", rel: "first"},
-    {href: "#worker/foo/blah", rel: "last"},
-    {href: "#worker/foo/bar", rel: "prev"},
-    {href: "#worker/foo/blah", rel: "next"}
+    {href: "local://worker/", rel: "via service"},
+    {href: "local://worker/foo", rel: "up collection index"},
+    {href: "local://worker/foo/bazzzz", rel: "self current"},
+    {href: "local://worker/foo/bar", rel: "first"},
+    {href: "local://worker/foo/blah", rel: "last"},
+    {href: "local://worker/foo/bar", rel: "prev"},
+    {href: "local://worker/foo/blah", rel: "next"}
   ],
   _buffer: "\"bazzzz\"",
   body: "bazzzz",
   links: [
-    {href: "#worker", rel: "via service"},
-    {href: "#worker/foo", rel: "up collection index"},
-    {href: "#worker/foo/bazzzz", rel: "self current"},
-    {href: "#worker/foo/bar", rel: "first"},
-    {href: "#worker/foo/blah", rel: "last"},
-    {href: "#worker/foo/bar", rel: "prev"},
-    {href: "#worker/foo/blah", rel: "next"}
+    {href: "local://worker/", rel: "via service"},
+    {href: "local://worker/foo", rel: "up collection index"},
+    {href: "local://worker/foo/bazzzz", rel: "self current"},
+    {href: "local://worker/foo/bar", rel: "first"},
+    {href: "local://worker/foo/blah", rel: "last"},
+    {href: "local://worker/foo/bar", rel: "prev"},
+    {href: "local://worker/foo/blah", rel: "next"}
   ],
   reason: undefined,
   status: 200
@@ -211,10 +211,10 @@ success
 
 done = false;
 startTime = Date.now();
-web.head('#').postJson({ rel: 'collection', id: 'foo' }, {foo: 'bar'})
+web.head('local://main').postJson({ rel: 'collection', id: 'foo' }, {foo: 'bar'})
   .then(printSuccess, printError)
   .always(function() {
-    return web.head('#').head({ rel: 'collection', id: 'foo' }).postJson({ foo: 'bar' });
+    return web.head('local://main').head({ rel: 'collection', id: 'foo' }).postJson({ foo: 'bar' });
   })
   .then(printSuccess, printError)
   .always(finishTest);

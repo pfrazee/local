@@ -12,7 +12,7 @@ var IncomingResponse = require('./incoming-response.js');
 // =======
 // EXPORTED
 // Interface for sending requests
-function Request(headers, originChannel) {
+function Request(headers) {
 	util.EventEmitter.call(this);
 	promises.Promise.call(this);
 	if (!headers) headers = {};
@@ -23,7 +23,6 @@ function Request(headers, originChannel) {
 	this.headers = headers;
 	this.headers.method = (this.headers.method) ? this.headers.method.toUpperCase() : 'GET';
 	this.headers.params = (this.headers.params) || {};
-	this.originChannel = originChannel;
 	this.isBinary = false; // stream is binary?
 
 	// Behavior flags
@@ -304,7 +303,6 @@ Request.prototype.start = function() {
 
 	// Prep request
 	if (!this.headers || !this.headers.url) throw "No URL on request";
-	var isVirtual = (this.headers.url.indexOf('#') === 0);
     if (this.headers.url.charAt(0) == '/' && typeof window.location != 'undefined') {
 		var origin = window.location.protocol + '//' + window.location.hostname + ((window.location.port) ? (':' + window.location.port) : '');
 		this.headers.url = helpers.joinUri(origin, this.headers.url);
@@ -314,7 +312,7 @@ Request.prototype.start = function() {
 	// Setup response object
 	var requestStartTime = Date.now();
 	var ires = new IncomingResponse();
-	ires.on('headers', ires.processHeaders.bind(ires, (isVirtual) ? false : this.urld));
+	ires.on('headers', ires.processHeaders.bind(ires, this.urld));
 	ires.on('end', function() {
 		// Track latency
 		ires.latency = Date.now() - requestStartTime;
@@ -333,14 +331,13 @@ Request.prototype.start = function() {
 	ires.on('close', fulfill); // will have no effect if already called
 
 	// Execute by scheme
-	var scheme = (isVirtual) ? '#' : parseScheme(this.headers.url);
-	var schemeHandler = schemes.get(scheme);
+	var schemeHandler = schemes.get(this.urld.protocol || 'http');
 	if (schemeHandler) { schemeHandler(this, ires); }
 	else {
 		// invalid scheme
 		var ores = new Response();
 		ores.wireUp(ires);
-		ores.status(0, 'unsupported scheme "'+scheme+'"').end();
+		ores.status(0, 'unsupported scheme "'+this.urld.protocol+'"').end();
 	}
 
 	this.isStarted = true;
@@ -420,10 +417,4 @@ function fulfillResponsePromise(req, res) {
 		req.reject(res);
 	else
 		req.fulfill(res); // :TODO: 1xx protocol handling
-}
-
-// helper - extracts scheme from the url
-function parseScheme(url) {
-	var schemeMatch = /^([^.^:]*):/.exec(url);
-	return (schemeMatch) ? schemeMatch[1] : 'http';
 }
