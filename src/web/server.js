@@ -42,6 +42,18 @@ Server.prototype.listen = function(opts) {
 };
 
 // EXPORTED
+Server.prototype.close = function(status, reason) {
+	if (this.address) {
+		delete _servers[this.address.local];
+		this.address = null;
+		if (this.bridge) {
+			this.bridge.terminate(status, reason);
+			delete this.bridge;
+		}
+	}
+};
+
+// EXPORTED
 function createServer(channel, handler) {
 	// Deal with createServer(handler)
 	if (!handler && typeof channel == 'function') {
