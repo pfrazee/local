@@ -95,6 +95,9 @@ Request.prototype.link = function(href, rel, attrs) {
 		attrs.href = href;
 		attrs.rel = rel;
 	}
+	if (attrs.rel) {
+		attrs.rel = helpers.expandRelString(attrs.rel);
+	}
 	this.headers.Link.push(attrs);
 	return this;
 };

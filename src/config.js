@@ -1,4 +1,5 @@
 module.exports = {
 	logTraffic: true,
-	logAllExceptions: false
+	logAllExceptions: false,
+	reltypeAliases: {}
 };

@@ -1,6 +1,7 @@
 // Helpers
 // =======
 
+var localConfig = require('../config.js');
 var promise = require('../promises.js').promise;
 var contentTypes = require('./content-types.js');
 var UriTemplate = require('./uri-template.js');
@@ -27,6 +28,32 @@ function extractDocumentLinks(doc, opts) {
 }
 
 // EXPORTED
+// adds the given reltype aliases to the config
+// - `aliases`: object, a map of shorthand to full domain
+// - eg `web.use({ foo: 'myfoobar.com' })` enables you to do 'foo:bar' to generate 'myfoobar.com/bar' in reltypes
+function use(aliases) {
+	for (var k in aliases) {
+		var domain = aliases[k];
+		if (domain.charAt(domain.length - 1) != '/') {
+			domain += '/';
+		}
+		localConfig.reltypeAliases[domain] = RegExp(k+':', 'g');
+	}
+}
+
+// EXPORTED
+// expands all aliases in the given rel string
+// - `rel`: string
+// - returns string
+function expandRelString(rel) {
+	if (typeof rel != 'string') return rel;
+	for (var domain in localConfig.reltypeAliases) {
+		rel = rel.replace(localConfig.reltypeAliases[domain], domain);
+	}
+	return rel;
+}
+
+// EXPORTED
 // takes parsed a link header and a query object, produces an array of matching links
 // - `links`: [object]/object/Document, either the parsed array of links, the request/response object, or a Document
 // - `query`: object/string
@@ -37,6 +64,10 @@ function queryLinks(links, query) {
 	if (links.parsedHeaders) links = links.parsedHeaders.link; // actually a request or response object
 	if (typeof query == 'string') { query = { rel: query }; } // if just a string, test against reltype
 	if (!Array.isArray(links)) return [];
+	if (!query.__hasExpandedRelString) {
+		Object.defineProperty(query, '__hasExpandedRelString', { value: true });
+		query.rel = expandRelString(query.rel);
+	}
 	return links.filter(function(link) { return queryLink(link, query); });
 }
 
@@ -58,6 +89,10 @@ var uriTokenStart = '\\{([^\\}]*)[\\+\\#\\.\\/\\;\\?\\&]?';
 var uriTokenEnd = '(\\,|\\})';
 function queryLink(link, query) {
 	if (typeof query == 'string') { query = { rel: query }; } // if just a string, test against reltype
+	if (!query.__hasExpandedRelString) {
+		Object.defineProperty(query, '__hasExpandedRelString', { value: true });
+		query.rel = expandRelString(query.rel);
+	}
 	for (var attr in query) {
 		if (typeof query[attr] == 'function') {
 			if (!query[attr].call(null, link[attr], attr)) {
@@ -411,6 +446,8 @@ function escape(str) {
 
 module.exports = {
 	extractDocumentLinks: extractDocumentLinks,
+	use: use,
+	expandRelString: expandRelString,
 	queryLinks: queryLinks,
 	queryLink: queryLink,
 

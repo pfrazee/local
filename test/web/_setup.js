@@ -1,4 +1,5 @@
 // worker scaffold server
+web.use({ grim: 'grimwire.com' });
 var worker = new Worker('/test/web/_worker.js');
 web.createServer(worker, function(req, res) {
 	// :TODO:
@@ -13,7 +14,7 @@ web.createServer(function(req, res) {
 		if (req.method === 'GET') {
 			payload = 'service resource';
 		}
-		res.link('/', 'self current http://grimwire.com/rel/test grimwire.com/rel/test grimwire.com');
+		res.link('/', 'self current http://grimwire.com/rel/test grim:rel/test grimwire.com');
 		res.link({ rel: 'collection', href: 'local://events', id: 'events' });
 		res.link('/foo', 'collection', { id: 'foo' });
 		res.link({ rel: 'collection', href: '/{id}' });

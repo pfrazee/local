@@ -111,6 +111,7 @@ finishTest();
 
 // queryLink(s)
 
+web.use({ what: 'whatever.com' });
 startTime = Date.now();
 var links = [
   { rel: 'foo service via', href: 'http://whatever.com', id: 'whatever', title: 'Whatever' },
@@ -139,6 +140,8 @@ print(web.queryLinks(links, { rel: 'foo service' }).length);
 // => 1
 print(web.queryLinks(links, { rel: 'whatever.com/rel/collection' }).length);
 // => 1
+print(web.queryLinks(links, { rel: 'what:rel/collection' }).length);
+// => 1
 print(web.queryLinks(links, { rel: 'http://whatever.com/rel/collection' }).length);
 // => 0
 print(web.queryLinks(links, { rel: 'foo', id: 'whatever' }).length);
@@ -148,6 +151,8 @@ print(web.queryLinks(links, { rel: 'other.com/-item' }).length);
 print(web.queryLinks(links, { rel: '!foo' }).length);
 // => 0
 print(web.queryLinks(links, { rel: '!whatever.com/rel/collection' }).length);
+// => 3
+print(web.queryLinks(links, { rel: '!what:rel/collection' }).length);
 // => 3
 print(web.queryLinks(links, { rel: 'item !whatever.com/rel/collection' }).length);
 // => 2
