@@ -8,68 +8,77 @@ web.createServer(worker, function(req, res) {
 
 // document web scaffold server
 var foos = ['bar', 'baz', 'blah'];
-web.createServer(function(req, res) {
-	var payload = null, linkHeader;
-	if (req.path == '/') {
-		if (req.method === 'GET') {
-			payload = 'service resource';
-		}
-		res.link('/', 'self current http://grimwire.com/rel/test grim:rel/test grimwire.com');
-		res.link({ rel: 'collection', href: 'local://events', id: 'events' });
-		res.link('/foo', 'collection', { id: 'foo' });
-		res.link({ rel: 'collection', href: '/{id}' });
-		return res.s200().contentType('plain').end(payload);
+var fooServer = web.createServer();
+fooServer.head('/', function(req, res) {
+	res.link('/', 'self current http://grimwire.com/rel/test grim:rel/test grimwire.com');
+	res.link({ rel: 'collection', href: 'local://events', id: 'events' });
+	res.link('/foo', 'collection', { id: 'foo' });
+	res.link({ rel: 'collection', href: '/{id}' });
+	return res.s200().contentType('plain').end();
+});
+fooServer.get('/', function(req, res) {
+	res.link('/', 'self current http://grimwire.com/rel/test grim:rel/test grimwire.com');
+	res.link({ rel: 'collection', href: 'local://events', id: 'events' });
+	res.link('/foo', 'collection', { id: 'foo' });
+	res.link({ rel: 'collection', href: '/{id}' });
+	return res.s200().contentType('plain').end('service resource');
+});
+fooServer.head('/foo', function(req, res) {
+	var linkHeader = [
+		{ rel:'up via service', href:'/' },
+		{ rel:'self current', href:'/foo' },
+		{ rel:'item', href:'/foo/{id}' }
+	];
+	res.s200().link(linkHeader).end();
+});
+fooServer.get('/foo', function(req, res) {
+	var linkHeader = [
+		{ rel:'up via service', href:'/' },
+		{ rel:'self current', href:'/foo' },
+		{ rel:'item', href:'/foo/{id}' }
+	];
+	res.s200().link(linkHeader);
+	// so we can experiment with streaming, write the json in bits:
+	res.json('[');
+	foos.forEach(function(p, i) { res.json((i!==0?',':'')+'"'+p+'"'); });
+	res.json(']');
+	return res.end();
+});
+fooServer.post('/foo', function(req, res) {
+	// pipe back
+	return req.pipe(res.s200());
+});
+function linkFoo(res, itemIndex, itemName) {
+	res.link('/', { rel: 'via service' });
+	res.link('/foo', { rel: 'up collection index' });
+	res.link('/foo/'+itemName, { rel: 'self current' });
+	res.link('/foo/'+foos[0], { rel: 'first' });
+	res.link('/foo/'+foos[foos.length - 1], { rel: 'last' });
+	if (itemIndex !== 0) {
+		res.link('/foo/'+foos[itemIndex - 1], { rel: 'prev' });
 	}
-
-	if (req.path == '/foo') {
-		if (req.method != 'HEAD') {
-			payload = foos;
-		}
-		if (req.method == 'POST') {
-			// pipe back
-			return req.pipe(res.s200());
-		}
-		linkHeader = [
-			{ rel:'up via service', href:'/' },
-			{ rel:'self current', href:'/foo' },
-			{ rel:'item', href:'/foo/{id}' }
-		];
-		res.s200().link(linkHeader);
-		// so we can experiment with streaming, write the json in bits:
-		if (payload) {
-			res.json('[');
-			payload.forEach(function(p, i) { res.json((i!==0?',':'')+'"'+p+'"'); });
-			res.json(']');
-		}
-		return res.end();
+	if (itemIndex !== foos.length - 1) {
+		res.link('/foo/'+foos[itemIndex + 1], { rel: 'next' });
 	}
-
-	if (req.path.indexOf('/foo/') === 0) {
-		var itemName = req.path.slice(5);
-		var itemIndex = foos.indexOf(itemName);
-		if (itemIndex === -1) {
-			return res.s404().end();
-		}
-		if (req.method === 'GET') {
-			payload = itemName;
-		}
-		res.link('/', { rel: 'via service' });
-		res.link('/foo', { rel: 'up collection index' });
-		res.link('/foo/'+itemName, { rel: 'self current' });
-		res.link('/foo/'+foos[0], { rel: 'first' });
-		res.link('/foo/'+foos[foos.length - 1], { rel: 'last' });
-		if (itemIndex !== 0) {
-			res.link('/foo/'+foos[itemIndex - 1], { rel: 'prev' });
-		}
-		if (itemIndex !== foos.length - 1) {
-			res.link('/foo/'+foos[itemIndex + 1], { rel: 'next' });
-		}
-		res.s200().contentType('json');
-		res.end('"'+payload+'"');
+}
+fooServer.head('/foo/:id', function(req, res) {
+	var itemIndex = foos.indexOf(req.params.id);
+	if (itemIndex === -1) {
+		return res.s404().end();
 	}
-
-	res.s404().end();
-}).listen({ local: 'main' });
+	linkFoo(res, itemIndex, req.params.id);
+	res.s200().contentType('json').end();
+});
+fooServer.on('get', '/foo/:id', function(req, res) {
+	var itemIndex = foos.indexOf(req.params.id);
+	if (itemIndex === -1) {
+		return res.s404().end();
+	}
+	linkFoo(res, itemIndex, req.params.id);
+	res.s200().contentType('json');
+	res.end('"'+req.params.id+'"');
+});
+fooServer.listen({ local: 'main' });
 
 web.createServer(function(req, res) {
 	res.s204()
